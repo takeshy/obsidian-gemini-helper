@@ -1,0 +1,9 @@
+{
+  "id": "gemini-helper",
+  "name": "Gemini Helper",
+  "version": "1.0.0",
+  "minAppVersion": "0.15.0",
+  "description": "AI-powered assistant for Obsidian using Google Gemini with File Search RAG capabilities",
+  "author": "",
+  "isDesktopOnly": true
+}

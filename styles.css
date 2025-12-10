@@ -1,0 +1,689 @@
+/* Gemini Helper Plugin Styles */
+
+/* Chat Container */
+.gemini-helper-chat-container {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.gemini-helper-chat {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 0;
+}
+
+/* Chat Header */
+.gemini-helper-chat-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.gemini-helper-chat-header h3 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.gemini-helper-clear-btn {
+  font-size: 12px;
+  padding: 4px 8px;
+  background: transparent;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 4px;
+  cursor: pointer;
+  color: var(--text-muted);
+}
+
+.gemini-helper-clear-btn:hover {
+  background: var(--background-modifier-hover);
+  color: var(--text-normal);
+}
+
+/* Header Actions */
+.gemini-helper-header-actions {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+
+.gemini-helper-icon-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px;
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  color: var(--text-muted);
+  transition: background 0.2s, color 0.2s;
+}
+
+.gemini-helper-icon-btn:hover {
+  background: var(--background-modifier-hover);
+  color: var(--text-normal);
+}
+
+.gemini-helper-chevron {
+  margin-left: 2px;
+}
+
+/* Chat History Dropdown */
+.gemini-helper-history-dropdown {
+  max-height: 300px;
+  overflow-y: auto;
+  border-bottom: 1px solid var(--background-modifier-border);
+  background: var(--background-secondary);
+}
+
+.gemini-helper-history-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  cursor: pointer;
+  border-bottom: 1px solid var(--background-modifier-border);
+  transition: background 0.2s;
+}
+
+.gemini-helper-history-item:last-child {
+  border-bottom: none;
+}
+
+.gemini-helper-history-item:hover {
+  background: var(--background-modifier-hover);
+}
+
+.gemini-helper-history-item.active {
+  background: var(--background-modifier-active-hover);
+}
+
+.gemini-helper-history-title {
+  flex: 1;
+  font-size: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-right: 8px;
+}
+
+.gemini-helper-history-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.gemini-helper-history-date {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.gemini-helper-history-delete {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  color: var(--text-muted);
+  font-size: 14px;
+  opacity: 0;
+  transition: opacity 0.2s, color 0.2s, background 0.2s;
+}
+
+.gemini-helper-history-item:hover .gemini-helper-history-delete {
+  opacity: 1;
+}
+
+.gemini-helper-history-delete:hover {
+  background: var(--background-modifier-error);
+  color: var(--text-on-accent);
+}
+
+.gemini-helper-history-empty {
+  padding: 16px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+/* Messages Area */
+.gemini-helper-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Empty State */
+.gemini-helper-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.gemini-helper-empty-state p {
+  margin: 4px 0;
+}
+
+.gemini-helper-empty-hint {
+  font-size: 12px;
+}
+
+/* Message Bubbles */
+.gemini-helper-message {
+  padding: 10px 14px;
+  border-radius: 12px;
+  max-width: 85%;
+  word-wrap: break-word;
+}
+
+.gemini-helper-message-user {
+  align-self: flex-end;
+  background: var(--interactive-accent);
+  color: var(--text-on-accent);
+}
+
+.gemini-helper-message-assistant {
+  align-self: flex-start;
+  background: var(--background-secondary);
+  color: var(--text-normal);
+}
+
+.gemini-helper-message-streaming {
+  border: 1px solid var(--interactive-accent);
+}
+
+.gemini-helper-message-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+  font-size: 11px;
+}
+
+.gemini-helper-message-time {
+  margin-left: auto;
+}
+
+/* Copy Button */
+.gemini-helper-copy-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px;
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  color: var(--text-muted);
+  opacity: 0;
+  transition: opacity 0.2s, color 0.2s;
+}
+
+.gemini-helper-message:hover .gemini-helper-copy-btn {
+  opacity: 1;
+}
+
+.gemini-helper-copy-btn:hover {
+  color: var(--text-normal);
+  background: var(--background-modifier-hover);
+}
+
+.gemini-helper-message-user .gemini-helper-copy-btn {
+  color: var(--text-on-accent);
+}
+
+.gemini-helper-message-user .gemini-helper-copy-btn:hover {
+  color: var(--text-on-accent);
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.gemini-helper-message-role {
+  font-weight: 600;
+}
+
+.gemini-helper-message-user .gemini-helper-message-role {
+  color: var(--text-on-accent);
+}
+
+.gemini-helper-message-content {
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.gemini-helper-message-content p {
+  margin: 0 0 8px 0;
+}
+
+.gemini-helper-message-content p:last-child {
+  margin-bottom: 0;
+}
+
+/* Tool Calls */
+.gemini-helper-tool-calls {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--background-modifier-border);
+}
+
+.gemini-helper-tool-call {
+  background: var(--background-primary);
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-size: 11px;
+  margin-bottom: 4px;
+}
+
+.gemini-helper-tool-name {
+  font-weight: 600;
+  color: var(--interactive-accent);
+  display: block;
+  margin-bottom: 4px;
+}
+
+.gemini-helper-tool-args {
+  font-family: var(--font-monospace);
+  color: var(--text-muted);
+  white-space: pre-wrap;
+  display: block;
+}
+
+/* Loading Animation */
+.gemini-helper-loading {
+  display: flex;
+  gap: 4px;
+  padding: 12px;
+  align-self: flex-start;
+}
+
+.gemini-helper-loading-dot {
+  width: 8px;
+  height: 8px;
+  background: var(--text-muted);
+  border-radius: 50%;
+  animation: gemini-helper-bounce 1.4s infinite ease-in-out;
+}
+
+.gemini-helper-loading-dot:nth-child(1) {
+  animation-delay: -0.32s;
+}
+
+.gemini-helper-loading-dot:nth-child(2) {
+  animation-delay: -0.16s;
+}
+
+@keyframes gemini-helper-bounce {
+  0%, 80%, 100% {
+    transform: scale(0);
+  }
+  40% {
+    transform: scale(1);
+  }
+}
+
+/* Input Container */
+.gemini-helper-input-container {
+  border-top: 1px solid var(--background-modifier-border);
+  background: var(--background-primary);
+}
+
+/* Input Area */
+.gemini-helper-input-area {
+  display: flex;
+  gap: 8px;
+  padding: 12px 12px 8px 12px;
+}
+
+/* Model Selector */
+.gemini-helper-model-selector {
+  padding: 0 12px 12px 12px;
+}
+
+.gemini-helper-model-select {
+  width: 100%;
+  padding: 4px 8px;
+  font-size: 11px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 4px;
+  background: var(--background-secondary);
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.gemini-helper-model-select:hover {
+  color: var(--text-normal);
+}
+
+.gemini-helper-model-select:focus {
+  outline: none;
+  border-color: var(--interactive-accent);
+}
+
+.gemini-helper-model-select:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.gemini-helper-input {
+  flex: 1;
+  min-height: 36px;
+  max-height: 200px;
+  padding: 8px 12px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 8px;
+  background: var(--background-secondary);
+  color: var(--text-normal);
+  font-family: inherit;
+  font-size: 13px;
+  resize: none;
+  line-height: 1.4;
+}
+
+.gemini-helper-input:focus {
+  outline: none;
+  border-color: var(--interactive-accent);
+}
+
+.gemini-helper-input::placeholder {
+  color: var(--text-muted);
+}
+
+.gemini-helper-send-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  background: var(--interactive-accent);
+  color: var(--text-on-accent);
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.gemini-helper-send-btn:hover {
+  opacity: 0.9;
+}
+
+.gemini-helper-send-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.gemini-helper-stop-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  background: var(--background-modifier-error);
+  color: var(--text-on-accent);
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.gemini-helper-stop-btn:hover {
+  opacity: 0.9;
+}
+
+/* Markdown Elements in Messages */
+.gemini-helper-h2 {
+  font-size: 16px;
+  font-weight: 600;
+  margin: 8px 0 4px 0;
+}
+
+.gemini-helper-h3 {
+  font-size: 14px;
+  font-weight: 600;
+  margin: 6px 0 4px 0;
+}
+
+.gemini-helper-h4 {
+  font-size: 13px;
+  font-weight: 600;
+  margin: 4px 0;
+}
+
+.gemini-helper-list-item {
+  margin-left: 16px;
+  list-style: disc;
+}
+
+.gemini-helper-inline-code {
+  background: var(--background-primary);
+  padding: 2px 4px;
+  border-radius: 3px;
+  font-family: var(--font-monospace);
+  font-size: 12px;
+}
+
+.gemini-helper-paragraph {
+  margin: 0 0 8px 0;
+}
+
+/* RAG Used Indicator */
+.gemini-helper-rag-used {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 8px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.gemini-helper-rag-indicator {
+  font-size: 11px;
+  padding: 2px 8px;
+  background: var(--interactive-accent);
+  color: var(--text-on-accent);
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Tools Used Indicator */
+.gemini-helper-tools-used {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 8px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.gemini-helper-tool-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--text-muted);
+  background: var(--background-primary);
+  padding: 2px 8px;
+  border-radius: 12px;
+}
+
+/* Attachments */
+.gemini-helper-attachments {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.gemini-helper-attachment {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--text-muted);
+  background: var(--background-primary);
+  padding: 4px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--background-modifier-border);
+}
+
+/* Attachment Input */
+.gemini-helper-attachment-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  background: transparent;
+  color: var(--text-muted);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+
+.gemini-helper-attachment-btn:hover {
+  background: var(--background-modifier-hover);
+  color: var(--text-normal);
+}
+
+.gemini-helper-pending-attachments {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 8px 12px 0 12px;
+}
+
+.gemini-helper-pending-attachment {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--text-normal);
+  background: var(--background-secondary);
+  padding: 4px 8px;
+  border-radius: 6px;
+  border: 1px solid var(--background-modifier-border);
+}
+
+.gemini-helper-pending-attachment-remove {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  padding: 0;
+  margin-left: 4px;
+  background: transparent;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.gemini-helper-pending-attachment-remove:hover {
+  background: var(--background-modifier-error);
+  color: var(--text-on-accent);
+}
+
+/* Pending Edit Box */
+.gemini-helper-pending-edit {
+  margin-top: 12px;
+  padding: 12px;
+  background: var(--background-primary);
+  border: 1px solid var(--interactive-accent);
+  border-radius: 8px;
+}
+
+.gemini-helper-pending-edit-info {
+  font-size: 12px;
+  margin-bottom: 10px;
+  color: var(--text-normal);
+}
+
+.gemini-helper-pending-edit-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.gemini-helper-edit-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 500;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.2s, opacity 0.2s;
+}
+
+.gemini-helper-edit-apply {
+  background: var(--interactive-accent);
+  color: var(--text-on-accent);
+}
+
+.gemini-helper-edit-apply:hover {
+  opacity: 0.9;
+}
+
+.gemini-helper-edit-discard {
+  background: var(--background-modifier-error);
+  color: var(--text-on-accent);
+}
+
+.gemini-helper-edit-discard:hover {
+  opacity: 0.9;
+}
+
+/* Edit Status */
+.gemini-helper-edit-status {
+  margin-top: 10px;
+  padding: 8px 12px;
+  font-size: 12px;
+  border-radius: 6px;
+}
+
+.gemini-helper-edit-applied {
+  background: rgba(0, 200, 83, 0.15);
+  color: var(--text-normal);
+}
+
+.gemini-helper-edit-discarded {
+  background: rgba(255, 100, 100, 0.15);
+  color: var(--text-muted);
+}
+
+/* Settings Styles */
+.gemini-helper-settings-textarea-container .setting-item-control {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.gemini-helper-settings-textarea {
+  width: 100%;
+  min-height: 80px;
+  resize: vertical;
+}

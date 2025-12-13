@@ -1,7 +1,7 @@
 {
   "name": "gemini-helper",
   "version": "1.0.0",
-  "description": "Obsidian plugin for Gemini AI with File Search RAG",
+  "description": "AI-powered assistant using Google Gemini with File Search RAG capabilities",
   "main": "main.js",
   "scripts": {
     "dev": "node esbuild.config.mjs",
@@ -14,7 +14,7 @@
     "ai",
     "rag"
   ],
-  "author": "",
+  "author": "takeshy",
   "license": "MIT",
   "devDependencies": {
     "@types/node": "^16.11.6",

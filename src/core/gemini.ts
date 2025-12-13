@@ -141,15 +141,15 @@ export class GeminiClient {
     tools: ToolDefinition[],
     systemPrompt?: string,
     executeToolCall?: (name: string, args: Record<string, unknown>) => Promise<unknown>,
-    ragStoreId?: string | null
+    ragStoreIds?: string[]
   ): AsyncGenerator<StreamChunk> {
     const geminiTools = this.toolsToGeminiFormat(tools);
 
-    // Add File Search RAG if store ID is provided
-    if (ragStoreId) {
+    // Add File Search RAG if store IDs are provided
+    if (ragStoreIds && ragStoreIds.length > 0) {
       geminiTools.push({
         fileSearch: {
-          fileSearchStoreNames: [ragStoreId],
+          fileSearchStoreNames: ragStoreIds,
         },
       } as Tool);
     }
@@ -216,8 +216,17 @@ export class GeminiClient {
         }
 
         // Check for RAG/grounding metadata (File Search usage)
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const candidates = (chunk as any).candidates;
+        // Access candidates via type assertion for grounding metadata
+        const chunkWithCandidates = chunk as {
+          candidates?: Array<{
+            groundingMetadata?: {
+              groundingChunks?: Array<{
+                retrievedContext?: { uri?: string; title?: string };
+              }>;
+            };
+          }>;
+        };
+        const candidates = chunkWithCandidates.candidates;
         if (!ragUsedEmitted && candidates && candidates.length > 0) {
           const groundingMetadata = candidates[0]?.groundingMetadata;
           if (groundingMetadata) {

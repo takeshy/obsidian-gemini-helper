@@ -5,9 +5,81 @@ import {
   DropdownComponent,
   TFolder,
   Notice,
+  Modal,
 } from "obsidian";
 import type { GeminiHelperPlugin } from "src/plugin";
 import { getFileSearchManager } from "src/core/fileSearch";
+
+// Modal for creating/renaming RAG settings
+class RagSettingNameModal extends Modal {
+  private name = "";
+  private onSubmit: (name: string) => void;
+  private title: string;
+  private initialValue: string;
+
+  constructor(
+    app: App,
+    title: string,
+    initialValue: string,
+    onSubmit: (name: string) => void
+  ) {
+    super(app);
+    this.title = title;
+    this.initialValue = initialValue;
+    this.name = initialValue;
+    this.onSubmit = onSubmit;
+  }
+
+  onOpen() {
+    const { contentEl } = this;
+    contentEl.createEl("h2", { text: this.title });
+
+    new Setting(contentEl).setName("Name").addText((text) => {
+      text
+        .setPlaceholder("Enter name")
+        .setValue(this.initialValue)
+        .onChange((value) => {
+          this.name = value;
+        });
+      text.inputEl.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          this.submit();
+        }
+      });
+      text.inputEl.focus();
+    });
+
+    new Setting(contentEl)
+      .addButton((btn) =>
+        btn.setButtonText("Cancel").onClick(() => {
+          this.close();
+        })
+      )
+      .addButton((btn) =>
+        btn
+          .setButtonText("OK")
+          .setCta()
+          .onClick(() => {
+            this.submit();
+          })
+      );
+  }
+
+  private submit() {
+    if (this.name.trim()) {
+      this.onSubmit(this.name.trim());
+      this.close();
+    } else {
+      new Notice("Name cannot be empty");
+    }
+  }
+
+  onClose() {
+    const { contentEl } = this;
+    contentEl.empty();
+  }
+}
 
 export class SettingsTab extends PluginSettingTab {
   plugin: GeminiHelperPlugin;
@@ -54,13 +126,13 @@ export class SettingsTab extends PluginSettingTab {
         });
     });
 
-    // Chat Settings
-    containerEl.createEl("h2", { text: "Chat Settings" });
+    // Workspace Settings
+    containerEl.createEl("h2", { text: "Workspace Settings" });
 
-    // Chat History Folder
+    // Workspace Folder
     new Setting(containerEl)
-      .setName("Chat History Folder")
-      .setDesc("Select folder to save chat histories")
+      .setName("Workspace Folder")
+      .setDesc("Folder to store chat histories and RAG settings")
       .addDropdown((dropdown: DropdownComponent) => {
         dropdown.addOption("", "Vault Root");
 
@@ -73,12 +145,25 @@ export class SettingsTab extends PluginSettingTab {
         });
 
         dropdown
-          .setValue(this.plugin.settings.chatsFolder)
+          .setValue(this.plugin.settings.workspaceFolder)
           .onChange(async (value) => {
-            this.plugin.settings.chatsFolder = value;
-            await this.plugin.saveSettings();
+            await this.plugin.changeWorkspaceFolder(value);
+            this.display();
           });
       });
+
+    // Save Chat History
+    new Setting(containerEl)
+      .setName("Save Chat History")
+      .setDesc("Save chat conversations as Markdown files in the workspace folder")
+      .addToggle((toggle) =>
+        toggle
+          .setValue(this.plugin.settings.saveChatHistory)
+          .onChange(async (value) => {
+            this.plugin.settings.saveChatHistory = value;
+            await this.plugin.saveSettings();
+          })
+      );
 
     // System Prompt
     const systemPromptSetting = new Setting(containerEl)
@@ -111,248 +196,397 @@ export class SettingsTab extends PluginSettingTab {
           .onChange(async (value) => {
             this.plugin.settings.ragEnabled = value;
             await this.plugin.saveSettings();
-            this.display(); // Refresh to show/hide RAG options
+            this.display();
           })
       );
 
     if (this.plugin.settings.ragEnabled) {
-      // Auto Sync
-      new Setting(containerEl)
-        .setName("Auto Sync")
-        .setDesc("Automatically sync changed files to RAG store")
-        .addToggle((toggle) =>
-          toggle
-            .setValue(this.plugin.settings.ragAutoSync)
-            .onChange(async (value) => {
-              this.plugin.settings.ragAutoSync = value;
-              await this.plugin.saveSettings();
-            })
-        );
+      this.displayRagSettings(containerEl);
+    }
+  }
 
-      // Include Folders
-      new Setting(containerEl)
-        .setName("Target Folders")
-        .setDesc("Folders to include in RAG indexing (comma-separated). Leave empty to include all folders.")
-        .addText((text) =>
-          text
-            .setPlaceholder("e.g., notes, projects, docs")
-            .setValue(this.plugin.settings.ragIncludeFolders.join(", "))
-            .onChange(async (value) => {
-              this.plugin.settings.ragIncludeFolders = value
-                .split(",")
-                .map((s) => s.trim())
-                .filter((s) => s.length > 0);
-              await this.plugin.saveSettings();
-            })
-        );
+  private displayRagSettings(containerEl: HTMLElement): void {
+    const ragSettingNames = this.plugin.getRagSettingNames();
+    const selectedName = this.plugin.workspaceState.selectedRagSetting;
 
-      // Excluded Patterns (Regex)
-      const excludePatternsSetting = new Setting(containerEl)
-        .setName("Excluded Patterns (Regex)")
-        .setDesc(
-          "Regular expression patterns to exclude files (one per line). E.g., ^daily/, \\.excalidraw\\.md$"
-        );
+    // RAG Setting Selection
+    const ragSelectSetting = new Setting(containerEl)
+      .setName("RAG Setting")
+      .setDesc("Select or create a RAG setting to use");
 
-      excludePatternsSetting.settingEl.addClass(
-        "gemini-helper-settings-textarea-container"
+    ragSelectSetting.addDropdown((dropdown) => {
+      dropdown.addOption("", "-- None --");
+
+      ragSettingNames.forEach((name) => {
+        dropdown.addOption(name, name);
+      });
+
+      dropdown.setValue(selectedName || "").onChange(async (value) => {
+        await this.plugin.selectRagSetting(value || null);
+        this.display();
+      });
+    });
+
+    // Add new RAG setting button
+    ragSelectSetting.addExtraButton((btn) => {
+      btn
+        .setIcon("plus")
+        .setTooltip("Create new RAG setting")
+        .onClick(() => {
+          new RagSettingNameModal(
+            this.app,
+            "Create RAG Setting",
+            "",
+            async (name) => {
+              try {
+                await this.plugin.createRagSetting(name);
+                await this.plugin.selectRagSetting(name);
+                this.display();
+                new Notice(`RAG setting "${name}" created`);
+              } catch (error) {
+                new Notice(`Failed to create: ${error}`);
+              }
+            }
+          ).open();
+        });
+    });
+
+    // Show selected RAG setting details
+    if (selectedName) {
+      const ragSetting = this.plugin.getRagSetting(selectedName);
+      if (ragSetting) {
+        this.displaySelectedRagSetting(containerEl, selectedName, ragSetting);
+      }
+    }
+  }
+
+  private displaySelectedRagSetting(
+    containerEl: HTMLElement,
+    name: string,
+    ragSetting: import("src/types").RagSetting
+  ): void {
+    // Setting header with rename/delete buttons
+    const headerSetting = new Setting(containerEl)
+      .setName(`Settings: ${name}`)
+      .setDesc("Configure this RAG setting");
+
+    headerSetting.addExtraButton((btn) => {
+      btn
+        .setIcon("pencil")
+        .setTooltip("Rename")
+        .onClick(() => {
+          new RagSettingNameModal(
+            this.app,
+            "Rename RAG Setting",
+            name,
+            async (newName) => {
+              try {
+                await this.plugin.renameRagSetting(name, newName);
+                this.display();
+                new Notice(`Renamed to "${newName}"`);
+              } catch (error) {
+                new Notice(`Failed to rename: ${error}`);
+              }
+            }
+          ).open();
+        });
+    });
+
+    headerSetting.addExtraButton((btn) => {
+      btn
+        .setIcon("trash")
+        .setTooltip("Delete")
+        .onClick(async () => {
+          const confirmed = confirm(
+            `Are you sure you want to delete the RAG setting "${name}"? This will NOT delete the store from the server.`
+          );
+          if (!confirmed) return;
+
+          await this.plugin.deleteRagSetting(name);
+          this.display();
+          new Notice(`RAG setting "${name}" deleted`);
+        });
+    });
+
+    // Store Mode Toggle
+    new Setting(containerEl)
+      .setName("Store Mode")
+      .setDesc("Internal: sync your vault files. External: use an existing RAG store.")
+      .addDropdown((dropdown) =>
+        dropdown
+          .addOption("internal", "Internal (Vault Sync)")
+          .addOption("external", "External (Existing Store)")
+          .setValue(ragSetting.isExternal ? "external" : "internal")
+          .onChange(async (value) => {
+            if (value === "external") {
+              await this.plugin.updateRagSetting(name, {
+                isExternal: true,
+                storeId: null,
+                storeName: null,
+              });
+            } else {
+              await this.plugin.updateRagSetting(name, {
+                isExternal: false,
+                storeId: null,
+                storeName: null,
+              });
+            }
+            const fileSearchManager = getFileSearchManager();
+            if (fileSearchManager) {
+              fileSearchManager.setStoreName(null);
+            }
+            this.display();
+          })
       );
 
-      excludePatternsSetting.addTextArea((text) => {
+    if (ragSetting.isExternal) {
+      // External store mode - show multiple Store IDs
+      this.displayExternalStoreSettings(containerEl, name, ragSetting);
+    } else {
+      // Internal store mode - show sync options
+      this.displayInternalStoreSettings(containerEl, name, ragSetting);
+    }
+  }
+
+  private displayExternalStoreSettings(
+    containerEl: HTMLElement,
+    name: string,
+    ragSetting: import("src/types").RagSetting
+  ): void {
+    // Header for store IDs
+    const storeIdsSetting = new Setting(containerEl)
+      .setName("RAG Store IDs")
+      .setDesc("External File Search Store IDs (one per line)");
+
+    storeIdsSetting.settingEl.addClass("gemini-helper-settings-textarea-container");
+
+    storeIdsSetting.addTextArea((text) => {
+      text
+        .setPlaceholder("fileSearchStores/xxx\nfileSearchStores/yyy")
+        .setValue(ragSetting.storeIds.join("\n"))
+        .onChange(async (value) => {
+          const storeIds = value
+            .split("\n")
+            .map((s) => s.trim())
+            .filter((s) => s.length > 0);
+          await this.plugin.updateRagSetting(name, { storeIds });
+
+          // Sync FileSearchManager with first store ID
+          const fileSearchManager = getFileSearchManager();
+          if (fileSearchManager) {
+            fileSearchManager.setStoreName(storeIds[0] || null);
+          }
+        });
+      text.inputEl.rows = 4;
+      text.inputEl.addClass("gemini-helper-settings-textarea");
+    });
+
+    // Show current store count
+    const storeCount = ragSetting.storeIds.length;
+    new Setting(containerEl)
+      .setName("Store Count")
+      .setDesc(`${storeCount} store${storeCount !== 1 ? "s" : ""} configured`);
+  }
+
+  private displayInternalStoreSettings(
+    containerEl: HTMLElement,
+    name: string,
+    ragSetting: import("src/types").RagSetting
+  ): void {
+    // Show current store ID if exists
+    if (ragSetting.storeId) {
+      new Setting(containerEl)
+        .setName("Current Store ID")
+        .setDesc(ragSetting.storeId);
+    }
+
+    // Target Folders
+    new Setting(containerEl)
+      .setName("Target Folders")
+      .setDesc("Folders to include in RAG indexing (comma-separated). Leave empty to include all folders.")
+      .addText((text) =>
         text
-          .setPlaceholder("^daily/\n\\.excalidraw\\.md$\n^templates/")
-          .setValue(this.plugin.settings.ragExcludePatterns.join("\n"))
+          .setPlaceholder("e.g., notes, projects, docs")
+          .setValue(ragSetting.targetFolders.join(", "))
           .onChange(async (value) => {
-            this.plugin.settings.ragExcludePatterns = value
-              .split("\n")
+            const folders = value
+              .split(",")
               .map((s) => s.trim())
               .filter((s) => s.length > 0);
-            await this.plugin.saveSettings();
+            await this.plugin.updateRagSetting(name, { targetFolders: folders });
+          })
+      );
+
+    // Excluded Patterns (Regex)
+    const excludePatternsSetting = new Setting(containerEl)
+      .setName("Excluded Patterns (Regex)")
+      .setDesc(
+        "Regular expression patterns to exclude files (one per line). E.g., ^daily/, \\.excalidraw\\.md$"
+      );
+
+    excludePatternsSetting.settingEl.addClass("gemini-helper-settings-textarea-container");
+
+    excludePatternsSetting.addTextArea((text) => {
+      text
+        .setPlaceholder("^daily/\n\\.excalidraw\\.md$\n^templates/")
+        .setValue(ragSetting.excludePatterns.join("\n"))
+        .onChange(async (value) => {
+          const patterns = value
+            .split("\n")
+            .map((s) => s.trim())
+            .filter((s) => s.length > 0);
+          await this.plugin.updateRagSetting(name, { excludePatterns: patterns });
+        });
+      text.inputEl.rows = 4;
+      text.inputEl.addClass("gemini-helper-settings-textarea");
+    });
+
+    // Sync Status
+    const syncedCount = Object.keys(ragSetting.files).length;
+    const lastSync = ragSetting.lastFullSync
+      ? new Date(ragSetting.lastFullSync).toLocaleString()
+      : "Never";
+
+    const syncStatusSetting = new Setting(containerEl)
+      .setName("Sync Vault")
+      .setDesc(`${syncedCount} files indexed | Last sync: ${lastSync}`);
+
+    // Progress container
+    const progressContainer = containerEl.createDiv({
+      cls: "gemini-helper-sync-progress",
+    });
+    progressContainer.style.display = "none";
+    progressContainer.style.marginTop = "8px";
+    progressContainer.style.padding = "8px";
+    progressContainer.style.backgroundColor = "var(--background-secondary)";
+    progressContainer.style.borderRadius = "4px";
+
+    const progressText = progressContainer.createDiv();
+    const progressBar = progressContainer.createEl("progress");
+    progressBar.style.width = "100%";
+    progressBar.style.marginTop = "4px";
+
+    let cancelBtn: HTMLButtonElement | null = null;
+
+    syncStatusSetting
+      .addButton((btn) => {
+        cancelBtn = btn.buttonEl;
+        btn
+          .setButtonText("Cancel")
+          .setWarning()
+          .onClick(() => {
+            this.isSyncCancelled = true;
+            new Notice("Cancelling sync...");
           });
-        text.inputEl.rows = 4;
-        text.inputEl.addClass("gemini-helper-settings-textarea");
-      });
+        btn.buttonEl.style.display = "none";
+      })
+      .addButton((btn) =>
+        btn
+          .setButtonText("Sync Vault")
+          .setCta()
+          .onClick(async () => {
+            this.isSyncCancelled = false;
+            btn.setDisabled(true);
+            btn.setButtonText("Syncing...");
+            if (cancelBtn) cancelBtn.style.display = "inline-block";
+            progressContainer.style.display = "block";
+            progressText.textContent = "Preparing...";
+            progressBar.value = 0;
+            progressBar.max = 100;
 
-      // Sync Status
-      const syncState = this.plugin.settings.ragSyncState;
-      const syncedCount = Object.keys(syncState.files).length;
-      const lastSync = syncState.lastFullSync
-        ? new Date(syncState.lastFullSync).toLocaleString()
-        : "Never";
+            try {
+              const result = await this.plugin.syncVaultForRAG(
+                name,
+                (current, total, fileName, action) => {
+                  if (this.isSyncCancelled) {
+                    throw new Error("Cancelled by user");
+                  }
+                  const percent = Math.round((current / total) * 100);
+                  progressBar.value = percent;
+                  progressBar.max = 100;
 
-      const syncStatusSetting = new Setting(containerEl)
-        .setName("Sync Vault")
-        .setDesc(`${syncedCount} files indexed | Last sync: ${lastSync}`);
+                  const actionText =
+                    action === "upload"
+                      ? "Uploading"
+                      : action === "skip"
+                        ? "Skipping"
+                        : "Deleting";
+                  progressText.textContent = `${actionText}: ${fileName} (${current}/${total})`;
+                }
+              );
+              if (result) {
+                new Notice(
+                  `Sync: ${result.uploaded.length} uploaded, ${result.skipped.length} skipped, ${result.deleted.length} deleted`
+                );
+              }
+            } catch (error) {
+              const msg = error instanceof Error ? error.message : String(error);
+              if (msg === "Cancelled by user") {
+                new Notice("Sync cancelled");
+                progressText.textContent = "Cancelled";
+              } else {
+                new Notice(`Sync failed: ${msg}`);
+                progressText.textContent = `Error: ${msg}`;
+                progressText.style.color = "var(--text-error)";
+              }
+            } finally {
+              btn.setDisabled(false);
+              btn.setButtonText("Sync Vault");
+              if (cancelBtn) cancelBtn.style.display = "none";
+              this.isSyncCancelled = false;
+              setTimeout(() => {
+                progressContainer.style.display = "none";
+                this.display();
+              }, 2000);
+            }
+          })
+      );
 
-      // Progress container
-      const progressContainer = containerEl.createDiv({
-        cls: "gemini-helper-sync-progress",
-      });
-      progressContainer.style.display = "none";
-      progressContainer.style.marginTop = "8px";
-      progressContainer.style.padding = "8px";
-      progressContainer.style.backgroundColor = "var(--background-secondary)";
-      progressContainer.style.borderRadius = "4px";
+    // Advanced RAG Settings
+    containerEl.createEl("h3", { text: "Advanced RAG Settings" });
 
-      const progressText = progressContainer.createDiv();
-      const progressBar = progressContainer.createEl("progress");
-      progressBar.style.width = "100%";
-      progressBar.style.marginTop = "4px";
+    // Reset Sync State
+    new Setting(containerEl)
+      .setName("Reset Sync State")
+      .setDesc("Clear the local sync state. Next sync will re-upload all files.")
+      .addButton((btn) =>
+        btn.setButtonText("Reset").onClick(async () => {
+          const confirmed = confirm(
+            "Are you sure you want to reset the sync state?"
+          );
+          if (!confirmed) return;
 
-      let cancelBtn: HTMLButtonElement | null = null;
-
-      syncStatusSetting
-        .addButton((btn) => {
-          cancelBtn = btn.buttonEl;
-          btn
-            .setButtonText("Cancel")
-            .setWarning()
-            .onClick(() => {
-              this.isSyncCancelled = true;
-              new Notice("Cancelling sync...");
-            });
-          btn.buttonEl.style.display = "none";
+          await this.plugin.resetRagSettingSyncState(name);
+          this.display();
         })
+      );
+
+    // Delete Store (only for internal stores with store ID)
+    if (ragSetting.storeId && !ragSetting.isExternal) {
+      new Setting(containerEl)
+        .setName("Delete RAG Store")
+        .setDesc(
+          "Delete the current RAG store and all indexed data from the server"
+        )
         .addButton((btn) =>
           btn
-            .setButtonText("Sync Vault")
-            .setCta()
+            .setButtonText("Delete Store")
+            .setWarning()
             .onClick(async () => {
-              this.isSyncCancelled = false;
-              btn.setDisabled(true);
-              btn.setButtonText("Syncing...");
-              if (cancelBtn) cancelBtn.style.display = "inline-block";
-              progressContainer.style.display = "block";
-              progressText.textContent = "Preparing...";
-              progressBar.value = 0;
-              progressBar.max = 100;
+              const confirmed = confirm(
+                "Are you sure you want to delete the RAG store? This will remove all indexed data from the server. This cannot be undone."
+              );
+              if (!confirmed) return;
 
               try {
-                const result = await this.plugin.syncVaultForRAG(
-                  (current, total, fileName, action) => {
-                    if (this.isSyncCancelled) {
-                      throw new Error("Cancelled by user");
-                    }
-                    const percent = Math.round((current / total) * 100);
-                    progressBar.value = percent;
-                    progressBar.max = 100;
-
-                    const actionText =
-                      action === "upload"
-                        ? "Uploading"
-                        : action === "skip"
-                          ? "Skipping"
-                          : "Deleting";
-                    progressText.textContent = `${actionText}: ${fileName} (${current}/${total})`;
-                  }
-                );
-                if (result) {
-                  new Notice(
-                    `Sync: ${result.uploaded.length} uploaded, ${result.skipped.length} skipped, ${result.deleted.length} deleted`
-                  );
-                }
+                await this.plugin.deleteRagStore(name);
+                new Notice("RAG store deleted");
+                this.display();
               } catch (error) {
-                const msg = error instanceof Error ? error.message : String(error);
-                if (msg === "Cancelled by user") {
-                  new Notice("Sync cancelled");
-                  progressText.textContent = "Cancelled";
-                } else {
-                  new Notice(`Sync failed: ${msg}`);
-                  progressText.textContent = `Error: ${msg}`;
-                  progressText.style.color = "var(--text-error)";
-                }
-              } finally {
-                btn.setDisabled(false);
-                btn.setButtonText("Sync Vault");
-                if (cancelBtn) cancelBtn.style.display = "none";
-                this.isSyncCancelled = false;
-                setTimeout(() => {
-                  progressContainer.style.display = "none";
-                  this.display();
-                }, 2000);
+                new Notice(`Failed to delete store: ${error}`);
               }
             })
         );
-
-      // RAG Store Info
-      if (this.plugin.settings.ragStoreId) {
-        new Setting(containerEl)
-          .setName("RAG Store ID")
-          .setDesc(`Store: ${this.plugin.settings.ragStoreId}`);
-      }
-
-      // Advanced RAG Settings
-      containerEl.createEl("h3", { text: "Advanced RAG Settings" });
-
-      // Reset Sync State
-      new Setting(containerEl)
-        .setName("Reset Sync State")
-        .setDesc(
-          "Clear the local sync state. Next sync will re-check all files (but won't re-upload unchanged files due to checksum comparison)."
-        )
-        .addButton((btn) =>
-          btn.setButtonText("Reset").onClick(async () => {
-            const confirmed = confirm(
-              "Are you sure you want to reset the sync state?"
-            );
-            if (!confirmed) return;
-
-            await this.plugin.resetSyncState();
-            this.display();
-          })
-        );
-
-      // Delete Store
-      if (this.plugin.settings.ragStoreId) {
-        new Setting(containerEl)
-          .setName("Delete RAG Store")
-          .setDesc(
-            "Delete the current RAG store and all indexed data from the server"
-          )
-          .addButton((btn) =>
-            btn
-              .setButtonText("Delete Store")
-              .setWarning()
-              .onClick(async () => {
-                const confirmed = confirm(
-                  "Are you sure you want to delete the RAG store? This will remove all indexed data from the server. This cannot be undone."
-                );
-                if (!confirmed) return;
-
-                const fileSearchManager = getFileSearchManager();
-                if (fileSearchManager) {
-                  try {
-                    // Pass ragStoreId directly since manager may not have it loaded
-                    await fileSearchManager.deleteStore(this.plugin.settings.ragStoreId || undefined);
-                    this.plugin.settings.ragStoreId = null;
-                    this.plugin.settings.ragSyncState = {
-                      files: {},
-                      lastFullSync: null,
-                    };
-                    await this.plugin.saveSettings();
-                    new Notice("RAG store deleted");
-                    this.display();
-                  } catch (error) {
-                    new Notice(`Failed to delete store: ${error}`);
-                  }
-                }
-              })
-          );
-      }
     }
-
-    // Developer Settings
-    containerEl.createEl("h2", { text: "Developer Settings" });
-
-    new Setting(containerEl)
-      .setName("Debug Mode")
-      .setDesc("Enable debug logging to console")
-      .addToggle((toggle) =>
-        toggle
-          .setValue(this.plugin.settings.debugMode)
-          .onChange(async (value) => {
-            this.plugin.settings.debugMode = value;
-            await this.plugin.saveSettings();
-          })
-      );
   }
 }

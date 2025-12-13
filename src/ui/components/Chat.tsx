@@ -43,6 +43,10 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
   const [isLoading, setIsLoading] = useState(false);
   const [streamingContent, setStreamingContent] = useState("");
   const [currentModel, setCurrentModel] = useState<ModelType>(plugin.settings.model);
+  const [ragSettingNames, setRagSettingNames] = useState<string[]>(plugin.getRagSettingNames());
+  const [selectedRagSetting, setSelectedRagSetting] = useState<string | null>(
+    plugin.workspaceState.selectedRagSetting
+  );
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
 
@@ -56,7 +60,7 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 
   // Get chat history folder path
   const getChatHistoryFolder = () => {
-    return plugin.settings.chatsFolder || "gemini-chats";
+    return plugin.settings.workspaceFolder || "GeminiHelper";
   };
 
   // Get chat file path
@@ -149,14 +153,18 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
       }
 
       return { messages, createdAt };
-    } catch (err) {
-      console.error("Failed to parse markdown:", err);
+    } catch {
       return null;
     }
   };
 
   // Load chat histories from folder
   const loadChatHistories = useCallback(async () => {
+    if (!plugin.settings.saveChatHistory) {
+      setChatHistories([]);
+      return;
+    }
+
     try {
       const folder = getChatHistoryFolder();
       const folderFile = plugin.app.vault.getAbstractFileByPath(folder);
@@ -195,14 +203,13 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
               updatedAt,
             });
           }
-        } catch (err) {
-          console.error(`Failed to load chat ${file.path}:`, err);
+        } catch {
+          // Failed to load chat, skip
         }
       }
 
       setChatHistories(histories.sort((a, b) => b.updatedAt - a.updatedAt));
-    } catch (err) {
-      console.error("Failed to load chat histories:", err);
+    } catch {
       setChatHistories([]);
     }
   }, [plugin]);
@@ -210,6 +217,7 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
   // Save current chat to Markdown file
   const saveCurrentChat = useCallback(async (msgs: Message[]) => {
     if (msgs.length === 0) return;
+    if (!plugin.settings.saveChatHistory) return;
 
     const chatId = currentChatId || generateChatId();
     const title = msgs[0].content.slice(0, 50) + (msgs[0].content.length > 50 ? "..." : "");
@@ -264,8 +272,8 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 
       setChatHistories(newHistories);
       setCurrentChatId(chatId);
-    } catch (err) {
-      console.error("Failed to save chat:", err);
+    } catch {
+      // Failed to save chat
     }
   }, [currentChatId, chatHistories, plugin]);
 
@@ -278,6 +286,32 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, streamingContent]);
+
+  // Listen for workspace state changes
+  useEffect(() => {
+    const handleWorkspaceStateLoaded = () => {
+      setRagSettingNames(plugin.getRagSettingNames());
+      setSelectedRagSetting(plugin.workspaceState.selectedRagSetting);
+    };
+
+    const handleRagSettingChanged = (name: string | null) => {
+      setSelectedRagSetting(name);
+    };
+
+    plugin.settingsEmitter.on("workspace-state-loaded", handleWorkspaceStateLoaded);
+    plugin.settingsEmitter.on("rag-setting-changed", handleRagSettingChanged);
+
+    return () => {
+      plugin.settingsEmitter.off("workspace-state-loaded", handleWorkspaceStateLoaded);
+      plugin.settingsEmitter.off("rag-setting-changed", handleRagSettingChanged);
+    };
+  }, [plugin]);
+
+  // Handle RAG setting change from UI
+  const handleRagSettingChange = async (name: string | null) => {
+    setSelectedRagSetting(name);
+    await plugin.selectRagSetting(name);
+  };
 
   // Start new chat
   const startNewChat = () => {
@@ -305,8 +339,8 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
       if (file instanceof TFile) {
         await plugin.app.vault.delete(file);
       }
-    } catch (err) {
-      console.error("Failed to delete chat file:", err);
+    } catch {
+      // Failed to delete chat file
     }
 
     const newHistories = chatHistories.filter(h => h.id !== chatId);
@@ -324,7 +358,7 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 
     const client = getGeminiClient();
     if (!client) {
-      console.error("Gemini client not initialized");
+      new Notice("Gemini client not initialized. Please set API key.");
       return;
     }
 
@@ -357,10 +391,10 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 
       // Create context for RAG tools
       const toolContext: ToolExecutionContext = {
-        ragSyncState: settings.ragSyncState,
+        ragSyncState: { files: plugin.ragState.files, lastFullSync: plugin.ragState.lastFullSync },
         ragFilterConfig: {
-          includeFolders: settings.ragIncludeFolders,
-          excludePatterns: settings.ragExcludePatterns,
+          includeFolders: plugin.ragState.includeFolders,
+          excludePatterns: plugin.ragState.excludePatterns,
         },
       };
       const toolExecutor = createToolExecutor(plugin.app, toolContext);
@@ -402,8 +436,10 @@ Always be helpful and provide clear, concise responses. When working with notes,
 
       const allMessages = [...messages, userMessage];
 
-      // Pass RAG store ID if RAG is enabled
-      const ragStoreId = settings.ragEnabled ? settings.ragStoreId : null;
+      // Pass RAG store IDs if RAG is enabled and a setting is selected
+      const ragStoreIds = settings.ragEnabled && selectedRagSetting
+        ? plugin.getSelectedStoreIds()
+        : [];
 
       let stopped = false;
       for await (const chunk of client.chatWithToolsStream(
@@ -411,7 +447,7 @@ Always be helpful and provide clear, concise responses. When working with notes,
         tools,
         systemPrompt,
         toolExecutor,
-        ragStoreId
+        ragStoreIds
       )) {
         // Check if stopped
         if (abortController.signal.aborted) {
@@ -449,7 +485,7 @@ Always be helpful and provide clear, concise responses. When working with notes,
             break;
 
           case "error":
-            console.error("Stream error:", chunk.error);
+            // Stream error handled silently
             break;
 
           case "done":
@@ -493,7 +529,6 @@ Always be helpful and provide clear, concise responses. When working with notes,
       // Save chat history
       await saveCurrentChat(newMessages);
     } catch (error) {
-      console.error("Error sending message:", error);
 
       // Add error message
       const errorMessage: Message = {
@@ -541,8 +576,7 @@ Always be helpful and provide clear, concise responses. When working with notes,
       } else {
         new Notice(result.error || "Failed to apply changes");
       }
-    } catch (error) {
-      console.error("Failed to apply edit:", error);
+    } catch {
       new Notice("Failed to apply changes");
     }
   };
@@ -571,8 +605,7 @@ Always be helpful and provide clear, concise responses. When working with notes,
       } else {
         new Notice(result.error || "Failed to discard changes");
       }
-    } catch (error) {
-      console.error("Failed to discard edit:", error);
+    } catch {
       new Notice("Failed to discard changes");
     }
   };
@@ -664,6 +697,10 @@ Always be helpful and provide clear, concise responses. When working with notes,
         isLoading={isLoading}
         model={currentModel}
         onModelChange={setCurrentModel}
+        ragEnabled={plugin.settings.ragEnabled}
+        ragSettings={ragSettingNames}
+        selectedRagSetting={selectedRagSetting}
+        onRagSettingChange={handleRagSettingChange}
       />
     </div>
   );

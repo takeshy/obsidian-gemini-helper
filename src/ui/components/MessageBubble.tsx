@@ -53,8 +53,8 @@ export default function MessageBubble({
       await navigator.clipboard.writeText(message.content);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
-    } catch (err) {
-      console.error("Failed to copy:", err);
+    } catch {
+      // Failed to copy
     }
   };
 

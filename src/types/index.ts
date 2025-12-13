@@ -7,22 +7,21 @@ export interface GeminiHelperSettings {
 
   // RAG settings
   ragEnabled: boolean;
-  ragStoreId: string | null;
-  ragIncludeFolders: string[];   // 対象フォルダ（空の場合は全体）
-  ragExcludePatterns: string[];  // 正規表現パターンでファイルを除外
-  ragAutoSync: boolean;
-  ragSyncState: RagSyncState;    // 同期状態（チェックサム等）
 
-  // Chat settings
-  chatsFolder: string;
+  // Workspace settings
+  workspaceFolder: string;
+  saveChatHistory: boolean;
   systemPrompt: string;
-
-  // Other
-  debugMode: boolean;
 }
 
-// RAG同期状態
-export interface RagSyncState {
+// 個別のRAG設定
+export interface RagSetting {
+  storeId: string | null;       // File Search Store ID (Internal用)
+  storeIds: string[];           // File Search Store IDs (External用、複数可)
+  storeName: string | null;     // 内部ストア名
+  isExternal: boolean;          // 外部ストアかどうか
+  targetFolders: string[];      // 対象フォルダ（空の場合は全体）
+  excludePatterns: string[];    // 正規表現パターンでファイルを除外
   files: Record<string, RagFileInfo>;  // path -> file info
   lastFullSync: number | null;
 }
@@ -32,6 +31,51 @@ export interface RagFileInfo {
   uploadedAt: number;
   fileId: string | null;  // File Search API上のファイルID
 }
+
+// Workspace状態ファイル（.gemini-workspace.json）
+export interface WorkspaceState {
+  selectedRagSetting: string | null;  // 現在選択中のRAG設定名
+  ragSettings: Record<string, RagSetting>;  // 設定名 -> RAG設定
+}
+
+// デフォルトのRAG設定
+export const DEFAULT_RAG_SETTING: RagSetting = {
+  storeId: null,
+  storeIds: [],
+  storeName: null,
+  isExternal: false,
+  targetFolders: [],
+  excludePatterns: [],
+  files: {},
+  lastFullSync: null,
+};
+
+// デフォルトのWorkspace状態
+export const DEFAULT_WORKSPACE_STATE: WorkspaceState = {
+  selectedRagSetting: null,
+  ragSettings: {},
+};
+
+// 後方互換性のためのエイリアス（旧RagState形式）
+export interface RagState {
+  storeId: string | null;
+  storeName: string | null;
+  files: Record<string, RagFileInfo>;
+  lastFullSync: number | null;
+  includeFolders: string[];
+  excludePatterns: string[];
+}
+
+export const DEFAULT_RAG_STATE: RagState = {
+  storeId: null,
+  storeName: null,
+  files: {},
+  lastFullSync: null,
+  includeFolders: [],
+  excludePatterns: [],
+};
+
+export type RagSyncState = Pick<RagState, "files" | "lastFullSync">;
 
 // Model types
 export type ModelType =
@@ -178,17 +222,9 @@ export interface StreamChunk {
 // Default settings
 export const DEFAULT_SETTINGS: GeminiHelperSettings = {
   googleApiKey: "",
-  model: "gemini-2.5-flash",
+  model: "gemini-3-pro-preview",
   ragEnabled: false,
-  ragStoreId: null,
-  ragIncludeFolders: [],
-  ragExcludePatterns: [],
-  ragAutoSync: false,
-  ragSyncState: {
-    files: {},
-    lastFullSync: null,
-  },
-  chatsFolder: "Chats",
+  workspaceFolder: "GeminiHelper",
+  saveChatHistory: true,
   systemPrompt: "",
-  debugMode: false,
 };

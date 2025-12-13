@@ -8,6 +8,10 @@ interface InputAreaProps {
   isLoading: boolean;
   model: ModelType;
   onModelChange: (model: ModelType) => void;
+  ragEnabled: boolean;
+  ragSettings: string[];
+  selectedRagSetting: string | null;
+  onRagSettingChange: (setting: string | null) => void;
 }
 
 // 対応ファイル形式
@@ -17,7 +21,17 @@ const SUPPORTED_TYPES = {
   text: ["text/plain", "text/markdown", "text/csv", "application/json"],
 };
 
-export default function InputArea({ onSend, onStop, isLoading, model, onModelChange }: InputAreaProps) {
+export default function InputArea({
+  onSend,
+  onStop,
+  isLoading,
+  model,
+  onModelChange,
+  ragEnabled,
+  ragSettings,
+  selectedRagSetting,
+  onRagSettingChange,
+}: InputAreaProps) {
   const [input, setInput] = useState("");
   const [pendingAttachments, setPendingAttachments] = useState<Attachment[]>([]);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -87,7 +101,7 @@ export default function InputArea({ onSend, onStop, isLoading, model, onModelCha
       return { name: file.name, type: "text", mimeType: mimeType || "text/plain", data };
     }
 
-    console.warn(`Unsupported file type: ${mimeType}`);
+    // Unsupported file type
     return null;
   };
 
@@ -199,6 +213,21 @@ export default function InputArea({ onSend, onStop, isLoading, model, onModelCha
             </option>
           ))}
         </select>
+        {ragEnabled && ragSettings.length > 0 && (
+          <select
+            className="gemini-helper-model-select gemini-helper-rag-select"
+            value={selectedRagSetting || ""}
+            onChange={(e) => onRagSettingChange(e.target.value || null)}
+            disabled={isLoading}
+          >
+            <option value="">RAG: None</option>
+            {ragSettings.map((name) => (
+              <option key={name} value={name}>
+                RAG: {name}
+              </option>
+            ))}
+          </select>
+        )}
       </div>
     </div>
   );

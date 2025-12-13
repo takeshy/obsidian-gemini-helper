@@ -353,11 +353,13 @@
 
 /* Model Selector */
 .gemini-helper-model-selector {
+  display: flex;
+  gap: 8px;
   padding: 0 12px 12px 12px;
 }
 
 .gemini-helper-model-select {
-  width: 100%;
+  flex: 1;
   padding: 4px 8px;
   font-size: 11px;
   border: 1px solid var(--background-modifier-border);
@@ -365,6 +367,11 @@
   background: var(--background-secondary);
   color: var(--text-muted);
   cursor: pointer;
+}
+
+.gemini-helper-rag-select {
+  flex: 0 0 auto;
+  max-width: 150px;
 }
 
 .gemini-helper-model-select:hover {
@@ -686,4 +693,9 @@
   width: 100%;
   min-height: 80px;
   resize: vertical;
+}
+
+.gemini-helper-settings-wide-input {
+  width: 100% !important;
+  min-width: 300px;
 }

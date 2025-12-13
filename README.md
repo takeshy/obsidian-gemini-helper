@@ -15,6 +15,7 @@ An AI-powered assistant plugin for Obsidian using Google Gemini with File Search
 ### AI Chat Interface
 - **Streaming responses** - Real-time response streaming for natural conversation flow
 - **Model selection** - Switch between Gemini models directly from the chat interface
+- **RAG setting selection** - Switch between RAG configurations from the chat interface
 - **Chat history** - Automatically saves chat sessions in Markdown format (viewable and editable)
 - **Conversation threading** - Maintains context across messages in the same chat
 - **Stop generation** - Stop AI responses mid-generation with the stop button
@@ -50,8 +51,11 @@ When the AI edits a note using `propose_edit`:
 3. You can review the changes and click **Apply** to confirm or **Discard** to restore
 
 ### RAG (File Search) Integration
+- **Multiple RAG settings** - Create and manage multiple RAG configurations
 - **Semantic search** - Search your entire vault using AI-powered semantic search
 - **RAG indicator** - Shows when RAG was used to answer a question
+- **Internal mode** - Sync your vault files to a new RAG store
+- **External mode** - Use existing RAG stores (supports multiple store IDs)
 - **Incremental sync** - Only upload changed files (checksum-based detection)
 - **Target folders** - Specify which folders to include in RAG indexing
 - **Exclude patterns** - Use regex patterns to exclude specific files
@@ -94,27 +98,36 @@ Copy `main.js`, `manifest.json`, and `styles.css` to your vault's plugin folder.
 2. Enter the API key in plugin settings
 3. Select your preferred default model
 
-### Chat Settings
-- **Chat History Folder** - Where to save chat session files (as Markdown)
+### Workspace Settings
+- **Workspace Folder** - Where to save chat histories and RAG settings
+- **Save Chat History** - Toggle to enable/disable saving chat sessions
 - **System Prompt** - Additional instructions for the AI (e.g., "Always respond in Japanese")
 
 ### RAG Settings
-- **Enable RAG** - Toggle File Search RAG feature
-- **Auto Sync** - Automatically sync changed files
-- **Target Folders** - Comma-separated list of folders to include (empty = all folders)
-- **Excluded Patterns** - Regex patterns to exclude files (one per line)
-  - Example: `^daily/` excludes files in the daily folder
-  - Example: `\.excalidraw\.md$` excludes Excalidraw files
+1. **Enable RAG** - Toggle File Search RAG feature
+2. **RAG Setting** - Select or create a RAG configuration
+3. Click the **+** button to create a new RAG setting
+4. Use pencil icon to rename, trash icon to delete
 
-### Advanced RAG Settings
-- **Reset Sync State** - Clear local sync state (re-upload all files on next sync)
-- **Delete RAG Store** - Permanently delete the RAG store from Google's servers
+#### Store Mode
+- **Internal (Vault Sync)** - Sync your vault files to Google's File Search
+  - **Target Folders** - Comma-separated list of folders to include (empty = all folders)
+  - **Excluded Patterns** - Regex patterns to exclude files (one per line)
+    - Example: `^daily/` excludes files in the daily folder
+    - Example: `\.excalidraw\.md$` excludes Excalidraw files
+  - **Sync Vault** - Upload files to the RAG store
+  - **Reset Sync State** - Clear local sync state (re-upload all files on next sync)
+  - **Delete RAG Store** - Permanently delete the RAG store from Google's servers
+
+- **External (Existing Store)** - Use existing RAG stores
+  - **RAG Store IDs** - Enter one or more store IDs (one per line)
+  - Useful for sharing RAG stores across vaults or using pre-built stores
 
 ## Usage
 
 ### Opening the Chat
 - Click the Gemini icon in the left ribbon
-- Or use the command palette: "Gemini Helper: Open Chat"
+- Or use the command palette: "Gemini Helper: Open chat"
 
 ### Chat Commands
 - **Enter** - Send message
@@ -124,15 +137,19 @@ Copy `main.js`, `manifest.json`, and `styles.css` to your vault's plugin folder.
 - **+ button** - Start new chat
 - **History button** - View/load previous chats
 
-### Model Selection
-Use the dropdown below the input area to switch between models during a conversation.
+### Model & RAG Selection
+Use the dropdowns below the input area:
+- **Model dropdown** - Switch between Gemini models during a conversation
+- **RAG dropdown** - Select which RAG setting to use (appears when RAG is enabled)
 
 ### RAG Sync
 1. Enable RAG in settings
-2. Configure target folders and exclude patterns
-3. Click "Sync Vault" to index your files
-4. The AI will now use semantic search when answering questions
-5. Look for the "RAG" indicator to see when RAG was used
+2. Create a new RAG setting or select an existing one
+3. Configure target folders and exclude patterns (Internal mode)
+4. Click "Sync Vault" to index your files
+5. Select the RAG setting in the chat interface
+6. The AI will now use semantic search when answering questions
+7. Look for the "RAG" indicator to see when RAG was used
 
 ## Project Structure
 
@@ -188,6 +205,7 @@ npm run build
 - Your API key is stored locally in your vault's settings
 - Files are uploaded to Google's File Search API when RAG is enabled
 - Chat history is stored locally in your vault as Markdown files
+- RAG settings are stored in `.gemini-workspace.json` in your workspace folder
 
 ## License
 

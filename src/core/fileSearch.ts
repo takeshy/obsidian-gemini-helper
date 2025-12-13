@@ -100,8 +100,8 @@ export class FileSearchManager {
         if (regex.test(filePath)) {
           return false;
         }
-      } catch (e) {
-        console.warn(`Invalid regex pattern: ${pattern}`, e);
+      } catch {
+        // Invalid regex pattern, skip
       }
     }
 
@@ -122,7 +122,6 @@ export class FileSearchManager {
       this.storeName = store.name;
       return store.name;
     } catch (error) {
-      console.error("Failed to create File Search Store:", error);
       throw error;
     }
   }
@@ -142,8 +141,8 @@ export class FileSearchManager {
           return store.name;
         }
       }
-    } catch (error) {
-      console.error("Failed to list stores:", error);
+    } catch {
+      // Failed to list stores, will create new one
     }
 
     // Create new store if not found
@@ -183,7 +182,6 @@ export class FileSearchManager {
 
       return operation?.name ?? null;
     } catch (error) {
-      console.error(`Failed to upload file ${file.path}:`, error);
       throw error;
     }
   }
@@ -197,9 +195,8 @@ export class FileSearchManager {
     try {
       // Try to delete the file using the files API
       await this.ai.files.delete({ name: fileId });
-    } catch (error) {
+    } catch {
       // File deletion might not be supported or file already deleted
-      console.warn(`Could not delete file ${fileId}:`, error);
     }
   }
 
@@ -367,9 +364,7 @@ export class FileSearchManager {
       }
     );
 
-    if (result.errors.length > 0) {
-      console.error("Sync completed with errors:", result.errors);
-    }
+    // Errors are included in result.errors if any
   }
 
   // Delete store
@@ -389,7 +384,6 @@ export class FileSearchManager {
         isRunning: false,
       };
     } catch (error) {
-      console.error("Failed to delete store:", error);
       throw error;
     }
   }
@@ -574,8 +568,7 @@ export class FileSearchManager {
         createdAt: store.createTime ? new Date(store.createTime).getTime() : 0,
         fileCount: 0, // API doesn't provide this directly
       };
-    } catch (error) {
-      console.error("Failed to get store info:", error);
+    } catch {
       return null;
     }
   }

@@ -393,11 +393,20 @@ export class SettingsTab extends PluginSettingTab {
     name: string,
     ragSetting: import("src/types").RagSetting
   ): void {
-    // Show current store ID if exists
+    // Show current store ID if exists (with copy button)
     if (ragSetting.storeId) {
       new Setting(containerEl)
         .setName("Current Store ID")
-        .setDesc(ragSetting.storeId);
+        .setDesc(ragSetting.storeId)
+        .addExtraButton((btn) => {
+          btn
+            .setIcon("copy")
+            .setTooltip("Copy Store ID")
+            .onClick(() => {
+              navigator.clipboard.writeText(ragSetting.storeId!);
+              new Notice("Store ID copied to clipboard");
+            });
+        });
     }
 
     // Target Folders

@@ -20,7 +20,8 @@ import {
   type SyncResult,
 } from "src/core/fileSearch";
 
-const WORKSPACE_STATE_FILENAME = ".gemini-workspace.json";
+const WORKSPACE_STATE_FILENAME = "gemini-workspace.json";
+const OLD_WORKSPACE_STATE_FILENAME = ".gemini-workspace.json";
 const OLD_RAG_STATE_FILENAME = ".gemini-rag-state.json";
 
 let pluginInstance: GeminiHelperPlugin;
@@ -115,6 +116,12 @@ export class GeminiHelperPlugin extends Plugin {
     return folder ? `${folder}/${OLD_RAG_STATE_FILENAME}` : OLD_RAG_STATE_FILENAME;
   }
 
+  // Get old workspace state file path (for migration)
+  private getOldWorkspaceStateFilePath(): string {
+    const folder = this.settings.workspaceFolder || "";
+    return folder ? `${folder}/${OLD_WORKSPACE_STATE_FILENAME}` : OLD_WORKSPACE_STATE_FILENAME;
+  }
+
   // Load workspace state from file
   async loadWorkspaceState(): Promise<void> {
     this.workspaceState = { ...DEFAULT_WORKSPACE_STATE };
@@ -122,7 +129,20 @@ export class GeminiHelperPlugin extends Plugin {
     const filePath = this.getWorkspaceStateFilePath();
 
     try {
-      const exists = await this.app.vault.adapter.exists(filePath);
+      let exists = await this.app.vault.adapter.exists(filePath);
+
+      // Migrate from old hidden file name if new file doesn't exist
+      if (!exists) {
+        const oldFilePath = this.getOldWorkspaceStateFilePath();
+        const oldExists = await this.app.vault.adapter.exists(oldFilePath);
+        if (oldExists) {
+          const content = await this.app.vault.adapter.read(oldFilePath);
+          await this.app.vault.adapter.write(filePath, content);
+          await this.app.vault.adapter.remove(oldFilePath);
+          exists = true;
+        }
+      }
+
       if (exists) {
         const content = await this.app.vault.adapter.read(filePath);
         const loaded = JSON.parse(content) as Partial<WorkspaceState>;

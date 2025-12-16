@@ -149,7 +149,7 @@ export class SettingsTab extends PluginSettingTab {
     // Google API Key
     const apiKeySetting = new Setting(containerEl)
       .setName("Google API key")
-      .setDesc("Enter your Google AI API key (get one at ai.google.dev)");
+      .setDesc("Enter your Google AI API key. Get one at ai.google.dev");
 
     let apiKeyRevealed = false;
     apiKeySetting.addText((text) => {
@@ -237,7 +237,7 @@ export class SettingsTab extends PluginSettingTab {
 
     systemPromptSetting.addTextArea((text) => {
       text
-        .setPlaceholder("e.g., always respond in Japanese.")
+        .setPlaceholder("E.g., always respond in Japanese.")
         .setValue(this.plugin.settings.systemPrompt)
         .onChange((value) => {
           void (async () => {
@@ -435,14 +435,14 @@ export class SettingsTab extends PluginSettingTab {
   ): void {
     // Header for store IDs
     const storeIdsSetting = new Setting(containerEl)
-      .setName("Semantic search store IDs")
-      .setDesc("External semantic search store IDs (one per line)");
+      .setName("Semantic search store ids")
+      .setDesc("External semantic search store ids (one per line)");
 
     storeIdsSetting.settingEl.addClass("gemini-helper-settings-textarea-container");
 
     storeIdsSetting.addTextArea((text) => {
       text
-        .setPlaceholder("fileSearchStores/xxx\nfileSearchStores/yyy")
+        .setPlaceholder("E.g., fileSearchStores/xxx")
         .setValue(ragSetting.storeIds.join("\n"))
         .onChange((value) => {
           void (async () => {
@@ -498,7 +498,7 @@ export class SettingsTab extends PluginSettingTab {
       .setDesc("Folders to include in semantic search indexing (comma-separated). Leave empty to include all folders.")
       .addText((text) =>
         text
-          .setPlaceholder("e.g., notes, projects, docs")
+          .setPlaceholder("E.g., notes, projects, docs")
           .setValue(ragSetting.targetFolders.join(", "))
           .onChange((value) => {
             void (async () => {

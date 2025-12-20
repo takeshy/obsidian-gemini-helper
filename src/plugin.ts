@@ -1,4 +1,4 @@
-import { Plugin, WorkspaceLeaf, Notice } from "obsidian";
+import { Plugin, WorkspaceLeaf, Notice, MarkdownView } from "obsidian";
 import { EventEmitter } from "src/utils/EventEmitter";
 import { ChatView, VIEW_TYPE_GEMINI_CHAT } from "src/ui/ChatView";
 import { SettingsTab } from "src/ui/SettingsTab";
@@ -30,6 +30,7 @@ export class GeminiHelperPlugin extends Plugin {
   settings!: GeminiHelperSettings;
   workspaceState: WorkspaceState = { ...DEFAULT_WORKSPACE_STATE };
   settingsEmitter = new EventEmitter();
+  private lastSelection = "";
 
   onload(): void {
     // Load settings and workspace state
@@ -58,6 +59,17 @@ export class GeminiHelperPlugin extends Plugin {
     this.app.workspace.onLayoutReady(() => {
       void this.ensureChatViewExists();
     });
+
+    // Capture selection when switching to chat view
+    this.registerEvent(
+      this.app.workspace.on("active-leaf-change", (leaf) => {
+        if (leaf?.view?.getViewType() === VIEW_TYPE_GEMINI_CHAT) {
+          // Selection was already captured by the previous active view
+          // This captures selection when user clicks directly on chat
+          this.captureSelection();
+        }
+      })
+    );
 
     // Add ribbon icon
     this.addRibbonIcon("message-square", "Open chat", () => {
@@ -516,6 +528,9 @@ export class GeminiHelperPlugin extends Plugin {
   }
 
   async activateChatView(): Promise<void> {
+    // Capture selection before switching focus
+    this.captureSelection();
+
     const { workspace } = this.app;
     let leaf: WorkspaceLeaf | null = null;
 
@@ -535,6 +550,42 @@ export class GeminiHelperPlugin extends Plugin {
     if (leaf) {
       void workspace.revealLeaf(leaf);
     }
+  }
+
+  // Capture current selection from any markdown editor
+  captureSelection(): void {
+    // First try active view
+    const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
+    if (activeView) {
+      const selection = activeView.editor.getSelection();
+      if (selection) {
+        this.lastSelection = selection;
+        return;
+      }
+    }
+
+    // Fallback: search all markdown leaves for a selection
+    const leaves = this.app.workspace.getLeavesOfType("markdown");
+    for (const leaf of leaves) {
+      const view = leaf.view as MarkdownView;
+      if (view?.editor) {
+        const selection = view.editor.getSelection();
+        if (selection) {
+          this.lastSelection = selection;
+          return;
+        }
+      }
+    }
+  }
+
+  // Get the last captured selection
+  getLastSelection(): string {
+    return this.lastSelection;
+  }
+
+  // Clear the cached selection (call after using it)
+  clearLastSelection(): void {
+    this.lastSelection = "";
   }
 
   async syncVaultForRAG(

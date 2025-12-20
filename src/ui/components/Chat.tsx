@@ -329,14 +329,23 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 
     // Resolve {selection} - selected text in editor
     if (result.includes("{selection}")) {
+      let selection = "";
+
+      // First try to get selection from current active view
       const activeView = plugin.app.workspace.getActiveViewOfType(MarkdownView);
       if (activeView) {
         const editor = activeView.editor;
-        const selection = editor.getSelection();
-        result = result.replace(/\{selection\}/g, selection || "[No selection]");
-      } else {
-        result = result.replace(/\{selection\}/g, "[No selection]");
+        selection = editor.getSelection();
       }
+
+      // Fallback to cached selection (captured before focus changed to chat)
+      if (!selection) {
+        selection = plugin.getLastSelection();
+        // Clear cached selection after using it
+        plugin.clearLastSelection();
+      }
+
+      result = result.replace(/\{selection\}/g, selection || "[No selection]");
     }
 
     return result;

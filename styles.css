@@ -378,6 +378,7 @@
 
 /* Input Area */
 .gemini-helper-input-area {
+  position: relative;
   display: flex;
   gap: 8px;
   padding: 12px 12px 8px 12px;
@@ -784,4 +785,59 @@
 .is-mobile .gemini-helper-copy-btn {
   opacity: 1; /* Always visible on mobile */
   padding: 6px;
+}
+
+/* Slash Command Autocomplete */
+.gemini-helper-autocomplete {
+  position: absolute;
+  bottom: 100%;
+  left: 12px;
+  right: 12px;
+  max-height: 200px;
+  overflow-y: auto;
+  background: var(--background-secondary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 100;
+  margin-bottom: 4px;
+}
+
+.gemini-helper-autocomplete-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 12px;
+  cursor: pointer;
+  border-bottom: 1px solid var(--background-modifier-border);
+  transition: background 0.1s;
+}
+
+.gemini-helper-autocomplete-item:last-child {
+  border-bottom: none;
+}
+
+.gemini-helper-autocomplete-item:hover,
+.gemini-helper-autocomplete-item.active {
+  background: var(--background-modifier-hover);
+}
+
+.gemini-helper-autocomplete-name {
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--interactive-accent);
+}
+
+.gemini-helper-autocomplete-desc {
+  font-size: 11px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Mobile styles for autocomplete */
+.is-mobile .gemini-helper-autocomplete-item {
+  padding: 12px;
+  min-height: 48px;
 }

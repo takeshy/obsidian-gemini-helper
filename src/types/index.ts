@@ -1,5 +1,15 @@
 import type { Content } from "@google/genai";
 
+// Slash command definition
+export interface SlashCommand {
+  id: string;
+  name: string;                 // コマンド名 (例: "translate")
+  promptTemplate: string;       // テンプレート (例: "{selection}を英語に翻訳して")
+  model?: ModelType | null;     // null = 現在のモデルを使用
+  description?: string;         // オートコンプリートに表示
+  searchSetting?: string | null; // null = 現在の設定, "" = None, "__websearch__" = Web Search, その他 = Semantic Search設定名
+}
+
 // Settings interface
 export interface GeminiHelperSettings {
   googleApiKey: string;
@@ -11,6 +21,9 @@ export interface GeminiHelperSettings {
   workspaceFolder: string;
   saveChatHistory: boolean;
   systemPrompt: string;
+
+  // Slash commands
+  slashCommands: SlashCommand[];
 }
 
 // 個別のRAG設定
@@ -211,4 +224,5 @@ export const DEFAULT_SETTINGS: GeminiHelperSettings = {
   workspaceFolder: "GeminiHelper",
   saveChatHistory: true,
   systemPrompt: "",
+  slashCommands: [],
 };

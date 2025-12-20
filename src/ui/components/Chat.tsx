@@ -6,10 +6,10 @@ import {
   forwardRef,
   useCallback,
 } from "react";
-import { TFile, Notice } from "obsidian";
+import { TFile, Notice, MarkdownView } from "obsidian";
 import { Plus, History, ChevronDown } from "lucide-react";
 import type { GeminiHelperPlugin } from "src/plugin";
-import { type Message, type ModelType, type Attachment, type PendingEditInfo, DEFAULT_MODEL } from "src/types";
+import { type Message, type ModelType, type Attachment, type PendingEditInfo, type SlashCommand, DEFAULT_MODEL } from "src/types";
 import { getGeminiClient } from "src/core/gemini";
 import { getEnabledTools } from "src/core/tools";
 import { createToolExecutor, type ToolExecutionContext } from "src/vault/toolExecutor";
@@ -310,6 +310,54 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
   const handleRagSettingChange = (name: string | null) => {
     setSelectedRagSetting(name);
     void plugin.selectRagSetting(name);
+  };
+
+  // Resolve slash command variables
+  const resolveCommandVariables = async (template: string): Promise<string> => {
+    let result = template;
+
+    // Resolve {content} - active note content
+    if (result.includes("{content}")) {
+      const activeFile = plugin.app.workspace.getActiveFile();
+      if (activeFile) {
+        const content = await plugin.app.vault.read(activeFile);
+        result = result.replace(/\{content\}/g, content);
+      } else {
+        result = result.replace(/\{content\}/g, "[No active note]");
+      }
+    }
+
+    // Resolve {selection} - selected text in editor
+    if (result.includes("{selection}")) {
+      const activeView = plugin.app.workspace.getActiveViewOfType(MarkdownView);
+      if (activeView) {
+        const editor = activeView.editor;
+        const selection = editor.getSelection();
+        result = result.replace(/\{selection\}/g, selection || "[No selection]");
+      } else {
+        result = result.replace(/\{selection\}/g, "[No selection]");
+      }
+    }
+
+    return result;
+  };
+
+  // Handle slash command selection
+  const handleSlashCommand = async (command: SlashCommand): Promise<string> => {
+    // Optionally change model
+    if (command.model) {
+      setCurrentModel(command.model);
+    }
+
+    // Optionally change search setting (null = keep current, "" = None, "__websearch__" = Web Search, other = RAG setting name)
+    if (command.searchSetting !== null && command.searchSetting !== undefined) {
+      const newSetting = command.searchSetting === "" ? null : command.searchSetting;
+      handleRagSettingChange(newSetting);
+    }
+
+    // Resolve variables in the prompt template
+    const resolvedPrompt = await resolveCommandVariables(command.promptTemplate);
+    return resolvedPrompt;
   };
 
   // Start new chat
@@ -716,6 +764,8 @@ Always be helpful and provide clear, concise responses. When working with notes,
         ragSettings={ragSettingNames}
         selectedRagSetting={selectedRagSetting}
         onRagSettingChange={handleRagSettingChange}
+        slashCommands={plugin.settings.slashCommands}
+        onSlashCommand={handleSlashCommand}
       />
     </div>
   );

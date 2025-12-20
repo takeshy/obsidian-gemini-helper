@@ -17,10 +17,19 @@ An AI-powered assistant plugin for Obsidian using Google Gemini with File Search
 - **Model selection** - Switch between Gemini models directly from the chat interface
 - **Web Search** - Search the web using Google Search for up-to-date information
 - **Semantic search setting selection** - Switch between semantic search configurations from the chat interface
+- **Slash commands** - Create reusable prompt templates triggered by typing `/` in chat
 - **Chat history** - Automatically saves chat sessions in Markdown format (viewable and editable)
 - **Conversation threading** - Maintains context across messages in the same chat
 - **Stop generation** - Stop AI responses mid-generation with the stop button
 - **Copy messages** - Easily copy any message to clipboard
+
+### Slash Commands
+Create custom prompt templates that can be triggered by typing `/` in the chat input:
+- **Custom prompts** - Define reusable prompt templates with variables
+- **Model override** - Optionally set a specific model for each command
+- **Search override** - Optionally set Web Search or semantic search for each command
+- **Variables** - Use `{content}` for active note content, `{selection}` for selected text
+- **Autocomplete** - Type `/` to see available commands, filter by typing more characters
 
 ### File Attachments
 Attach files directly to your messages:
@@ -103,6 +112,19 @@ Copy `main.js`, `manifest.json`, and `styles.css` to your vault's plugin folder.
 - **Save Chat History** - Toggle to enable/disable saving chat sessions
 - **System Prompt** - Additional instructions for the AI (e.g., "Always respond in Japanese")
 
+### Slash Commands Settings
+1. Go to **Slash commands** section in settings
+2. Click **Add command** to create a new slash command
+3. Configure:
+   - **Command name** - The trigger name (e.g., `translate` for `/translate`)
+   - **Description** - Brief description shown in autocomplete
+   - **Prompt template** - The prompt text with optional variables:
+     - `{content}` - Replaced with the active note's content
+     - `{selection}` - Replaced with the currently selected text
+   - **Model** (optional) - Override the current model when using this command
+   - **Search** (optional) - Override the current search setting (None, Web search, or semantic search)
+4. Use pencil icon to edit, trash icon to delete commands
+
 ### Semantic Search Settings
 1. **Enable semantic search** - Toggle semantic search feature
 2. **Semantic search setting** - Select or create a semantic search configuration
@@ -141,6 +163,18 @@ Copy `main.js`, `manifest.json`, and `styles.css` to your vault's plugin folder.
 Use the dropdowns below the input area:
 - **Model dropdown** - Switch between Gemini models during a conversation
 - **Search dropdown** - Select Web Search or semantic search setting to use
+
+### Using Slash Commands
+1. Type `/` in the chat input to see available commands
+2. Continue typing to filter commands (e.g., `/tr` shows commands starting with "tr")
+3. Use arrow keys to navigate, Tab or Enter to select
+4. The prompt template is inserted into the input with variables resolved
+5. Edit if needed, then press Enter or click Send
+
+Example commands you might create:
+- `/translate` - "Translate the following to English: {selection}"
+- `/summarize` - "Summarize this note: {content}"
+- `/explain` - "Explain this concept: {selection}"
 
 ### Semantic Search Sync
 1. Enable semantic search in settings

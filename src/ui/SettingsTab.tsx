@@ -10,6 +10,7 @@ import {
 import type { GeminiHelperPlugin } from "src/plugin";
 import { getFileSearchManager } from "src/core/fileSearch";
 import { formatError } from "src/utils/error";
+import { AVAILABLE_MODELS, type SlashCommand, type ModelType } from "src/types";
 
 // Modal for creating/renaming RAG settings
 class RagSettingNameModal extends Modal {
@@ -127,6 +128,161 @@ class ConfirmModal extends Modal {
       this.resolver = resolve;
       this.open();
     });
+  }
+}
+
+// Modal for creating/editing slash commands
+class SlashCommandModal extends Modal {
+  private command: SlashCommand;
+  private isNew: boolean;
+  private onSubmit: (command: SlashCommand) => void | Promise<void>;
+  private ragEnabled: boolean;
+  private ragSettings: string[];
+
+  constructor(
+    app: App,
+    command: SlashCommand | null,
+    ragEnabled: boolean,
+    ragSettings: string[],
+    onSubmit: (command: SlashCommand) => void | Promise<void>
+  ) {
+    super(app);
+    this.isNew = command === null;
+    this.ragEnabled = ragEnabled;
+    this.ragSettings = ragSettings;
+    this.command = command
+      ? { ...command }
+      : {
+          id: `cmd_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
+          name: "",
+          promptTemplate: "",
+          model: null,
+          description: "",
+          searchSetting: null,
+        };
+    this.onSubmit = onSubmit;
+  }
+
+  onOpen() {
+    const { contentEl } = this;
+    contentEl.createEl("h2", {
+      text: this.isNew ? "Create slash command" : "Edit slash command",
+    });
+
+    // Command name
+    new Setting(contentEl)
+      .setName("Command name")
+      .setDesc("Name used to trigger the command (e.g., 'translate')")
+      .addText((text) => {
+        text
+          .setPlaceholder("Example: translate")
+          .setValue(this.command.name)
+          .onChange((value) => {
+            // Remove spaces and special characters, lowercase
+            this.command.name = value.toLowerCase().replace(/[^a-z0-9_-]/g, "");
+          });
+        text.inputEl.addEventListener("keydown", (e) => {
+          if (e.key === "Enter") {
+            e.preventDefault();
+          }
+        });
+      });
+
+    // Description
+    new Setting(contentEl)
+      .setName("Description")
+      .setDesc("Brief description shown in autocomplete")
+      .addText((text) => {
+        text
+          .setPlaceholder("Translate text to english")
+          .setValue(this.command.description || "")
+          .onChange((value) => {
+            this.command.description = value;
+          });
+      });
+
+    // Prompt template
+    const promptSetting = new Setting(contentEl)
+      .setName("Prompt template")
+      .setDesc("Use {content} for active note content, {selection} for selected text");
+
+    promptSetting.settingEl.addClass("gemini-helper-settings-textarea-container");
+
+    promptSetting.addTextArea((text) => {
+      text
+        .setPlaceholder("Translate the following to english:\n\n{selection}")
+        .setValue(this.command.promptTemplate)
+        .onChange((value) => {
+          this.command.promptTemplate = value;
+        });
+      text.inputEl.rows = 6;
+      text.inputEl.addClass("gemini-helper-settings-textarea");
+    });
+
+    // Model selection (optional)
+    new Setting(contentEl)
+      .setName("Model (optional)")
+      .setDesc("Override the current model when using this command")
+      .addDropdown((dropdown) => {
+        dropdown.addOption("", "Use current model");
+        AVAILABLE_MODELS.forEach((m) => {
+          dropdown.addOption(m.name, m.displayName);
+        });
+        dropdown.setValue(this.command.model || "");
+        dropdown.onChange((value) => {
+          this.command.model = value ? (value as ModelType) : null;
+        });
+      });
+
+    // Search setting (optional)
+    new Setting(contentEl)
+      .setName("Search (optional)")
+      .setDesc("Override the current search setting when using this command")
+      .addDropdown((dropdown) => {
+        dropdown.addOption("__current__", "Use current setting");
+        dropdown.addOption("", "None");
+        dropdown.addOption("__websearch__", "Web search");
+        if (this.ragEnabled) {
+          this.ragSettings.forEach((name) => {
+            dropdown.addOption(name, `Semantic search: ${name}`);
+          });
+        }
+        // Map stored value to dropdown value
+        const storedValue = this.command.searchSetting;
+        const dropdownValue = storedValue === null || storedValue === undefined ? "__current__" : storedValue;
+        dropdown.setValue(dropdownValue);
+        dropdown.onChange((value) => {
+          // Map dropdown value back to stored value
+          this.command.searchSetting = value === "__current__" ? null : value;
+        });
+      });
+
+    // Action buttons
+    new Setting(contentEl)
+      .addButton((btn) =>
+        btn.setButtonText("Cancel").onClick(() => this.close())
+      )
+      .addButton((btn) =>
+        btn
+          .setButtonText(this.isNew ? "Create" : "Save")
+          .setCta()
+          .onClick(() => {
+            if (!this.command.name.trim()) {
+              new Notice("Command name is required");
+              return;
+            }
+            if (!this.command.promptTemplate.trim()) {
+              new Notice("Prompt template is required");
+              return;
+            }
+            void this.onSubmit(this.command);
+            this.close();
+          })
+      );
+  }
+
+  onClose() {
+    this.contentEl.empty();
   }
 }
 
@@ -248,6 +404,89 @@ export class SettingsTab extends PluginSettingTab {
       text.inputEl.rows = 4;
       text.inputEl.addClass("gemini-helper-settings-textarea");
     });
+
+    // Slash commands settings
+    new Setting(containerEl).setName("Slash commands").setHeading();
+
+    const ragSettingNames = this.plugin.getRagSettingNames();
+
+    new Setting(containerEl)
+      .setName("Manage commands")
+      .setDesc("Create reusable prompt templates triggered by typing / in chat")
+      .addButton((btn) =>
+        btn
+          .setButtonText("Add command")
+          .setCta()
+          .onClick(() => {
+            new SlashCommandModal(
+              this.app,
+              null,
+              this.plugin.settings.ragEnabled,
+              ragSettingNames,
+              async (command) => {
+                this.plugin.settings.slashCommands.push(command);
+                await this.plugin.saveSettings();
+                this.display();
+                new Notice(`Command "/${command.name}" created`);
+              }
+            ).open();
+          })
+      );
+
+    // List existing commands
+    if (this.plugin.settings.slashCommands.length > 0) {
+      for (const command of this.plugin.settings.slashCommands) {
+        const commandSetting = new Setting(containerEl)
+          .setName(`/${command.name}`)
+          .setDesc(
+            command.description ||
+              command.promptTemplate.slice(0, 50) +
+                (command.promptTemplate.length > 50 ? "..." : "")
+          );
+
+        // Edit button
+        commandSetting.addExtraButton((btn) => {
+          btn
+            .setIcon("pencil")
+            .setTooltip("Edit command")
+            .onClick(() => {
+              new SlashCommandModal(
+                this.app,
+                command,
+                this.plugin.settings.ragEnabled,
+                ragSettingNames,
+                async (updated) => {
+                  const index = this.plugin.settings.slashCommands.findIndex(
+                    (c) => c.id === command.id
+                  );
+                  if (index >= 0) {
+                    this.plugin.settings.slashCommands[index] = updated;
+                    await this.plugin.saveSettings();
+                    this.display();
+                    new Notice(`Command "/${updated.name}" updated`);
+                  }
+                }
+              ).open();
+            });
+        });
+
+        // Delete button
+        commandSetting.addExtraButton((btn) => {
+          btn
+            .setIcon("trash")
+            .setTooltip("Delete command")
+            .onClick(async () => {
+              this.plugin.settings.slashCommands =
+                this.plugin.settings.slashCommands.filter(
+                  (c) => c.id !== command.id
+                );
+              await this.plugin.saveSettings();
+              this.display();
+              new Notice(`Command "/${command.name}" deleted`);
+            });
+        });
+      }
+    }
 
     // Semantic search settings
     new Setting(containerEl).setName("Semantic search").setHeading();

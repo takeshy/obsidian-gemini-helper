@@ -1,6 +1,6 @@
 import { useState, useRef, KeyboardEvent, ChangeEvent } from "react";
 import { Send, Paperclip, StopCircle } from "lucide-react";
-import { AVAILABLE_MODELS, type ModelType, type Attachment } from "src/types";
+import { AVAILABLE_MODELS, type ModelType, type Attachment, type SlashCommand } from "src/types";
 
 interface InputAreaProps {
   onSend: (content: string, attachments?: Attachment[]) => void | Promise<void>;
@@ -12,6 +12,8 @@ interface InputAreaProps {
   ragSettings: string[];
   selectedRagSetting: string | null;
   onRagSettingChange: (setting: string | null) => void;
+  slashCommands: SlashCommand[];
+  onSlashCommand: (command: SlashCommand) => Promise<string>;
 }
 
 // 対応ファイル形式
@@ -31,9 +33,14 @@ export default function InputArea({
   ragSettings,
   selectedRagSetting,
   onRagSettingChange,
+  slashCommands,
+  onSlashCommand,
 }: InputAreaProps) {
   const [input, setInput] = useState("");
   const [pendingAttachments, setPendingAttachments] = useState<Attachment[]>([]);
+  const [showAutocomplete, setShowAutocomplete] = useState(false);
+  const [autocompleteIndex, setAutocompleteIndex] = useState(0);
+  const [filteredCommands, setFilteredCommands] = useState<SlashCommand[]>([]);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -45,7 +52,56 @@ export default function InputArea({
     }
   };
 
+  const handleInputChange = (e: ChangeEvent<HTMLTextAreaElement>) => {
+    const value = e.target.value;
+    setInput(value);
+
+    // Check for slash command trigger
+    if (value.startsWith("/") && slashCommands.length > 0) {
+      const query = value.slice(1).toLowerCase();
+      const matches = slashCommands.filter((cmd) =>
+        cmd.name.toLowerCase().startsWith(query)
+      );
+      setFilteredCommands(matches);
+      setShowAutocomplete(matches.length > 0);
+      setAutocompleteIndex(0);
+    } else {
+      setShowAutocomplete(false);
+    }
+  };
+
+  const selectCommand = async (command: SlashCommand) => {
+    setShowAutocomplete(false);
+    const resolvedPrompt = await onSlashCommand(command);
+    setInput(resolvedPrompt);
+    textareaRef.current?.focus();
+  };
+
   const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
+    if (showAutocomplete) {
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        setAutocompleteIndex((prev) =>
+          Math.min(prev + 1, filteredCommands.length - 1)
+        );
+        return;
+      }
+      if (e.key === "ArrowUp") {
+        e.preventDefault();
+        setAutocompleteIndex((prev) => Math.max(prev - 1, 0));
+        return;
+      }
+      if (e.key === "Tab" || (e.key === "Enter" && filteredCommands.length > 0)) {
+        e.preventDefault();
+        void selectCommand(filteredCommands[autocompleteIndex]);
+        return;
+      }
+      if (e.key === "Escape") {
+        setShowAutocomplete(false);
+        return;
+      }
+    }
+
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleSubmit();
@@ -140,6 +196,29 @@ export default function InputArea({
       )}
 
       <div className="gemini-helper-input-area">
+        {/* Slash command autocomplete */}
+        {showAutocomplete && (
+          <div className="gemini-helper-autocomplete">
+            {filteredCommands.map((cmd, index) => (
+              <div
+                key={cmd.id}
+                className={`gemini-helper-autocomplete-item ${
+                  index === autocompleteIndex ? "active" : ""
+                }`}
+                onClick={() => void selectCommand(cmd)}
+                onMouseEnter={() => setAutocompleteIndex(index)}
+              >
+                <span className="gemini-helper-autocomplete-name">/{cmd.name}</span>
+                {cmd.description && (
+                  <span className="gemini-helper-autocomplete-desc">
+                    {cmd.description}
+                  </span>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+
         {/* 隠しファイル入力 */}
         <input
           ref={fileInputRef}
@@ -166,7 +245,7 @@ export default function InputArea({
           ref={textareaRef}
           className="gemini-helper-input"
           value={input}
-          onChange={(e) => setInput(e.target.value)}
+          onChange={handleInputChange}
           onKeyDown={handleKeyDown}
           placeholder="Type your message... (Enter to send, Shift+Enter for new line)"
           disabled={isLoading}

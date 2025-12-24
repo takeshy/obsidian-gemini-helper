@@ -2,6 +2,9 @@ import obsidianmd from 'eslint-plugin-obsidianmd';
 import tseslint from 'typescript-eslint';
 
 export default [
+  {
+    ignores: ['main.js', 'node_modules/**'],
+  },
   ...tseslint.configs.recommended,
   {
     plugins: {

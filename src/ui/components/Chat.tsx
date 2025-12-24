@@ -15,7 +15,7 @@ import { getEnabledTools } from "src/core/tools";
 import { createToolExecutor, type ToolExecutionContext } from "src/vault/toolExecutor";
 import { getPendingEdit, applyEdit, discardEdit } from "src/vault/notes";
 import MessageList from "./MessageList";
-import InputArea from "./InputArea";
+import InputArea, { type InputAreaHandle } from "./InputArea";
 
 interface ChatHistory {
   id: string;
@@ -49,6 +49,9 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
   );
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
+  const inputAreaRef = useRef<InputAreaHandle>(null);
+  const [vaultFiles, setVaultFiles] = useState<string[]>([]);
+  const [hasSelection, setHasSelection] = useState(false);
 
   useImperativeHandle(ref, () => ({
     getActiveChat: () => activeChat,
@@ -281,6 +284,44 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
     void loadChatHistories();
   }, [loadChatHistories]);
 
+  // Load vault files for @ mention suggestions
+  useEffect(() => {
+    const updateVaultFiles = () => {
+      const files = plugin.app.vault.getMarkdownFiles().map(f => f.path);
+      setVaultFiles(files.sort());
+    };
+    updateVaultFiles();
+
+    // Update on vault changes
+    const onVaultChange = () => updateVaultFiles();
+    plugin.app.vault.on("create", onVaultChange);
+    plugin.app.vault.on("delete", onVaultChange);
+    plugin.app.vault.on("rename", onVaultChange);
+
+    return () => {
+      plugin.app.vault.off("create", onVaultChange);
+      plugin.app.vault.off("delete", onVaultChange);
+      plugin.app.vault.off("rename", onVaultChange);
+    };
+  }, [plugin]);
+
+  // Update hasSelection and focus input when chat gains focus
+  useEffect(() => {
+    const handleLeafChange = () => {
+      // Small delay to let selection capture complete
+      setTimeout(() => {
+        const selection = plugin.getLastSelection();
+        setHasSelection(!!selection);
+        inputAreaRef.current?.focus();
+      }, 50);
+    };
+
+    plugin.settingsEmitter.on("chat-activated", handleLeafChange);
+    return () => {
+      plugin.settingsEmitter.off("chat-activated", handleLeafChange);
+    };
+  }, [plugin]);
+
   // Auto-scroll to bottom when messages change
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -316,12 +357,13 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
   const resolveCommandVariables = async (template: string): Promise<string> => {
     let result = template;
 
-    // Resolve {content} - active note content
+    // Resolve {content} - active note content with file info
     if (result.includes("{content}")) {
       const activeFile = plugin.app.workspace.getActiveFile();
       if (activeFile) {
         const content = await plugin.app.vault.read(activeFile);
-        result = result.replace(/\{content\}/g, content);
+        const contentText = `From "${activeFile.path}":\n${content}`;
+        result = result.replace(/\{content\}/g, contentText);
       } else {
         result = result.replace(/\{content\}/g, "[No active note]");
       }
@@ -373,8 +415,36 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
     return result;
   };
 
+  // Resolve message variables (for regular messages)
+  const resolveMessageVariables = async (content: string): Promise<string> => {
+    let result = content;
+
+    // Resolve {selection} and {content} using the same logic as slash commands
+    result = await resolveCommandVariables(result);
+
+    // Resolve file paths - read file content and insert it
+    const filePathPattern = /(?:^|\s)([\w/-]+\.md)(?:\s|$)/g;
+    const matches = [...result.matchAll(filePathPattern)];
+
+    for (const match of matches) {
+      const filePath = match[1];
+      const file = plugin.app.vault.getAbstractFileByPath(filePath);
+      if (file instanceof TFile) {
+        try {
+          const fileContent = await plugin.app.vault.read(file);
+          const replacement = `\n\n--- Content of "${filePath}" ---\n${fileContent}\n--- End of "${filePath}" ---\n\n`;
+          result = result.replace(filePath, replacement);
+        } catch {
+          // File couldn't be read, leave as-is
+        }
+      }
+    }
+
+    return result;
+  };
+
   // Handle slash command selection
-  const handleSlashCommand = async (command: SlashCommand): Promise<string> => {
+  const handleSlashCommand = (command: SlashCommand): string => {
     // Optionally change model
     if (command.model) {
       setCurrentModel(command.model);
@@ -386,9 +456,8 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
       handleRagSettingChange(newSetting);
     }
 
-    // Resolve variables in the prompt template
-    const resolvedPrompt = await resolveCommandVariables(command.promptTemplate);
-    return resolvedPrompt;
+    // Return template as-is, variables will be resolved on send
+    return command.promptTemplate;
   };
 
   // Start new chat
@@ -443,10 +512,13 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
     // Set the current model
     client.setModel(currentModel);
 
+    // Resolve variables in the content ({selection}, {content}, file paths)
+    const resolvedContent = await resolveMessageVariables(content);
+
     // Add user message
     const userMessage: Message = {
       role: "user",
-      content: content.trim() || (attachments ? `[${attachments.length} file(s) attached]` : ""),
+      content: resolvedContent.trim() || (attachments ? `[${attachments.length} file(s) attached]` : ""),
       timestamp: Date.now(),
       attachments,
     };
@@ -784,6 +856,7 @@ Always be helpful and provide clear, concise responses. When working with notes,
       <div ref={messagesEndRef} />
 
       <InputArea
+        ref={inputAreaRef}
         onSend={(content, attachments) => {
           void sendMessage(content, attachments);
         }}
@@ -797,6 +870,8 @@ Always be helpful and provide clear, concise responses. When working with notes,
         onRagSettingChange={handleRagSettingChange}
         slashCommands={plugin.settings.slashCommands}
         onSlashCommand={handleSlashCommand}
+        vaultFiles={vaultFiles}
+        hasSelection={hasSelection}
       />
     </div>
   );

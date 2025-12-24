@@ -84,6 +84,7 @@ export class GeminiHelperPlugin extends Plugin {
   private lastSelection = "";
   private selectionHighlight: SelectionHighlightInfo | null = null;
   private selectionLocation: SelectionLocationInfo | null = null;
+  private lastActiveMarkdownView: MarkdownView | null = null;
 
   onload(): void {
     // Load settings and workspace state
@@ -113,13 +114,17 @@ export class GeminiHelperPlugin extends Plugin {
       void this.ensureChatViewExists();
     });
 
-    // Capture selection when switching to chat view
+    // Track active markdown view and capture selection when switching to chat
     this.registerEvent(
       this.app.workspace.on("active-leaf-change", (leaf) => {
         if (leaf?.view?.getViewType() === VIEW_TYPE_GEMINI_CHAT) {
-          // Selection was already captured by the previous active view
-          // This captures selection when user clicks directly on chat
-          this.captureSelection();
+          // Capture selection from the last active markdown view
+          this.captureSelectionFromView(this.lastActiveMarkdownView);
+          // Notify Chat component that it's now active
+          this.settingsEmitter.emit("chat-activated");
+        } else if (leaf?.view instanceof MarkdownView) {
+          // Track the last active markdown view
+          this.lastActiveMarkdownView = leaf.view;
         }
       })
     );
@@ -135,6 +140,15 @@ export class GeminiHelperPlugin extends Plugin {
       name: "Open chat",
       callback: () => {
         void this.activateChatView();
+      },
+    });
+
+    // Add command to toggle between chat and markdown view
+    this.addCommand({
+      id: "toggle-chat",
+      name: "Toggle chat / editor",
+      callback: () => {
+        this.toggleChatView();
       },
     });
 
@@ -603,6 +617,64 @@ export class GeminiHelperPlugin extends Plugin {
 
     if (leaf) {
       void workspace.revealLeaf(leaf);
+    }
+  }
+
+  // Toggle between chat view and last active markdown view
+  private toggleChatView(): void {
+    const chatLeaves = this.app.workspace.getLeavesOfType(VIEW_TYPE_GEMINI_CHAT);
+    const activeChatLeaf = chatLeaves.find(leaf => leaf === this.app.workspace.activeLeaf);
+
+    if (activeChatLeaf) {
+      // Currently in chat, go back to last markdown view
+      if (this.lastActiveMarkdownView?.leaf) {
+        this.clearSelectionHighlight();
+        this.app.workspace.setActiveLeaf(this.lastActiveMarkdownView.leaf, { focus: true });
+      }
+    } else {
+      // Not in chat, capture selection and open/activate chat
+      this.captureSelectionFromView(this.lastActiveMarkdownView);
+      if (chatLeaves.length > 0) {
+        this.app.workspace.setActiveLeaf(chatLeaves[0], { focus: true });
+        // Notify Chat component that it's now active
+        this.settingsEmitter.emit("chat-activated");
+      } else {
+        void this.activateChatView();
+      }
+    }
+  }
+
+  // Capture selection from a specific markdown view
+  private captureSelectionFromView(view: MarkdownView | null): void {
+    // Clear previous highlight and location first
+    this.clearSelectionHighlight();
+    this.selectionLocation = null;
+
+    if (!view?.editor) {
+      // Fallback to searching all markdown leaves
+      this.captureSelection();
+      return;
+    }
+
+    const editor = view.editor;
+    const selection = editor.getSelection();
+    if (selection) {
+      this.lastSelection = selection;
+      // Get selection range for highlighting
+      const fromPos = editor.getCursor("from");
+      const toPos = editor.getCursor("to");
+      const from = editor.posToOffset(fromPos);
+      const to = editor.posToOffset(toPos);
+      this.applySelectionHighlight(view, from, to);
+      // Store file path and line numbers
+      const file = view.file;
+      if (file) {
+        this.selectionLocation = {
+          filePath: file.path,
+          startLine: fromPos.line + 1,
+          endLine: toPos.line + 1,
+        };
+      }
     }
   }
 

@@ -31,6 +31,14 @@ Create custom prompt templates that can be triggered by typing `/` in the chat i
 - **Variables** - Use `{content}` for active note content, `{selection}` for selected text
 - **Autocomplete** - Type `/` to see available commands, filter by typing more characters
 
+### @ Mentions
+Reference files and variables directly in your messages by typing `@`:
+- **Variables** - `{selection}` (only shown when text is selected), `{content}` (active note)
+- **Vault files** - Browse and insert any markdown file from your vault
+- **Autocomplete** - Type `@` to see suggestions, continue typing to filter
+- **Navigation** - Use Tab/Shift+Tab or arrow keys, Enter to select
+- Variables and file paths are automatically resolved when the message is sent
+
 ### File Attachments
 Attach files directly to your messages:
 - **Images** - PNG, JPEG, GIF, WebP
@@ -150,6 +158,7 @@ Copy `main.js`, `manifest.json`, and `styles.css` to your vault's plugin folder.
 ### Opening the Chat
 - Click the Gemini icon in the left ribbon
 - Or use the command palette: "Gemini Helper: Open chat"
+- Or use "Gemini Helper: Toggle chat / editor" to quickly switch between chat and your last active note (assign a hotkey in Obsidian settings for quick access)
 
 ### Chat Commands
 - **Enter** - Send message

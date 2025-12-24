@@ -1,4 +1,4 @@
-import { useState, useRef, KeyboardEvent, ChangeEvent } from "react";
+import { useState, useRef, KeyboardEvent, ChangeEvent, forwardRef, useImperativeHandle } from "react";
 import { Send, Paperclip, StopCircle } from "lucide-react";
 import { AVAILABLE_MODELS, type ModelType, type Attachment, type SlashCommand } from "src/types";
 
@@ -13,7 +13,22 @@ interface InputAreaProps {
   selectedRagSetting: string | null;
   onRagSettingChange: (setting: string | null) => void;
   slashCommands: SlashCommand[];
-  onSlashCommand: (command: SlashCommand) => Promise<string>;
+  onSlashCommand: (command: SlashCommand) => string;
+  vaultFiles: string[];
+  hasSelection: boolean;
+}
+
+export interface InputAreaHandle {
+  setInputValue: (value: string) => void;
+  getInputValue: () => string;
+  focus: () => void;
+}
+
+// Mention candidates (special variables + vault files)
+interface MentionItem {
+  value: string;
+  description: string;
+  isVariable: boolean;
 }
 
 // 対応ファイル形式
@@ -23,7 +38,7 @@ const SUPPORTED_TYPES = {
   text: ["text/plain", "text/markdown", "text/csv", "application/json"],
 };
 
-export default function InputArea({
+const InputArea = forwardRef<InputAreaHandle, InputAreaProps>(function InputArea({
   onSend,
   onStop,
   isLoading,
@@ -35,28 +50,65 @@ export default function InputArea({
   onRagSettingChange,
   slashCommands,
   onSlashCommand,
-}: InputAreaProps) {
+  vaultFiles,
+  hasSelection,
+}, ref) {
   const [input, setInput] = useState("");
   const [pendingAttachments, setPendingAttachments] = useState<Attachment[]>([]);
   const [showAutocomplete, setShowAutocomplete] = useState(false);
   const [autocompleteIndex, setAutocompleteIndex] = useState(0);
   const [filteredCommands, setFilteredCommands] = useState<SlashCommand[]>([]);
+  // Mention autocomplete state
+  const [showMentionAutocomplete, setShowMentionAutocomplete] = useState(false);
+  const [mentionIndex, setMentionIndex] = useState(0);
+  const [filteredMentions, setFilteredMentions] = useState<MentionItem[]>([]);
+  const [mentionStartPos, setMentionStartPos] = useState(0);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Expose methods via ref
+  useImperativeHandle(ref, () => ({
+    setInputValue: (value: string) => setInput(value),
+    getInputValue: () => input,
+    focus: () => textareaRef.current?.focus(),
+  }));
+
+  // Build mention candidates
+  const buildMentionCandidates = (query: string): MentionItem[] => {
+    const variables: MentionItem[] = [
+      // Only show {selection} if there's an active selection
+      ...(hasSelection ? [{ value: "{selection}", description: "Selected text in editor", isVariable: true }] : []),
+      { value: "{content}", description: "Active note content", isVariable: true },
+    ];
+    const files: MentionItem[] = vaultFiles.map((f) => ({
+      value: f,
+      description: "Vault file",
+      isVariable: false,
+    }));
+    const all = [...variables, ...files];
+    if (!query) return all.slice(0, 10);
+    const lowerQuery = query.toLowerCase();
+    return all.filter((item) => item.value.toLowerCase().includes(lowerQuery)).slice(0, 10);
+  };
 
   const handleSubmit = () => {
     if ((input.trim() || pendingAttachments.length > 0) && !isLoading) {
       void onSend(input, pendingAttachments.length > 0 ? pendingAttachments : undefined);
       setInput("");
       setPendingAttachments([]);
+      // Keep focus on textarea after submit
+      setTimeout(() => {
+        textareaRef.current?.focus();
+      }, 0);
     }
   };
 
   const handleInputChange = (e: ChangeEvent<HTMLTextAreaElement>) => {
     const value = e.target.value;
+    const cursorPos = e.target.selectionStart;
     setInput(value);
 
-    // Check for slash command trigger
+    // Check for slash command trigger (only at start of input)
     if (value.startsWith("/") && slashCommands.length > 0) {
       const query = value.slice(1).toLowerCase();
       const matches = slashCommands.filter((cmd) =>
@@ -65,39 +117,98 @@ export default function InputArea({
       setFilteredCommands(matches);
       setShowAutocomplete(matches.length > 0);
       setAutocompleteIndex(0);
+      setShowMentionAutocomplete(false);
+      return;
     } else {
       setShowAutocomplete(false);
     }
+
+    // Check for @ mention trigger
+    const textBeforeCursor = value.substring(0, cursorPos);
+    const atMatch = textBeforeCursor.match(/@([^\s@]*)$/);
+    if (atMatch) {
+      const query = atMatch[1];
+      const startPos = cursorPos - atMatch[0].length;
+      const mentions = buildMentionCandidates(query);
+      setFilteredMentions(mentions);
+      setMentionStartPos(startPos);
+      setShowMentionAutocomplete(mentions.length > 0);
+      setMentionIndex(0);
+    } else {
+      setShowMentionAutocomplete(false);
+    }
   };
 
-  const selectCommand = async (command: SlashCommand) => {
+  const selectCommand = (command: SlashCommand) => {
     setShowAutocomplete(false);
-    const resolvedPrompt = await onSlashCommand(command);
+    const resolvedPrompt = onSlashCommand(command);
     setInput(resolvedPrompt);
     textareaRef.current?.focus();
   };
 
+  const selectMention = (mention: MentionItem) => {
+    // Replace @query with the selected mention value
+    const cursorPos = textareaRef.current?.selectionStart || input.length;
+    const before = input.substring(0, mentionStartPos);
+    const after = input.substring(cursorPos);
+    const newInput = before + mention.value + " " + after;
+    setInput(newInput);
+    setShowMentionAutocomplete(false);
+    // Set cursor position after the inserted mention
+    setTimeout(() => {
+      const newPos = mentionStartPos + mention.value.length + 1;
+      textareaRef.current?.setSelectionRange(newPos, newPos);
+      textareaRef.current?.focus();
+    }, 0);
+  };
+
   const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
+    // Slash command autocomplete
     if (showAutocomplete) {
-      if (e.key === "ArrowDown") {
+      if (e.key === "ArrowDown" || (e.key === "Tab" && !e.shiftKey)) {
         e.preventDefault();
         setAutocompleteIndex((prev) =>
           Math.min(prev + 1, filteredCommands.length - 1)
         );
         return;
       }
-      if (e.key === "ArrowUp") {
+      if (e.key === "ArrowUp" || (e.key === "Tab" && e.shiftKey)) {
         e.preventDefault();
         setAutocompleteIndex((prev) => Math.max(prev - 1, 0));
         return;
       }
-      if (e.key === "Tab" || (e.key === "Enter" && filteredCommands.length > 0)) {
+      if (e.key === "Enter" && filteredCommands.length > 0) {
         e.preventDefault();
-        void selectCommand(filteredCommands[autocompleteIndex]);
+        selectCommand(filteredCommands[autocompleteIndex]);
         return;
       }
       if (e.key === "Escape") {
         setShowAutocomplete(false);
+        return;
+      }
+    }
+
+    // Mention autocomplete
+    if (showMentionAutocomplete) {
+      if (e.key === "ArrowDown" || (e.key === "Tab" && !e.shiftKey)) {
+        e.preventDefault();
+        setMentionIndex((prev) =>
+          Math.min(prev + 1, filteredMentions.length - 1)
+        );
+        return;
+      }
+      if (e.key === "ArrowUp" || (e.key === "Tab" && e.shiftKey)) {
+        e.preventDefault();
+        setMentionIndex((prev) => Math.max(prev - 1, 0));
+        return;
+      }
+      if (e.key === "Enter" && filteredMentions.length > 0) {
+        e.preventDefault();
+        selectMention(filteredMentions[mentionIndex]);
+        return;
+      }
+      if (e.key === "Escape") {
+        setShowMentionAutocomplete(false);
         return;
       }
     }
@@ -205,7 +316,7 @@ export default function InputArea({
                 className={`gemini-helper-autocomplete-item ${
                   index === autocompleteIndex ? "active" : ""
                 }`}
-                onClick={() => void selectCommand(cmd)}
+                onClick={() => selectCommand(cmd)}
                 onMouseEnter={() => setAutocompleteIndex(index)}
               >
                 <span className="gemini-helper-autocomplete-name">/{cmd.name}</span>
@@ -214,6 +325,29 @@ export default function InputArea({
                     {cmd.description}
                   </span>
                 )}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Mention autocomplete */}
+        {showMentionAutocomplete && (
+          <div className="gemini-helper-autocomplete">
+            {filteredMentions.map((mention, index) => (
+              <div
+                key={mention.value}
+                className={`gemini-helper-autocomplete-item ${
+                  index === mentionIndex ? "active" : ""
+                }`}
+                onClick={() => selectMention(mention)}
+                onMouseEnter={() => setMentionIndex(index)}
+              >
+                <span className="gemini-helper-autocomplete-name">
+                  {mention.isVariable ? mention.value : mention.value}
+                </span>
+                <span className="gemini-helper-autocomplete-desc">
+                  {mention.description}
+                </span>
               </div>
             ))}
           </div>
@@ -300,4 +434,6 @@ export default function InputArea({
       </div>
     </div>
   );
-}
+});
+
+export default InputArea;

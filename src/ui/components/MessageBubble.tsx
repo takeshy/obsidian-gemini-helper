@@ -27,23 +27,23 @@ export default function MessageBubble({
     return modelInfo?.displayName || message.model;
   };
 
-  // ツール名を日本語表示に変換
+  // Convert tool name to display info
   const getToolDisplayInfo = (toolName: string): { icon: string; label: string } => {
     const toolDisplayMap: Record<string, { icon: string; label: string }> = {
-      read_note: { icon: "📖", label: "ノートを読みました" },
-      create_note: { icon: "📝", label: "ノートを作成しました" },
-      update_note: { icon: "✏️", label: "ノートを更新しました" },
-      delete_note: { icon: "🗑️", label: "ノートを削除しました" },
-      rename_note: { icon: "📋", label: "ノートをリネームしました" },
-      search_notes: { icon: "🔍", label: "ノートを検索しました" },
-      list_notes: { icon: "📂", label: "ノート一覧を取得しました" },
-      list_folders: { icon: "📁", label: "フォルダ一覧を取得しました" },
-      create_folder: { icon: "📁", label: "フォルダを作成しました" },
-      get_active_note_info: { icon: "📄", label: "アクティブノート情報を取得しました" },
-      get_rag_sync_status: { icon: "🔄", label: "セマンティック検索同期状態を確認しました" },
-      propose_edit: { icon: "✏️", label: "編集プレビューを作成しました" },
-      apply_edit: { icon: "✅", label: "編集を適用しました" },
-      discard_edit: { icon: "❌", label: "編集を破棄しました" },
+      read_note: { icon: "📖", label: "Read note" },
+      create_note: { icon: "📝", label: "Created note" },
+      update_note: { icon: "✏️", label: "Updated note" },
+      delete_note: { icon: "🗑️", label: "Deleted note" },
+      rename_note: { icon: "📋", label: "Renamed note" },
+      search_notes: { icon: "🔍", label: "Searched notes" },
+      list_notes: { icon: "📂", label: "Listed notes" },
+      list_folders: { icon: "📁", label: "Listed folders" },
+      create_folder: { icon: "📁", label: "Created folder" },
+      get_active_note_info: { icon: "📄", label: "Got active note info" },
+      get_rag_sync_status: { icon: "🔄", label: "Checked semantic search sync status" },
+      propose_edit: { icon: "✏️", label: "Created edit preview" },
+      apply_edit: { icon: "✅", label: "Applied edit" },
+      discard_edit: { icon: "❌", label: "Discarded edit" },
     };
     return toolDisplayMap[toolName] || { icon: "🔧", label: toolName };
   };
@@ -84,25 +84,25 @@ export default function MessageBubble({
         )}
       </div>
 
-      {/* Web検索使用インジケータ */}
+      {/* Web search indicator */}
       {message.webSearchUsed && (
         <div className="gemini-helper-rag-used">
           <span className="gemini-helper-rag-indicator">
-            🌐 Web検索を使用しました
+            🌐 Used web search
           </span>
         </div>
       )}
 
-      {/* セマンティック検索使用インジケータ */}
+      {/* Semantic search indicator */}
       {message.ragUsed && (
         <div className="gemini-helper-rag-used">
           <span className="gemini-helper-rag-indicator">
-            📚 セマンティック検索を使用しました
+            📚 Used semantic search
           </span>
         </div>
       )}
 
-      {/* ツール使用インジケータ */}
+      {/* Tools used indicator */}
       {message.toolsUsed && message.toolsUsed.length > 0 && (
         <div className="gemini-helper-tools-used">
           {message.toolsUsed.map((tool, index) => {
@@ -116,7 +116,7 @@ export default function MessageBubble({
         </div>
       )}
 
-      {/* 添付ファイル表示 */}
+      {/* Attachments display */}
       {message.attachments && message.attachments.length > 0 && (
         <div className="gemini-helper-attachments">
           {message.attachments.map((attachment, index) => (
@@ -134,11 +134,11 @@ export default function MessageBubble({
         {renderContent(message.content)}
       </div>
 
-      {/* 編集プレビューボタン */}
+      {/* Edit preview buttons */}
       {message.pendingEdit && message.pendingEdit.status === "pending" && (
         <div className="gemini-helper-pending-edit">
           <div className="gemini-helper-pending-edit-info">
-            📄 <strong>{message.pendingEdit.originalPath}</strong> を編集しました
+            📄 Edited <strong>{message.pendingEdit.originalPath}</strong>
           </div>
           <div className="gemini-helper-pending-edit-actions">
             <button
@@ -146,36 +146,36 @@ export default function MessageBubble({
               onClick={() => {
                 void onApplyEdit?.();
               }}
-              title="変更を適用"
+              title="Apply changes"
             >
               <CheckCircle size={16} />
-              適用する
+              Apply
             </button>
             <button
               className="gemini-helper-edit-btn gemini-helper-edit-discard"
               onClick={() => {
                 void onDiscardEdit?.();
               }}
-              title="変更を破棄"
+              title="Discard changes"
             >
               <XCircle size={16} />
-              破棄する
+              Discard
             </button>
           </div>
         </div>
       )}
 
-      {/* 編集適用済み表示 */}
+      {/* Edit applied status */}
       {message.pendingEdit && message.pendingEdit.status === "applied" && (
         <div className="gemini-helper-edit-status gemini-helper-edit-applied">
-          ✅ <strong>{message.pendingEdit.originalPath}</strong> に変更を適用しました
+          ✅ Applied changes to <strong>{message.pendingEdit.originalPath}</strong>
         </div>
       )}
 
-      {/* 編集破棄済み表示 */}
+      {/* Edit discarded status */}
       {message.pendingEdit && message.pendingEdit.status === "discarded" && (
         <div className="gemini-helper-edit-status gemini-helper-edit-discarded">
-          ❌ 変更を破棄しました
+          ❌ Discarded changes
         </div>
       )}
     </div>

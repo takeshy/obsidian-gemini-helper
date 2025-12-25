@@ -390,7 +390,7 @@ export async function proposeEdit(
     return {
       success: true,
       originalPath: file.path,
-      message: `Applied changes to "${file.basename}". Click "適用" to keep or "破棄" to undo.`,
+      message: `Applied changes to "${file.basename}". Click "Apply" to keep or "Discard" to undo.`,
     };
   } catch (error) {
     return {

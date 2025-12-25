@@ -285,7 +285,7 @@ const InputArea = forwardRef<InputAreaHandle, InputAreaProps>(function InputArea
 
   return (
     <div className="gemini-helper-input-container">
-      {/* 添付ファイル表示 */}
+      {/* Pending attachments display */}
       {pendingAttachments.length > 0 && (
         <div className="gemini-helper-pending-attachments">
           {pendingAttachments.map((attachment, index) => (
@@ -353,7 +353,7 @@ const InputArea = forwardRef<InputAreaHandle, InputAreaProps>(function InputArea
           </div>
         )}
 
-        {/* 隠しファイル入力 */}
+        {/* Hidden file input */}
         <input
           ref={fileInputRef}
           type="file"
@@ -365,7 +365,7 @@ const InputArea = forwardRef<InputAreaHandle, InputAreaProps>(function InputArea
           className="gemini-helper-hidden-input"
         />
 
-        {/* 添付ボタン */}
+        {/* Attachment button */}
         <button
           className="gemini-helper-attachment-btn"
           onClick={() => fileInputRef.current?.click()}

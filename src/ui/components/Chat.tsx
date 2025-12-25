@@ -655,7 +655,7 @@ Always be helpful and provide clear, concise responses. When working with notes,
 
       // If stopped, add partial message if any content was received
       if (stopped && fullContent) {
-        fullContent += "\n\n_(生成を停止しました)_";
+        fullContent += "\n\n_(Generation stopped)_";
       }
 
       // Check if there's a pending edit from propose_edit tool

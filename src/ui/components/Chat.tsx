@@ -47,7 +47,7 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
   const [selectedRagSetting, setSelectedRagSetting] = useState<string | null>(
     plugin.workspaceState.selectedRagSetting
   );
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
   const inputAreaRef = useRef<InputAreaHandle>(null);
   const [vaultFiles, setVaultFiles] = useState<string[]>([]);
@@ -324,7 +324,14 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 
   // Auto-scroll to bottom when messages change
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    // Delay scroll to ensure MarkdownRenderer has finished rendering
+    const timer = setTimeout(() => {
+      const container = messagesContainerRef.current;
+      if (container) {
+        container.scrollTop = container.scrollHeight;
+      }
+    }, 150);
+    return () => clearTimeout(timer);
   }, [messages, streamingContent]);
 
   // Listen for workspace state changes
@@ -847,13 +854,14 @@ Always be helpful and provide clear, concise responses. When working with notes,
       )}
 
       <MessageList
+        ref={messagesContainerRef}
         messages={messages}
         streamingContent={streamingContent}
         isLoading={isLoading}
         onApplyEdit={handleApplyEdit}
         onDiscardEdit={handleDiscardEdit}
+        app={plugin.app}
       />
-      <div ref={messagesEndRef} />
 
       <InputArea
         ref={inputAreaRef}
@@ -872,6 +880,7 @@ Always be helpful and provide clear, concise responses. When working with notes,
         onSlashCommand={handleSlashCommand}
         vaultFiles={vaultFiles}
         hasSelection={hasSelection}
+        app={plugin.app}
       />
     </div>
   );

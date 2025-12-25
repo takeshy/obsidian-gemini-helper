@@ -1,7 +1,7 @@
 {
 	"id": "gemini-helper",
 	"name": "Gemini Helper",
-	"version": "1.0.18",
+	"version": "1.0.19",
 	"minAppVersion": "0.15.0",
 	"description": "AI-powered assistant using Google Gemini with File Search RAG capabilities.",
 	"author": "takeshy",

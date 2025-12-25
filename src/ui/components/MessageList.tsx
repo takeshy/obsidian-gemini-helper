@@ -1,3 +1,5 @@
+import { forwardRef } from "react";
+import type { App } from "obsidian";
 import type { Message } from "src/types";
 import MessageBubble from "./MessageBubble";
 
@@ -7,17 +9,19 @@ interface MessageListProps {
   isLoading: boolean;
   onApplyEdit?: (messageIndex: number) => Promise<void>;
   onDiscardEdit?: (messageIndex: number) => Promise<void>;
+  app: App;
 }
 
-export default function MessageList({
+const MessageList = forwardRef<HTMLDivElement, MessageListProps>(({
   messages,
   streamingContent,
   isLoading,
   onApplyEdit,
   onDiscardEdit,
-}: MessageListProps) {
+  app,
+}, ref) => {
   return (
-    <div className="gemini-helper-messages">
+    <div className="gemini-helper-messages" ref={ref}>
       {messages.length === 0 && !streamingContent && (
         <div className="gemini-helper-empty-state">
           <p>Start a conversation with Gemini</p>
@@ -33,6 +37,7 @@ export default function MessageList({
           message={message}
           onApplyEdit={onApplyEdit ? () => onApplyEdit(index) : undefined}
           onDiscardEdit={onDiscardEdit ? () => onDiscardEdit(index) : undefined}
+          app={app}
         />
       ))}
 
@@ -44,6 +49,7 @@ export default function MessageList({
             timestamp: Date.now(),
           }}
           isStreaming
+          app={app}
         />
       )}
 
@@ -56,4 +62,6 @@ export default function MessageList({
       )}
     </div>
   );
-}
+});
+
+export default MessageList;

@@ -1,6 +1,7 @@
-import { useState, type ReactNode } from "react";
+import { useState, useEffect, useRef } from "react";
+import { type App, MarkdownRenderer, Component, Notice } from "obsidian";
 import { Copy, Check, CheckCircle, XCircle } from "lucide-react";
-import type { Message } from "src/types";
+import type { Message, ToolCall } from "src/types";
 import { AVAILABLE_MODELS } from "src/types";
 
 interface MessageBubbleProps {
@@ -8,6 +9,7 @@ interface MessageBubbleProps {
   isStreaming?: boolean;
   onApplyEdit?: () => Promise<void>;
   onDiscardEdit?: () => Promise<void>;
+  app: App;
 }
 
 export default function MessageBubble({
@@ -15,9 +17,68 @@ export default function MessageBubble({
   isStreaming,
   onApplyEdit,
   onDiscardEdit,
+  app,
 }: MessageBubbleProps) {
   const isUser = message.role === "user";
   const [copied, setCopied] = useState(false);
+  const contentRef = useRef<HTMLDivElement>(null);
+  const componentRef = useRef<Component | null>(null);
+
+  // Render markdown content using Obsidian's MarkdownRenderer
+  useEffect(() => {
+    if (!contentRef.current) return;
+
+    // Clear previous content
+    contentRef.current.empty();
+
+    // Create a new Component for managing child components
+    if (componentRef.current) {
+      componentRef.current.unload();
+    }
+    componentRef.current = new Component();
+    componentRef.current.load();
+
+    // Render markdown
+    void MarkdownRenderer.render(
+      app,
+      message.content,
+      contentRef.current,
+      "",
+      componentRef.current
+    ).then(() => {
+      // Add click handlers for internal links
+      const container = contentRef.current;
+      if (!container) return;
+
+      container.querySelectorAll("a.internal-link").forEach((link) => {
+        link.addEventListener("click", (e) => {
+          e.preventDefault();
+          const href = link.getAttribute("href");
+          if (href) {
+            void app.workspace.openLinkText(href, "", false);
+          }
+        });
+      });
+
+      // Handle external links
+      container.querySelectorAll("a.external-link").forEach((link) => {
+        link.addEventListener("click", (e) => {
+          e.preventDefault();
+          const href = link.getAttribute("href");
+          if (href) {
+            window.open(href, "_blank");
+          }
+        });
+      });
+    });
+
+    return () => {
+      if (componentRef.current) {
+        componentRef.current.unload();
+        componentRef.current = null;
+      }
+    };
+  }, [message.content, app]);
 
   // Get model display name
   const getModelDisplayName = () => {
@@ -27,26 +88,52 @@ export default function MessageBubble({
     return modelInfo?.displayName || message.model;
   };
 
-  // Convert tool name to display info
+  // Convert tool call to display info
   const getToolDisplayInfo = (toolName: string): { icon: string; label: string } => {
     const toolDisplayMap: Record<string, { icon: string; label: string }> = {
-      read_note: { icon: "📖", label: "Read note" },
-      create_note: { icon: "📝", label: "Created note" },
-      update_note: { icon: "✏️", label: "Updated note" },
-      delete_note: { icon: "🗑️", label: "Deleted note" },
-      rename_note: { icon: "📋", label: "Renamed note" },
-      search_notes: { icon: "🔍", label: "Searched notes" },
-      list_notes: { icon: "📂", label: "Listed notes" },
+      read_note: { icon: "📖", label: "Read" },
+      create_note: { icon: "📝", label: "Created" },
+      update_note: { icon: "✏️", label: "Updated" },
+      delete_note: { icon: "🗑️", label: "Deleted" },
+      rename_note: { icon: "📋", label: "Renamed" },
+      search_notes: { icon: "🔍", label: "Searched" },
+      list_notes: { icon: "📂", label: "Listed" },
       list_folders: { icon: "📁", label: "Listed folders" },
       create_folder: { icon: "📁", label: "Created folder" },
-      get_active_note_info: { icon: "📄", label: "Got active note info" },
-      get_rag_sync_status: { icon: "🔄", label: "Checked semantic search sync status" },
-      propose_edit: { icon: "✏️", label: "Created edit preview" },
-      apply_edit: { icon: "✅", label: "Applied edit" },
-      discard_edit: { icon: "❌", label: "Discarded edit" },
+      get_active_note_info: { icon: "📄", label: "Got active note" },
+      get_rag_sync_status: { icon: "🔄", label: "Checked sync" },
+      propose_edit: { icon: "✏️", label: "Editing" },
+      apply_edit: { icon: "✅", label: "Applied" },
+      discard_edit: { icon: "❌", label: "Discarded" },
     };
     return toolDisplayMap[toolName] || { icon: "🔧", label: toolName };
   };
+
+  // Get detail string from tool args for toast
+  const getToolDetail = (toolCall: ToolCall): string => {
+    const args = toolCall.args;
+    const { label } = getToolDisplayInfo(toolCall.name);
+    const parts: string[] = [label];
+
+    if (args.fileName && typeof args.fileName === "string") {
+      parts.push(args.fileName);
+    } else if (args.path && typeof args.path === "string") {
+      parts.push(args.path);
+    } else if (args.name && typeof args.name === "string") {
+      parts.push(args.name);
+    } else if (args.old_path && args.new_path) {
+      parts.push(`${args.old_path} → ${args.new_path}`);
+    } else if (args.query && typeof args.query === "string") {
+      parts.push(`"${args.query}"`);
+    } else if (args.folder && typeof args.folder === "string") {
+      parts.push(args.folder);
+    } else if (args.activeNote === true) {
+      parts.push("(active note)");
+    }
+
+    return parts.join(": ");
+  };
+
 
   const handleCopy = async () => {
     try {
@@ -103,12 +190,17 @@ export default function MessageBubble({
       )}
 
       {/* Tools used indicator */}
-      {message.toolsUsed && message.toolsUsed.length > 0 && (
+      {message.toolCalls && message.toolCalls.length > 0 && (
         <div className="gemini-helper-tools-used">
-          {message.toolsUsed.map((tool, index) => {
-            const { icon, label } = getToolDisplayInfo(tool);
+          {message.toolCalls.map((toolCall, index) => {
+            const { icon, label } = getToolDisplayInfo(toolCall.name);
             return (
-              <span key={index} className="gemini-helper-tool-indicator">
+              <span
+                key={index}
+                className="gemini-helper-tool-indicator gemini-helper-tool-clickable"
+                onClick={() => new Notice(getToolDetail(toolCall), 3000)}
+                title="Click to see details"
+              >
                 {icon} {label}
               </span>
             );
@@ -130,9 +222,7 @@ export default function MessageBubble({
         </div>
       )}
 
-      <div className="gemini-helper-message-content">
-        {renderContent(message.content)}
-      </div>
+      <div className="gemini-helper-message-content" ref={contentRef} />
 
       {/* Edit preview buttons */}
       {message.pendingEdit && message.pendingEdit.status === "pending" && (
@@ -190,85 +280,3 @@ function formatTime(timestamp: number): string {
   });
 }
 
-function renderContent(content: string): ReactNode {
-  // Simple markdown-like rendering
-  const lines = content.split("\n");
-
-  return (
-    <>
-      {lines.map((line, index) => {
-        // Code blocks
-        if (line.startsWith("```")) {
-          return null; // Handle in a more complex implementation
-        }
-
-        // Headers
-        if (line.startsWith("### ")) {
-          return (
-            <h4 key={index} className="gemini-helper-h4">
-              {line.slice(4)}
-            </h4>
-          );
-        }
-        if (line.startsWith("## ")) {
-          return (
-            <h3 key={index} className="gemini-helper-h3">
-              {line.slice(3)}
-            </h3>
-          );
-        }
-        if (line.startsWith("# ")) {
-          return (
-            <h2 key={index} className="gemini-helper-h2">
-              {line.slice(2)}
-            </h2>
-          );
-        }
-
-        // Lists
-        if (line.startsWith("- ") || line.startsWith("* ")) {
-          return (
-            <li key={index} className="gemini-helper-list-item">
-              {line.slice(2)}
-            </li>
-          );
-        }
-
-        // Numbered lists
-        const numberedMatch = line.match(/^\d+\.\s/);
-        if (numberedMatch) {
-          return (
-            <li key={index} className="gemini-helper-list-item">
-              {line.slice(numberedMatch[0].length)}
-            </li>
-          );
-        }
-
-        // Bold
-        const boldContent = line.replace(
-          /\*\*(.+?)\*\*/g,
-          "<strong>$1</strong>"
-        );
-
-        // Inline code
-        const codeContent = boldContent.replace(
-          /`([^`]+)`/g,
-          '<code class="gemini-helper-inline-code">$1</code>'
-        );
-
-        // Empty line
-        if (!line.trim()) {
-          return <br key={index} />;
-        }
-
-        return (
-          <p
-            key={index}
-            className="gemini-helper-paragraph"
-            dangerouslySetInnerHTML={{ __html: codeContent }}
-          />
-        );
-      })}
-    </>
-  );
-}

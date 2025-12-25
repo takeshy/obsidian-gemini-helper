@@ -1,5 +1,6 @@
-import { useState, useRef, KeyboardEvent, ChangeEvent, forwardRef, useImperativeHandle } from "react";
-import { Send, Paperclip, StopCircle } from "lucide-react";
+import { useState, useRef, useEffect, KeyboardEvent, ChangeEvent, forwardRef, useImperativeHandle } from "react";
+import { Send, Paperclip, StopCircle, Eye } from "lucide-react";
+import type { App } from "obsidian";
 import { AVAILABLE_MODELS, type ModelType, type Attachment, type SlashCommand } from "src/types";
 
 interface InputAreaProps {
@@ -16,6 +17,7 @@ interface InputAreaProps {
   onSlashCommand: (command: SlashCommand) => string;
   vaultFiles: string[];
   hasSelection: boolean;
+  app: App;
 }
 
 export interface InputAreaHandle {
@@ -52,6 +54,7 @@ const InputArea = forwardRef<InputAreaHandle, InputAreaProps>(function InputArea
   onSlashCommand,
   vaultFiles,
   hasSelection,
+  app,
 }, ref) {
   const [input, setInput] = useState("");
   const [pendingAttachments, setPendingAttachments] = useState<Attachment[]>([]);
@@ -65,6 +68,18 @@ const InputArea = forwardRef<InputAreaHandle, InputAreaProps>(function InputArea
   const [mentionStartPos, setMentionStartPos] = useState(0);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const mentionAutocompleteRef = useRef<HTMLDivElement>(null);
+
+  // Scroll to selected mention item
+  useEffect(() => {
+    if (showMentionAutocomplete && mentionAutocompleteRef.current) {
+      const container = mentionAutocompleteRef.current;
+      const activeItem = container.children[mentionIndex] as HTMLElement;
+      if (activeItem) {
+        activeItem.scrollIntoView({ block: "nearest" });
+      }
+    }
+  }, [mentionIndex, showMentionAutocomplete]);
 
   // Expose methods via ref
   useImperativeHandle(ref, () => ({
@@ -96,10 +111,6 @@ const InputArea = forwardRef<InputAreaHandle, InputAreaProps>(function InputArea
       void onSend(input, pendingAttachments.length > 0 ? pendingAttachments : undefined);
       setInput("");
       setPendingAttachments([]);
-      // Keep focus on textarea after submit
-      setTimeout(() => {
-        textareaRef.current?.focus();
-      }, 0);
     }
   };
 
@@ -200,6 +211,17 @@ const InputArea = forwardRef<InputAreaHandle, InputAreaProps>(function InputArea
       if (e.key === "ArrowUp" || (e.key === "Tab" && e.shiftKey)) {
         e.preventDefault();
         setMentionIndex((prev) => Math.max(prev - 1, 0));
+        return;
+      }
+      // Ctrl+Shift+O to preview (open) the selected file
+      if (e.key === "O" && e.ctrlKey && e.shiftKey && filteredMentions.length > 0) {
+        e.preventDefault();
+        const mention = filteredMentions[mentionIndex];
+        if (mention && !mention.isVariable) {
+          void app.workspace.openLinkText(mention.value, "", true);
+          // Return focus to textarea after opening
+          setTimeout(() => textareaRef.current?.focus(), 100);
+        }
         return;
       }
       if (e.key === "Enter" && filteredMentions.length > 0) {
@@ -332,7 +354,7 @@ const InputArea = forwardRef<InputAreaHandle, InputAreaProps>(function InputArea
 
         {/* Mention autocomplete */}
         {showMentionAutocomplete && (
-          <div className="gemini-helper-autocomplete">
+          <div className="gemini-helper-autocomplete" ref={mentionAutocompleteRef}>
             {filteredMentions.map((mention, index) => (
               <div
                 key={mention.value}
@@ -348,6 +370,19 @@ const InputArea = forwardRef<InputAreaHandle, InputAreaProps>(function InputArea
                 <span className="gemini-helper-autocomplete-desc">
                   {mention.description}
                 </span>
+                {!mention.isVariable && (
+                  <button
+                    className="gemini-helper-preview-btn"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      void app.workspace.openLinkText(mention.value, "", true);
+                      setTimeout(() => textareaRef.current?.focus(), 100);
+                    }}
+                    title="Open file (Ctrl+Shift+O)"
+                  >
+                    <Eye size={12} />
+                  </button>
+                )}
               </div>
             ))}
           </div>
@@ -382,7 +417,6 @@ const InputArea = forwardRef<InputAreaHandle, InputAreaProps>(function InputArea
           onChange={handleInputChange}
           onKeyDown={handleKeyDown}
           placeholder="Type your message... (Enter to send, Shift+Enter for new line)"
-          disabled={isLoading}
           rows={3}
         />
         {isLoading ? (

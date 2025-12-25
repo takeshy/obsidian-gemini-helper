@@ -577,6 +577,14 @@
   border-radius: 12px;
 }
 
+.gemini-helper-tool-clickable {
+  cursor: pointer;
+}
+
+.gemini-helper-tool-clickable:hover {
+  background: var(--background-modifier-hover);
+}
+
 /* Attachments */
 .gemini-helper-attachments {
   display: flex;
@@ -816,27 +824,66 @@
 
 .gemini-helper-autocomplete-item {
   display: flex;
-  flex-direction: column;
-  gap: 2px;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
   padding: 8px 12px;
   cursor: pointer;
   border-bottom: 1px solid var(--background-modifier-border);
   transition: background 0.1s;
 }
 
+.gemini-helper-preview-btn {
+  margin-left: auto;
+  padding: 2px 4px;
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  opacity: 0.6;
+  transition: opacity 0.1s, background 0.1s;
+}
+
+.gemini-helper-preview-btn:hover {
+  opacity: 1;
+  background: var(--background-modifier-hover);
+}
+
 .gemini-helper-autocomplete-item:last-child {
   border-bottom: none;
 }
 
-.gemini-helper-autocomplete-item:hover,
-.gemini-helper-autocomplete-item.active {
+.gemini-helper-autocomplete-item:hover {
   background: var(--background-modifier-hover);
+}
+
+.gemini-helper-autocomplete-item.active {
+  background: var(--interactive-accent);
+  color: var(--text-on-accent);
+}
+
+.gemini-helper-autocomplete-item.active .gemini-helper-autocomplete-name {
+  color: var(--text-on-accent);
+}
+
+.gemini-helper-autocomplete-item.active .gemini-helper-autocomplete-desc {
+  color: var(--text-on-accent);
+  opacity: 0.8;
+}
+
+.gemini-helper-autocomplete-item.active .gemini-helper-preview-btn {
+  color: var(--text-on-accent);
 }
 
 .gemini-helper-autocomplete-name {
   font-weight: 600;
   font-size: 13px;
   color: var(--interactive-accent);
+  width: 100%;
 }
 
 .gemini-helper-autocomplete-desc {
@@ -845,6 +892,7 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  flex: 1;
 }
 
 /* Mobile styles for autocomplete */

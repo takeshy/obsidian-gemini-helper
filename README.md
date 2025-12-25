@@ -22,6 +22,8 @@ An AI-powered assistant plugin for Obsidian using Google Gemini with File Search
 - **Conversation threading** - Maintains context across messages in the same chat
 - **Stop generation** - Stop AI responses mid-generation with the stop button
 - **Copy messages** - Easily copy any message to clipboard
+- **Clickable links** - Internal links in AI responses can be clicked to open notes
+- **Tool usage details** - Click on tool indicators to see which files were accessed
 
 ### Slash Commands
 Create custom prompt templates that can be triggered by typing `/` in the chat input:
@@ -37,6 +39,7 @@ Reference files and variables directly in your messages by typing `@`:
 - **Vault files** - Browse and insert any markdown file from your vault
 - **Autocomplete** - Type `@` to see suggestions, continue typing to filter
 - **Navigation** - Use Tab/Shift+Tab or arrow keys, Enter to select
+- **File preview** - Press Ctrl+Shift+O or click the eye icon to preview a file before selecting
 - Variables and file paths are automatically resolved when the message is sent
 
 ### File Attachments

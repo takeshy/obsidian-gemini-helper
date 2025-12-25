@@ -43,7 +43,7 @@ export default function MessageBubble({
       app,
       message.content,
       contentRef.current,
-      "",
+      "/",
       componentRef.current
     ).then(() => {
       // Add click handlers for internal links

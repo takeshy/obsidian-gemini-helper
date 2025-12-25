@@ -121,8 +121,8 @@ export default function MessageBubble({
       parts.push(args.path);
     } else if (args.name && typeof args.name === "string") {
       parts.push(args.name);
-    } else if (args.old_path && args.new_path) {
-      parts.push(`${args.old_path} → ${args.new_path}`);
+    } else if (typeof args.old_path === "string" && typeof args.new_path === "string") {
+      parts.push(args.old_path + " → " + args.new_path);
     } else if (args.query && typeof args.query === "string") {
       parts.push(`"${args.query}"`);
     } else if (args.folder && typeof args.folder === "string") {

@@ -148,8 +148,15 @@ export default function MessageBubble({
   // Copy image to clipboard
   const handleCopyImage = async (mimeType: string, base64Data: string) => {
     try {
-      const response = await fetch(`data:${mimeType};base64,${base64Data}`);
-      const blob = await response.blob();
+      // Convert base64 to blob without using fetch
+      const byteCharacters = atob(base64Data);
+      const byteNumbers = new Array(byteCharacters.length);
+      for (let i = 0; i < byteCharacters.length; i++) {
+        byteNumbers[i] = byteCharacters.charCodeAt(i);
+      }
+      const byteArray = new Uint8Array(byteNumbers);
+      const blob = new Blob([byteArray], { type: mimeType });
+
       await navigator.clipboard.write([
         new ClipboardItem({ [blob.type]: blob })
       ]);

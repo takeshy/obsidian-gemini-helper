@@ -666,6 +666,83 @@
   color: var(--text-on-accent);
 }
 
+/* Generated Images */
+.gemini-helper-generated-images {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 12px;
+  padding: 12px;
+  background: var(--background-primary);
+  border-radius: 8px;
+  border: 1px solid var(--background-modifier-border);
+}
+
+.gemini-helper-generated-image {
+  max-width: 100%;
+  max-height: 400px;
+  border-radius: 8px;
+  object-fit: contain;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.gemini-helper-generated-image:hover {
+  transform: scale(1.02);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+/* Mobile styles for generated images */
+.is-mobile .gemini-helper-generated-image {
+  max-height: 300px;
+}
+
+/* Generated image container with actions */
+.gemini-helper-generated-image-container {
+  position: relative;
+  display: inline-block;
+}
+
+.gemini-helper-image-actions {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: flex;
+  gap: 4px;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.gemini-helper-generated-image-container:hover .gemini-helper-image-actions {
+  opacity: 1;
+}
+
+.gemini-helper-image-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 6px 10px;
+  background: var(--background-primary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 4px;
+  cursor: pointer;
+  color: var(--text-normal);
+  font-size: 12px;
+  font-weight: 500;
+  transition: background 0.2s, color 0.2s;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.gemini-helper-image-btn:hover {
+  background: var(--interactive-accent);
+  color: var(--text-on-accent);
+}
+
+.gemini-helper-image-btn svg {
+  flex-shrink: 0;
+}
+
 /* Pending Edit Box */
 .gemini-helper-pending-edit {
   margin-top: 12px;

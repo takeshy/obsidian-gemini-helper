@@ -14,7 +14,8 @@ An AI-powered assistant plugin for Obsidian using Google Gemini with File Search
 
 ### AI Chat Interface
 - **Streaming responses** - Real-time response streaming for natural conversation flow
-- **Model selection** - Switch between Gemini models directly from the chat interface
+- **Model selection** - Switch between Gemini models directly from the chat interface (selection persisted)
+- **Image generation** - Generate images using Gemini image models with copy/save buttons
 - **Web Search** - Search the web using Google Search for up-to-date information
 - **Semantic search setting selection** - Switch between semantic search configurations from the chat interface
 - **Slash commands** - Create reusable prompt templates triggered by typing `/` in chat
@@ -87,11 +88,20 @@ Semantic search uses RAG (Retrieval-Augmented Generation) to search your vault i
 
 ## Supported Models
 
+### Chat Models
 | Model | Description |
 |-------|-------------|
 | Gemini 3 Flash Preview | Latest fast model with 1M context (default, recommended) |
 | Gemini 3 Pro Preview | Latest flagship model with 1M context |
 | Gemini 2.5 Flash Lite | Lightweight flash model |
+
+### Image Generation Models
+| Model | Description | Web Search |
+|-------|-------------|------------|
+| Gemini 2.5 Flash (Image) | Fast image generation, max 1024px | ❌ |
+| Gemini 3 Pro (Image) | Pro quality image generation, up to 4K | ✅ |
+
+**Note**: Model selection is persisted across sessions.
 
 ## Installation
 

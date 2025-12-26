@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, KeyboardEvent, ChangeEvent, forwardRef, useImperativeHandle } from "react";
 import { Send, Paperclip, StopCircle, Eye } from "lucide-react";
 import type { App } from "obsidian";
-import { AVAILABLE_MODELS, type ModelType, type Attachment, type SlashCommand } from "src/types";
+import { AVAILABLE_MODELS, isImageGenerationModel, type ModelType, type Attachment, type SlashCommand } from "src/types";
 
 interface InputAreaProps {
   onSend: (content: string, attachments?: Attachment[]) => void | Promise<void>;
@@ -458,9 +458,18 @@ const InputArea = forwardRef<InputAreaHandle, InputAreaProps>(function InputArea
           disabled={isLoading}
         >
           <option value="">Search: None</option>
-          <option value="__websearch__">Web Search</option>
+          <option
+            value="__websearch__"
+            disabled={model === "gemini-2.5-flash-image"}
+          >
+            Web Search
+          </option>
           {ragEnabled && ragSettings.map((name) => (
-            <option key={name} value={name}>
+            <option
+              key={name}
+              value={name}
+              disabled={isImageGenerationModel(model)}
+            >
               Semantic search: {name}
             </option>
           ))}

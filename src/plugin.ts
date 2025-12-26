@@ -9,6 +9,7 @@ import {
   type WorkspaceState,
   type RagSetting,
   type RagState,
+  type ModelType,
   DEFAULT_SETTINGS,
   DEFAULT_MODEL,
   DEFAULT_WORKSPACE_STATE,
@@ -282,6 +283,7 @@ export class GeminiHelperPlugin extends Plugin {
 
       this.workspaceState = {
         selectedRagSetting: settingName,
+        selectedModel: null,
         ragSettings: {
           [settingName]: ragSetting,
         },
@@ -417,6 +419,17 @@ export class GeminiHelperPlugin extends Plugin {
     this.settingsEmitter.emit("rag-setting-changed", name);
   }
 
+  // Select a model
+  async selectModel(model: ModelType): Promise<void> {
+    this.workspaceState.selectedModel = model;
+    await this.saveWorkspaceState();
+  }
+
+  // Get selected model
+  getSelectedModel(): ModelType {
+    return this.workspaceState.selectedModel || DEFAULT_MODEL;
+  }
+
   // Create a new RAG setting
   async createRagSetting(name: string, setting?: Partial<RagSetting>): Promise<void> {
     if (this.workspaceState.ragSettings[name]) {
@@ -540,6 +553,7 @@ export class GeminiHelperPlugin extends Plugin {
 
       this.workspaceState = {
         selectedRagSetting: "default",
+        selectedModel: null,
         ragSettings: {
           default: ragSetting,
         },

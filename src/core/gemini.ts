@@ -13,6 +13,7 @@ import type {
   StreamChunk,
   ToolCall,
   ModelType,
+  GeneratedImage,
 } from "src/types";
 
 export class GeminiClient {
@@ -331,6 +332,103 @@ export class GeminiClient {
     });
 
     return response.text ?? "";
+  }
+
+  // Image generation using Gemini
+  async *generateImageStream(
+    messages: Message[],
+    imageModel: ModelType,
+    systemPrompt?: string,
+    webSearchEnabled?: boolean,
+    ragStoreIds?: string[]
+  ): AsyncGenerator<StreamChunk> {
+    // Build history from all messages except the last one
+    const historyMessages = messages.slice(0, -1);
+    const history = this.messagesToHistory(historyMessages);
+
+    // Get the last user message
+    const lastMessage = messages[messages.length - 1];
+    if (!lastMessage || lastMessage.role !== "user") {
+      yield { type: "error", error: "No user message to send" };
+      return;
+    }
+
+    // Build message parts with attachments
+    const messageParts: Part[] = [];
+
+    // Add attachments first if present
+    if (lastMessage.attachments && lastMessage.attachments.length > 0) {
+      for (const attachment of lastMessage.attachments) {
+        messageParts.push({
+          inlineData: {
+            mimeType: attachment.mimeType,
+            data: attachment.data,
+          },
+        });
+      }
+    }
+
+    // Add text content
+    if (lastMessage.content) {
+      messageParts.push({ text: lastMessage.content });
+    }
+
+    // Build tools array
+    // - Gemini 2.5 Flash Image: no tools supported
+    // - Gemini 3 Pro Image: Web Search only (no RAG)
+    const tools: Tool[] = [];
+
+    if (imageModel === "gemini-3-pro-image-preview" && webSearchEnabled) {
+      tools.push({ googleSearch: {} } as Tool);
+    }
+
+    try {
+      const response = await this.ai.models.generateContent({
+        model: imageModel,
+        contents: [...history, { role: "user", parts: messageParts }],
+        config: {
+          systemInstruction: systemPrompt,
+          responseModalities: ["TEXT", "IMAGE"],
+          tools: tools.length > 0 ? tools : undefined,
+        },
+      });
+
+      // Emit web search used if enabled (only for 3 Pro)
+      if (imageModel === "gemini-3-pro-image-preview" && webSearchEnabled) {
+        yield { type: "web_search_used" };
+      }
+
+      // Process response parts
+      if (response.candidates && response.candidates.length > 0) {
+        const candidate = response.candidates[0];
+        if (candidate.content?.parts) {
+          for (const part of candidate.content.parts) {
+            // Handle text parts
+            if ("text" in part && part.text) {
+              yield { type: "text", content: part.text };
+            }
+            // Handle image parts
+            if ("inlineData" in part && part.inlineData) {
+              const imageData = part.inlineData as { mimeType?: string; data?: string };
+              if (imageData.mimeType && imageData.data) {
+                const generatedImage: GeneratedImage = {
+                  mimeType: imageData.mimeType,
+                  data: imageData.data,
+                };
+                yield { type: "image_generated", generatedImage };
+              }
+            }
+          }
+        }
+      }
+
+      yield { type: "done" };
+    } catch (error) {
+      yield {
+        type: "error",
+        error: error instanceof Error ? error.message : "Image generation failed",
+      };
+    }
   }
 }
 

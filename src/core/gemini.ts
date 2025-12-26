@@ -337,7 +337,10 @@ export class GeminiClient {
   // Image generation using Gemini
   async *generateImageStream(
     messages: Message[],
-    systemPrompt?: string
+    imageModel: ModelType,
+    systemPrompt?: string,
+    webSearchEnabled?: boolean,
+    ragStoreIds?: string[]
   ): AsyncGenerator<StreamChunk> {
     // Build history from all messages except the last one
     const historyMessages = messages.slice(0, -1);
@@ -370,8 +373,14 @@ export class GeminiClient {
       messageParts.push({ text: lastMessage.content });
     }
 
-    // Use image generation model with responseModalities
-    const imageModel = "gemini-2.0-flash-exp";
+    // Build tools array
+    // - Gemini 2.5 Flash Image: no tools supported
+    // - Gemini 3 Pro Image: Web Search only (no RAG)
+    const tools: Tool[] = [];
+
+    if (imageModel === "gemini-3-pro-image-preview" && webSearchEnabled) {
+      tools.push({ googleSearch: {} } as Tool);
+    }
 
     try {
       const response = await this.ai.models.generateContent({
@@ -380,8 +389,14 @@ export class GeminiClient {
         config: {
           systemInstruction: systemPrompt,
           responseModalities: ["TEXT", "IMAGE"],
+          tools: tools.length > 0 ? tools : undefined,
         },
       });
+
+      // Emit web search used if enabled (only for 3 Pro)
+      if (imageModel === "gemini-3-pro-image-preview" && webSearchEnabled) {
+        yield { type: "web_search_used" };
+      }
 
       // Process response parts
       if (response.candidates && response.candidates.length > 0) {

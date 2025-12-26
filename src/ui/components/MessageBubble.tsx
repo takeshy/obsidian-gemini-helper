@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { type App, MarkdownRenderer, Component, Notice } from "obsidian";
-import { Copy, Check, CheckCircle, XCircle } from "lucide-react";
+import { Copy, Check, CheckCircle, XCircle, Download } from "lucide-react";
 import type { Message, ToolCall } from "src/types";
 import { AVAILABLE_MODELS } from "src/types";
 
@@ -145,6 +145,29 @@ export default function MessageBubble({
     }
   };
 
+  // Copy image to clipboard
+  const handleCopyImage = async (mimeType: string, base64Data: string) => {
+    try {
+      const response = await fetch(`data:${mimeType};base64,${base64Data}`);
+      const blob = await response.blob();
+      await navigator.clipboard.write([
+        new ClipboardItem({ [blob.type]: blob })
+      ]);
+      new Notice("Image copied to clipboard");
+    } catch {
+      new Notice("Failed to copy image");
+    }
+  };
+
+  // Download image
+  const handleDownloadImage = (mimeType: string, base64Data: string, index: number) => {
+    const extension = mimeType.split("/")[1] || "png";
+    const link = document.createElement("a");
+    link.href = `data:${mimeType};base64,${base64Data}`;
+    link.download = `generated-image-${Date.now()}-${index}.${extension}`;
+    link.click();
+  };
+
   return (
     <div
       className={`gemini-helper-message ${
@@ -237,12 +260,31 @@ export default function MessageBubble({
       {message.generatedImages && message.generatedImages.length > 0 && (
         <div className="gemini-helper-generated-images">
           {message.generatedImages.map((image, index) => (
-            <img
-              key={index}
-              src={`data:${image.mimeType};base64,${image.data}`}
-              alt={`Generated image ${index + 1}`}
-              className="gemini-helper-generated-image"
-            />
+            <div key={index} className="gemini-helper-generated-image-container">
+              <img
+                src={`data:${image.mimeType};base64,${image.data}`}
+                alt={`Generated image ${index + 1}`}
+                className="gemini-helper-generated-image"
+              />
+              <div className="gemini-helper-image-actions">
+                <button
+                  className="gemini-helper-image-btn"
+                  onClick={() => void handleCopyImage(image.mimeType, image.data)}
+                  title="Copy image"
+                >
+                  <Copy size={14} />
+                  <span>Copy</span>
+                </button>
+                <button
+                  className="gemini-helper-image-btn"
+                  onClick={() => handleDownloadImage(image.mimeType, image.data, index)}
+                  title="Download image"
+                >
+                  <Download size={14} />
+                  <span>Save</span>
+                </button>
+              </div>
+            </div>
           ))}
         </div>
       )}

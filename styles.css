@@ -697,6 +697,52 @@
   max-height: 300px;
 }
 
+/* Generated image container with actions */
+.gemini-helper-generated-image-container {
+  position: relative;
+  display: inline-block;
+}
+
+.gemini-helper-image-actions {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: flex;
+  gap: 4px;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.gemini-helper-generated-image-container:hover .gemini-helper-image-actions {
+  opacity: 1;
+}
+
+.gemini-helper-image-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 6px 10px;
+  background: var(--background-primary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 4px;
+  cursor: pointer;
+  color: var(--text-normal);
+  font-size: 12px;
+  font-weight: 500;
+  transition: background 0.2s, color 0.2s;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.gemini-helper-image-btn:hover {
+  background: var(--interactive-accent);
+  color: var(--text-on-accent);
+}
+
+.gemini-helper-image-btn svg {
+  flex-shrink: 0;
+}
+
 /* Pending Edit Box */
 .gemini-helper-pending-edit {
   margin-top: 12px;

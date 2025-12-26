@@ -1,6 +1,6 @@
 {
   "name": "obsidian-gemini-helper",
-  "version": "1.0.21",
+  "version": "1.0.22",
   "description": "AI-powered assistant using Google Gemini with File Search RAG capabilities",
   "main": "main.js",
   "scripts": {
@@ -26,6 +26,8 @@
     "url": "https://github.com/takeshy/obsidian-gemini-helper/issues"
   },
   "devDependencies": {
+    "@codemirror/state": "^6.5.3",
+    "@codemirror/view": "^6.39.7",
     "@eslint/json": "^0.14.0",
     "@types/node": "^16.11.6",
     "@types/react": "^19.2.2",

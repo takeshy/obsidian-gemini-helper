@@ -9,7 +9,7 @@ import {
 import { TFile, Notice, MarkdownView } from "obsidian";
 import { Plus, History, ChevronDown } from "lucide-react";
 import type { GeminiHelperPlugin } from "src/plugin";
-import { type Message, type ModelType, type Attachment, type PendingEditInfo, type SlashCommand, type GeneratedImage, DEFAULT_MODEL } from "src/types";
+import { type Message, type ModelType, type Attachment, type PendingEditInfo, type SlashCommand, type GeneratedImage, isImageGenerationModel } from "src/types";
 import { getGeminiClient } from "src/core/gemini";
 import { getEnabledTools } from "src/core/tools";
 import { createToolExecutor, type ToolExecutionContext } from "src/vault/toolExecutor";
@@ -42,7 +42,7 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
   const [showHistory, setShowHistory] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [streamingContent, setStreamingContent] = useState("");
-  const [currentModel, setCurrentModel] = useState<ModelType>(DEFAULT_MODEL);
+  const [currentModel, setCurrentModel] = useState<ModelType>(plugin.getSelectedModel());
   const [ragSettingNames, setRagSettingNames] = useState<string[]>(plugin.getRagSettingNames());
   const [selectedRagSetting, setSelectedRagSetting] = useState<string | null>(
     plugin.workspaceState.selectedRagSetting
@@ -360,6 +360,28 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
     void plugin.selectRagSetting(name);
   };
 
+  // Handle model change from UI
+  const handleModelChange = (model: ModelType) => {
+    setCurrentModel(model);
+    void plugin.selectModel(model);
+
+    // Auto-adjust search setting for image models
+    if (isImageGenerationModel(model)) {
+      // 2.5 Flash Image: no tools supported → force None
+      // 3 Pro Image: Web Search only → keep if Web Search, else None
+      if (model === "gemini-2.5-flash-image") {
+        if (selectedRagSetting !== null) {
+          handleRagSettingChange(null);
+        }
+      } else if (model === "gemini-3-pro-image-preview") {
+        // Only Web Search is supported, RAG is not
+        if (selectedRagSetting !== null && selectedRagSetting !== "__websearch__") {
+          handleRagSettingChange(null);
+        }
+      }
+    }
+  };
+
   // Resolve slash command variables
   const resolveCommandVariables = async (template: string): Promise<string> => {
     let result = template;
@@ -596,12 +618,12 @@ Always be helpful and provide clear, concise responses. When working with notes,
 
       const allMessages = [...messages, userMessage];
 
-      // Check if Web Search or Image Generation is selected
+      // Check if Web Search or Image Generation model is selected
       const isWebSearch = selectedRagSetting === "__websearch__";
-      const isImageGeneration = selectedRagSetting === "__imagegeneration__";
+      const isImageGeneration = isImageGenerationModel(currentModel);
 
-      // Pass RAG store IDs if RAG is enabled and a setting is selected (not web search or image generation)
-      const ragStoreIds = settings.ragEnabled && selectedRagSetting && !isWebSearch && !isImageGeneration
+      // Pass RAG store IDs if RAG is enabled and a setting is selected (not web search)
+      const ragStoreIds = settings.ragEnabled && selectedRagSetting && !isWebSearch
         ? plugin.getSelectedStoreIds()
         : [];
 
@@ -609,7 +631,7 @@ Always be helpful and provide clear, concise responses. When working with notes,
 
       // Use image generation stream or regular chat stream
       const chunkStream = isImageGeneration
-        ? client.generateImageStream(allMessages, systemPrompt)
+        ? client.generateImageStream(allMessages, currentModel, systemPrompt, isWebSearch, ragStoreIds)
         : client.chatWithToolsStream(
             allMessages,
             tools,
@@ -889,7 +911,7 @@ Always be helpful and provide clear, concise responses. When working with notes,
         onStop={stopMessage}
         isLoading={isLoading}
         model={currentModel}
-        onModelChange={setCurrentModel}
+        onModelChange={handleModelChange}
         ragEnabled={plugin.settings.ragEnabled}
         ragSettings={ragSettingNames}
         selectedRagSetting={selectedRagSetting}

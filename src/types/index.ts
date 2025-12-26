@@ -47,6 +47,7 @@ export interface RagFileInfo {
 // Workspace状態ファイル（.gemini-workspace.json）
 export interface WorkspaceState {
   selectedRagSetting: string | null;  // 現在選択中のRAG設定名
+  selectedModel: ModelType | null;    // 現在選択中のモデル
   ragSettings: Record<string, RagSetting>;  // 設定名 -> RAG設定
 }
 
@@ -65,6 +66,7 @@ export const DEFAULT_RAG_SETTING: RagSetting = {
 // デフォルトのWorkspace状態
 export const DEFAULT_WORKSPACE_STATE: WorkspaceState = {
   selectedRagSetting: null,
+  selectedModel: null,
   ragSettings: {},
 };
 
@@ -89,16 +91,19 @@ export const DEFAULT_RAG_STATE: RagState = {
 
 export type RagSyncState = Pick<RagState, "files" | "lastFullSync">;
 
-// Model types
+// Model types (includes both chat and image generation models)
 export type ModelType =
   | "gemini-3-flash-preview"
   | "gemini-3-pro-preview"
-  | "gemini-2.5-flash-lite";
+  | "gemini-2.5-flash-lite"
+  | "gemini-2.5-flash-image"
+  | "gemini-3-pro-image-preview";
 
 export interface ModelInfo {
   name: ModelType;
   displayName: string;
   description: string;
+  isImageModel?: boolean;  // true if this model is for image generation
 }
 
 export const AVAILABLE_MODELS: ModelInfo[] = [
@@ -117,7 +122,25 @@ export const AVAILABLE_MODELS: ModelInfo[] = [
     displayName: "Gemini 2.5 Flash Lite",
     description: "Lightweight flash model",
   },
+  {
+    name: "gemini-2.5-flash-image",
+    displayName: "Gemini 2.5 Flash (Image)",
+    description: "Fast image generation, max 1024px",
+    isImageModel: true,
+  },
+  {
+    name: "gemini-3-pro-image-preview",
+    displayName: "Gemini 3 Pro (Image)",
+    description: "Pro quality image generation, up to 4K",
+    isImageModel: true,
+  },
 ];
+
+// Helper function to check if a model is an image model
+export function isImageGenerationModel(modelName: ModelType): boolean {
+  const model = AVAILABLE_MODELS.find(m => m.name === modelName);
+  return model?.isImageModel ?? false;
+}
 
 // Chat message types
 // Generated image from Gemini

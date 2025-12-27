@@ -62,8 +62,6 @@ const selectionHighlightField = StateField.define<DecorationSet>({
   provide: (field) => EditorView.decorations.from(field),
 });
 
-// Track which EditorViews have the extension installed
-const installedViews = new WeakSet<EditorView>();
 
 // Selection highlight info
 interface SelectionHighlightInfo {
@@ -124,9 +122,13 @@ export class GeminiHelperPlugin extends Plugin {
           this.captureSelectionFromView(this.lastActiveMarkdownView);
           // Notify Chat component that it's now active
           this.settingsEmitter.emit("chat-activated");
-        } else if (leaf?.view instanceof MarkdownView) {
-          // Track the last active markdown view
-          this.lastActiveMarkdownView = leaf.view;
+        } else {
+          // Leaving chat view - clear the highlight
+          this.clearSelectionHighlight();
+          if (leaf?.view instanceof MarkdownView) {
+            // Track the last active markdown view
+            this.lastActiveMarkdownView = leaf.view;
+          }
         }
       })
     );
@@ -766,12 +768,12 @@ export class GeminiHelperPlugin extends Plugin {
       const editorView = view.editor.cm as EditorView;
       if (!editorView) return;
 
-      // Install the StateField if not already installed
-      if (!installedViews.has(editorView)) {
+      // Check if the StateField is already installed by directly querying the state
+      const hasField = editorView.state.field(selectionHighlightField, false) !== undefined;
+      if (!hasField) {
         editorView.dispatch({
           effects: StateEffect.appendConfig.of([selectionHighlightField]),
         });
-        installedViews.add(editorView);
       }
 
       // Apply the highlight
@@ -794,10 +796,14 @@ export class GeminiHelperPlugin extends Plugin {
       const { view } = this.selectionHighlight;
       // @ts-expect-error - Obsidian's editor.cm is the CodeMirror EditorView
       const editorView = view.editor?.cm as EditorView;
-      if (editorView && installedViews.has(editorView)) {
-        editorView.dispatch({
-          effects: setSelectionHighlight.of(null),
-        });
+      if (editorView) {
+        // Check if the field is installed before trying to clear
+        const hasField = editorView.state.field(selectionHighlightField, false) !== undefined;
+        if (hasField) {
+          editorView.dispatch({
+            effects: setSelectionHighlight.of(null),
+          });
+        }
       }
     } catch {
       // Ignore errors

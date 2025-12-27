@@ -26,8 +26,8 @@
     "url": "https://github.com/takeshy/obsidian-gemini-helper/issues"
   },
   "devDependencies": {
-    "@codemirror/state": "^6.5.3",
-    "@codemirror/view": "^6.39.7",
+    "@codemirror/state": "6.5.0",
+    "@codemirror/view": "6.38.6",
     "@eslint/json": "^0.14.0",
     "@types/node": "^16.11.6",
     "@types/react": "^19.2.2",

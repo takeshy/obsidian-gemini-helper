@@ -515,6 +515,35 @@ export class SettingsTab extends PluginSettingTab {
     const ragSettingNames = this.plugin.getRagSettingNames();
     const selectedName = this.plugin.workspaceState.selectedRagSetting;
 
+    // Top K setting (number of chunks to retrieve)
+    new Setting(containerEl)
+      .setName("Retrieved chunks limit")
+      .setDesc("Maximum number of document chunks to retrieve per query (lower = fewer tokens, faster)")
+      .addSlider((slider) =>
+        slider
+          .setLimits(1, 20, 1)
+          .setValue(this.plugin.settings.ragTopK)
+          .setDynamicTooltip()
+          .onChange((value) => {
+            void (async () => {
+              this.plugin.settings.ragTopK = value;
+              await this.plugin.saveSettings();
+            })();
+          })
+      )
+      .addExtraButton((button) =>
+        button
+          .setIcon("reset")
+          .setTooltip("Reset to default (5)")
+          .onClick(() => {
+            void (async () => {
+              this.plugin.settings.ragTopK = 5;
+              await this.plugin.saveSettings();
+              this.display();
+            })();
+          })
+      );
+
     // Semantic search setting selection
     const ragSelectSetting = new Setting(containerEl)
       .setName("Semantic search setting")

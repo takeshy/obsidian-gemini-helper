@@ -94,11 +94,12 @@ export async function searchByContent(
     .slice(0, limit);
 }
 
-// List notes in a folder
+// List notes in a folder (limited to prevent token explosion)
 export function listNotes(
   app: App,
   folder?: string,
-  recursive = false
+  recursive = false,
+  limit = 50  // Default limit to prevent large responses
 ): SearchResult[] {
   let files = app.vault.getMarkdownFiles();
 
@@ -115,7 +116,12 @@ export function listNotes(
     });
   }
 
-  return files.map((file) => ({
+  // Sort by modification time (newest first) and limit
+  const sortedFiles = files
+    .sort((a, b) => b.stat.mtime - a.stat.mtime)
+    .slice(0, limit);
+
+  return sortedFiles.map((file) => ({
     path: file.path,
     name: file.basename,
     score: 0,

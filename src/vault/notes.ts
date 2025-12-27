@@ -74,12 +74,15 @@ export function findFolderByPath(app: App, folderPath: string): TFolder | null {
   return null;
 }
 
+// Maximum characters to read from a note (to prevent token explosion)
+const MAX_NOTE_CHARS = 20000;
+
 // Read a note's content
 export async function readNote(
   app: App,
   fileName?: string,
   activeNote?: boolean
-): Promise<{ success: boolean; content?: string; path?: string; error?: string }> {
+): Promise<{ success: boolean; content?: string; path?: string; error?: string; truncated?: boolean }> {
   let file: TFile | null = null;
 
   if (activeNote) {
@@ -105,8 +108,16 @@ export async function readNote(
     };
   }
 
-  const content = await app.vault.read(file);
-  return { success: true, content, path: file.path };
+  let content = await app.vault.read(file);
+  let truncated = false;
+
+  // Truncate if too long to prevent token explosion
+  if (content.length > MAX_NOTE_CHARS) {
+    content = content.slice(0, MAX_NOTE_CHARS) + "\n\n... [Content truncated. Note is too long to read fully.]";
+    truncated = true;
+  }
+
+  return { success: true, content, path: file.path, truncated };
 }
 
 // Create a new note

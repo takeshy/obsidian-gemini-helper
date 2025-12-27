@@ -188,7 +188,7 @@ const InputArea = forwardRef<InputAreaHandle, InputAreaProps>(function InputArea
         setAutocompleteIndex((prev) => Math.max(prev - 1, 0));
         return;
       }
-      if (e.key === "Enter" && filteredCommands.length > 0) {
+      if (e.key === "Enter" && !e.nativeEvent.isComposing && filteredCommands.length > 0) {
         e.preventDefault();
         selectCommand(filteredCommands[autocompleteIndex]);
         return;
@@ -224,7 +224,7 @@ const InputArea = forwardRef<InputAreaHandle, InputAreaProps>(function InputArea
         }
         return;
       }
-      if (e.key === "Enter" && filteredMentions.length > 0) {
+      if (e.key === "Enter" && !e.nativeEvent.isComposing && filteredMentions.length > 0) {
         e.preventDefault();
         selectMention(filteredMentions[mentionIndex]);
         return;
@@ -235,7 +235,8 @@ const InputArea = forwardRef<InputAreaHandle, InputAreaProps>(function InputArea
       }
     }
 
-    if (e.key === "Enter" && !e.shiftKey) {
+    // IME変換中はEnterで送信しない
+    if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
       e.preventDefault();
       handleSubmit();
     }

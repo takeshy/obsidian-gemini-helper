@@ -142,7 +142,8 @@ export class GeminiClient {
     systemPrompt?: string,
     executeToolCall?: (name: string, args: Record<string, unknown>) => Promise<unknown>,
     ragStoreIds?: string[],
-    webSearchEnabled?: boolean
+    webSearchEnabled?: boolean,
+    ragTopK?: number
   ): AsyncGenerator<StreamChunk> {
     let geminiTools: Tool[];
 
@@ -156,6 +157,7 @@ export class GeminiClient {
         geminiTools.push({
           fileSearch: {
             fileSearchStoreNames: ragStoreIds,
+            topK: ragTopK ?? 5,  // Limit retrieved chunks (default: 5)
           },
         } as Tool);
       }

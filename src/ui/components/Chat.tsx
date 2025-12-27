@@ -638,7 +638,8 @@ Always be helpful and provide clear, concise responses. When working with notes,
             systemPrompt,
             toolExecutor,
             ragStoreIds,
-            isWebSearch
+            isWebSearch,
+            settings.ragTopK
           );
 
       for await (const chunk of chunkStream) {

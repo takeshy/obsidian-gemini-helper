@@ -16,6 +16,7 @@ export interface GeminiHelperSettings {
 
   // RAG settings
   ragEnabled: boolean;
+  ragTopK: number;  // Number of chunks to retrieve (default: 5)
 
   // Workspace settings
   workspaceFolder: string;
@@ -253,6 +254,7 @@ export const DEFAULT_MODEL: ModelType = "gemini-3-flash-preview";
 export const DEFAULT_SETTINGS: GeminiHelperSettings = {
   googleApiKey: "",
   ragEnabled: false,
+  ragTopK: 5,  // Default: retrieve 5 chunks
   workspaceFolder: "GeminiHelper",
   saveChatHistory: true,
   systemPrompt: "",

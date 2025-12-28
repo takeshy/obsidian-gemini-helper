@@ -33,6 +33,10 @@ An AI-powered assistant plugin for Obsidian using Google Gemini with File Search
 - However, `{content}` and `{selection}` variables still work (via @ mentions)
 - This allows Obsidian-native workflows like "summarize this note" or "explain selected text"
 
+**Search + Vault Operations Limitations**
+- Web Search and vault operations cannot be used together (API limitation, applies to all models including Pro)
+- Semantic Search (RAG) and vault operations can be used together on Pro models, but may not work on Flash models
+
 ## Screenshots
 
 ### AI Chat Interface

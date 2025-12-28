@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { type App, MarkdownRenderer, Component, Notice } from "obsidian";
+import { type App, MarkdownRenderer, Component, Notice, Platform } from "obsidian";
 import { Copy, Check, CheckCircle, XCircle, Download, Eye } from "lucide-react";
 import type { Message, ToolCall } from "src/types";
 import { AVAILABLE_MODELS } from "src/types";
@@ -181,11 +181,21 @@ export default function MessageBubble({
   // Check for HTML code block
   const htmlContent = extractHtmlFromCodeBlock(message.content);
 
-  // Get base name for file download
+  // Sanitize filename to remove characters not allowed in file systems
+  const sanitizeFileName = (name: string): string => {
+    return name
+      .replace(/[<>:"/\\|?*]/g, "") // Remove Windows-forbidden chars
+      .replace(/[\x00-\x1f]/g, "")  // Remove control characters
+      .trim()
+      .slice(0, 50) || "output";    // Limit length and provide fallback
+  };
+
+  // Get base name for file save
   const getBaseName = () => {
-    if (sourceFileName) return sourceFileName;
+    if (sourceFileName) return sanitizeFileName(sourceFileName);
     // First 10 chars, keeping alphanumeric and Japanese characters
-    return message.content.slice(0, 10).replace(/[^a-zA-Z0-9\u3040-\u30ff\u4e00-\u9faf]/g, "") || "output";
+    const raw = message.content.slice(0, 10).replace(/[^a-zA-Z0-9\u3040-\u30ff\u4e00-\u9faf]/g, "") || "output";
+    return sanitizeFileName(raw);
   };
 
   // Preview HTML in modal
@@ -195,17 +205,39 @@ export default function MessageBubble({
     }
   };
 
-  // Download HTML file
-  const handleDownloadHtml = () => {
+  // Save HTML - vault save on mobile, download on desktop
+  const handleSaveHtml = async () => {
     if (!htmlContent) return;
 
-    const blob = new Blob([htmlContent], { type: "text/html" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `infographic-${getBaseName()}-${Date.now()}.html`;
-    link.click();
-    URL.revokeObjectURL(url);
+    if (Platform.isMobile) {
+      // Mobile: Save as .md file with code block (download doesn't work on mobile)
+      try {
+        const fileName = `infographic-${getBaseName()}-${Date.now()}.md`;
+        const folderPath = "GeminiHelper/infographics";
+        const mdContent = `\`\`\`html\n${htmlContent}\n\`\`\``;
+
+        const folder = app.vault.getAbstractFileByPath(folderPath);
+        if (!folder) {
+          await app.vault.createFolder(folderPath);
+        }
+
+        const filePath = `${folderPath}/${fileName}`;
+        await app.vault.create(filePath, mdContent);
+
+        new Notice(`Saved to ${filePath}`);
+      } catch (error) {
+        new Notice(`Failed to save: ${error instanceof Error ? error.message : "Unknown error"}`);
+      }
+    } else {
+      // PC: Download file
+      const blob = new Blob([htmlContent], { type: "text/html" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `infographic-${getBaseName()}-${Date.now()}.html`;
+      link.click();
+      URL.revokeObjectURL(url);
+    }
   };
 
   return (
@@ -313,8 +345,8 @@ export default function MessageBubble({
             </button>
             <button
               className="gemini-helper-html-btn"
-              onClick={handleDownloadHtml}
-              title="Download HTML file"
+              onClick={() => void handleSaveHtml()}
+              title="Save to vault"
             >
               <Download size={14} />
               <span>Save</span>

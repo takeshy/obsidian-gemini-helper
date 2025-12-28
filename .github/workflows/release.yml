@@ -50,6 +50,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.version.outputs.version }}
+          draft: true
           files: |
             main.js
             manifest.json

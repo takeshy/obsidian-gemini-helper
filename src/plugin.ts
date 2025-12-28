@@ -178,7 +178,10 @@ export class GeminiHelperPlugin extends Plugin {
       ...DEFAULT_SETTINGS,
       ...loaded,
       // Deep copy array to avoid mutating DEFAULT_SETTINGS
-      slashCommands: loaded.slashCommands ? [...loaded.slashCommands] : [],
+      // Use loaded commands if present, otherwise use default commands
+      slashCommands: loaded.slashCommands
+        ? [...loaded.slashCommands]
+        : [...DEFAULT_SETTINGS.slashCommands],
     };
   }
 

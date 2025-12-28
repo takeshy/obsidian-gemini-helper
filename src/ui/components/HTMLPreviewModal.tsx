@@ -1,4 +1,13 @@
-import { Modal, App, Notice } from "obsidian";
+import { Modal, App, Notice, Platform } from "obsidian";
+
+// Sanitize filename to remove characters not allowed in file systems
+function sanitizeFileName(name: string): string {
+  return name
+    .replace(/[<>:"/\\|?*]/g, "") // Remove Windows-forbidden chars
+    .replace(/[\x00-\x1f]/g, "")  // Remove control characters
+    .trim()
+    .slice(0, 50) || "output";    // Limit length and provide fallback
+}
 
 export class HTMLPreviewModal extends Modal {
   private htmlContent: string;
@@ -7,7 +16,7 @@ export class HTMLPreviewModal extends Modal {
   constructor(app: App, htmlContent: string, baseName: string) {
     super(app);
     this.htmlContent = htmlContent;
-    this.baseName = baseName;
+    this.baseName = sanitizeFileName(baseName);
   }
 
   onOpen() {
@@ -35,10 +44,10 @@ export class HTMLPreviewModal extends Modal {
       }
     });
 
-    // Download button
+    // Save button
     const saveBtn = actions.createEl("button", { text: "Save" });
     saveBtn.addEventListener("click", () => {
-      this.downloadHtml();
+      void this.saveHtml();
     });
 
     // Close button
@@ -50,21 +59,42 @@ export class HTMLPreviewModal extends Modal {
 
     const iframe = iframeContainer.createEl("iframe", {
       attr: {
-        sandbox: "allow-scripts",
+        sandbox: "", // No scripts allowed for security
         srcdoc: this.htmlContent,
       },
     });
     iframe.addClass("gemini-helper-html-preview-iframe");
   }
 
-  private downloadHtml() {
-    const blob = new Blob([this.htmlContent], { type: "text/html" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `infographic-${this.baseName}-${Date.now()}.html`;
-    link.click();
-    URL.revokeObjectURL(url);
+  private async saveHtml() {
+    if (Platform.isMobile) {
+      // Mobile: Save to vault
+      try {
+        const fileName = `infographic-${this.baseName}-${Date.now()}.html`;
+        const folderPath = "GeminiHelper/infographics";
+
+        const folder = this.app.vault.getAbstractFileByPath(folderPath);
+        if (!folder) {
+          await this.app.vault.createFolder(folderPath);
+        }
+
+        const filePath = `${folderPath}/${fileName}`;
+        await this.app.vault.create(filePath, this.htmlContent);
+
+        new Notice(`Saved to ${filePath}`);
+      } catch (error) {
+        new Notice(`Failed to save: ${error instanceof Error ? error.message : "Unknown error"}`);
+      }
+    } else {
+      // Desktop: Download file
+      const blob = new Blob([this.htmlContent], { type: "text/html" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `infographic-${this.baseName}-${Date.now()}.html`;
+      link.click();
+      URL.revokeObjectURL(url);
+    }
   }
 
   onClose() {

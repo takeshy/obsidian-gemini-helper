@@ -2,8 +2,9 @@ name: Release
 
 on:
   push:
-    tags:
-      - 'v*'
+    branches:
+      - main
+      - master
 
 jobs:
   release:
@@ -14,6 +15,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -21,15 +24,32 @@ jobs:
           node-version: '20'
           cache: 'npm'
 
+      - name: Get version from package.json
+        id: version
+        run: echo "version=v$(node -p "require('./package.json').version")" >> $GITHUB_OUTPUT
+
+      - name: Check if tag exists
+        id: check_tag
+        run: |
+          if git rev-parse "${{ steps.version.outputs.version }}" >/dev/null 2>&1; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+          fi
+
       - name: Install dependencies
+        if: steps.check_tag.outputs.exists == 'false'
         run: npm ci
 
       - name: Build
+        if: steps.check_tag.outputs.exists == 'false'
         run: npm run build
 
       - name: Create Release
+        if: steps.check_tag.outputs.exists == 'false'
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ steps.version.outputs.version }}
           files: |
             main.js
             manifest.json

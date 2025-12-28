@@ -68,10 +68,11 @@ export class HTMLPreviewModal extends Modal {
 
   private async saveHtml() {
     if (Platform.isMobile) {
-      // Mobile: Save to vault
+      // Mobile: Save as .md file with code block (download doesn't work on mobile)
       try {
-        const fileName = `infographic-${this.baseName}-${Date.now()}.html`;
+        const fileName = `infographic-${this.baseName}-${Date.now()}.md`;
         const folderPath = "GeminiHelper/infographics";
+        const mdContent = `\`\`\`html\n${this.htmlContent}\n\`\`\``;
 
         const folder = this.app.vault.getAbstractFileByPath(folderPath);
         if (!folder) {
@@ -79,7 +80,7 @@ export class HTMLPreviewModal extends Modal {
         }
 
         const filePath = `${folderPath}/${fileName}`;
-        await this.app.vault.create(filePath, this.htmlContent);
+        await this.app.vault.create(filePath, mdContent);
 
         new Notice(`Saved to ${filePath}`);
       } catch (error) {

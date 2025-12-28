@@ -346,7 +346,7 @@ export default function MessageBubble({
             <button
               className="gemini-helper-html-btn"
               onClick={() => void handleSaveHtml()}
-              title="Save to vault"
+              title={Platform.isMobile ? "Save to vault" : "Download HTML"}
             >
               <Download size={14} />
               <span>Save</span>

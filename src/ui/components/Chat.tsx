@@ -732,6 +732,7 @@ Always be helpful and provide clear, concise responses. When working with notes,
 
 				// Use streaming with tools
 				let fullContent = "";
+				let thinking = "";
 				const toolCalls: Message["toolCalls"] = [];
 				const toolResults: Message["toolResults"] = [];
 				const toolsUsed: string[] = [];
@@ -770,6 +771,7 @@ Always be helpful and provide clear, concise responses. When working with notes,
 								functionCallWarningThreshold: settings.functionCallWarningThreshold,
 							},
 							disableTools: !toolsEnabled,
+							includeThinking: true,  // 思考過程を含める
 						}
 					);
 
@@ -820,6 +822,12 @@ Always be helpful and provide clear, concise responses. When working with notes,
 							}
 							break;
 
+						case "thinking":
+							if (chunk.thinking) {
+								thinking += chunk.thinking;
+							}
+							break;
+
 						case "error":
 							throw new Error(chunk.error || "Unknown error");
 
@@ -859,6 +867,7 @@ Always be helpful and provide clear, concise responses. When working with notes,
 					webSearchUsed: webSearchUsed || undefined,
 					imageGenerationUsed: imageGenerationUsed || undefined,
 					generatedImages: generatedImages.length > 0 ? generatedImages : undefined,
+					thinking: thinking || undefined,
 				};
 
 				const newMessages = [...messages, userMessage, assistantMessage];

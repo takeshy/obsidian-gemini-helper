@@ -242,6 +242,7 @@ export interface Message {
   webSearchUsed?: boolean;  // Web Searchが使用されたか
   imageGenerationUsed?: boolean;  // Image Generationが使用されたか
   generatedImages?: GeneratedImage[];  // 生成された画像
+  thinking?: string;  // モデルの思考過程
 }
 
 // 保留中の編集情報
@@ -315,13 +316,14 @@ export interface SyncStatus {
 
 // Streaming chunk types
 export interface StreamChunk {
-  type: "text" | "tool_call" | "tool_result" | "error" | "done" | "rag_used" | "web_search_used" | "image_generated";
+  type: "text" | "tool_call" | "tool_result" | "error" | "done" | "rag_used" | "web_search_used" | "image_generated" | "thinking";
   content?: string;
   toolCall?: ToolCall;
   toolResult?: ToolResult;
   error?: string;
   ragSources?: string[];  // RAG検索で見つかったソースファイル
   generatedImage?: GeneratedImage;  // 生成された画像
+  thinking?: string;  // モデルの思考過程
 }
 
 // Default model

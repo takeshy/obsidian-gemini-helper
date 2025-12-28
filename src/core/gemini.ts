@@ -27,6 +27,42 @@ export interface ChatWithToolsOptions {
   ragTopK?: number;
   functionCallLimits?: FunctionCallLimitOptions;
   disableTools?: boolean;
+  includeThinking?: boolean;  // 思考過程を含めるか
+}
+
+// Helper to check if model is Gemini 3 series
+function isGemini3Model(model: ModelType): boolean {
+  return model.startsWith("gemini-3");
+}
+
+// Helper to check if model is Gemini 2.5 series
+function isGemini25Model(model: ModelType): boolean {
+  return model.startsWith("gemini-2.5");
+}
+
+// Build thinking config based on model type
+function buildThinkingConfig(model: ModelType, includeThinking: boolean): Record<string, unknown> | undefined {
+  if (!includeThinking) return undefined;
+
+  if (isGemini3Model(model)) {
+    // Gemini 3 uses thinking_level
+    return {
+      thinkingConfig: {
+        includeThoughts: true,
+        thinkingBudget: 8192,  // Allow reasonable thinking budget
+      },
+    };
+  } else if (isGemini25Model(model)) {
+    // Gemini 2.5 uses include_thoughts with optional thinking_budget
+    return {
+      thinkingConfig: {
+        includeThoughts: true,
+        thinkingBudget: 8192,  // 0-32768 tokens
+      },
+    };
+  }
+
+  return undefined;
 }
 
 export class GeminiClient {
@@ -194,6 +230,10 @@ export class GeminiClient {
     const historyMessages = messages.slice(0, -1);
     const history = this.messagesToHistory(historyMessages);
 
+    // Build thinking config if enabled
+    const includeThinking = options?.includeThinking ?? false;
+    const thinkingConfig = buildThinkingConfig(this.model, includeThinking);
+
     // Create a chat session with history
     const chat: Chat = this.ai.chats.create({
       model: this.model,
@@ -201,6 +241,7 @@ export class GeminiClient {
       config: {
         systemInstruction: systemPrompt,
         ...(geminiTools ? { tools: geminiTools } : {}),
+        ...thinkingConfig,
       },
     });
 
@@ -239,6 +280,7 @@ export class GeminiClient {
     while (continueLoop) {
       const functionCallsToProcess: Array<{ name: string; args: Record<string, unknown> }> = [];
       let groundingEmitted = false;
+      let thinkingEmitted = false;
 
       for await (const chunk of response) {
         // Check for function calls
@@ -251,10 +293,16 @@ export class GeminiClient {
           }
         }
 
-        // Check for grounding metadata (File Search or Web Search usage)
-        // Access candidates via type assertion for grounding metadata
+        // Check for grounding metadata and thinking parts
+        // Access candidates via type assertion
         const chunkWithCandidates = chunk as {
           candidates?: Array<{
+            content?: {
+              parts?: Array<{
+                text?: string;
+                thought?: boolean;  // Thinking part indicator
+              }>;
+            };
             groundingMetadata?: {
               groundingChunks?: Array<{
                 retrievedContext?: { uri?: string; title?: string };
@@ -263,6 +311,20 @@ export class GeminiClient {
           }>;
         };
         const candidates = chunkWithCandidates.candidates;
+
+        // Extract thinking parts if present
+        if (includeThinking && !thinkingEmitted && candidates && candidates.length > 0) {
+          const content = candidates[0]?.content;
+          if (content?.parts) {
+            for (const part of content.parts) {
+              if (part.thought && part.text) {
+                yield { type: "thinking", thinking: part.text };
+                thinkingEmitted = true;
+              }
+            }
+          }
+        }
+
         if (!groundingEmitted && candidates && candidates.length > 0) {
           const groundingMetadata = candidates[0]?.groundingMetadata;
           if (groundingMetadata) {
@@ -288,7 +350,8 @@ export class GeminiClient {
           }
         }
 
-        // Yield text chunks
+        // Yield text chunks (only non-thought text)
+        // Note: chunk.text may include thought text, so we need to filter
         const text = chunk.text;
         if (text) {
           yield { type: "text", content: text };

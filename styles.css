@@ -596,6 +596,82 @@
   background: var(--background-modifier-hover);
 }
 
+/* Thinking Section */
+.gemini-helper-thinking-section {
+  margin-bottom: 8px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.gemini-helper-thinking-toggle {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  background: rgba(147, 112, 219, 0.15);
+  border: 1px solid rgba(147, 112, 219, 0.3);
+  border-radius: 6px;
+  cursor: pointer;
+  color: var(--text-normal);
+  font-size: 12px;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.gemini-helper-thinking-toggle:hover {
+  background: rgba(147, 112, 219, 0.25);
+  border-color: rgba(147, 112, 219, 0.5);
+}
+
+.gemini-helper-thinking-icon {
+  font-size: 14px;
+}
+
+.gemini-helper-thinking-label {
+  font-weight: 500;
+}
+
+.gemini-helper-thinking-content {
+  margin-top: 8px;
+  padding: 10px 12px;
+  background: rgba(147, 112, 219, 0.08);
+  border: 1px solid rgba(147, 112, 219, 0.2);
+  border-radius: 6px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-muted);
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+/* Dark theme adjustments for thinking */
+.theme-dark .gemini-helper-thinking-toggle {
+  background: rgba(147, 112, 219, 0.2);
+  border-color: rgba(147, 112, 219, 0.4);
+}
+
+.theme-dark .gemini-helper-thinking-toggle:hover {
+  background: rgba(147, 112, 219, 0.3);
+  border-color: rgba(147, 112, 219, 0.6);
+}
+
+.theme-dark .gemini-helper-thinking-content {
+  background: rgba(147, 112, 219, 0.12);
+  border-color: rgba(147, 112, 219, 0.3);
+}
+
+/* Mobile styles for thinking */
+.is-mobile .gemini-helper-thinking-toggle {
+  padding: 8px 12px;
+  font-size: 13px;
+}
+
+.is-mobile .gemini-helper-thinking-content {
+  font-size: 13px;
+  max-height: 250px;
+}
+
 /* Tools Section with Trace */
 .gemini-helper-tools-section {
   margin-bottom: 8px;

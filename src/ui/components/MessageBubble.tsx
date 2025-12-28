@@ -25,6 +25,7 @@ export default function MessageBubble({
   const isUser = message.role === "user";
   const [copied, setCopied] = useState(false);
   const [showToolTrace, setShowToolTrace] = useState(false);
+  const [showThinking, setShowThinking] = useState(false);
   const contentRef = useRef<HTMLDivElement>(null);
   const componentRef = useRef<Component | null>(null);
 
@@ -338,6 +339,26 @@ export default function MessageBubble({
           <span className="gemini-helper-rag-indicator">
             📚 Used semantic search
           </span>
+        </div>
+      )}
+
+      {/* Thinking process display */}
+      {message.thinking && (
+        <div className="gemini-helper-thinking-section">
+          <button
+            className="gemini-helper-thinking-toggle"
+            onClick={() => setShowThinking(!showThinking)}
+            title={showThinking ? "Hide thinking" : "Show thinking"}
+          >
+            {showThinking ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+            <span className="gemini-helper-thinking-icon">💭</span>
+            <span className="gemini-helper-thinking-label">Thinking</span>
+          </button>
+          {showThinking && (
+            <div className="gemini-helper-thinking-content">
+              {message.thinking}
+            </div>
+          )}
         </div>
       )}
 

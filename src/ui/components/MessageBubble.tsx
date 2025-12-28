@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { type App, MarkdownRenderer, Component, Notice, Platform } from "obsidian";
-import { Copy, Check, CheckCircle, XCircle, Download, Eye } from "lucide-react";
-import type { Message, ToolCall } from "src/types";
+import { Copy, Check, CheckCircle, XCircle, Download, Eye, ChevronDown, ChevronRight } from "lucide-react";
+import type { Message, ToolCall, ToolResult } from "src/types";
 import { AVAILABLE_MODELS } from "src/types";
 import { HTMLPreviewModal, extractHtmlFromCodeBlock } from "./HTMLPreviewModal";
 
@@ -24,6 +24,7 @@ export default function MessageBubble({
 }: MessageBubbleProps) {
   const isUser = message.role === "user";
   const [copied, setCopied] = useState(false);
+  const [showToolTrace, setShowToolTrace] = useState(false);
   const contentRef = useRef<HTMLDivElement>(null);
   const componentRef = useRef<Component | null>(null);
 
@@ -137,6 +138,53 @@ export default function MessageBubble({
     return parts.join(": ");
   };
 
+  // Get tool result for a specific tool call
+  const getToolResult = (toolCallId: string): ToolResult | undefined => {
+    if (!message.toolResults) return undefined;
+    return message.toolResults.find(r => r.toolCallId === toolCallId);
+  };
+
+  // Format tool result for display
+  const formatToolResult = (result: unknown): string => {
+    if (result === null || result === undefined) {
+      return "null";
+    }
+    if (typeof result === "string") {
+      // Truncate long strings
+      if (result.length > 200) {
+        return result.slice(0, 200) + "...";
+      }
+      return result;
+    }
+    if (typeof result === "object") {
+      try {
+        const str = JSON.stringify(result, null, 2);
+        if (str.length > 300) {
+          return str.slice(0, 300) + "...";
+        }
+        return str;
+      } catch {
+        return "[Object]";
+      }
+    }
+    return String(result);
+  };
+
+  // Format tool arguments for display
+  const formatToolArgs = (args: Record<string, unknown>): string => {
+    const parts: string[] = [];
+    for (const [key, value] of Object.entries(args)) {
+      if (typeof value === "string") {
+        const displayValue = value.length > 50 ? value.slice(0, 50) + "..." : value;
+        parts.push(`${key}: "${displayValue}"`);
+      } else if (typeof value === "boolean" || typeof value === "number") {
+        parts.push(`${key}: ${value}`);
+      } else if (value !== null && value !== undefined) {
+        parts.push(`${key}: [Object]`);
+      }
+    }
+    return parts.join(", ");
+  };
 
   const handleCopy = async () => {
     try {
@@ -295,20 +343,60 @@ export default function MessageBubble({
 
       {/* Tools used indicator */}
       {message.toolCalls && message.toolCalls.length > 0 && (
-        <div className="gemini-helper-tools-used">
-          {message.toolCalls.map((toolCall, index) => {
-            const { icon, label } = getToolDisplayInfo(toolCall.name);
-            return (
-              <span
-                key={index}
-                className="gemini-helper-tool-indicator gemini-helper-tool-clickable"
-                onClick={() => new Notice(getToolDetail(toolCall), 3000)}
-                title="Click to see details"
-              >
-                {icon} {label}
-              </span>
-            );
-          })}
+        <div className="gemini-helper-tools-section">
+          <div className="gemini-helper-tools-header">
+            <div className="gemini-helper-tools-used">
+              {message.toolCalls.map((toolCall, index) => {
+                const { icon, label } = getToolDisplayInfo(toolCall.name);
+                return (
+                  <span
+                    key={index}
+                    className="gemini-helper-tool-indicator gemini-helper-tool-clickable"
+                    onClick={() => new Notice(getToolDetail(toolCall), 3000)}
+                    title="Click to see details"
+                  >
+                    {icon} {label}
+                  </span>
+                );
+              })}
+            </div>
+            <button
+              className="gemini-helper-tool-trace-toggle"
+              onClick={() => setShowToolTrace(!showToolTrace)}
+              title={showToolTrace ? "Hide tool trace" : "Show tool trace"}
+            >
+              {showToolTrace ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+              <span className="gemini-helper-tool-trace-label">Trace</span>
+            </button>
+          </div>
+          {showToolTrace && (
+            <div className="gemini-helper-tool-trace">
+              {message.toolCalls.map((toolCall, index) => {
+                const { icon, label } = getToolDisplayInfo(toolCall.name);
+                const toolResult = getToolResult(toolCall.id);
+                return (
+                  <div key={index} className="gemini-helper-tool-trace-item">
+                    <div className="gemini-helper-tool-trace-step">
+                      <span className="gemini-helper-tool-trace-number">{index + 1}</span>
+                      <span className="gemini-helper-tool-trace-icon">{icon}</span>
+                      <span className="gemini-helper-tool-trace-name">{label}</span>
+                    </div>
+                    <div className="gemini-helper-tool-trace-args">
+                      {formatToolArgs(toolCall.args)}
+                    </div>
+                    {toolResult && (
+                      <div className="gemini-helper-tool-trace-result">
+                        <span className="gemini-helper-tool-trace-result-label">→</span>
+                        <span className="gemini-helper-tool-trace-result-value">
+                          {formatToolResult(toolResult.result)}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       )}
 

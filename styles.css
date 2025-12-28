@@ -596,6 +596,150 @@
   background: var(--background-modifier-hover);
 }
 
+/* Tools Section with Trace */
+.gemini-helper-tools-section {
+  margin-bottom: 8px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.gemini-helper-tools-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.gemini-helper-tools-header .gemini-helper-tools-used {
+  margin-bottom: 0;
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
+.gemini-helper-tool-trace-toggle {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px 6px;
+  background: transparent;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 4px;
+  cursor: pointer;
+  color: var(--text-muted);
+  font-size: 10px;
+  flex-shrink: 0;
+  transition: background 0.2s, color 0.2s;
+}
+
+.gemini-helper-tool-trace-toggle:hover {
+  background: var(--background-modifier-hover);
+  color: var(--text-normal);
+}
+
+.gemini-helper-tool-trace-label {
+  font-weight: 500;
+}
+
+/* Tool Trace Details */
+.gemini-helper-tool-trace {
+  margin-top: 10px;
+  padding: 8px;
+  background: var(--background-primary);
+  border-radius: 6px;
+  border: 1px solid var(--background-modifier-border);
+}
+
+.gemini-helper-tool-trace-item {
+  padding: 8px 0;
+  border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.gemini-helper-tool-trace-item:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.gemini-helper-tool-trace-item:first-child {
+  padding-top: 0;
+}
+
+.gemini-helper-tool-trace-step {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.gemini-helper-tool-trace-number {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  background: var(--interactive-accent);
+  color: var(--text-on-accent);
+  border-radius: 50%;
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.gemini-helper-tool-trace-icon {
+  font-size: 12px;
+}
+
+.gemini-helper-tool-trace-name {
+  color: var(--text-normal);
+}
+
+.gemini-helper-tool-trace-args {
+  margin-top: 4px;
+  margin-left: 24px;
+  font-size: 11px;
+  color: var(--text-muted);
+  font-family: var(--font-monospace);
+  word-break: break-word;
+}
+
+.gemini-helper-tool-trace-result {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin-top: 4px;
+  margin-left: 24px;
+  font-size: 11px;
+}
+
+.gemini-helper-tool-trace-result-label {
+  color: var(--interactive-accent);
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.gemini-helper-tool-trace-result-value {
+  color: var(--text-muted);
+  font-family: var(--font-monospace);
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 100px;
+  overflow-y: auto;
+}
+
+/* Mobile styles for tool trace */
+.is-mobile .gemini-helper-tool-trace-toggle {
+  padding: 6px 10px;
+  font-size: 12px;
+}
+
+.is-mobile .gemini-helper-tool-trace-step {
+  font-size: 13px;
+}
+
+.is-mobile .gemini-helper-tool-trace-args,
+.is-mobile .gemini-helper-tool-trace-result {
+  font-size: 12px;
+}
+
 /* Attachments */
 .gemini-helper-attachments {
   display: flex;

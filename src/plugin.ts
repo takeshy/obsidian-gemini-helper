@@ -173,12 +173,12 @@ export class GeminiHelperPlugin extends Plugin {
   }
 
   async loadSettings() {
-    const loaded = await this.loadData() ?? {};
+    const loaded = (await this.loadData()) ?? {};
     this.settings = {
       ...DEFAULT_SETTINGS,
       ...loaded,
       // Deep copy array to avoid mutating DEFAULT_SETTINGS
-      slashCommands: loaded.slashCommands ? [...loaded.slashCommands] : [],
+      slashCommands: Array.isArray(loaded.slashCommands) ? [...loaded.slashCommands] : [],
     };
   }
 

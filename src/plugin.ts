@@ -173,15 +173,27 @@ export class GeminiHelperPlugin extends Plugin {
   }
 
   async loadSettings() {
-    this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
+    const loaded = await this.loadData() ?? {};
+    this.settings = {
+      ...DEFAULT_SETTINGS,
+      ...loaded,
+      // Deep copy array to avoid mutating DEFAULT_SETTINGS
+      slashCommands: loaded.slashCommands ? [...loaded.slashCommands] : [],
+    };
   }
 
   async saveSettings() {
     // Only save values that differ from defaults
     const dataToSave: Partial<GeminiHelperSettings> = {};
     for (const key of Object.keys(this.settings) as (keyof GeminiHelperSettings)[]) {
-      if (this.settings[key] !== DEFAULT_SETTINGS[key]) {
-        (dataToSave as Record<string, unknown>)[key] = this.settings[key];
+      const currentValue = this.settings[key];
+      const defaultValue = DEFAULT_SETTINGS[key];
+      // Use JSON.stringify for arrays/objects comparison
+      const isDifferent = Array.isArray(currentValue) || (typeof currentValue === 'object' && currentValue !== null)
+        ? JSON.stringify(currentValue) !== JSON.stringify(defaultValue)
+        : currentValue !== defaultValue;
+      if (isDifferent) {
+        (dataToSave as Record<string, unknown>)[key] = currentValue;
       }
     }
     await this.saveData(dataToSave);

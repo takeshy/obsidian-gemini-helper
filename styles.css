@@ -859,10 +859,19 @@
   font-size: 16px; /* Prevent iOS zoom on focus */
 }
 
+.is-mobile .gemini-helper-model-selector {
+  flex-wrap: wrap;
+}
+
 .is-mobile .gemini-helper-model-select {
   padding: 8px 12px;
   font-size: 14px;
   min-height: 36px;
+}
+
+.is-mobile .gemini-helper-rag-select {
+  max-width: none;
+  flex: 1 1 100%;
 }
 
 .is-mobile .gemini-helper-history-item {

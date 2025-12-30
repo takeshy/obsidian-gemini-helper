@@ -335,7 +335,7 @@ export class SettingsTab extends PluginSettingTab {
     const availableModels = getAvailableModels(apiPlan);
 
     // API settings (always shown)
-    new Setting(containerEl).setName("API settings").setHeading();
+    new Setting(containerEl).setName("API").setHeading();
     this.displayApiSettings(containerEl, apiPlan);
 
     // CLI settings (desktop only)
@@ -716,16 +716,10 @@ export class SettingsTab extends PluginSettingTab {
     isCliMode: boolean
   ): void {
     // Experimental warning
-    const experimentalEl = containerEl.createDiv({ cls: "setting-item-description" });
-    experimentalEl.style.marginBottom = "1em";
-    experimentalEl.style.padding = "0.5em";
-    experimentalEl.style.backgroundColor = "var(--background-modifier-message)";
-    experimentalEl.style.borderRadius = "4px";
-    experimentalEl.style.borderLeft = "3px solid var(--text-warning)";
+    const experimentalEl = containerEl.createDiv({ cls: "gemini-helper-cli-warning" });
     const warningTitle = experimentalEl.createEl("strong");
     warningTitle.textContent = "Experimental feature";
     const warningText = experimentalEl.createEl("p");
-    warningText.style.margin = "0.5em 0 0 0";
     warningText.textContent = "This feature is experimental and may be removed in future versions.";
 
     // CLI Mode toggle
@@ -748,11 +742,7 @@ export class SettingsTab extends PluginSettingTab {
     // Show CLI settings only when enabled
     if (isCliMode) {
       // Status indicator
-      const statusEl = containerEl.createDiv({ cls: "gemini-cli-status" });
-      statusEl.style.marginBottom = "1em";
-      statusEl.style.padding = "0.5em";
-      statusEl.style.borderRadius = "4px";
-      statusEl.style.fontSize = "0.9em";
+      const statusEl = containerEl.createDiv({ cls: "gemini-helper-cli-status" });
 
       // Verify button
       new Setting(containerEl)
@@ -765,18 +755,12 @@ export class SettingsTab extends PluginSettingTab {
         );
 
       // Notice about CLI mode requirements and limitations
-      const noticeEl = containerEl.createDiv({ cls: "setting-item-description" });
-      noticeEl.style.marginTop = "1em";
-      noticeEl.style.padding = "0.5em";
-      noticeEl.style.backgroundColor = "var(--background-modifier-message)";
-      noticeEl.style.borderRadius = "4px";
+      const noticeEl = containerEl.createDiv({ cls: "gemini-helper-cli-notice" });
 
       // Requirements section
       const reqTitle = noticeEl.createEl("strong");
       reqTitle.textContent = "Requirements:";
       const reqList = noticeEl.createEl("ul");
-      reqList.style.margin = "0.5em 0";
-      reqList.style.paddingLeft = "1.5em";
 
       const geminiCmd = "gemini";
       const appdataPath = "%APPDATA%\\npm";
@@ -796,8 +780,6 @@ export class SettingsTab extends PluginSettingTab {
       const roTitle = noticeEl.createEl("strong");
       roTitle.textContent = "Read-only mode:";
       const roList = noticeEl.createEl("ul");
-      roList.style.margin = "0.5em 0";
-      roList.style.paddingLeft = "1.5em";
       roList.createEl("li").textContent = "Vault write operations are not available (read and search only)";
       roList.createEl("li").textContent = "Semantic search is not available";
       roList.createEl("li").textContent = "Web search is not available";
@@ -806,14 +788,14 @@ export class SettingsTab extends PluginSettingTab {
 
   private async handleVerifyCli(statusEl: HTMLElement): Promise<void> {
     statusEl.empty();
-    statusEl.style.backgroundColor = "var(--background-modifier-message)";
+    statusEl.removeClass("gemini-helper-cli-status--success", "gemini-helper-cli-status--error");
     statusEl.setText("Verifying CLI...");
 
     try {
       const result = await verifyCli();
 
       if (!result.success) {
-        statusEl.style.backgroundColor = "var(--background-modifier-error)";
+        statusEl.addClass("gemini-helper-cli-status--error");
         // Save unverified status
         this.plugin.settings.cliConfig = {
           ...this.plugin.settings.cliConfig,
@@ -840,7 +822,7 @@ export class SettingsTab extends PluginSettingTab {
       };
       await this.plugin.saveSettings();
 
-      statusEl.style.backgroundColor = "var(--background-modifier-success)";
+      statusEl.addClass("gemini-helper-cli-status--success");
       statusEl.empty();
       statusEl.createEl("strong", { text: "CLI verified: " });
       statusEl.createSpan({ text: "Ready to use" });
@@ -852,7 +834,7 @@ export class SettingsTab extends PluginSettingTab {
       };
       await this.plugin.saveSettings();
 
-      statusEl.style.backgroundColor = "var(--background-modifier-error)";
+      statusEl.addClass("gemini-helper-cli-status--error");
       statusEl.empty();
       statusEl.createEl("strong", { text: "Error: " });
       statusEl.createSpan({ text: String(err) });

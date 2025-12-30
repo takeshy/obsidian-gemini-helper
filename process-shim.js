@@ -6,10 +6,15 @@ const globalProcess =
     ? (globalThis).process
     : null;
 
-export const process =
-  globalProcess && globalProcess.env
-    ? globalProcess
-    : {
+const hasNodeLikeProcess =
+  !!globalProcess &&
+  !!globalProcess.versions &&
+  (typeof globalProcess.versions.node === "string" ||
+    typeof globalProcess.versions.electron === "string");
+
+export const process = hasNodeLikeProcess
+  ? globalProcess
+  : {
         env: {
           NODE_ENV: "production",
         },

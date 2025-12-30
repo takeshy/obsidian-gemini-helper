@@ -16,6 +16,14 @@ const context = await esbuild.context({
   entryPoints: ["src/main.ts"],
   bundle: true,
   platform: "node",
+  inject: ["./process-shim.js"],
+  alias: {
+    "debug": "./debug-stub.js",
+  },
+  define: {
+    "process.env.NODE_ENV": JSON.stringify(prod ? "production" : "development"),
+    "global": "globalThis",
+  },
   external: [
     "obsidian",
     "electron",

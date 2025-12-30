@@ -181,11 +181,21 @@ export default function MessageBubble({
   // Check for HTML code block
   const htmlContent = extractHtmlFromCodeBlock(message.content);
 
+  const stripControlChars = (value: string): string => {
+    let result = "";
+    for (let i = 0; i < value.length; i++) {
+      const code = value.charCodeAt(i);
+      if (code >= 0x20 && code !== 0x7f) {
+        result += value[i];
+      }
+    }
+    return result;
+  };
+
   // Sanitize filename to remove characters not allowed in file systems
   const sanitizeFileName = (name: string): string => {
-    return name
+    return stripControlChars(name)
       .replace(/[<>:"/\\|?*]/g, "") // Remove Windows-forbidden chars
-      .replace(/[\u0000-\u001f]/g, "")  // Remove control characters
       .trim()
       .slice(0, 50) || "output";    // Limit length and provide fallback
   };
@@ -443,4 +453,3 @@ function formatTime(timestamp: number): string {
     minute: "2-digit",
   });
 }
-

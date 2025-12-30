@@ -2,9 +2,19 @@ import { Modal, App, Notice, Platform } from "obsidian";
 
 // Sanitize filename to remove characters not allowed in file systems
 function sanitizeFileName(name: string): string {
-  return name
+  const stripControlChars = (value: string): string => {
+    let result = "";
+    for (let i = 0; i < value.length; i++) {
+      const code = value.charCodeAt(i);
+      if (code >= 0x20 && code !== 0x7f) {
+        result += value[i];
+      }
+    }
+    return result;
+  };
+
+  return stripControlChars(name)
     .replace(/[<>:"/\\|?*]/g, "") // Remove Windows-forbidden chars
-    .replace(/[\u0000-\u001f]/g, "")  // Remove control characters
     .trim()
     .slice(0, 50) || "output";    // Limit length and provide fallback
 }

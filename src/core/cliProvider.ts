@@ -32,7 +32,8 @@ function getChildProcess(): typeof import("child_process") {
  * Check if running on Windows (only evaluated on desktop)
  */
 function isWindows(): boolean {
-  return !Platform.isMobile && process.platform === "win32";
+  if (Platform.isMobile) return false;
+  return typeof process !== "undefined" && process.platform === "win32";
 }
 
 /**
@@ -41,10 +42,9 @@ function isWindows(): boolean {
  */
 function resolveGeminiCommand(args: string[]): { command: string; args: string[] } {
   // On Windows, resolve to the npm global package at APPDATA
-  if (isWindows()) {
-    const npmPrefix = process.env.APPDATA
-      ? `${process.env.APPDATA}\\npm`
-      : "";
+  if (isWindows() && typeof process !== "undefined") {
+    const appdata = process.env?.APPDATA;
+    const npmPrefix = appdata ? `${appdata}\\npm` : "";
 
     if (npmPrefix) {
       const scriptPath = `${npmPrefix}\\node_modules\\@google\\gemini-cli\\dist\\index.js`;
@@ -187,7 +187,7 @@ export class GeminiCliProvider extends BaseCliProvider {
       stdio: ["pipe", "pipe", "pipe"],
       shell: false,
       cwd: workingDirectory,
-      env: process.env,
+      env: typeof process !== "undefined" ? process.env : undefined,
     });
 
     // Handle abort

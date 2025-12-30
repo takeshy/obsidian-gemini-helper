@@ -4,16 +4,27 @@ An AI-powered assistant plugin for Obsidian using Google Gemini with File Search
 
 > **Free API Key Supported!** You can use this plugin with Google's free API key. Get your free API key at [ai.google.dev](https://ai.google.dev) - no credit card required.
 
-## Free Plan vs Paid Plan
+> [!TIP]
+> **🚀 Gemini CLI: Access Pro-level Models for Free! (Experimental)**
+>
+> With [Gemini CLI](https://github.com/google-gemini/gemini-cli), you can use **Gemini 2.5 Pro** (the most capable model) with just a Google account - no API key or payment required! Simply install the CLI, sign in with your Google account, and start chatting with the best model available.
+>
+> **Note:** This feature is experimental and may be removed in future versions.
 
-| Feature | Free Plan | Paid Plan |
-|---------|-----------|-----------|
-| Basic chat | ✅ | ✅ |
-| Vault operations (Function Calling) | ✅ (Gemini models only) | ✅ |
-| Web Search | ✅ | ✅ |
-| Semantic Search | ✅ (with limitations) | ✅ |
-| Image Generation | ❌ | ✅ |
-| Available Models | Gemini 2.5 Flash, Flash Lite, 3 Flash Preview, Gemma 3 series | Gemini 3 Flash/Pro Preview, 2.5 Flash Lite, Image models |
+## Free Plan vs Paid Plan vs Gemini CLI
+
+| Feature | Free API | Paid API | 🚀 Gemini CLI |
+|---------|----------|----------|---------------|
+| Basic chat | ✅ | ✅ | ✅ |
+| Vault operations (Function Calling) | ✅ (Gemini models only) | ✅ | Read/Search only |
+| Web Search | ✅ | ✅ | ❌ |
+| Semantic Search | ✅ (with limitations) | ✅ | ❌ |
+| Image Generation | ❌ | ✅ | ❌ |
+| Available Models | Flash, Flash Lite, Gemma | Flash/Pro, Image models | **Gemini 2.5 Pro** 🎉 |
+| Requirements | Free API Key | Paid API Key | **Google Account only** |
+| Rate Limits | Strict | Relaxed | Generous |
+
+**Why Gemini CLI?** With just a Google account, you get access to **Gemini 2.5 Pro** - the same flagship model that requires a paid API key otherwise. Perfect for users who want the best quality responses without any API costs.
 
 ### Free Plan Limitations
 
@@ -54,7 +65,7 @@ An AI-powered assistant plugin for Obsidian using Google Gemini with File Search
 - **Streaming responses** - Real-time response streaming for natural conversation flow
 - **Model selection** - Switch between Gemini models directly from the chat interface (selection persisted)
 - **Image generation** - Generate images using Gemini image models with copy/save buttons
-- **HTML Infographic preview** - Preview and save HTML code blocks (great for AI-generated infographics)
+- **HTML Infographic preview** - Preview and save HTML code blocks (great for AI-generated infographics). Modal is draggable and resizable.
 - **Web Search** - Search the web using Google Search for up-to-date information
 - **Semantic search setting selection** - Switch between semantic search configurations from the chat interface
 - **Slash commands** - Create reusable prompt templates triggered by typing `/` in chat
@@ -177,6 +188,32 @@ Copy `main.js`, `manifest.json`, and `styles.css` to your vault's plugin folder.
 2. Enter the API key in plugin settings
 3. Select your API plan (Paid or Free) based on your API key type
 4. Select your preferred default model
+
+### Gemini CLI Settings (Experimental)
+Instead of using an API key, you can use the Gemini CLI:
+1. Install the [Gemini CLI](https://github.com/google-gemini/gemini-cli)
+2. Run `gemini` in your terminal and complete authentication with `/auth`
+3. In plugin settings, enable "Command line mode" under CLI Settings
+4. Click "Verify" to confirm the CLI is working
+5. Once verified, "Gemini CLI (Experimental)" will appear as a model option in chat
+
+**Requirements:**
+- **macOS/Linux:** `gemini` command must be in PATH
+- **Windows:** gemini-cli must be installed at `%APPDATA%\npm` (default npm global install location)
+
+**CLI Mode Limitations:**
+- Vault write operations are not available (read and search only)
+- Semantic search is not available
+- Web search is not available
+
+**Note:** This feature is experimental and may be removed in future versions.
+
+#### Security (CLI Mode)
+- CLI mode executes the external `gemini` command (Gemini CLI by Google)
+- Commands are executed with `shell: false` to prevent command injection
+- User input is passed as arguments, not through shell expansion
+- CLI mode is completely disabled on mobile devices
+- The plugin only executes: `gemini --version` (verification) and `gemini -p "prompt"` (chat)
 
 ### Workspace Settings
 - **Workspace Folder** - Where to save chat histories and semantic search settings

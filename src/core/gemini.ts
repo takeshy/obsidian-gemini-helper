@@ -201,6 +201,8 @@ export class GeminiClient {
       config: {
         systemInstruction: systemPrompt,
         ...(geminiTools ? { tools: geminiTools } : {}),
+        // Ensure thought_signature is included for tool calls on thinking models.
+        ...(geminiTools ? { thinkingConfig: { includeThoughts: true } } : {}),
       },
     });
 
@@ -337,7 +339,7 @@ export class GeminiClient {
 
         for (const fc of callsToExecute) {
           const toolCall: ToolCall = {
-            id: `${fc.name}_${Date.now()}`,
+            id: (fc as { id?: string }).id ?? `${fc.name}_${Date.now()}`,
             name: fc.name,
             args: fc.args,
           };
@@ -354,6 +356,7 @@ export class GeminiClient {
           functionResponseParts.push({
             functionResponse: {
               name: fc.name,
+              id: toolCall.id,
               response: { result } as Record<string, unknown>,
             },
           });

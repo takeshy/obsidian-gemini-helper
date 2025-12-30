@@ -15,10 +15,11 @@ const context = await esbuild.context({
   },
   entryPoints: ["src/main.ts"],
   bundle: true,
-  platform: "browser",
+  platform: "node",
   external: [
     "obsidian",
     "electron",
+    "child_process",
     "@codemirror/autocomplete",
     "@codemirror/collab",
     "@codemirror/commands",

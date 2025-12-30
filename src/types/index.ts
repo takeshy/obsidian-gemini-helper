@@ -15,6 +15,9 @@ export interface GeminiHelperSettings {
   googleApiKey: string;
   apiPlan: ApiPlan;
 
+  // CLI provider settings
+  cliConfig: CliProviderConfig;
+
   // RAG settings
   ragEnabled: boolean;
   ragTopK: number;  // Number of chunks to retrieve (default: 5)
@@ -101,6 +104,19 @@ export type RagSyncState = Pick<RagState, "files" | "lastFullSync">;
 
 export type ApiPlan = "paid" | "free";
 
+// Chat provider types
+export type ChatProvider = "api" | "gemini-cli";
+
+export interface CliProviderConfig {
+  provider: ChatProvider;
+  cliVerified?: boolean;    // Whether CLI has been verified
+}
+
+export const DEFAULT_CLI_CONFIG: CliProviderConfig = {
+  provider: "api",
+  cliVerified: false,
+};
+
 // Model types (includes both chat and image generation models)
 export type ModelType =
   | "gemini-2.5-flash"
@@ -113,14 +129,24 @@ export type ModelType =
   | "gemma-3-27b-it"
   | "gemma-3-12b-it"
   | "gemma-3-4b-it"
-  | "gemma-3-1b-it";
+  | "gemma-3-1b-it"
+  | "gemini-cli";
 
 export interface ModelInfo {
   name: ModelType;
   displayName: string;
   description: string;
   isImageModel?: boolean;  // true if this model is for image generation
+  isCliModel?: boolean;    // true if this model is CLI-based
 }
+
+// CLI model definition (Experimental - may be removed in future versions)
+export const CLI_MODEL: ModelInfo = {
+  name: "gemini-cli",
+  displayName: "Gemini CLI (Experimental)",
+  description: "Google Gemini via command line (requires Google account)",
+  isCliModel: true,
+};
 
 export const PAID_MODELS: ModelInfo[] = [
   {
@@ -343,6 +369,7 @@ export const DEFAULT_SLASH_COMMANDS: SlashCommand[] = [
 export const DEFAULT_SETTINGS: GeminiHelperSettings = {
   googleApiKey: "",
   apiPlan: "paid",
+  cliConfig: DEFAULT_CLI_CONFIG,
   ragEnabled: false,
   ragTopK: 5,  // Default: retrieve 5 chunks
   workspaceFolder: "GeminiHelper",

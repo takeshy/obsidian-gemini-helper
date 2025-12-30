@@ -1037,6 +1037,91 @@
   height: 85vh;
 }
 
+/* Resizable Modal */
+.gemini-helper-resizable-modal {
+  position: relative;
+}
+
+/* Drag Handle */
+.gemini-helper-drag-handle {
+  cursor: move;
+  user-select: none;
+}
+
+.gemini-helper-drag-handle button {
+  cursor: pointer;
+}
+
+/* Resize Handles */
+.gemini-helper-resize-handle {
+  position: absolute;
+  z-index: 100;
+}
+
+.gemini-helper-resize-n {
+  top: -4px;
+  left: 10px;
+  right: 10px;
+  height: 8px;
+  cursor: n-resize;
+}
+
+.gemini-helper-resize-s {
+  bottom: -4px;
+  left: 10px;
+  right: 10px;
+  height: 8px;
+  cursor: s-resize;
+}
+
+.gemini-helper-resize-e {
+  top: 10px;
+  right: -4px;
+  bottom: 10px;
+  width: 8px;
+  cursor: e-resize;
+}
+
+.gemini-helper-resize-w {
+  top: 10px;
+  left: -4px;
+  bottom: 10px;
+  width: 8px;
+  cursor: w-resize;
+}
+
+.gemini-helper-resize-ne {
+  top: -4px;
+  right: -4px;
+  width: 14px;
+  height: 14px;
+  cursor: ne-resize;
+}
+
+.gemini-helper-resize-nw {
+  top: -4px;
+  left: -4px;
+  width: 14px;
+  height: 14px;
+  cursor: nw-resize;
+}
+
+.gemini-helper-resize-se {
+  bottom: -4px;
+  right: -4px;
+  width: 14px;
+  height: 14px;
+  cursor: se-resize;
+}
+
+.gemini-helper-resize-sw {
+  bottom: -4px;
+  left: -4px;
+  width: 14px;
+  height: 14px;
+  cursor: sw-resize;
+}
+
 .gemini-helper-html-preview-modal .modal-content {
   height: 100%;
   display: flex;
@@ -1075,4 +1160,52 @@
   height: 100%;
   border: none;
   background: white;
+}
+
+/* Configuration Required Message */
+.gemini-helper-config-required {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.gemini-helper-config-message {
+  max-width: 400px;
+  padding: 20px;
+  background: var(--background-secondary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 8px;
+  text-align: left;
+}
+
+.gemini-helper-config-message h4 {
+  margin: 0 0 12px 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-normal);
+}
+
+.gemini-helper-config-message p {
+  margin: 8px 0;
+  font-size: 13px;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+.gemini-helper-config-message ul {
+  margin: 12px 0;
+  padding-left: 20px;
+}
+
+.gemini-helper-config-message li {
+  margin: 8px 0;
+  font-size: 13px;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+.gemini-helper-config-message strong {
+  color: var(--text-normal);
 }

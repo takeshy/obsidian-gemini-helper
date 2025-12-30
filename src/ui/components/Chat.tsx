@@ -6,13 +6,15 @@ import {
 	forwardRef,
 	useCallback,
 } from "react";
-import { TFile, Notice, MarkdownView } from "obsidian";
+import { TFile, Notice, MarkdownView, Platform } from "obsidian";
 import { Plus, History, ChevronDown } from "lucide-react";
 import type { GeminiHelperPlugin } from "src/plugin";
 import {
 	DEFAULT_MODEL,
+	DEFAULT_CLI_CONFIG,
 	getAvailableModels,
 	isModelAllowedForPlan,
+	CLI_MODEL,
 	type Message,
 	type ModelType,
 	type Attachment,
@@ -23,6 +25,7 @@ import {
 } from "src/types";
 import { getGeminiClient } from "src/core/gemini";
 import { getEnabledTools } from "src/core/tools";
+import { GeminiCliProvider } from "src/core/cliProvider";
 import { createToolExecutor } from "src/vault/toolExecutor";
 import { getPendingEdit, applyEdit, discardEdit } from "src/vault/notes";
 import MessageList from "./MessageList";
@@ -105,9 +108,23 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 	const inputAreaRef = useRef<InputAreaHandle>(null);
 	const [vaultFiles, setVaultFiles] = useState<string[]>([]);
 	const [hasSelection, setHasSelection] = useState(false);
-	const allowWebSearch = true;
-	const allowRag = ragEnabledState;
-	const availableModels = getAvailableModels(apiPlan);
+	const [cliConfig, setCliConfig] = useState(plugin.settings.cliConfig || DEFAULT_CLI_CONFIG);
+	const [hasApiKey, setHasApiKey] = useState(!!plugin.settings.googleApiKey);
+
+	// CLI provider state (CLI not available on mobile)
+	const cliEnabled = !Platform.isMobile && cliConfig.provider === "gemini-cli";
+	const cliVerified = cliConfig.cliVerified === true;
+	const isCliMode = !Platform.isMobile && currentModel === "gemini-cli";
+
+	// Check if configuration is ready (API key set OR CLI verified)
+	const isConfigReady = hasApiKey || (cliEnabled && cliVerified);
+
+	const allowWebSearch = !isCliMode;
+	const allowRag = ragEnabledState && !isCliMode;
+
+	// Build available models list (CLI option first if enabled AND verified)
+	const baseModels = getAvailableModels(apiPlan);
+	const availableModels = cliEnabled && cliVerified ? [CLI_MODEL, ...baseModels] : baseModels;
 
 	useImperativeHandle(ref, () => ({
 		getActiveChat: () => activeChat,
@@ -415,6 +432,8 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 			setApiPlan(plugin.settings.apiPlan);
 			setCurrentModel(plugin.getSelectedModel());
 			setRagEnabledState(plugin.settings.ragEnabled);
+			setCliConfig(plugin.settings.cliConfig || DEFAULT_CLI_CONFIG);
+			setHasApiKey(!!plugin.settings.googleApiKey);
 		};
 		plugin.settingsEmitter.on("settings-updated", handleSettingsUpdated);
 		return () => {
@@ -423,6 +442,8 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 	}, [plugin, selectedRagSetting]);
 
 	useEffect(() => {
+		// Skip plan check for CLI model
+		if (currentModel === "gemini-cli") return;
 		if (!isModelAllowedForPlan(apiPlan, currentModel)) {
 			setCurrentModel(DEFAULT_MODEL);
 			void plugin.selectModel(DEFAULT_MODEL);
@@ -440,8 +461,13 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 		setCurrentModel(model);
 		void plugin.selectModel(model);
 
-		// Auto-adjust search setting for image models
-		if (isImageGenerationModel(model)) {
+		// Auto-adjust search setting for CLI mode and special models
+		if (model === "gemini-cli") {
+			// CLI mode: force Search to None
+			if (selectedRagSetting !== null) {
+				handleRagSettingChange(null);
+			}
+		} else if (isImageGenerationModel(model)) {
 			// 2.5 Flash Image: no tools supported → force None
 			// 3 Pro Image: Web Search only → keep if Web Search, else None
 			if (model === "gemini-2.5-flash-image") {
@@ -454,10 +480,10 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 					handleRagSettingChange(null);
 				}
 			}
-			} else if (model.toLowerCase().includes("gemma")) {
-				if (selectedRagSetting !== null) {
-					handleRagSettingChange(null);
-				}
+		} else if (model.toLowerCase().includes("gemma")) {
+			if (selectedRagSetting !== null) {
+				handleRagSettingChange(null);
+			}
 		}
 	};
 
@@ -624,9 +650,113 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 		new Notice("Chat deleted");
 	};
 
+	// Send message via CLI provider
+	const sendMessageViaCli = async (content: string, attachments?: Attachment[]) => {
+		const provider = new GeminiCliProvider();
+
+		// Resolve variables in the content
+		const resolvedContent = await resolveMessageVariables(content);
+
+		// Add user message
+		const userMessage: Message = {
+			role: "user",
+			content: resolvedContent.trim() || (attachments ? `[${attachments.length} file(s) attached]` : ""),
+			timestamp: Date.now(),
+			attachments,
+		};
+
+		setMessages((prev) => [...prev, userMessage]);
+		setIsLoading(true);
+		setStreamingContent("");
+
+		// Create abort controller for this request
+		const abortController = new AbortController();
+		abortControllerRef.current = abortController;
+
+		try {
+			const allMessages = [...messages, userMessage];
+
+			// Build system prompt for CLI (read-only mode)
+			let systemPrompt = "You are a helpful AI assistant integrated with Obsidian.";
+			systemPrompt += "\n\nNote: You are running in CLI mode with limited capabilities. You can read and search vault files, but cannot modify them.";
+			systemPrompt += `\n\nVault location: ${(plugin.app.vault.adapter as unknown as { basePath?: string }).basePath || "."}`;
+
+			if (plugin.settings.systemPrompt) {
+				systemPrompt += `\n\nAdditional instructions: ${plugin.settings.systemPrompt}`;
+			}
+
+			let fullContent = "";
+			let stopped = false;
+
+			// Get vault base path for working directory
+			const vaultBasePath = (plugin.app.vault.adapter as unknown as { basePath?: string }).basePath || ".";
+
+			for await (const chunk of provider.chatStream(
+				allMessages,
+				systemPrompt,
+				vaultBasePath,
+				abortController.signal
+			)) {
+				if (abortController.signal.aborted) {
+					stopped = true;
+					break;
+				}
+
+				switch (chunk.type) {
+					case "text":
+						fullContent += chunk.content || "";
+						setStreamingContent(fullContent);
+						break;
+
+					case "error":
+						throw new Error(chunk.error || "Unknown error");
+
+					case "done":
+						break;
+				}
+			}
+
+			if (stopped && fullContent) {
+				fullContent += "\n\n_(Generation stopped)_";
+			}
+
+			// Add assistant message with CLI model info
+			const assistantMessage: Message = {
+				role: "assistant",
+				content: fullContent,
+				timestamp: Date.now(),
+				model: "gemini-cli",
+			};
+
+			const newMessages = [...messages, userMessage, assistantMessage];
+			setMessages(newMessages);
+
+			// Save chat history
+			await saveCurrentChat(newMessages);
+		} catch (error) {
+			const errorMessageText = error instanceof Error ? error.message : "Unknown error";
+			const errorMessage: Message = {
+				role: "assistant",
+				content: `Sorry, an error occurred: ${errorMessageText}`,
+				timestamp: Date.now(),
+			};
+			setMessages((prev) => [...prev, errorMessage]);
+		} finally {
+			setIsLoading(false);
+			setStreamingContent("");
+			abortControllerRef.current = null;
+		}
+	};
+
 	// Send message to Gemini
 	const sendMessage = async (content: string, attachments?: Attachment[]) => {
 		if ((!content.trim() && (!attachments || attachments.length === 0)) || isLoading) return;
+
+		// Use CLI provider if in CLI mode
+		if (isCliMode) {
+			await sendMessageViaCli(content, attachments);
+			return;
+		}
 
 		const client = getGeminiClient();
 		if (!client) {
@@ -1049,37 +1179,53 @@ Always be helpful and provide clear, concise responses. When working with notes,
 				</div>
 			)}
 
-			<MessageList
-				ref={messagesContainerRef}
-				messages={messages}
-				streamingContent={streamingContent}
-				isLoading={isLoading}
-				onApplyEdit={handleApplyEdit}
-				onDiscardEdit={handleDiscardEdit}
-				app={plugin.app}
-			/>
+			{isConfigReady ? (
+				<>
+					<MessageList
+						ref={messagesContainerRef}
+						messages={messages}
+						streamingContent={streamingContent}
+						isLoading={isLoading}
+						onApplyEdit={handleApplyEdit}
+						onDiscardEdit={handleDiscardEdit}
+						app={plugin.app}
+					/>
 
-			<InputArea
-				ref={inputAreaRef}
-				onSend={(content, attachments) => {
-					void sendMessage(content, attachments);
-				}}
-				onStop={stopMessage}
-				isLoading={isLoading}
-				model={currentModel}
-				onModelChange={handleModelChange}
-				availableModels={availableModels}
-				allowWebSearch={allowWebSearch}
-				ragEnabled={allowRag}
-				ragSettings={allowRag ? ragSettingNames : []}
-				selectedRagSetting={selectedRagSetting}
-				onRagSettingChange={handleRagSettingChange}
-				slashCommands={plugin.settings.slashCommands}
-				onSlashCommand={handleSlashCommand}
-				vaultFiles={vaultFiles}
-				hasSelection={hasSelection}
-				app={plugin.app}
-			/>
+					<InputArea
+						ref={inputAreaRef}
+						onSend={(content, attachments) => {
+							void sendMessage(content, attachments);
+						}}
+						onStop={stopMessage}
+						isLoading={isLoading}
+						model={currentModel}
+						onModelChange={handleModelChange}
+						availableModels={availableModels}
+						allowWebSearch={allowWebSearch}
+						ragEnabled={allowRag}
+						ragSettings={allowRag ? ragSettingNames : []}
+						selectedRagSetting={selectedRagSetting}
+						onRagSettingChange={handleRagSettingChange}
+						slashCommands={plugin.settings.slashCommands}
+						onSlashCommand={handleSlashCommand}
+						vaultFiles={vaultFiles}
+						hasSelection={hasSelection}
+						app={plugin.app}
+					/>
+				</>
+			) : (
+				<div className="gemini-helper-config-required">
+					<div className="gemini-helper-config-message">
+						<h4>Configuration required</h4>
+						<p>To use Gemini chat, please configure one of the following in settings:</p>
+						<ul>
+							<li><strong>Google API Key</strong> - Set your API key to use the Gemini API directly</li>
+							<li><strong>Gemini CLI</strong> - Enable CLI mode and verify the CLI is working</li>
+						</ul>
+						<p>Open Settings → Gemini Helper to configure.</p>
+					</div>
+				</div>
+			)}
 		</div>
 	);
 });

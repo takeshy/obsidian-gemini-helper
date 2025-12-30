@@ -9,10 +9,12 @@ import {
 } from "obsidian";
 import type { GeminiHelperPlugin } from "src/plugin";
 import { getFileSearchManager } from "src/core/fileSearch";
+import { verifyCli } from "src/core/cliProvider";
 import { formatError } from "src/utils/error";
 import {
   DEFAULT_MODEL,
   DEFAULT_SETTINGS,
+  DEFAULT_CLI_CONFIG,
   getAvailableModels,
   isModelAllowedForPlan,
   type ApiPlan,
@@ -20,6 +22,7 @@ import {
   type SlashCommand,
   type ModelType,
 } from "src/types";
+import { Platform } from "obsidian";
 
 // Modal for creating/renaming RAG settings
 class RagSettingNameModal extends Modal {
@@ -324,65 +327,22 @@ export class SettingsTab extends PluginSettingTab {
   display(): void {
     const { containerEl } = this;
     containerEl.empty();
+    const cliConfig = this.plugin.settings.cliConfig || DEFAULT_CLI_CONFIG;
+    const isCliMode = cliConfig.provider !== "api";
     const apiPlan = this.plugin.settings.apiPlan;
-    const allowWebSearch = true;
+    const allowWebSearch = !isCliMode;
     const allowRag = this.plugin.settings.ragEnabled;
     const availableModels = getAvailableModels(apiPlan);
 
-    // API settings
-    new Setting(containerEl).setName("API").setHeading();
+    // API settings (always shown)
+    new Setting(containerEl).setName("API settings").setHeading();
+    this.displayApiSettings(containerEl, apiPlan);
 
-    // Google API Key
-    const apiKeySetting = new Setting(containerEl)
-      .setName("Google API key")
-      .setDesc("Your API key from ai.google.dev");
-
-    let apiKeyRevealed = false;
-    apiKeySetting.addText((text) => {
-      text
-        .setPlaceholder("Enter your API key")
-        .setValue(this.plugin.settings.googleApiKey)
-        .onChange((value) => {
-          void (async () => {
-            this.plugin.settings.googleApiKey = value;
-            await this.plugin.saveSettings();
-          })();
-        });
-      text.inputEl.type = "password";
-    });
-
-    apiKeySetting.addExtraButton((btn) => {
-      btn
-        .setIcon("eye")
-        .setTooltip("Show or hide API key")
-        .onClick(() => {
-          apiKeyRevealed = !apiKeyRevealed;
-          const input = apiKeySetting.controlEl.querySelector("input");
-          if (input) input.type = apiKeyRevealed ? "text" : "password";
-          btn.setIcon(apiKeyRevealed ? "eye-off" : "eye");
-        });
-    });
-
-    new Setting(containerEl)
-      .setName("API plan")
-      .setDesc("Select the plan type for your API key (affects available models and search features)")
-      .addDropdown((dropdown) => {
-        dropdown.addOption("paid", "Paid");
-        dropdown.addOption("free", "Free");
-        dropdown.setValue(apiPlan);
-        dropdown.onChange((value) => {
-          void (async () => {
-            this.plugin.settings.apiPlan = value as ApiPlan;
-            await this.plugin.saveSettings();
-            const plan = this.plugin.settings.apiPlan;
-            const selectedModel = this.plugin.getSelectedModel();
-            if (!isModelAllowedForPlan(plan, selectedModel)) {
-              await this.plugin.selectModel(DEFAULT_MODEL);
-            }
-            this.display();
-          })();
-        });
-      });
+    // CLI settings (desktop only)
+    if (!Platform.isMobile) {
+      new Setting(containerEl).setName("CLI mode").setHeading();
+      this.displayCliSettings(containerEl, cliConfig, isCliMode);
+    }
 
     // Workspace settings
     new Setting(containerEl).setName("Workspace").setHeading();
@@ -681,7 +641,7 @@ export class SettingsTab extends PluginSettingTab {
       .setDesc("Enable semantic search to search your vault with AI")
       .addToggle((toggle) =>
         toggle
-          .setValue(allowRag)
+          .setValue(this.plugin.settings.ragEnabled)
           .onChange((value) => {
             void (async () => {
               this.plugin.settings.ragEnabled = value;
@@ -693,6 +653,209 @@ export class SettingsTab extends PluginSettingTab {
 
     if (allowRag) {
       this.displayRagSettings(containerEl);
+    }
+  }
+
+  private displayApiSettings(containerEl: HTMLElement, apiPlan: ApiPlan): void {
+    // Google API Key
+    const apiKeySetting = new Setting(containerEl)
+      .setName("Google API key")
+      .setDesc("Your API key from ai.google.dev");
+
+    let apiKeyRevealed = false;
+    apiKeySetting.addText((text) => {
+      text
+        .setPlaceholder("Enter your API key")
+        .setValue(this.plugin.settings.googleApiKey)
+        .onChange((value) => {
+          void (async () => {
+            this.plugin.settings.googleApiKey = value;
+            await this.plugin.saveSettings();
+          })();
+        });
+      text.inputEl.type = "password";
+    });
+
+    apiKeySetting.addExtraButton((btn) => {
+      btn
+        .setIcon("eye")
+        .setTooltip("Show or hide API key")
+        .onClick(() => {
+          apiKeyRevealed = !apiKeyRevealed;
+          const input = apiKeySetting.controlEl.querySelector("input");
+          if (input) input.type = apiKeyRevealed ? "text" : "password";
+          btn.setIcon(apiKeyRevealed ? "eye-off" : "eye");
+        });
+    });
+
+    new Setting(containerEl)
+      .setName("API plan")
+      .setDesc("Select the plan type for your API key (affects available models and search features)")
+      .addDropdown((dropdown) => {
+        dropdown.addOption("paid", "Paid");
+        dropdown.addOption("free", "Free");
+        dropdown.setValue(apiPlan);
+        dropdown.onChange((value) => {
+          void (async () => {
+            this.plugin.settings.apiPlan = value as ApiPlan;
+            await this.plugin.saveSettings();
+            const plan = this.plugin.settings.apiPlan;
+            const selectedModel = this.plugin.getSelectedModel();
+            if (!isModelAllowedForPlan(plan, selectedModel)) {
+              await this.plugin.selectModel(DEFAULT_MODEL);
+            }
+            this.display();
+          })();
+        });
+      });
+  }
+
+  private displayCliSettings(
+    containerEl: HTMLElement,
+    cliConfig: import("src/types").CliProviderConfig,
+    isCliMode: boolean
+  ): void {
+    // Experimental warning
+    const experimentalEl = containerEl.createDiv({ cls: "setting-item-description" });
+    experimentalEl.style.marginBottom = "1em";
+    experimentalEl.style.padding = "0.5em";
+    experimentalEl.style.backgroundColor = "var(--background-modifier-message)";
+    experimentalEl.style.borderRadius = "4px";
+    experimentalEl.style.borderLeft = "3px solid var(--text-warning)";
+    const warningTitle = experimentalEl.createEl("strong");
+    warningTitle.textContent = "Experimental feature";
+    const warningText = experimentalEl.createEl("p");
+    warningText.style.margin = "0.5em 0 0 0";
+    warningText.textContent = "This feature is experimental and may be removed in future versions.";
+
+    // CLI Mode toggle
+    new Setting(containerEl)
+      .setName("Enable command line mode")
+      .setDesc("Use the CLI instead of the API")
+      .addToggle((toggle) =>
+        toggle.setValue(isCliMode).onChange((value) => {
+          void (async () => {
+            this.plugin.settings.cliConfig = {
+              ...cliConfig,
+              provider: value ? "gemini-cli" : "api",
+            };
+            await this.plugin.saveSettings();
+            this.display();
+          })();
+        })
+      );
+
+    // Show CLI settings only when enabled
+    if (isCliMode) {
+      // Status indicator
+      const statusEl = containerEl.createDiv({ cls: "gemini-cli-status" });
+      statusEl.style.marginBottom = "1em";
+      statusEl.style.padding = "0.5em";
+      statusEl.style.borderRadius = "4px";
+      statusEl.style.fontSize = "0.9em";
+
+      // Verify button
+      new Setting(containerEl)
+        .setName("Verify CLI")
+        .setDesc("Check if the CLI is installed and authenticated")
+        .addButton((button) =>
+          button.setButtonText("Verify").onClick(() => {
+            void this.handleVerifyCli(statusEl);
+          })
+        );
+
+      // Notice about CLI mode requirements and limitations
+      const noticeEl = containerEl.createDiv({ cls: "setting-item-description" });
+      noticeEl.style.marginTop = "1em";
+      noticeEl.style.padding = "0.5em";
+      noticeEl.style.backgroundColor = "var(--background-modifier-message)";
+      noticeEl.style.borderRadius = "4px";
+
+      // Requirements section
+      const reqTitle = noticeEl.createEl("strong");
+      reqTitle.textContent = "Requirements:";
+      const reqList = noticeEl.createEl("ul");
+      reqList.style.margin = "0.5em 0";
+      reqList.style.paddingLeft = "1.5em";
+
+      const geminiCmd = "gemini";
+      const appdataPath = "%APPDATA%\\npm";
+
+      const macLi = reqList.createEl("li");
+      macLi.createEl("strong").textContent = "macOS/Linux:";
+      macLi.appendText(" ");
+      macLi.createEl("code").textContent = geminiCmd;
+      macLi.appendText(" command must be in PATH");
+
+      const winLi = reqList.createEl("li");
+      winLi.createEl("strong").textContent = "Windows:";
+      winLi.appendText(" gemini-cli must be installed at ");
+      winLi.createEl("code").textContent = appdataPath;
+
+      // Read-only mode section
+      const roTitle = noticeEl.createEl("strong");
+      roTitle.textContent = "Read-only mode:";
+      const roList = noticeEl.createEl("ul");
+      roList.style.margin = "0.5em 0";
+      roList.style.paddingLeft = "1.5em";
+      roList.createEl("li").textContent = "Vault write operations are not available (read and search only)";
+      roList.createEl("li").textContent = "Semantic search is not available";
+      roList.createEl("li").textContent = "Web search is not available";
+    }
+  }
+
+  private async handleVerifyCli(statusEl: HTMLElement): Promise<void> {
+    statusEl.empty();
+    statusEl.style.backgroundColor = "var(--background-modifier-message)";
+    statusEl.setText("Verifying CLI...");
+
+    try {
+      const result = await verifyCli();
+
+      if (!result.success) {
+        statusEl.style.backgroundColor = "var(--background-modifier-error)";
+        // Save unverified status
+        this.plugin.settings.cliConfig = {
+          ...this.plugin.settings.cliConfig,
+          cliVerified: false,
+        };
+        await this.plugin.saveSettings();
+
+        if (result.stage === "version") {
+          statusEl.empty();
+          statusEl.createEl("strong", { text: "CLI not found: " });
+          statusEl.createSpan({ text: result.error || "Gemini CLI not found" });
+        } else {
+          statusEl.empty();
+          statusEl.createEl("strong", { text: "Login required: " });
+          statusEl.createSpan({ text: "Run 'gemini' command and complete login with /auth" });
+        }
+        return;
+      }
+
+      // Success - save verified status
+      this.plugin.settings.cliConfig = {
+        ...this.plugin.settings.cliConfig,
+        cliVerified: true,
+      };
+      await this.plugin.saveSettings();
+
+      statusEl.style.backgroundColor = "var(--background-modifier-success)";
+      statusEl.empty();
+      statusEl.createEl("strong", { text: "CLI verified: " });
+      statusEl.createSpan({ text: "Ready to use" });
+    } catch (err) {
+      // Save unverified status on error
+      this.plugin.settings.cliConfig = {
+        ...this.plugin.settings.cliConfig,
+        cliVerified: false,
+      };
+      await this.plugin.saveSettings();
+
+      statusEl.style.backgroundColor = "var(--background-modifier-error)";
+      statusEl.empty();
+      statusEl.createEl("strong", { text: "Error: " });
+      statusEl.createSpan({ text: String(err) });
     }
   }
 

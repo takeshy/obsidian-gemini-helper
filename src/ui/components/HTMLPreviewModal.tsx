@@ -12,6 +12,15 @@ function sanitizeFileName(name: string): string {
 export class HTMLPreviewModal extends Modal {
   private htmlContent: string;
   private baseName: string;
+  private isDragging = false;
+  private isResizing = false;
+  private dragStartX = 0;
+  private dragStartY = 0;
+  private modalStartX = 0;
+  private modalStartY = 0;
+  private resizeStartWidth = 0;
+  private resizeStartHeight = 0;
+  private resizeDirection = "";
 
   constructor(app: App, htmlContent: string, baseName: string) {
     super(app);
@@ -22,19 +31,20 @@ export class HTMLPreviewModal extends Modal {
   onOpen() {
     const { contentEl, modalEl } = this;
 
-    // Make modal larger
+    // Make modal larger and resizable
     modalEl.addClass("gemini-helper-html-preview-modal");
+    modalEl.addClass("gemini-helper-resizable-modal");
 
-    // Header with actions
-    const header = contentEl.createDiv({ cls: "gemini-helper-html-preview-header" });
+    // Header with actions (also serves as drag handle)
+    const header = contentEl.createDiv({ cls: "gemini-helper-html-preview-header gemini-helper-drag-handle" });
 
-    const title = header.createEl("h3", { text: "HTML Preview" });
+    const title = header.createEl("h3", { text: "Infographic preview" });
     title.style.margin = "0";
 
     const actions = header.createDiv({ cls: "gemini-helper-html-preview-actions" });
 
     // Copy HTML button
-    const copyBtn = actions.createEl("button", { text: "Copy HTML", cls: "mod-cta" });
+    const copyBtn = actions.createEl("button", { text: "Copy code", cls: "mod-cta" });
     copyBtn.addEventListener("click", async () => {
       try {
         await navigator.clipboard.writeText(this.htmlContent);
@@ -64,6 +74,140 @@ export class HTMLPreviewModal extends Modal {
       },
     });
     iframe.addClass("gemini-helper-html-preview-iframe");
+
+    // Add resize handles
+    this.addResizeHandles(modalEl);
+
+    // Setup drag functionality on header
+    this.setupDrag(header, modalEl);
+  }
+
+  private addResizeHandles(modalEl: HTMLElement) {
+    const directions = ["n", "e", "s", "w", "ne", "nw", "se", "sw"];
+    for (const dir of directions) {
+      const handle = document.createElement("div");
+      handle.className = `gemini-helper-resize-handle gemini-helper-resize-${dir}`;
+      handle.dataset.direction = dir;
+      modalEl.appendChild(handle);
+      this.setupResize(handle, modalEl, dir);
+    }
+  }
+
+  private setupDrag(header: HTMLElement, modalEl: HTMLElement) {
+    const onMouseDown = (e: MouseEvent) => {
+      // Don't drag if clicking on buttons
+      if ((e.target as HTMLElement).tagName === "BUTTON") return;
+
+      this.isDragging = true;
+      this.dragStartX = e.clientX;
+      this.dragStartY = e.clientY;
+
+      const rect = modalEl.getBoundingClientRect();
+      this.modalStartX = rect.left;
+      this.modalStartY = rect.top;
+
+      // Remove default positioning
+      modalEl.style.position = "fixed";
+      modalEl.style.margin = "0";
+      modalEl.style.transform = "none";
+      modalEl.style.left = `${rect.left}px`;
+      modalEl.style.top = `${rect.top}px`;
+
+      document.addEventListener("mousemove", onMouseMove);
+      document.addEventListener("mouseup", onMouseUp);
+      e.preventDefault();
+    };
+
+    const onMouseMove = (e: MouseEvent) => {
+      if (!this.isDragging) return;
+
+      const deltaX = e.clientX - this.dragStartX;
+      const deltaY = e.clientY - this.dragStartY;
+
+      modalEl.style.left = `${this.modalStartX + deltaX}px`;
+      modalEl.style.top = `${this.modalStartY + deltaY}px`;
+    };
+
+    const onMouseUp = () => {
+      this.isDragging = false;
+      document.removeEventListener("mousemove", onMouseMove);
+      document.removeEventListener("mouseup", onMouseUp);
+    };
+
+    header.addEventListener("mousedown", onMouseDown);
+  }
+
+  private setupResize(handle: HTMLElement, modalEl: HTMLElement, direction: string) {
+    const onMouseDown = (e: MouseEvent) => {
+      this.isResizing = true;
+      this.resizeDirection = direction;
+      this.dragStartX = e.clientX;
+      this.dragStartY = e.clientY;
+
+      const rect = modalEl.getBoundingClientRect();
+      this.resizeStartWidth = rect.width;
+      this.resizeStartHeight = rect.height;
+      this.modalStartX = rect.left;
+      this.modalStartY = rect.top;
+
+      // Set fixed positioning if not already
+      modalEl.style.position = "fixed";
+      modalEl.style.margin = "0";
+      modalEl.style.transform = "none";
+      modalEl.style.left = `${rect.left}px`;
+      modalEl.style.top = `${rect.top}px`;
+      modalEl.style.width = `${rect.width}px`;
+      modalEl.style.height = `${rect.height}px`;
+
+      document.addEventListener("mousemove", onMouseMove);
+      document.addEventListener("mouseup", onMouseUp);
+      e.preventDefault();
+      e.stopPropagation();
+    };
+
+    const onMouseMove = (e: MouseEvent) => {
+      if (!this.isResizing) return;
+
+      const deltaX = e.clientX - this.dragStartX;
+      const deltaY = e.clientY - this.dragStartY;
+      const dir = this.resizeDirection;
+
+      let newWidth = this.resizeStartWidth;
+      let newHeight = this.resizeStartHeight;
+      let newLeft = this.modalStartX;
+      let newTop = this.modalStartY;
+
+      // Handle horizontal resize
+      if (dir.includes("e")) {
+        newWidth = Math.max(400, this.resizeStartWidth + deltaX);
+      }
+      if (dir.includes("w")) {
+        newWidth = Math.max(400, this.resizeStartWidth - deltaX);
+        newLeft = this.modalStartX + (this.resizeStartWidth - newWidth);
+      }
+
+      // Handle vertical resize
+      if (dir.includes("s")) {
+        newHeight = Math.max(300, this.resizeStartHeight + deltaY);
+      }
+      if (dir.includes("n")) {
+        newHeight = Math.max(300, this.resizeStartHeight - deltaY);
+        newTop = this.modalStartY + (this.resizeStartHeight - newHeight);
+      }
+
+      modalEl.style.width = `${newWidth}px`;
+      modalEl.style.height = `${newHeight}px`;
+      modalEl.style.left = `${newLeft}px`;
+      modalEl.style.top = `${newTop}px`;
+    };
+
+    const onMouseUp = () => {
+      this.isResizing = false;
+      document.removeEventListener("mousemove", onMouseMove);
+      document.removeEventListener("mouseup", onMouseUp);
+    };
+
+    handle.addEventListener("mousedown", onMouseDown);
   }
 
   private async saveHtml() {

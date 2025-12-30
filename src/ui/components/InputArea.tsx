@@ -106,10 +106,12 @@ const InputArea = forwardRef<InputAreaHandle, InputAreaProps>(function InputArea
 
   // Build mention candidates
   const buildMentionCandidates = (query: string): MentionItem[] => {
+    const hasActiveNote = !!app.workspace.getActiveFile();
     const variables: MentionItem[] = [
       // Only show {selection} if there's an active selection
       ...(hasSelection ? [{ value: "{selection}", description: "Selected text in editor", isVariable: true }] : []),
-      { value: "{content}", description: "Active note content", isVariable: true },
+      // Only show {content} if there's an active note
+      ...(hasActiveNote ? [{ value: "{content}", description: "Active note content", isVariable: true }] : []),
     ];
     // Don't show vault files for Gemma models (no function calling support)
     const files: MentionItem[] = isGemmaModel ? [] : vaultFiles.map((f) => ({

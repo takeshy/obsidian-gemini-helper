@@ -1,4 +1,4 @@
-import { Plugin, WorkspaceLeaf, Notice, MarkdownView } from "obsidian";
+import { Plugin, WorkspaceLeaf, Notice, MarkdownView, Platform } from "obsidian";
 import { StateField, StateEffect } from "@codemirror/state";
 import { Decoration, type DecorationSet, EditorView } from "@codemirror/view";
 import { EventEmitter } from "src/utils/EventEmitter";
@@ -24,7 +24,9 @@ import {
   getFileSearchManager,
   type SyncResult,
 } from "src/core/fileSearch";
+import { initCliProviderManager } from "src/core/cliProvider";
 import { formatError } from "src/utils/error";
+import { DEFAULT_CLI_CONFIG } from "src/types";
 
 const WORKSPACE_STATE_FILENAME = "gemini-workspace.json";
 const OLD_WORKSPACE_STATE_FILENAME = ".gemini-workspace.json";
@@ -78,7 +80,7 @@ interface SelectionLocationInfo {
 }
 
 export class GeminiHelperPlugin extends Plugin {
-  settings!: GeminiHelperSettings;
+  settings: GeminiHelperSettings = { ...DEFAULT_SETTINGS };
   workspaceState: WorkspaceState = { ...DEFAULT_WORKSPACE_STATE };
   settingsEmitter = new EventEmitter();
   private lastSelection = "";
@@ -92,8 +94,9 @@ export class GeminiHelperPlugin extends Plugin {
       // Migrate from old settings format first (one-time)
       await this.migrateFromOldSettings();
       await this.loadWorkspaceState();
-      // Initialize Gemini client if API key is set
-      if (this.settings.googleApiKey) {
+      // Initialize clients if API key is set or CLI mode is enabled
+      const cliConfig = this.settings.cliConfig || DEFAULT_CLI_CONFIG;
+      if (this.settings.googleApiKey || cliConfig.provider !== "api") {
         this.initializeClients();
       }
       // Emit event to refresh UI after workspace state is loaded
@@ -202,10 +205,8 @@ export class GeminiHelperPlugin extends Plugin {
     await this.saveData(dataToSave);
     this.settingsEmitter.emit("settings-updated", this.settings);
 
-    // Reinitialize clients if API key changed
-    if (this.settings.googleApiKey) {
-      this.initializeClients();
-    }
+    // Always reinitialize clients to pick up any config changes
+    this.initializeClients();
   }
 
   // Get the path to the workspace state file
@@ -266,8 +267,9 @@ export class GeminiHelperPlugin extends Plugin {
         // Check for old RAG state file and migrate
         await this.migrateOldRagStateFile();
       }
-    } catch {
-      // Failed to load, use default
+    } catch (error) {
+      // Log error for debugging
+      console.error("Gemini Helper: Failed to load workspace state:", error);
     }
   }
 
@@ -315,8 +317,9 @@ export class GeminiHelperPlugin extends Plugin {
 
       // Sync FileSearchManager
       this.syncFileSearchManagerWithSelectedRag();
-    } catch {
-      // Migration failed, continue with default
+    } catch (error) {
+      // Log error for debugging
+      console.error("Gemini Helper: Migration from old RAG state file failed:", error);
     }
   }
 
@@ -325,8 +328,12 @@ export class GeminiHelperPlugin extends Plugin {
     const fileSearchManager = getFileSearchManager();
     const selectedRag = this.getSelectedRagSetting();
 
-    if (fileSearchManager && selectedRag?.storeId) {
+    if (!fileSearchManager) return;
+
+    if (selectedRag?.storeId) {
       fileSearchManager.setStoreName(selectedRag.storeId);
+    } else {
+      fileSearchManager.setStoreName(null);
     }
   }
 
@@ -446,6 +453,19 @@ export class GeminiHelperPlugin extends Plugin {
   // Get selected model
   getSelectedModel(): ModelType {
     const selected = this.workspaceState.selectedModel || DEFAULT_MODEL;
+
+    // CLI model is only allowed on desktop if CLI mode is enabled and verified
+    if (selected === "gemini-cli") {
+      if (Platform.isMobile) {
+        return DEFAULT_MODEL;
+      }
+      const cliConfig = this.settings.cliConfig;
+      if (cliConfig?.provider === "gemini-cli" && cliConfig?.cliVerified) {
+        return selected;
+      }
+      return DEFAULT_MODEL;
+    }
+
     return isModelAllowedForPlan(this.settings.apiPlan, selected)
       ? selected
       : DEFAULT_MODEL;
@@ -463,6 +483,7 @@ export class GeminiHelperPlugin extends Plugin {
     };
 
     await this.saveWorkspaceState();
+    this.settingsEmitter.emit("workspace-state-loaded", this.workspaceState);
   }
 
   // Update a RAG setting
@@ -499,6 +520,7 @@ export class GeminiHelperPlugin extends Plugin {
     }
 
     await this.saveWorkspaceState();
+    this.settingsEmitter.emit("workspace-state-loaded", this.workspaceState);
   }
 
   // Rename a RAG setting
@@ -519,6 +541,7 @@ export class GeminiHelperPlugin extends Plugin {
     }
 
     await this.saveWorkspaceState();
+    this.settingsEmitter.emit("workspace-state-loaded", this.workspaceState);
   }
 
   // Reset sync state for a RAG setting
@@ -626,6 +649,9 @@ export class GeminiHelperPlugin extends Plugin {
   private initializeClients() {
     initGeminiClient(this.settings.googleApiKey, DEFAULT_MODEL);
     initFileSearchManager(this.settings.googleApiKey, this.app);
+
+    // Initialize CLI provider manager
+    initCliProviderManager();
 
     // Sync FileSearchManager with selected RAG setting
     this.syncFileSearchManagerWithSelectedRag();
@@ -895,6 +921,11 @@ export class GeminiHelperPlugin extends Plugin {
       return null;
     }
 
+    // Ensure a new setting doesn't inherit a previous store
+    if (!ragSetting.storeId) {
+      fileSearchManager.setStoreName(null);
+    }
+
     // External stores cannot be synced
     if (ragSetting.isExternal) {
       new Notice("Cannot sync external semantic search store. Only internal stores can be synced.");
@@ -936,6 +967,7 @@ export class GeminiHelperPlugin extends Plugin {
         lastFullSync: result.newSyncState.lastFullSync,
       };
       await this.saveWorkspaceState();
+      this.settingsEmitter.emit("workspace-state-loaded", this.workspaceState);
 
       // Log summary
       const summary = `Sync completed: ${result.uploaded.length} uploaded, ${result.skipped.length} skipped, ${result.deleted.length} deleted, ${result.errors.length} errors`;
@@ -981,6 +1013,7 @@ export class GeminiHelperPlugin extends Plugin {
     };
 
     await this.saveWorkspaceState();
+    this.settingsEmitter.emit("workspace-state-loaded", this.workspaceState);
   }
 
   // Legacy compatibility: ragState getter

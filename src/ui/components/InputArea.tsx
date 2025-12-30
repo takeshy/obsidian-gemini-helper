@@ -96,8 +96,10 @@ const InputArea = forwardRef<InputAreaHandle, InputAreaProps>(function InputArea
   useEffect(() => {
     const textarea = textareaRef.current;
     if (textarea) {
-      textarea.style.height = "auto";
-      textarea.style.height = `${Math.min(textarea.scrollHeight, 200)}px`;
+      // Use Obsidian's setCssProps for dynamic height adjustment
+      textarea.setCssProps({ height: "auto" });
+      const height = `${Math.min(textarea.scrollHeight, 200)}px`;
+      textarea.setCssProps({ height });
     }
   }, [input]);
 

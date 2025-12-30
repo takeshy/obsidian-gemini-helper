@@ -15,7 +15,12 @@ export default [
         argsIgnorePattern: '^_',
         varsIgnorePattern: '^_',
       }],
-      'obsidianmd/ui/sentence-case': 'warn',
+      // Obsidian plugin rules
+      'obsidianmd/settings-tab/no-problematic-settings-headings': 'error',
+      'obsidianmd/no-static-styles-assignment': 'error',
+      'obsidianmd/ui/sentence-case': ['error', { enforceCamelCaseLower: true }],
+      'obsidianmd/platform': 'error',
+      'obsidianmd/regex-lookbehind': 'error',
     },
   },
 ];

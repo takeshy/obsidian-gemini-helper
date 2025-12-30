@@ -185,7 +185,7 @@ export default function MessageBubble({
   const sanitizeFileName = (name: string): string => {
     return name
       .replace(/[<>:"/\\|?*]/g, "") // Remove Windows-forbidden chars
-      .replace(/[\x00-\x1f]/g, "")  // Remove control characters
+      .replace(/[\u0000-\u001f]/g, "")  // Remove control characters
       .trim()
       .slice(0, 50) || "output";    // Limit length and provide fallback
   };

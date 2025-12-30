@@ -4,7 +4,7 @@ import { Modal, App, Notice, Platform } from "obsidian";
 function sanitizeFileName(name: string): string {
   return name
     .replace(/[<>:"/\\|?*]/g, "") // Remove Windows-forbidden chars
-    .replace(/[\x00-\x1f]/g, "")  // Remove control characters
+    .replace(/[\u0000-\u001f]/g, "")  // Remove control characters
     .trim()
     .slice(0, 50) || "output";    // Limit length and provide fallback
 }
@@ -38,20 +38,17 @@ export class HTMLPreviewModal extends Modal {
     // Header with actions (also serves as drag handle)
     const header = contentEl.createDiv({ cls: "gemini-helper-html-preview-header gemini-helper-drag-handle" });
 
-    const title = header.createEl("h3", { text: "Infographic preview" });
-    title.style.margin = "0";
+    header.createEl("h3", { text: "Infographic preview" });
 
     const actions = header.createDiv({ cls: "gemini-helper-html-preview-actions" });
 
     // Copy HTML button
     const copyBtn = actions.createEl("button", { text: "Copy code", cls: "mod-cta" });
-    copyBtn.addEventListener("click", async () => {
-      try {
-        await navigator.clipboard.writeText(this.htmlContent);
-        new Notice("HTML copied to clipboard");
-      } catch {
-        new Notice("Failed to copy HTML");
-      }
+    copyBtn.addEventListener("click", () => {
+      void navigator.clipboard.writeText(this.htmlContent).then(
+        () => new Notice("HTML copied to clipboard"),
+        () => new Notice("Failed to copy HTML")
+      );
     });
 
     // Save button
@@ -107,11 +104,13 @@ export class HTMLPreviewModal extends Modal {
       this.modalStartY = rect.top;
 
       // Remove default positioning
-      modalEl.style.position = "fixed";
-      modalEl.style.margin = "0";
-      modalEl.style.transform = "none";
-      modalEl.style.left = `${rect.left}px`;
-      modalEl.style.top = `${rect.top}px`;
+      modalEl.setCssProps({
+        position: "fixed",
+        margin: "0",
+        transform: "none",
+        left: `${rect.left}px`,
+        top: `${rect.top}px`,
+      });
 
       document.addEventListener("mousemove", onMouseMove);
       document.addEventListener("mouseup", onMouseUp);
@@ -124,8 +123,10 @@ export class HTMLPreviewModal extends Modal {
       const deltaX = e.clientX - this.dragStartX;
       const deltaY = e.clientY - this.dragStartY;
 
-      modalEl.style.left = `${this.modalStartX + deltaX}px`;
-      modalEl.style.top = `${this.modalStartY + deltaY}px`;
+      modalEl.setCssProps({
+        left: `${this.modalStartX + deltaX}px`,
+        top: `${this.modalStartY + deltaY}px`,
+      });
     };
 
     const onMouseUp = () => {
@@ -151,13 +152,15 @@ export class HTMLPreviewModal extends Modal {
       this.modalStartY = rect.top;
 
       // Set fixed positioning if not already
-      modalEl.style.position = "fixed";
-      modalEl.style.margin = "0";
-      modalEl.style.transform = "none";
-      modalEl.style.left = `${rect.left}px`;
-      modalEl.style.top = `${rect.top}px`;
-      modalEl.style.width = `${rect.width}px`;
-      modalEl.style.height = `${rect.height}px`;
+      modalEl.setCssProps({
+        position: "fixed",
+        margin: "0",
+        transform: "none",
+        left: `${rect.left}px`,
+        top: `${rect.top}px`,
+        width: `${rect.width}px`,
+        height: `${rect.height}px`,
+      });
 
       document.addEventListener("mousemove", onMouseMove);
       document.addEventListener("mouseup", onMouseUp);
@@ -195,10 +198,12 @@ export class HTMLPreviewModal extends Modal {
         newTop = this.modalStartY + (this.resizeStartHeight - newHeight);
       }
 
-      modalEl.style.width = `${newWidth}px`;
-      modalEl.style.height = `${newHeight}px`;
-      modalEl.style.left = `${newLeft}px`;
-      modalEl.style.top = `${newTop}px`;
+      modalEl.setCssProps({
+        width: `${newWidth}px`,
+        height: `${newHeight}px`,
+        left: `${newLeft}px`,
+        top: `${newTop}px`,
+      });
     };
 
     const onMouseUp = () => {

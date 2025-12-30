@@ -27,6 +27,7 @@ import {
 import { initCliProviderManager } from "src/core/cliProvider";
 import { formatError } from "src/utils/error";
 import { DEFAULT_CLI_CONFIG } from "src/types";
+import { CommandSpi } from "src/spi/commandSpi";
 
 const WORKSPACE_STATE_FILENAME = "gemini-workspace.json";
 const OLD_WORKSPACE_STATE_FILENAME = ".gemini-workspace.json";
@@ -87,6 +88,24 @@ export class GeminiHelperPlugin extends Plugin {
   private selectionHighlight: SelectionHighlightInfo | null = null;
   private selectionLocation: SelectionLocationInfo | null = null;
   private lastActiveMarkdownView: MarkdownView | null = null;
+
+  /**
+   * SPI for external command access
+   * 外部プラグインからスラッシュコマンドにアクセスするためのAPI
+   *
+   * @example
+   * ```typescript
+   * const geminiPlugin = app.plugins.plugins['gemini-helper'] as GeminiHelperPlugin;
+   * // コマンド一覧を取得
+   * const commands = geminiPlugin.commandSpi.listCommands();
+   * // コマンドを準備（変数解決）
+   * const result = await geminiPlugin.commandSpi.prepareCommand('translate', {
+   *   selection: '翻訳したいテキスト',
+   * });
+   * console.log(result.resolvedPrompt);
+   * ```
+   */
+  public commandSpi: CommandSpi = new CommandSpi(this);
 
   onload(): void {
     // Load settings and workspace state

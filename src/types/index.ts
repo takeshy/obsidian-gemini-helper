@@ -382,3 +382,52 @@ export const DEFAULT_SETTINGS: GeminiHelperSettings = {
   listNotesLimit: 50,
   maxNoteChars: 20000,
 };
+
+// =============================================================================
+// SPI (Service Provider Interface) Types - 外部プラグイン連携用
+// =============================================================================
+
+/**
+ * コマンド実行時のコンテキスト
+ * 外部からの呼び出し時に{content}や{selection}の値を指定可能
+ */
+export interface CommandExecutionContext {
+  /** {content}プレースホルダーの値（省略時はアクティブノートの内容を使用） */
+  content?: string;
+  /** {selection}プレースホルダーの値（省略時はキャッシュされた選択範囲を使用） */
+  selection?: string;
+  /** 選択範囲の位置情報（省略可能、{selection}使用時の引用形式に影響） */
+  selectionLocation?: {
+    filePath: string;
+    startLine: number;
+    endLine: number;
+  };
+  /** 使用するモデル（省略時はコマンドのデフォルトまたは現在のモデル） */
+  model?: ModelType;
+  /** 検索設定（省略時はコマンドのデフォルトまたは現在の設定） */
+  searchSetting?: string | null;
+}
+
+/**
+ * コマンド情報（外部公開用）
+ */
+export interface CommandInfo {
+  id: string;
+  name: string;
+  promptTemplate: string;
+  description?: string;
+  model?: ModelType | null;
+  searchSetting?: string | null;
+}
+
+/**
+ * コマンド実行準備の結果
+ */
+export interface CommandExecutionResult {
+  /** 変数解決後のプロンプト */
+  resolvedPrompt: string;
+  /** 使用するモデル */
+  model: ModelType;
+  /** 検索設定（null = なし, "__websearch__" = Web検索, その他 = RAG設定名） */
+  searchSetting: string | null;
+}

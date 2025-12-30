@@ -141,11 +141,11 @@ abstract class BaseCliProvider implements CliProviderInterface {
             resolve(false);
           });
 
-          // Timeout after 5 seconds
+          // Timeout after 30 seconds
           setTimeout(() => {
             proc.kill();
             resolve(false);
-          }, 5000);
+          }, 30000);
         } catch {
           resolve(false);
         }
@@ -337,7 +337,7 @@ export async function verifyCli(): Promise<CliVerifyResult> {
       setTimeout(() => {
         proc.kill();
         resolve({ success: false, error: formatWindowsCliError("Timeout") });
-      }, 5000);
+      }, 30000);
     } catch (err) {
       resolve({ success: false, error: formatWindowsCliError(String(err)) });
     }
@@ -376,7 +376,7 @@ export async function verifyCli(): Promise<CliVerifyResult> {
       setTimeout(() => {
         proc.kill();
         resolve({ success: false, error: formatWindowsCliError("Timeout - CLI may not be logged in") });
-      }, 15000);
+      }, 30000);
     } catch (err) {
       resolve({ success: false, error: formatWindowsCliError(String(err)) });
     }

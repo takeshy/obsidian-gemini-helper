@@ -19,6 +19,7 @@ const NODE_TYPE_LABELS: Record<WorkflowNodeType, string> = {
   "prompt-file": "Prompt File",
   "prompt-selection": "Prompt Selection",
   workflow: "Workflow",
+  "rag-sync": "RAG Sync",
 };
 
 export class NodeEditorModal extends Modal {
@@ -186,13 +187,31 @@ export class NodeEditorModal extends Modal {
 
       case "prompt-file":
         this.addTextField(container, "title", "Dialog Title", "Select a file");
-        this.addTextField(container, "saveTo", "Save To", "Variable name to store file path");
+        this.addTextField(container, "saveTo", "Save Content To", "Variable name for file content");
+        this.addTextField(container, "saveFileTo", "Save File Info To", "Variable name for file info (path, basename, name, extension)");
         break;
 
       case "prompt-selection":
         this.addTextField(container, "title", "Dialog Title", "Select text");
         this.addTextField(container, "saveTo", "Save Text To", "Variable name for selected text");
         this.addTextField(container, "saveSelectionTo", "Save Selection To", "Variable name for selection object");
+        break;
+
+      case "workflow":
+        this.addTextField(container, "path", "Workflow Path", "Path to workflow file");
+        this.addTextField(container, "name", "Workflow Name", "Name of workflow (if file has multiple)");
+        this.addTextArea(container, "input", "Input Variables", 'JSON mapping: {"subVar": "{{parentVar}}"}');
+        this.addTextArea(container, "output", "Output Variables", 'JSON mapping: {"parentVar": "subVar"}');
+        this.addTextField(container, "prefix", "Prefix", "Prefix for imported variables");
+        break;
+
+      case "rag-sync":
+        this.addTextField(container, "path", "Note Path", "Path to note to sync (supports {{variables}})");
+        this.addLabeledDropdown(container, "ragSetting", "RAG Setting", [
+          { value: "", label: "Select RAG setting" },
+          ...this.ragSettingNames.map(name => ({ value: name, label: name })),
+        ]);
+        this.addTextField(container, "saveTo", "Save To", "Variable name to store result (optional)");
         break;
 
     }

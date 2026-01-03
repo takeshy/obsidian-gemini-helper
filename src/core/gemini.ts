@@ -246,6 +246,20 @@ export class GeminiClient {
     // Check if model supports thinking (Gemma models don't support it)
     const supportsThinking = !this.model.toLowerCase().includes("gemma");
 
+    // Build thinking config based on model
+    // - Gemini 2.5 Flash Lite requires thinkingBudget to enable thinking (default is off)
+    // - Other 2.5 models work with just includeThoughts
+    // - Gemini 3 models use thinkingLevel (not thinkingBudget)
+    const getThinkingConfig = () => {
+      if (!supportsThinking) return undefined;
+      const modelLower = this.model.toLowerCase();
+      if (modelLower.includes("flash-lite")) {
+        // Flash Lite requires thinkingBudget to enable thinking (-1 = dynamic)
+        return { includeThoughts: true, thinkingBudget: -1 };
+      }
+      return { includeThoughts: true };
+    };
+
     // Create a chat session with history
     const chat: Chat = this.ai.chats.create({
       model: this.model,
@@ -254,7 +268,7 @@ export class GeminiClient {
         systemInstruction: systemPrompt,
         ...(geminiTools ? { tools: geminiTools } : {}),
         // Enable thinking for models that support it
-        ...(supportsThinking ? { thinkingConfig: { includeThoughts: true } } : {}),
+        ...(supportsThinking ? { thinkingConfig: getThinkingConfig() } : {}),
       },
     });
 

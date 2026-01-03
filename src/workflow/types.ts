@@ -16,7 +16,8 @@ export type WorkflowNodeType =
   | "dialog"
   | "prompt-file"
   | "prompt-selection"
-  | "workflow";
+  | "workflow"
+  | "rag-sync";
 
 export interface WorkflowNode {
   id: string;

@@ -28,6 +28,7 @@ import {
   handlePromptFileNode,
   handlePromptSelectionNode,
   handleWorkflowNode,
+  handleRagSyncNode,
   replaceVariables,
 } from "./nodeHandlers";
 import { parseWorkflowFromMarkdown } from "./parser";
@@ -784,6 +785,42 @@ export class WorkflowExecutor {
             // Push next nodes
             const workflowNextNodes = getNextNodes(workflow, node.id);
             for (const nextId of workflowNextNodes.reverse()) {
+              stack.push({ nodeId: nextId, iterationCount: 0 });
+            }
+            break;
+          }
+
+          case "rag-sync": {
+            const ragSyncPath = replaceVariables(node.properties["path"] || "", context);
+            const ragSettingName = node.properties["ragSetting"] || "";
+            log(
+              node.id,
+              node.type,
+              `Syncing to RAG: ${ragSyncPath}${ragSettingName ? ` (${ragSettingName})` : ""}`,
+              "info"
+            );
+
+            await handleRagSyncNode(node, context, this.app, this.plugin);
+
+            const ragSyncSaveTo = node.properties["saveTo"];
+            const ragSyncResult = ragSyncSaveTo ? context.variables.get(ragSyncSaveTo) : undefined;
+            log(
+              node.id,
+              node.type,
+              `RAG sync completed: ${ragSyncPath}`,
+              "success"
+            );
+            addHistoryStep(
+              node.id,
+              node.type,
+              { path: ragSyncPath, ragSetting: ragSettingName },
+              ragSyncResult,
+              "success"
+            );
+
+            // Push next nodes
+            const ragSyncNextNodes = getNextNodes(workflow, node.id);
+            for (const nextId of ragSyncNextNodes.reverse()) {
               stack.push({ nodeId: nextId, iterationCount: 0 });
             }
             break;

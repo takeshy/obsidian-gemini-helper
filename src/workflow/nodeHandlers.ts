@@ -1,6 +1,7 @@
 import { App, TFile, requestUrl } from "obsidian";
 import type { GeminiHelperPlugin } from "../plugin";
 import { getGeminiClient } from "../core/gemini";
+import { getFileSearchManager } from "../core/fileSearch";
 import {
   WorkflowNode,
   ExecutionContext,
@@ -1417,5 +1418,88 @@ export async function handleWorkflowNode(
     for (const [key, value] of resultVariables) {
       context.variables.set(prefix + key, value);
     }
+  }
+}
+
+// Handle rag-sync node - sync a note to RAG store
+export async function handleRagSyncNode(
+  node: WorkflowNode,
+  context: ExecutionContext,
+  app: App,
+  plugin: GeminiHelperPlugin
+): Promise<void> {
+  const pathRaw = node.properties["path"] || "";
+  const ragSettingName = replaceVariables(node.properties["ragSetting"] || "", context);
+  const saveTo = node.properties["saveTo"];
+
+  if (!pathRaw.trim()) {
+    throw new Error("rag-sync node missing 'path' property");
+  }
+
+  if (!ragSettingName.trim()) {
+    throw new Error("rag-sync node missing 'ragSetting' property");
+  }
+
+  const path = replaceVariables(pathRaw, context);
+
+  // Ensure .md extension
+  const notePath = path.endsWith(".md") ? path : `${path}.md`;
+
+  // Get the file
+  const file = app.vault.getAbstractFileByPath(notePath);
+  if (!(file instanceof TFile)) {
+    throw new Error(`Note not found: ${notePath}`);
+  }
+
+  // Get RAG setting
+  const workspaceState = plugin.workspaceState;
+  const ragSetting = workspaceState.ragSettings[ragSettingName] || null;
+  if (!ragSetting) {
+    throw new Error(`RAG setting not found: ${ragSettingName}`);
+  }
+
+  if (!ragSetting.storeId) {
+    throw new Error(`RAG setting "${ragSettingName}" has no store configured.`);
+  }
+
+  // Get or create FileSearchManager
+  const fileSearchManager = getFileSearchManager();
+  if (!fileSearchManager) {
+    throw new Error("FileSearchManager not initialized. Please check your API key.");
+  }
+
+  // Set the store name
+  fileSearchManager.setStoreName(ragSetting.storeId);
+
+  // Read file content and calculate checksum
+  const content = await app.vault.read(file);
+  const encoder = new TextEncoder();
+  const data = encoder.encode(content);
+  const hashBuffer = await crypto.subtle.digest("SHA-256", data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  const checksum = hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
+
+  // Upload the file
+  const fileId = await fileSearchManager.uploadFile(file);
+
+  // Update the RAG setting's files state
+  ragSetting.files[notePath] = {
+    checksum,
+    uploadedAt: Date.now(),
+    fileId,
+  };
+
+  // Save the updated workspace state
+  workspaceState.ragSettings[ragSettingName] = ragSetting;
+  await plugin.saveWorkspaceState();
+
+  // Set result if saveTo is specified
+  if (saveTo) {
+    context.variables.set(saveTo, JSON.stringify({
+      path: notePath,
+      fileId,
+      ragSetting: ragSettingName,
+      syncedAt: Date.now(),
+    }));
   }
 }

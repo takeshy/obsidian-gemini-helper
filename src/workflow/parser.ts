@@ -92,7 +92,8 @@ function isWorkflowNodeType(value: unknown): value is WorkflowNodeType {
     value === "dialog" ||
     value === "prompt-file" ||
     value === "prompt-selection" ||
-    value === "workflow"
+    value === "workflow" ||
+    value === "rag-sync"
   );
 }
 

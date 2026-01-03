@@ -13,6 +13,7 @@ This document provides detailed specifications for all workflow node types. For 
 | Notes | `note`, `note-read`, `note-search`, `note-list`, `folder-list`, `open` | Vault operations |
 | Prompts | `prompt-file`, `prompt-selection`, `dialog` | User input dialogs |
 | Composition | `workflow` | Execute another workflow as a sub-workflow |
+| RAG | `rag-sync` | Sync notes to semantic search store |
 
 ---
 
@@ -193,6 +194,34 @@ Execute another workflow as a sub-workflow.
 | `input` | JSON mapping sub-workflow variables to values |
 | `output` | JSON mapping parent variables to sub-workflow results |
 | `prefix` | Prefix for all output variables (when `output` not specified) |
+
+### rag-sync
+
+Sync a note to a RAG (semantic search) store.
+
+```yaml
+- id: sync
+  type: rag-sync
+  path: "{{fileInfo.path}}"
+  ragSetting: "My RAG Store"
+  saveTo: syncResult
+```
+
+| Property | Description |
+|----------|-------------|
+| `path` | Note path to sync (required, supports `{{variables}}`) |
+| `ragSetting` | RAG setting name (required) |
+| `saveTo` | Variable to store result (optional) |
+
+**Output format:**
+```json
+{
+  "path": "folder/note.md",
+  "fileId": "abc123...",
+  "ragSetting": "My RAG Store",
+  "syncedAt": "2025-01-01T12:00:00.000Z"
+}
+```
 
 ### prompt-file
 

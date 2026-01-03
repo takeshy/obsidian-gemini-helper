@@ -21,7 +21,7 @@ nodes:
     saveTo: result
 \`\`\`
 
-## Node Types (17 total)
+## Node Types (18 total)
 
 ### 1. variable
 Initialize a new variable.
@@ -178,6 +178,28 @@ Execute sub-workflow.
 - **input** (optional): JSON mapping of input variables (e.g., '{"subVar": "{{parentVar}}"}')
 - **output** (optional): JSON mapping of output variables (e.g., '{"parentVar": "subVar"}')
 - **prefix** (optional): Prefix for all imported variables
+
+### 18. rag-sync
+Sync a note to RAG (File Search) store.
+- **path** (required): Note path to sync (supports {{variables}})
+- **ragSetting** (required): RAG setting name to use
+- **saveTo** (optional): Variable for result (JSON with path, fileId, ragSetting, syncedAt)
+
+**Use case**: After modifying a note with the \`note\` node, use \`rag-sync\` to update the RAG store with the new content.
+
+**Example**:
+\`\`\`yaml
+- id: update-note
+  type: note
+  path: "{{notePath}}"
+  content: "{{newContent}}"
+  mode: overwrite
+  confirm: "false"
+- id: sync-to-rag
+  type: rag-sync
+  path: "{{notePath}}"
+  ragSetting: "my-rag-store"
+\`\`\`
 
 ## Control Flow
 

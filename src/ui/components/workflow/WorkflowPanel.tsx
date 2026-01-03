@@ -37,6 +37,7 @@ const NODE_TYPE_LABELS: Record<WorkflowNodeType, string> = {
   "prompt-file": "Prompt File",
   "prompt-selection": "Prompt Selection",
   workflow: "Workflow",
+  "rag-sync": "RAG Sync",
 };
 
 const ADDABLE_NODE_TYPES: WorkflowNodeType[] = [
@@ -57,6 +58,7 @@ const ADDABLE_NODE_TYPES: WorkflowNodeType[] = [
   "prompt-file",
   "prompt-selection",
   "workflow",
+  "rag-sync",
 ];
 
 function getDefaultProperties(type: WorkflowNodeType): Record<string, string> {
@@ -88,10 +90,13 @@ function getDefaultProperties(type: WorkflowNodeType): Record<string, string> {
     case "dialog":
       return { title: "", message: "", markdown: "false", options: "", multiSelect: "false", inputTitle: "", multiline: "false", defaults: "", button1: "OK", button2: "", saveTo: "" };
     case "prompt-file":
+      return { title: "", saveTo: "", saveFileTo: "" };
     case "prompt-selection":
-      return { title: "", saveTo: "" };
+      return { title: "", saveTo: "", saveSelectionTo: "" };
     case "workflow":
       return { path: "", name: "", input: "", output: "", prefix: "" };
+    case "rag-sync":
+      return { path: "", ragSetting: "", saveTo: "" };
     default:
       return {};
   }
@@ -193,8 +198,10 @@ function getNodeSummary(node: SidebarNode): string {
     case "prompt-file":
     case "prompt-selection":
       return node.properties["title"] || "(no title)";
-    default:
-      return node.next ? `${node.type} → ${node.next}` : "";
+    case "workflow":
+      return `${node.properties["path"]}${node.properties["name"] ? ` (${node.properties["name"]})` : ""}`;
+    case "rag-sync":
+      return `${node.properties["path"]} → ${node.properties["ragSetting"]}`;
   }
 }
 

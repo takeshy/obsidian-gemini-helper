@@ -1559,6 +1559,16 @@
   color: black;
 }
 
+.workflow-node-type-workflow {
+  background-color: var(--color-purple);
+  color: white;
+}
+
+.workflow-node-type-rag-sync {
+  background-color: var(--color-red);
+  color: white;
+}
+
 /* Node Summary */
 .workflow-node-summary {
   font-size: 12px;

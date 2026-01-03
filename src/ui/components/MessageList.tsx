@@ -8,7 +8,7 @@ interface MessageListProps {
   streamingContent: string;
   isLoading: boolean;
   onApplyEdit?: (messageIndex: number) => Promise<void>;
-  onDiscardEdit?: (messageIndex: number) => Promise<void>;
+  onDiscardEdit?: (messageIndex: number) => void;
   app: App;
 }
 

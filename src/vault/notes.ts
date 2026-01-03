@@ -448,9 +448,9 @@ export async function applyEdit(
 }
 
 // Discard the pending edit (just clear without writing)
-export async function discardEdit(
+export function discardEdit(
   _app: App
-): Promise<{ success: boolean; error?: string; message?: string }> {
+): { success: boolean; error?: string; message?: string } {
   if (!pendingEdit) {
     return {
       success: false,
@@ -557,9 +557,9 @@ export async function applyDelete(
 }
 
 // Discard the pending delete (cancel without deleting)
-export async function discardDelete(
+export function discardDelete(
   _app: App
-): Promise<{ success: boolean; error?: string; message?: string }> {
+): { success: boolean; error?: string; message?: string } {
   if (!pendingDelete) {
     return {
       success: false,

@@ -864,7 +864,7 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 										processedEdits.push({ originalPath: pending.originalPath, status: "applied" });
 										return { ...result, applied: true, message: `Applied changes to "${pending.originalPath}"` };
 									} else {
-										await discardEdit(plugin.app);
+										discardEdit(plugin.app);
 										processedEdits.push({ originalPath: pending.originalPath, status: "failed" });
 										return { ...result, applied: false, error: applyResult.error };
 									}
@@ -882,12 +882,12 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 											processedEdits.push({ originalPath: pending.originalPath, status: "applied" });
 											return { ...result, applied: true, message: `Applied changes to "${pending.originalPath}"` };
 										} else {
-											await discardEdit(plugin.app);
+											discardEdit(plugin.app);
 											processedEdits.push({ originalPath: pending.originalPath, status: "failed" });
 											return { ...result, applied: false, error: applyResult.error };
 										}
 									} else {
-										await discardEdit(plugin.app);
+										discardEdit(plugin.app);
 										processedEdits.push({ originalPath: pending.originalPath, status: "discarded" });
 										return { ...result, applied: false, message: "User cancelled the edit" };
 									}
@@ -911,12 +911,12 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 										processedDeletes.push({ path: pending.path, status: "deleted" });
 										return { ...result, deleted: true, message: `Deleted "${pending.path}"` };
 									} else {
-										await discardDelete(plugin.app);
+										discardDelete(plugin.app);
 										processedDeletes.push({ path: pending.path, status: "failed" });
 										return { ...result, deleted: false, error: deleteResult.error };
 									}
 								} else {
-									await discardDelete(plugin.app);
+									discardDelete(plugin.app);
 									processedDeletes.push({ path: pending.path, status: "cancelled" });
 									return { ...result, deleted: false, message: "User cancelled the deletion" };
 								}
@@ -1262,9 +1262,9 @@ Always be helpful and provide clear, concise responses. When working with notes,
 	};
 
 	// Handle discard edit button click
-	const handleDiscardEdit = async (messageIndex: number) => {
+	const handleDiscardEdit = (messageIndex: number) => {
 		try {
-			const result = await discardEdit(plugin.app);
+			const result = discardEdit(plugin.app);
 
 			if (result.success) {
 				// Update message status

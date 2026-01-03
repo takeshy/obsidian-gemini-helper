@@ -10,7 +10,7 @@ interface MessageBubbleProps {
   isStreaming?: boolean;
   sourceFileName?: string | null;
   onApplyEdit?: () => Promise<void>;
-  onDiscardEdit?: () => Promise<void>;
+  onDiscardEdit?: () => void;
   app: App;
 }
 

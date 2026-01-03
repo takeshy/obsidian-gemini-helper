@@ -77,7 +77,7 @@ export class FilePromptModal extends Modal {
         if (file) {
           this.selectedFile = file;
           selectedLabel.setText(file.path);
-          this.showPreview(file);
+          void this.showPreview(file);
         }
       }).open();
     });

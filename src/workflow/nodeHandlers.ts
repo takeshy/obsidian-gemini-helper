@@ -10,7 +10,7 @@ import {
 } from "./types";
 
 // Get value from object/JSON string using dot notation path
-function getNestedValue(data: unknown, path: string): unknown {
+function getNestedValue(data: unknown, path: string, context?: ExecutionContext): unknown {
   const parts = path.split(".");
   let current: unknown = data;
 
@@ -19,12 +19,32 @@ function getNestedValue(data: unknown, path: string): unknown {
       return undefined;
     }
 
-    // Handle array index notation like "items[0]"
-    const arrayMatch = part.match(/^(\w+)\[(\d+)\]$/);
+    // Handle array index notation like "items[0]" or "items[index]"
+    const arrayMatch = part.match(/^(\w+)\[(\w+)\]$/);
     if (arrayMatch) {
       current = (current as Record<string, unknown>)[arrayMatch[1]];
       if (Array.isArray(current)) {
-        current = current[parseInt(arrayMatch[2], 10)];
+        // Resolve index - could be a number or a variable name
+        const indexStr = arrayMatch[2];
+        let indexValue: number;
+        if (/^\d+$/.test(indexStr)) {
+          indexValue = parseInt(indexStr, 10);
+        } else if (context) {
+          // It's a variable name, resolve it
+          const resolvedIndex = context.variables.get(indexStr);
+          if (resolvedIndex === undefined) {
+            return undefined;
+          }
+          indexValue = typeof resolvedIndex === "number"
+            ? resolvedIndex
+            : parseInt(String(resolvedIndex), 10);
+          if (isNaN(indexValue)) {
+            return undefined;
+          }
+        } else {
+          return undefined;
+        }
+        current = current[indexValue];
       } else {
         return undefined;
       }
@@ -52,7 +72,7 @@ export function replaceVariables(
     iterations++;
 
     // Match {{varName}} or {{varName.path.to.value}} or {{varName.items[0].name}}
-    result = result.replace(/\{\{([\w\.\[\]]+)\}\}/g, (match, fullPath) => {
+    result = result.replace(/\{\{([\w.[\]]+)\}\}/g, (match, fullPath) => {
     // Check if it's a simple variable or a path
     const dotIndex = fullPath.indexOf(".");
     const bracketIndex = fullPath.indexOf("[");
@@ -108,32 +128,58 @@ export function replaceVariables(
 
     // For bracket notation at root, we need special handling
     if (fullPath[firstSpecialIndex] === "[") {
-      const arrayMatch = pathToNavigate.match(/^\[(\d+)\](.*)$/);
+      // Match both numeric indices [0] and variable indices [index]
+      const arrayMatch = pathToNavigate.match(/^\[(\w+)\](.*)$/);
       if (arrayMatch && Array.isArray(parsedValue)) {
-        let result: unknown = parsedValue[parseInt(arrayMatch[1], 10)];
+        // Resolve index - could be a number or a variable name
+        let indexValue: number;
+        const indexStr = arrayMatch[1];
+        if (/^\d+$/.test(indexStr)) {
+          indexValue = parseInt(indexStr, 10);
+        } else {
+          // It's a variable name, resolve it
+          const resolvedIndex = context.variables.get(indexStr);
+          if (resolvedIndex === undefined) {
+            return match;
+          }
+          indexValue = typeof resolvedIndex === "number"
+            ? resolvedIndex
+            : parseInt(String(resolvedIndex), 10);
+          if (isNaN(indexValue)) {
+            return match;
+          }
+        }
+
+        let result: unknown = parsedValue[indexValue];
         if (arrayMatch[2]) {
           // There's more path after the index
           const remainingPath = arrayMatch[2].startsWith(".")
             ? arrayMatch[2].substring(1)
             : arrayMatch[2];
           if (remainingPath) {
-            result = getNestedValue(result, remainingPath);
+            result = getNestedValue(result, remainingPath, context);
           }
         }
         if (result !== undefined) {
-          return typeof result === "object"
-            ? JSON.stringify(result)
-            : String(result);
+          if (typeof result === "object") {
+            return JSON.stringify(result);
+          } else if (typeof result === "string" || typeof result === "number" || typeof result === "boolean") {
+            return String(result);
+          }
+          return JSON.stringify(result);
         }
       }
       return match;
     }
 
-    const nestedValue = getNestedValue(parsedValue, restPath);
+    const nestedValue = getNestedValue(parsedValue, restPath, context);
     if (nestedValue !== undefined) {
-      return typeof nestedValue === "object"
-        ? JSON.stringify(nestedValue)
-        : String(nestedValue);
+      if (typeof nestedValue === "object") {
+        return JSON.stringify(nestedValue);
+      } else if (typeof nestedValue === "string" || typeof nestedValue === "number" || typeof nestedValue === "boolean") {
+        return String(nestedValue);
+      }
+      return JSON.stringify(nestedValue);
     }
 
     return match;
@@ -239,7 +285,7 @@ function evaluateExpression(
   // Try to evaluate as arithmetic expression
   // Supported: +, -, *, /, %
   const arithmeticMatch = replaced.match(
-    /^(-?\d+(?:\.\d+)?)\s*([\+\-\*\/%])\s*(-?\d+(?:\.\d+)?)$/
+    /^(-?\d+(?:\.\d+)?)\s*([+\-*/%])\s*(-?\d+(?:\.\d+)?)$/
   );
   if (arithmeticMatch) {
     const left = parseFloat(arithmeticMatch[1]);
@@ -570,7 +616,7 @@ export function handleJsonNode(
     // Store as JSON string so it can be accessed with dot notation
     context.variables.set(saveTo, JSON.stringify(parsed));
   } catch (e) {
-    throw new Error(`Failed to parse JSON from '${sourceVar}': ${e}`);
+    throw new Error(`Failed to parse JSON from '${sourceVar}': ${e instanceof Error ? e.message : String(e)}`);
   }
 }
 
@@ -991,11 +1037,11 @@ function getFileTags(app: App, filePath: string): string[] {
 }
 
 // Handle note-list node - list notes in a folder
-export async function handleNoteListNode(
+export function handleNoteListNode(
   node: WorkflowNode,
   context: ExecutionContext,
   app: App
-): Promise<void> {
+): void {
   const folder = replaceVariables(node.properties["folder"] || "", context);
   const recursive = node.properties["recursive"] === "true";
   const limitStr = node.properties["limit"] || "50";
@@ -1127,11 +1173,11 @@ export async function handleNoteListNode(
 }
 
 // Handle folder-list node - list folders in the vault
-export async function handleFolderListNode(
+export function handleFolderListNode(
   node: WorkflowNode,
   context: ExecutionContext,
   app: App
-): Promise<void> {
+): void {
   const parentFolder = replaceVariables(
     node.properties["folder"] || "",
     context

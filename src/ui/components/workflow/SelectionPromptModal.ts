@@ -77,7 +77,7 @@ export class SelectionPromptModal extends Modal {
         if (file) {
           this.selectedFile = file;
           selectedLabel.setText(file.path);
-          this.loadFileContent(file);
+          void this.loadFileContent(file);
         }
       }).open();
     });

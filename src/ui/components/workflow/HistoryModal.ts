@@ -153,22 +153,26 @@ export class HistoryModal extends Modal {
     const actions = this.detailEl.createDiv({ cls: "workflow-detail-actions" });
 
     const canvasBtn = actions.createEl("button", { text: "Open canvas view" });
-    canvasBtn.addEventListener("click", async () => {
-      await openHistoryCanvas(this.app, record, this.workspaceFolder);
-      this.close();
+    canvasBtn.addEventListener("click", () => {
+      void (async () => {
+        await openHistoryCanvas(this.app, record, this.workspaceFolder);
+        this.close();
+      })();
     });
 
     const deleteBtn = actions.createEl("button", {
       cls: "workflow-detail-delete-btn",
       text: "Delete",
     });
-    deleteBtn.addEventListener("click", async () => {
-      const historyManager = new ExecutionHistoryManager(this.app, this.workspaceFolder);
-      await historyManager.deleteRecord(record.id);
-      this.records = this.records.filter((r) => r.id !== record.id);
-      this.selectedRecord = null;
-      this.renderList();
-      this.renderDetail();
+    deleteBtn.addEventListener("click", () => {
+      void (async () => {
+        const historyManager = new ExecutionHistoryManager(this.app, this.workspaceFolder);
+        await historyManager.deleteRecord(record.id);
+        this.records = this.records.filter((r) => r.id !== record.id);
+        this.selectedRecord = null;
+        this.renderList();
+        this.renderDetail();
+      })();
     });
   }
 
@@ -179,11 +183,14 @@ export class HistoryModal extends Modal {
     if (typeof value === "string") {
       return value.length > 500 ? value.substring(0, 500) + "..." : value;
     }
+    if (typeof value === "number" || typeof value === "boolean") {
+      return String(value);
+    }
     try {
       const str = JSON.stringify(value, null, 2);
       return str.length > 500 ? str.substring(0, 500) + "..." : str;
     } catch {
-      return String(value);
+      return "(circular reference)";
     }
   }
 

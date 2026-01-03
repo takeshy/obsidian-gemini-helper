@@ -99,10 +99,37 @@ List notes in folder.
 - **limit** (optional): Max results (default: "50")
 - **saveTo** (required): Variable for results
 
+**Result structure** (JSON object):
+\`\`\`json
+{
+  "notes": [
+    { "name": "note1", "path": "folder/note1.md", "created": 1234567890, "modified": 1234567890, "tags": ["#tag1"] }
+  ],
+  "count": 1,
+  "totalCount": 10,
+  "hasMore": true
+}
+\`\`\`
+- Access notes array: \`{{fileList.notes[0].path}}\`
+- Access count: \`{{fileList.count}}\`
+- Loop with variable index: \`{{fileList.notes[index].path}}\` (where index is a variable)
+
 ### 12. folder-list
 List folders.
 - **folder** (optional): Parent folder (empty for all)
 - **saveTo** (required): Variable for results
+
+**Result structure** (JSON object):
+\`\`\`json
+{
+  "folders": [
+    { "name": "subfolder", "path": "parent/subfolder" }
+  ],
+  "count": 1
+}
+\`\`\`
+- Access folders array: \`{{folderList.folders[0].path}}\`
+- Access count: \`{{folderList.count}}\`
 
 ### 13. open
 Open file in editor.
@@ -192,9 +219,14 @@ Use "end" to explicitly terminate:
 \`{{obj.property}}\`
 \`{{obj.nested.value}}\`
 
-### Array Access
+### Array Access with Numeric Index
 \`{{arr[0]}}\`
 \`{{arr[0].name}}\`
+
+### Array Access with Variable Index
+Use a variable as array index for loops:
+\`{{arr[index]}}\` (where \`index\` is a variable containing a number)
+\`{{fileList.notes[i].path}}\` (access i-th note's path)
 
 ### Variables Set by Prompt Nodes
 
@@ -221,6 +253,48 @@ condition: "{{status}} == end"
 condition: "{{count}} < 10"
 condition: "{{text}} contains keyword"
 \`\`\`
+
+## Loop Example (note-list with variable index)
+\`\`\`yaml
+name: process-all-notes
+nodes:
+  - id: init-index
+    type: variable
+    name: "index"
+    value: "0"
+  - id: list-files
+    type: note-list
+    folder: "my-folder"
+    recursive: "true"
+    saveTo: "fileList"
+  - id: check-loop
+    type: if
+    condition: "{{index}} < {{fileList.count}}"
+    trueNext: read-note
+    falseNext: finish
+  - id: read-note
+    type: note-read
+    path: "{{fileList.notes[index].path}}"
+    saveTo: "content"
+  - id: process
+    type: command
+    prompt: "Process: {{content}}"
+    saveTo: "result"
+  - id: increment
+    type: set
+    name: "index"
+    value: "{{index}} + 1"
+    next: check-loop
+  - id: finish
+    type: dialog
+    title: "Done"
+    message: "Processed {{index}} files"
+\`\`\`
+
+**Key points:**
+- Use \`{{fileList.notes[index].path}}\` to access each note (NOT \`{{fileList[index].path}}\`)
+- Use \`{{fileList.count}}\` for loop condition (NOT \`{{fileList.length}}\`)
+- Use \`set\` node with expression \`{{index}} + 1\` to increment
 
 ## Best Practices
 1. Use descriptive node IDs (e.g., "read-input", "process-data", "save-result")

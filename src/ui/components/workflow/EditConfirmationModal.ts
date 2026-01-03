@@ -679,7 +679,7 @@ export class BulkEditConfirmationModal extends Modal {
       const fileRow = container.createDiv({ cls: "gemini-helper-bulk-file-row" });
 
       // Checkbox
-      const checkbox = fileRow.createEl("input", { type: "checkbox" }) as HTMLInputElement;
+      const checkbox = fileRow.createEl("input", { type: "checkbox" });
       checkbox.checked = this.selectedPaths.has(item.path);
       checkbox.dataset.path = item.path;
       checkbox.addEventListener("change", () => {
@@ -757,9 +757,9 @@ export class BulkEditConfirmationModal extends Modal {
   }
 
   private updateCheckboxes() {
-    const checkboxes = this.contentEl.querySelectorAll(
+    const checkboxes = this.contentEl.querySelectorAll<HTMLInputElement>(
       "input[type='checkbox']"
-    ) as NodeListOf<HTMLInputElement>;
+    );
     checkboxes.forEach((cb) => {
       const path = cb.dataset.path;
       if (path) {
@@ -1054,7 +1054,7 @@ export class BulkDeleteConfirmationModal extends Modal {
       const fileRow = container.createDiv({ cls: "gemini-helper-bulk-file-row" });
 
       // Checkbox
-      const checkbox = fileRow.createEl("input", { type: "checkbox" }) as HTMLInputElement;
+      const checkbox = fileRow.createEl("input", { type: "checkbox" });
       checkbox.checked = this.selectedPaths.has(item.path);
       checkbox.dataset.path = item.path;
       checkbox.addEventListener("change", () => {
@@ -1114,9 +1114,9 @@ export class BulkDeleteConfirmationModal extends Modal {
   }
 
   private updateCheckboxes() {
-    const checkboxes = this.contentEl.querySelectorAll(
+    const checkboxes = this.contentEl.querySelectorAll<HTMLInputElement>(
       "input[type='checkbox']"
-    ) as NodeListOf<HTMLInputElement>;
+    );
     checkboxes.forEach((cb) => {
       const path = cb.dataset.path;
       if (path) {

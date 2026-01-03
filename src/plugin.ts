@@ -277,13 +277,13 @@ export class GeminiHelperPlugin extends Plugin {
 
     // Get the workflow file
     const file = this.app.vault.getAbstractFileByPath(filePath);
-    if (!file || !("path" in file)) {
+    if (!(file instanceof TFile)) {
       new Notice(`Workflow file not found: ${filePath}`);
       return;
     }
 
     try {
-      const fileContent = await this.app.vault.read(file as TFile);
+      const fileContent = await this.app.vault.read(file);
       const workflow = parseWorkflowFromMarkdown(fileContent, workflowName);
 
       const executor = new WorkflowExecutor(this.app, this);
@@ -318,9 +318,9 @@ export class GeminiHelperPlugin extends Plugin {
 
       // Prompt callbacks for hotkey execution
       const promptCallbacks = {
-        promptForFile: async () => null,
-        promptForSelection: async () => null,
-        promptForValue: async () => null,
+        promptForFile: () => Promise.resolve(null),
+        promptForSelection: () => Promise.resolve(null),
+        promptForValue: () => Promise.resolve(null),
         promptForConfirmation: (filePath: string, content: string, mode: string) =>
           promptForConfirmation(this.app, filePath, content, mode),
         promptForDialog: (title: string, message: string, options: string[], multiSelect: boolean, button1: string, button2?: string, markdown?: boolean, inputTitle?: string, defaults?: { input?: string; selected?: string[] }, multiline?: boolean) =>
@@ -1226,15 +1226,15 @@ export class GeminiHelperPlugin extends Plugin {
     } else if (options?.contentPath) {
       // Read content from file
       const file = this.app.vault.getAbstractFileByPath(options.contentPath);
-      if (file && "path" in file) {
-        content = await this.app.vault.read(file as TFile);
+      if (file instanceof TFile) {
+        content = await this.app.vault.read(file);
       }
     } else if (options?.selection) {
       // Read content from selection
       const selectionPath = options.selection.path;
       const file = this.app.vault.getAbstractFileByPath(selectionPath);
-      if (file && "path" in file) {
-        const fileContent = await this.app.vault.read(file as TFile);
+      if (file instanceof TFile) {
+        const fileContent = await this.app.vault.read(file);
         // For now, just use the whole file content
         // TODO: Extract selection range
         content = fileContent;

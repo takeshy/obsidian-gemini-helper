@@ -83,7 +83,7 @@ export class DialogPromptModal extends Modal {
       } else if (this.markdown) {
         const messageEl = contentEl.createDiv({ cls: "gemini-helper-dialog-message gemini-helper-dialog-markdown" });
         this.component.load();
-        MarkdownRenderer.render(
+        void MarkdownRenderer.render(
           this.app,
           this.message,
           messageEl,

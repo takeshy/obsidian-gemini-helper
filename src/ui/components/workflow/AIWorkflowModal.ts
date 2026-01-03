@@ -599,8 +599,10 @@ Output only the complete modified YAML, starting with "name:".`;
             stringProps[key] = "";
           } else if (typeof value === "object") {
             stringProps[key] = JSON.stringify(value);
-          } else {
+          } else if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
             stringProps[key] = String(value);
+          } else {
+            stringProps[key] = JSON.stringify(value);
           }
         }
 

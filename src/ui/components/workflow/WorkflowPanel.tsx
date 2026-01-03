@@ -244,10 +244,10 @@ export default function WorkflowPanel({ plugin }: WorkflowPanelProps) {
 
   // Watch active file changes
   useEffect(() => {
-    loadWorkflow();
+    void loadWorkflow();
 
     const handler = () => {
-      loadWorkflow();
+      void loadWorkflow();
     };
 
     plugin.app.workspace.on("active-leaf-change", handler);
@@ -465,10 +465,10 @@ ${result.nodes.map(node => {
     const ragSettingNames = Object.keys(plugin.workspaceState.ragSettings || {});
 
     // Open editor for new node
-    const modal = new NodeEditorModal(plugin.app, newNode, async (updatedNode) => {
+    const modal = new NodeEditorModal(plugin.app, newNode, (updatedNode) => {
       const updatedNodes = newNodes.map((n) => (n.id === updatedNode.id ? updatedNode : n));
       setNodes(updatedNodes);
-      await saveWorkflow(updatedNodes);
+      void saveWorkflow(updatedNodes);
     }, ragSettingNames);
     modal.open();
   };
@@ -481,10 +481,10 @@ ${result.nodes.map(node => {
     // Get RAG setting names from workspace state
     const ragSettingNames = Object.keys(plugin.workspaceState.ragSettings || {});
 
-    const modal = new NodeEditorModal(plugin.app, node, async (updatedNode) => {
+    const modal = new NodeEditorModal(plugin.app, node, (updatedNode) => {
       const newNodes = nodes.map((n, i) => (i === index ? updatedNode : n));
       setNodes(newNodes);
-      await saveWorkflow(newNodes);
+      void saveWorkflow(newNodes);
     }, ragSettingNames);
     modal.open();
   };
@@ -716,7 +716,7 @@ ${result.nodes.map(node => {
             <p>No workflow found in this file.</p>
             <button
               className="workflow-sidebar-ai-btn mod-cta"
-              onClick={handleCreateWithAI}
+              onClick={() => void handleCreateWithAI()}
               style={{ marginTop: "12px", display: "inline-flex", alignItems: "center" }}
             >
               <Sparkles size={14} />
@@ -735,7 +735,7 @@ ${result.nodes.map(node => {
         <select
           className="workflow-sidebar-select"
           value={currentWorkflowIndex}
-          onChange={handleWorkflowSelect}
+          onChange={(e) => void handleWorkflowSelect(e)}
         >
           {workflowOptions.length === 0 ? (
             <option value="" disabled>
@@ -763,7 +763,7 @@ ${result.nodes.map(node => {
           </button>
           <button
             className="workflow-sidebar-ai-btn"
-            onClick={handleModifyWithAI}
+            onClick={() => void handleModifyWithAI()}
             disabled={nodes.length === 0}
             title="Modify workflow with AI"
           >
@@ -819,7 +819,7 @@ ${result.nodes.map(node => {
                     onDragStart={() => onDragStart(index)}
                     onDragOver={(e) => onDragOver(e, index)}
                     onDragEnd={onDragEnd}
-                    onDrop={(e) => onDrop(e, index)}
+                    onDrop={(e) => void onDrop(e, index)}
                   >
                     {/* Drag handle */}
                     <div className="workflow-node-drag-handle">&#x2630;</div>
@@ -852,7 +852,7 @@ ${result.nodes.map(node => {
                         className="workflow-node-action-btn workflow-node-action-delete"
                         onClick={(e) => {
                           e.stopPropagation();
-                          deleteNode(index);
+                          void deleteNode(index);
                         }}
                       >
                         Delete
@@ -896,7 +896,7 @@ ${result.nodes.map(node => {
       <div className="workflow-sidebar-footer">
         <button
           className="workflow-sidebar-run-btn mod-cta"
-          onClick={runWorkflow}
+          onClick={() => void runWorkflow()}
           disabled={isRunning || nodes.length === 0}
         >
           {isRunning ? "Running..." : "Run"}
@@ -913,7 +913,7 @@ ${result.nodes.map(node => {
           return (
             <button
               className={`workflow-sidebar-hotkey-btn ${isHotkeyEnabled ? "gemini-helper-hotkey-enabled" : ""}`}
-              onClick={async () => {
+              onClick={() => {
                 if (!workflowName) {
                   new Notice("Workflow must have a name to enable hotkey");
                   return;
@@ -928,7 +928,7 @@ ${result.nodes.map(node => {
                 }
                 setEnabledHotkeys(newEnabledHotkeys);
                 plugin.settings.enabledWorkflowHotkeys = newEnabledHotkeys;
-                await plugin.saveSettings();
+                void plugin.saveSettings();
               }}
               title={isHotkeyEnabled ? "Hotkey enabled (click to disable)" : "Enable hotkey for this workflow"}
               disabled={!workflowName}

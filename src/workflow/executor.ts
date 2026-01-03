@@ -1,4 +1,4 @@
-import { App } from "obsidian";
+import { App, TFile } from "obsidian";
 import type { GeminiHelperPlugin } from "../plugin";
 import {
   Workflow,
@@ -150,7 +150,7 @@ export class WorkflowExecutor {
 
       try {
         switch (node.type) {
-          case "variable":
+          case "variable": {
             handleVariableNode(node, context);
             const varName = node.properties["name"];
             const varValue = context.variables.get(varName);
@@ -173,8 +173,9 @@ export class WorkflowExecutor {
               stack.push({ nodeId: nextId, iterationCount: 0 });
             }
             break;
+          }
 
-          case "set":
+          case "set": {
             handleSetNode(node, context);
             const setVarName = node.properties["name"];
             const setVarValue = context.variables.get(setVarName);
@@ -197,8 +198,9 @@ export class WorkflowExecutor {
               stack.push({ nodeId: nextId, iterationCount: 0 });
             }
             break;
+          }
 
-          case "if":
+          case "if": {
             const ifResult = handleIfNode(node, context);
             log(
               node.id,
@@ -219,8 +221,9 @@ export class WorkflowExecutor {
               stack.push({ nodeId: nextId, iterationCount: 0 });
             }
             break;
+          }
 
-          case "while":
+          case "while": {
             const whileResult = handleWhileNode(node, context);
             const whileState = whileLoopStates.get(node.id) || {
               iterationCount: 0,
@@ -277,8 +280,9 @@ export class WorkflowExecutor {
               }
             }
             break;
+          }
 
-          case "command":
+          case "command": {
             const promptTemplate = node.properties["prompt"] || "";
             const promptPreview = promptTemplate.length > 50
               ? promptTemplate.substring(0, 50) + "..."
@@ -318,8 +322,9 @@ export class WorkflowExecutor {
               stack.push({ nodeId: nextId, iterationCount: 0 });
             }
             break;
+          }
 
-          case "http":
+          case "http": {
             const httpUrlTemplate = node.properties["url"] || "";
             const httpUrl = replaceVariables(httpUrlTemplate, context);
             const httpMethod = node.properties["method"] || "GET";
@@ -366,8 +371,9 @@ export class WorkflowExecutor {
               stack.push({ nodeId: nextId, iterationCount: 0 });
             }
             break;
+          }
 
-          case "json":
+          case "json": {
             const jsonSource = node.properties["source"] || "";
             const jsonSaveTo = node.properties["saveTo"] || "";
             log(
@@ -396,8 +402,9 @@ export class WorkflowExecutor {
               stack.push({ nodeId: nextId, iterationCount: 0 });
             }
             break;
+          }
 
-          case "note":
+          case "note": {
             const notePath = node.properties["path"] || "";
             const noteMode = node.properties["mode"] || "overwrite";
             log(
@@ -424,8 +431,9 @@ export class WorkflowExecutor {
               stack.push({ nodeId: nextId, iterationCount: 0 });
             }
             break;
+          }
 
-          case "note-read":
+          case "note-read": {
             const noteReadPath = node.properties["path"] || "";
             const noteReadSaveTo = node.properties["saveTo"] || "";
             log(node.id, node.type, `Reading note: ${noteReadPath}`, "info");
@@ -458,8 +466,9 @@ export class WorkflowExecutor {
               stack.push({ nodeId: nextId, iterationCount: 0 });
             }
             break;
+          }
 
-          case "note-search":
+          case "note-search": {
             const noteSearchQuery = node.properties["query"] || "";
             const noteSearchSaveTo = node.properties["saveTo"] || "";
             const noteSearchContent = node.properties["searchContent"] === "true";
@@ -493,8 +502,9 @@ export class WorkflowExecutor {
               stack.push({ nodeId: nextId, iterationCount: 0 });
             }
             break;
+          }
 
-          case "note-list":
+          case "note-list": {
             const noteListFolder = node.properties["folder"] || "";
             const noteListSaveTo = node.properties["saveTo"] || "";
             const noteListRecursive = node.properties["recursive"] === "true";
@@ -505,7 +515,7 @@ export class WorkflowExecutor {
               "info"
             );
 
-            await handleNoteListNode(node, context, this.app);
+            handleNoteListNode(node, context, this.app);
 
             const noteListResults = context.variables.get(noteListSaveTo);
             log(
@@ -528,8 +538,9 @@ export class WorkflowExecutor {
               stack.push({ nodeId: nextId, iterationCount: 0 });
             }
             break;
+          }
 
-          case "folder-list":
+          case "folder-list": {
             const folderListParent = node.properties["folder"] || "";
             const folderListSaveTo = node.properties["saveTo"] || "";
             log(
@@ -539,7 +550,7 @@ export class WorkflowExecutor {
               "info"
             );
 
-            await handleFolderListNode(node, context, this.app);
+            handleFolderListNode(node, context, this.app);
 
             const folderListResults = context.variables.get(folderListSaveTo);
             log(
@@ -562,8 +573,9 @@ export class WorkflowExecutor {
               stack.push({ nodeId: nextId, iterationCount: 0 });
             }
             break;
+          }
 
-          case "open":
+          case "open": {
             const openPath = replaceVariables(node.properties["path"] || "", context);
             log(node.id, node.type, `Opening file: ${openPath}`, "info");
 
@@ -584,8 +596,9 @@ export class WorkflowExecutor {
               stack.push({ nodeId: nextId, iterationCount: 0 });
             }
             break;
+          }
 
-          case "dialog":
+          case "dialog": {
             const dialogTitle = node.properties["title"] || "Dialog";
             const dialogSaveTo = node.properties["saveTo"] || "";
             log(node.id, node.type, `Showing dialog: ${dialogTitle}`, "info");
@@ -608,8 +621,9 @@ export class WorkflowExecutor {
               stack.push({ nodeId: nextId, iterationCount: 0 });
             }
             break;
+          }
 
-          case "prompt-file":
+          case "prompt-file": {
             const promptFileTitle = node.properties["title"] || "Select a file";
             const promptFileSaveTo = node.properties["saveTo"] || "";
             log(
@@ -637,8 +651,9 @@ export class WorkflowExecutor {
               stack.push({ nodeId: nextId, iterationCount: 0 });
             }
             break;
+          }
 
-          case "prompt-selection":
+          case "prompt-selection": {
             const promptSelTitle = node.properties["title"] || "Select text";
             const promptSelSaveTo = node.properties["saveTo"] || "";
             log(
@@ -681,8 +696,9 @@ export class WorkflowExecutor {
               stack.push({ nodeId: nextId, iterationCount: 0 });
             }
             break;
+          }
 
-          case "workflow":
+          case "workflow": {
             const subWorkflowPath = replaceVariables(node.properties["path"] || "", context);
             const subWorkflowName = node.properties["name"]
               ? replaceVariables(node.properties["name"], context)
@@ -713,11 +729,11 @@ export class WorkflowExecutor {
               }
 
               const actualFile = this.app.vault.getAbstractFileByPath(workflowPath);
-              if (!actualFile || !("extension" in actualFile)) {
+              if (!(actualFile instanceof TFile)) {
                 throw new Error(`Invalid workflow file: ${workflowPath}`);
               }
 
-              const content = await this.app.vault.read(actualFile as import("obsidian").TFile);
+              const content = await this.app.vault.read(actualFile);
               const subWorkflow = parseWorkflowFromMarkdown(content, workflowName);
 
               // Execute sub-workflow
@@ -747,10 +763,10 @@ export class WorkflowExecutor {
             const extendedCallbacks: PromptCallbacks | undefined = promptCallbacks
               ? { ...promptCallbacks, executeSubWorkflow }
               : {
-                  promptForFile: async () => null,
-                  promptForSelection: async () => null,
-                  promptForValue: async () => null,
-                  promptForConfirmation: async () => false,
+                  promptForFile: () => Promise.resolve(null),
+                  promptForSelection: () => Promise.resolve(null),
+                  promptForValue: () => Promise.resolve(null),
+                  promptForConfirmation: () => Promise.resolve(false),
                   executeSubWorkflow
                 };
 
@@ -771,6 +787,7 @@ export class WorkflowExecutor {
               stack.push({ nodeId: nextId, iterationCount: 0 });
             }
             break;
+          }
         }
       } catch (error) {
         const errorMessage =

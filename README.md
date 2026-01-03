@@ -207,6 +207,12 @@ Open the **Workflow** tab in the Gemini sidebar to run it.
 
 ## Installation
 
+### BRAT (Recommended)
+1. Install [BRAT](https://github.com/TfTHacker/obsidian42-brat) plugin
+2. Open BRAT settings → "Add Beta plugin"
+3. Enter: `https://github.com/takeshy/obsidian-gemini-helper`
+4. Enable the plugin in Community plugins settings
+
 ### Manual
 1. Download `main.js`, `manifest.json`, `styles.css` from releases
 2. Create `gemini-helper` folder in `.obsidian/plugins/`

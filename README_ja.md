@@ -207,6 +207,12 @@ Gemini サイドバーの **Workflow** タブを開いて実行。
 
 ## インストール
 
+### BRAT（推奨）
+1. [BRAT](https://github.com/TfTHacker/obsidian42-brat) プラグインをインストール
+2. BRAT 設定 → 「Add Beta plugin」を開く
+3. `https://github.com/takeshy/obsidian-gemini-helper` を入力
+4. コミュニティプラグイン設定でプラグインを有効化
+
 ### 手動インストール
 1. リリースから `main.js`, `manifest.json`, `styles.css` をダウンロード
 2. `.obsidian/plugins/` に `gemini-helper` フォルダを作成

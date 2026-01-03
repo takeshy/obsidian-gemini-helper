@@ -8,6 +8,7 @@ export interface SlashCommand {
   model?: ModelType | null;     // null = 現在のモデルを使用
   description?: string;         // オートコンプリートに表示
   searchSetting?: string | null; // null = 現在の設定, "" = None, "__websearch__" = Web Search, その他 = Semantic Search設定名
+  confirmEdits?: boolean;       // undefined/true = 編集確認を表示, false = 自動適用
 }
 
 // Settings interface
@@ -29,6 +30,9 @@ export interface GeminiHelperSettings {
 
   // Slash commands
   slashCommands: SlashCommand[];
+
+  // Workflow hotkeys
+  enabledWorkflowHotkeys: string[];  // Workflow identifiers in format "path#name" (e.g., "folder/file.md#MyWorkflow")
 
   // Function call limits (for settings UI)
   maxFunctionCalls: number;           // 最大function call回数
@@ -140,10 +144,10 @@ export interface ModelInfo {
   isCliModel?: boolean;    // true if this model is CLI-based
 }
 
-// CLI model definition (Experimental - may be removed in future versions)
+// CLI model definition
 export const CLI_MODEL: ModelInfo = {
   name: "gemini-cli",
-  displayName: "Gemini CLI (Experimental)",
+  displayName: "Gemini CLI",
   description: "Google Gemini via command line (requires Google account)",
   isCliModel: true,
 };
@@ -261,6 +265,7 @@ export interface Message {
   toolsUsed?: string[];  // 使用したツール名の配列
   attachments?: Attachment[];  // 添付ファイル
   pendingEdit?: PendingEditInfo;  // 保留中の編集情報
+  pendingDelete?: PendingDeleteInfo;  // 保留中の削除情報
   toolCalls?: ToolCall[];
   toolResults?: ToolResult[];
   ragUsed?: boolean;  // RAG（File Search）が使用されたか
@@ -268,12 +273,19 @@ export interface Message {
   webSearchUsed?: boolean;  // Web Searchが使用されたか
   imageGenerationUsed?: boolean;  // Image Generationが使用されたか
   generatedImages?: GeneratedImage[];  // 生成された画像
+  thinking?: string;  // モデルの思考内容（thinkingモデル用）
 }
 
 // 保留中の編集情報
 export interface PendingEditInfo {
   originalPath: string;
-  status: "pending" | "applied" | "discarded";
+  status: "pending" | "applied" | "discarded" | "failed";
+}
+
+// 保留中の削除情報
+export interface PendingDeleteInfo {
+  path: string;
+  status: "pending" | "deleted" | "cancelled" | "failed";
 }
 
 // 添付ファイル
@@ -301,31 +313,28 @@ export interface ConversationHistory {
 }
 
 // Tool definition for Function Calling
+export interface ToolPropertyDefinition {
+  type: string;
+  description: string;
+  enum?: string[];
+  items?: ToolPropertyDefinition | {
+    type: string;
+    properties?: Record<string, ToolPropertyDefinition>;
+    required?: string[];
+  };
+}
+
 export interface ToolDefinition {
   name: string;
   description: string;
   parameters: {
     type: "object";
-    properties: Record<
-      string,
-      {
-        type: string;
-        description: string;
-        enum?: string[];
-      }
-    >;
+    properties: Record<string, ToolPropertyDefinition>;
     required?: string[];
   };
 }
 
 // File Search types
-export interface FileSearchStore {
-  id: string;
-  name: string;
-  createdAt: number;
-  fileCount: number;
-}
-
 export interface FileSearchResult {
   content: string;
   filePath: string;
@@ -341,7 +350,7 @@ export interface SyncStatus {
 
 // Streaming chunk types
 export interface StreamChunk {
-  type: "text" | "tool_call" | "tool_result" | "error" | "done" | "rag_used" | "web_search_used" | "image_generated";
+  type: "text" | "thinking" | "tool_call" | "tool_result" | "error" | "done" | "rag_used" | "web_search_used" | "image_generated";
   content?: string;
   toolCall?: ToolCall;
   toolResult?: ToolResult;
@@ -376,6 +385,7 @@ export const DEFAULT_SETTINGS: GeminiHelperSettings = {
   saveChatHistory: true,
   systemPrompt: "",
   slashCommands: DEFAULT_SLASH_COMMANDS,
+  enabledWorkflowHotkeys: [],
   // Function call limits
   maxFunctionCalls: 20,
   functionCallWarningThreshold: 5,

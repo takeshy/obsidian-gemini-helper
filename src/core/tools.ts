@@ -217,7 +217,7 @@ export const obsidianTools: ToolDefinition[] = [
   {
     name: "propose_edit",
     description:
-      "Propose an edit to an existing note by creating a preview file. The user can review the changes before applying. Use this instead of update_note for safer editing workflow.",
+      "Propose an edit to an existing note. Changes are NOT applied immediately - a confirmation dialog is shown first. The user must click Apply to write changes, or Discard to cancel. Use this instead of update_note for safer editing workflow.",
     parameters: {
       type: "object",
       properties: {
@@ -243,21 +243,70 @@ export const obsidianTools: ToolDefinition[] = [
     },
   },
   {
-    name: "apply_edit",
+    name: "propose_delete",
     description:
-      "Apply the pending edit that was created with propose_edit. This will overwrite the original file with the content from the preview file.",
+      "Propose deletion of a note. The file is NOT deleted immediately - a confirmation dialog is shown first. The user must click Delete to confirm, or Cancel to keep the file. Use this for safe deletion workflow.",
     parameters: {
       type: "object",
-      properties: {},
+      properties: {
+        fileName: {
+          type: "string",
+          description: "The name or path of the note to delete",
+        },
+      },
+      required: ["fileName"],
     },
   },
   {
-    name: "discard_edit",
+    name: "bulk_propose_edit",
     description:
-      "Discard the pending edit and delete the preview file without applying changes.",
+      "Propose edits to multiple notes at once. A confirmation dialog shows all files with checkboxes for selective application. Use this when editing many files to avoid multiple individual confirmations.",
     parameters: {
       type: "object",
-      properties: {},
+      properties: {
+        edits: {
+          type: "array",
+          description: "Array of edit operations",
+          items: {
+            type: "object",
+            properties: {
+              fileName: {
+                type: "string",
+                description: "The name or path of the note to edit",
+              },
+              newContent: {
+                type: "string",
+                description: "The new content for the note",
+              },
+              mode: {
+                type: "string",
+                description: "Edit mode: 'replace', 'append', or 'prepend'",
+                enum: ["replace", "append", "prepend"],
+              },
+            },
+            required: ["fileName", "newContent"],
+          },
+        },
+      },
+      required: ["edits"],
+    },
+  },
+  {
+    name: "bulk_propose_delete",
+    description:
+      "Propose deletion of multiple notes at once. A confirmation dialog shows all files with checkboxes for selective deletion. Use this when deleting many files to avoid multiple individual confirmations.",
+    parameters: {
+      type: "object",
+      properties: {
+        fileNames: {
+          type: "array",
+          description: "Array of file names or paths to delete",
+          items: {
+            type: "string",
+          },
+        },
+      },
+      required: ["fileNames"],
     },
   },
 ];
@@ -287,14 +336,19 @@ export function getEnabledTools(options: {
 
     // Write operations (update_note is disabled in favor of propose_edit for safer editing)
     if (
-      ["create_note", "create_folder", "rename_note", "propose_edit", "apply_edit", "discard_edit"].includes(tool.name)
+      ["create_note", "create_folder", "rename_note", "propose_edit", "bulk_propose_edit"].includes(tool.name)
     ) {
       return allowWrite;
     }
 
-    // Delete operation
-    if (tool.name === "delete_note") {
+    // Delete operation (propose_delete for safe deletion with confirmation)
+    if (["propose_delete", "bulk_propose_delete"].includes(tool.name)) {
       return allowDelete;
+    }
+
+    // Direct delete (disabled - use propose_delete instead)
+    if (tool.name === "delete_note") {
+      return false;
     }
 
     return false;

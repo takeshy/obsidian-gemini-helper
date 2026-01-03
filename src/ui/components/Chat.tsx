@@ -19,6 +19,7 @@ import {
 	type ModelType,
 	type Attachment,
 	type PendingEditInfo,
+	type PendingDeleteInfo,
 	type SlashCommand,
 	type GeneratedImage,
 	isImageGenerationModel,
@@ -27,7 +28,26 @@ import { getGeminiClient } from "src/core/gemini";
 import { getEnabledTools } from "src/core/tools";
 import { GeminiCliProvider } from "src/core/cliProvider";
 import { createToolExecutor } from "src/vault/toolExecutor";
-import { getPendingEdit, applyEdit, discardEdit } from "src/vault/notes";
+import {
+	getPendingEdit,
+	applyEdit,
+	discardEdit,
+	getPendingDelete,
+	applyDelete,
+	discardDelete,
+	getPendingBulkEdit,
+	applyBulkEdit,
+	discardBulkEdit,
+	getPendingBulkDelete,
+	applyBulkDelete,
+	discardBulkDelete,
+} from "src/vault/notes";
+import {
+	promptForConfirmation,
+	promptForDeleteConfirmation,
+	promptForBulkEditConfirmation,
+	promptForBulkDeleteConfirmation,
+} from "./workflow/EditConfirmationModal";
 import MessageList from "./MessageList";
 import InputArea, { type InputAreaHandle } from "./InputArea";
 
@@ -106,6 +126,7 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 	const messagesContainerRef = useRef<HTMLDivElement>(null);
 	const abortControllerRef = useRef<AbortController | null>(null);
 	const inputAreaRef = useRef<InputAreaHandle>(null);
+	const currentSlashCommandRef = useRef<SlashCommand | null>(null);
 	const [vaultFiles, setVaultFiles] = useState<string[]>([]);
 	const [hasSelection, setHasSelection] = useState(false);
 	const [cliConfig, setCliConfig] = useState(plugin.settings.cliConfig || DEFAULT_CLI_CONFIG);
@@ -589,6 +610,9 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 
 	// Handle slash command selection
 	const handleSlashCommand = (command: SlashCommand): string => {
+		// Track the current slash command for auto-apply logic
+		currentSlashCommandRef.current = command;
+
 		// Optionally change model
 		const nextModel = command.model && isModelAllowedForPlan(apiPlan, command.model)
 			? command.model
@@ -800,12 +824,12 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 				const toolsEnabled = supportsFunctionCalling && !isImageGenerationModel(allowedModel);
 				const tools = toolsEnabled ? getEnabledTools({
 					allowWrite: true,
-					allowDelete: false,
+					allowDelete: true,
 					ragEnabled: allowRag,
 				}) : [];
 
 				// Create context for RAG tools
-				const toolExecutor = toolsEnabled
+				const baseToolExecutor = toolsEnabled
 					? createToolExecutor(plugin.app, {
 						ragSyncState: { files: plugin.ragState.files, lastFullSync: plugin.ragState.lastFullSync },
 						ragFilterConfig: {
@@ -815,6 +839,162 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 						listNotesLimit: settings.listNotesLimit,
 						maxNoteChars: settings.maxNoteChars,
 					})
+					: undefined;
+
+				// Track processed edits/deletes for message display
+				const processedEdits: PendingEditInfo[] = [];
+				const processedDeletes: PendingDeleteInfo[] = [];
+
+				// Wrap tool executor to handle propose_edit/propose_delete with immediate confirmation
+				const toolExecutor = baseToolExecutor
+					? async (name: string, args: Record<string, unknown>) => {
+						const result = await baseToolExecutor(name, args) as Record<string, unknown>;
+
+						// Handle propose_edit with immediate confirmation
+						if (name === "propose_edit") {
+							const pending = getPendingEdit();
+							if (pending) {
+								// Check if auto-apply is enabled (slash command with confirmEdits=false)
+								const slashCommand = currentSlashCommandRef.current;
+								const shouldAutoApply = slashCommand && slashCommand.confirmEdits === false;
+
+								if (shouldAutoApply) {
+									const applyResult = await applyEdit(plugin.app);
+									if (applyResult.success) {
+										processedEdits.push({ originalPath: pending.originalPath, status: "applied" });
+										return { ...result, applied: true, message: `Applied changes to "${pending.originalPath}"` };
+									} else {
+										await discardEdit(plugin.app);
+										processedEdits.push({ originalPath: pending.originalPath, status: "failed" });
+										return { ...result, applied: false, error: applyResult.error };
+									}
+								} else {
+									const confirmed = await promptForConfirmation(
+										plugin.app,
+										pending.originalPath,
+										pending.newContent,
+										"overwrite"
+									);
+
+									if (confirmed) {
+										const applyResult = await applyEdit(plugin.app);
+										if (applyResult.success) {
+											processedEdits.push({ originalPath: pending.originalPath, status: "applied" });
+											return { ...result, applied: true, message: `Applied changes to "${pending.originalPath}"` };
+										} else {
+											await discardEdit(plugin.app);
+											processedEdits.push({ originalPath: pending.originalPath, status: "failed" });
+											return { ...result, applied: false, error: applyResult.error };
+										}
+									} else {
+										await discardEdit(plugin.app);
+										processedEdits.push({ originalPath: pending.originalPath, status: "discarded" });
+										return { ...result, applied: false, message: "User cancelled the edit" };
+									}
+								}
+							}
+						}
+
+						// Handle propose_delete with immediate confirmation
+						if (name === "propose_delete") {
+							const pending = getPendingDelete();
+							if (pending) {
+								const confirmed = await promptForDeleteConfirmation(
+									plugin.app,
+									pending.path,
+									pending.content
+								);
+
+								if (confirmed) {
+									const deleteResult = await applyDelete(plugin.app);
+									if (deleteResult.success) {
+										processedDeletes.push({ path: pending.path, status: "deleted" });
+										return { ...result, deleted: true, message: `Deleted "${pending.path}"` };
+									} else {
+										await discardDelete(plugin.app);
+										processedDeletes.push({ path: pending.path, status: "failed" });
+										return { ...result, deleted: false, error: deleteResult.error };
+									}
+								} else {
+									await discardDelete(plugin.app);
+									processedDeletes.push({ path: pending.path, status: "cancelled" });
+									return { ...result, deleted: false, message: "User cancelled the deletion" };
+								}
+							}
+						}
+
+						// Handle bulk_propose_edit with immediate confirmation
+						if (name === "bulk_propose_edit") {
+							const pendingBulk = getPendingBulkEdit();
+							if (pendingBulk && pendingBulk.items.length > 0) {
+								const selectedPaths = await promptForBulkEditConfirmation(
+									plugin.app,
+									pendingBulk.items
+								);
+
+								if (selectedPaths.length > 0) {
+									const applyResult = await applyBulkEdit(plugin.app, selectedPaths);
+									// Track each applied edit
+									for (const path of applyResult.applied) {
+										processedEdits.push({ originalPath: path, status: "applied" });
+									}
+									for (const path of applyResult.failed) {
+										processedEdits.push({ originalPath: path, status: "failed" });
+									}
+									return {
+										...result,
+										applied: applyResult.applied,
+										failed: applyResult.failed,
+										message: applyResult.message,
+									};
+								} else {
+									discardBulkEdit();
+									// Track all as discarded
+									for (const item of pendingBulk.items) {
+										processedEdits.push({ originalPath: item.path, status: "discarded" });
+									}
+									return { ...result, applied: [], message: "User cancelled all edits" };
+								}
+							}
+						}
+
+						// Handle bulk_propose_delete with immediate confirmation
+						if (name === "bulk_propose_delete") {
+							const pendingBulk = getPendingBulkDelete();
+							if (pendingBulk && pendingBulk.items.length > 0) {
+								const selectedPaths = await promptForBulkDeleteConfirmation(
+									plugin.app,
+									pendingBulk.items
+								);
+
+								if (selectedPaths.length > 0) {
+									const deleteResult = await applyBulkDelete(plugin.app, selectedPaths);
+									// Track each deleted file
+									for (const path of deleteResult.deleted) {
+										processedDeletes.push({ path, status: "deleted" });
+									}
+									for (const path of deleteResult.failed) {
+										processedDeletes.push({ path, status: "failed" });
+									}
+									return {
+										...result,
+										deleted: deleteResult.deleted,
+										failed: deleteResult.failed,
+										message: deleteResult.message,
+									};
+								} else {
+									discardBulkDelete();
+									// Track all as cancelled
+									for (const item of pendingBulk.items) {
+										processedDeletes.push({ path: item.path, status: "cancelled" });
+									}
+									return { ...result, deleted: [], message: "User cancelled all deletions" };
+								}
+							}
+						}
+
+						return result;
+					}
 					: undefined;
 
 				let systemPrompt = "You are a helpful AI assistant integrated with Obsidian.";
@@ -862,6 +1042,7 @@ Always be helpful and provide clear, concise responses. When working with notes,
 
 				// Use streaming with tools
 				let fullContent = "";
+				let thinkingContent = "";
 				const toolCalls: Message["toolCalls"] = [];
 				const toolResults: Message["toolResults"] = [];
 				const toolsUsed: string[] = [];
@@ -916,6 +1097,12 @@ Always be helpful and provide clear, concise responses. When working with notes,
 							setStreamingContent(fullContent);
 							break;
 
+						case "thinking":
+							thinkingContent += chunk.content || "";
+							// リアルタイムでthinkingを表示
+							setStreamingContent(`> *${thinkingContent}*\n\n${fullContent}`);
+							break;
+
 						case "tool_call":
 							if (chunk.toolCall) {
 								toolCalls.push(chunk.toolCall);
@@ -964,15 +1151,12 @@ Always be helpful and provide clear, concise responses. When working with notes,
 					fullContent += "\n\n_(Generation stopped)_";
 				}
 
-				// Check if there's a pending edit from propose_edit tool
-				let pendingEditInfo: PendingEditInfo | undefined;
-				const pending = getPendingEdit();
-				if (pending && toolsUsed.includes("propose_edit")) {
-					pendingEditInfo = {
-						originalPath: pending.originalPath,
-						status: "pending",
-					};
-				}
+				// Get processed edit/delete info from tool executor (already confirmed during tool execution)
+				const pendingEditInfo = processedEdits.length > 0 ? processedEdits[processedEdits.length - 1] : undefined;
+				const pendingDeleteInfo = processedDeletes.length > 0 ? processedDeletes[processedDeletes.length - 1] : undefined;
+
+				// Always clear the slash command ref after message processing
+				currentSlashCommandRef.current = null;
 
 				// Add assistant message
 				const assistantMessage: Message = {
@@ -982,6 +1166,7 @@ Always be helpful and provide clear, concise responses. When working with notes,
 					model: allowedModel,
 					toolsUsed: toolsUsed.length > 0 ? toolsUsed : undefined,
 					pendingEdit: pendingEditInfo,
+					pendingDelete: pendingDeleteInfo,
 					toolCalls: toolCalls.length > 0 ? toolCalls : undefined,
 					toolResults: toolResults.length > 0 ? toolResults : undefined,
 					ragUsed: ragUsed || undefined,
@@ -989,6 +1174,7 @@ Always be helpful and provide clear, concise responses. When working with notes,
 					webSearchUsed: webSearchUsed || undefined,
 					imageGenerationUsed: imageGenerationUsed || undefined,
 					generatedImages: generatedImages.length > 0 ? generatedImages : undefined,
+					thinking: thinkingContent || undefined,
 				};
 
 				const newMessages = [...messages, userMessage, assistantMessage];

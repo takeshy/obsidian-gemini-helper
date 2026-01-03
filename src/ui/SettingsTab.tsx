@@ -286,6 +286,18 @@ class SlashCommandModal extends Modal {
         });
       });
 
+    // Confirm edits toggle
+    new Setting(contentEl)
+      .setName("Confirm edits")
+      .setDesc("Show apply/discard buttons for propose_edit (disable for auto-apply)")
+      .addToggle((toggle) =>
+        toggle
+          .setValue(this.command.confirmEdits !== false)
+          .onChange((value) => {
+            this.command.confirmEdits = value;
+          })
+      );
+
     // Action buttons
     new Setting(contentEl)
       .addButton((btn) =>
@@ -715,13 +727,6 @@ export class SettingsTab extends PluginSettingTab {
     cliConfig: import("src/types").CliProviderConfig,
     isCliMode: boolean
   ): void {
-    // Experimental warning
-    const experimentalEl = containerEl.createDiv({ cls: "gemini-helper-cli-warning" });
-    const warningTitle = experimentalEl.createEl("strong");
-    warningTitle.textContent = "Experimental feature";
-    const warningText = experimentalEl.createEl("p");
-    warningText.textContent = "This feature is experimental and may be removed in future versions.";
-
     // CLI Mode toggle
     new Setting(containerEl)
       .setName("Enable command line mode")

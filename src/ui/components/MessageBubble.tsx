@@ -336,6 +336,18 @@ export default function MessageBubble({
         </div>
       )}
 
+      {/* Thinking content (collapsible) */}
+      {message.thinking && (
+        <details className="gemini-helper-thinking">
+          <summary className="gemini-helper-thinking-summary">
+            💭 Thinking
+          </summary>
+          <div className="gemini-helper-thinking-content">
+            {message.thinking}
+          </div>
+        </details>
+      )}
+
       <div className="gemini-helper-message-content" ref={contentRef} />
 
       {/* HTML code block actions */}
@@ -440,6 +452,27 @@ export default function MessageBubble({
       {message.pendingEdit && message.pendingEdit.status === "discarded" && (
         <div className="gemini-helper-edit-status gemini-helper-edit-discarded">
           ❌ Discarded changes
+        </div>
+      )}
+
+      {/* Delete status */}
+      {message.pendingDelete && message.pendingDelete.status === "deleted" && (
+        <div className="gemini-helper-edit-status gemini-helper-delete-applied">
+          🗑️ Deleted <strong>{message.pendingDelete.path}</strong>
+        </div>
+      )}
+
+      {/* Delete cancelled status */}
+      {message.pendingDelete && message.pendingDelete.status === "cancelled" && (
+        <div className="gemini-helper-edit-status gemini-helper-delete-cancelled">
+          ↩️ Cancelled deletion of <strong>{message.pendingDelete.path}</strong>
+        </div>
+      )}
+
+      {/* Delete failed status */}
+      {message.pendingDelete && message.pendingDelete.status === "failed" && (
+        <div className="gemini-helper-edit-status gemini-helper-edit-discarded">
+          ❌ Failed to delete
         </div>
       )}
     </div>

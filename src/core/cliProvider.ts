@@ -1,5 +1,5 @@
 /**
- * CLI Provider abstraction layer (Experimental)
+ * CLI Provider abstraction layer
  * Allows using Gemini CLI as chat backend
  *
  * Requirements:
@@ -164,12 +164,12 @@ abstract class BaseCliProvider implements CliProviderInterface {
 }
 
 /**
- * Gemini CLI provider (Experimental)
+ * Gemini CLI provider
  * Uses: gemini -p "prompt"
  */
 export class GeminiCliProvider extends BaseCliProvider {
   name: ChatProvider = "gemini-cli";
-  displayName = "Gemini CLI (Experimental)";
+  displayName = "Gemini CLI";
 
   async *chatStream(
     messages: Message[],

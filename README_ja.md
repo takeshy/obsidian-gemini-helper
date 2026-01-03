@@ -180,7 +180,7 @@ Gemini サイドバーの **Workflow** タブを開いて実行。
 | プロンプト | `prompt-file`, `prompt-selection`, `dialog` |
 | 合成 | `workflow` |
 
-> **詳細なノード仕様と実例は [WORKFLOW_NODES.md](WORKFLOW_NODES.md) を参照してください**
+> **詳細なノード仕様と実例は [WORKFLOW_NODES_ja.md](WORKFLOW_NODES_ja.md) を参照してください**
 
 ---
 

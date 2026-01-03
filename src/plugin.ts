@@ -1,4 +1,4 @@
-import { Plugin, WorkspaceLeaf, Notice, MarkdownView, Platform } from "obsidian";
+import { Plugin, WorkspaceLeaf, Notice, MarkdownView, Platform, TFile } from "obsidian";
 import { StateField, StateEffect } from "@codemirror/state";
 import { Decoration, type DecorationSet, EditorView } from "@codemirror/view";
 import { EventEmitter } from "src/utils/EventEmitter";
@@ -10,6 +10,7 @@ import {
   type RagSetting,
   type RagState,
   type ModelType,
+  type SlashCommand,
   DEFAULT_SETTINGS,
   DEFAULT_MODEL,
   DEFAULT_WORKSPACE_STATE,
@@ -17,7 +18,12 @@ import {
   DEFAULT_RAG_STATE,
   isModelAllowedForPlan,
 } from "src/types";
-import { initGeminiClient, resetGeminiClient } from "src/core/gemini";
+import { initGeminiClient, resetGeminiClient, getGeminiClient } from "src/core/gemini";
+import { WorkflowExecutor } from "src/workflow/executor";
+import { parseWorkflowFromMarkdown } from "src/workflow/parser";
+import type { WorkflowInput } from "src/workflow/types";
+import { promptForDialog } from "src/ui/components/workflow/DialogPromptModal";
+import { promptForConfirmation } from "src/ui/components/workflow/EditConfirmationModal";
 import {
   initFileSearchManager,
   resetFileSearchManager,
@@ -72,11 +78,13 @@ interface SelectionHighlightInfo {
   to: number;
 }
 
-// Selection location info (file path and line numbers)
+// Selection location info (file path, line numbers, and character offsets)
 interface SelectionLocationInfo {
   filePath: string;
   startLine: number;
   endLine: number;
+  start: number;  // Character offset from beginning of file
+  end: number;    // Character offset from beginning of file
 }
 
 export class GeminiHelperPlugin extends Plugin {
@@ -87,6 +95,7 @@ export class GeminiHelperPlugin extends Plugin {
   private selectionHighlight: SelectionHighlightInfo | null = null;
   private selectionLocation: SelectionLocationInfo | null = null;
   private lastActiveMarkdownView: MarkdownView | null = null;
+  private registeredWorkflowPaths: string[] = [];
 
   onload(): void {
     // Load settings and workspace state
@@ -99,6 +108,8 @@ export class GeminiHelperPlugin extends Plugin {
       if (this.settings.googleApiKey || cliConfig.provider !== "api") {
         this.initializeClients();
       }
+      // Register workflows as Obsidian commands for hotkey support
+      this.registerWorkflowHotkeys();
       // Emit event to refresh UI after workspace state is loaded
       this.settingsEmitter.emit("workspace-state-loaded", this.workspaceState);
     });
@@ -207,6 +218,138 @@ export class GeminiHelperPlugin extends Plugin {
 
     // Always reinitialize clients to pick up any config changes
     this.initializeClients();
+
+    // Re-register workflow hotkeys
+    this.registerWorkflowHotkeys();
+  }
+
+  /**
+   * Register workflows as Obsidian commands for hotkey support.
+   * Note: Obsidian doesn't support unregistering commands, so once registered,
+   * commands remain until plugin reload. We track all registered identifiers to avoid
+   * duplicate registration errors.
+   */
+  registerWorkflowHotkeys(): void {
+    for (const workflowId of this.settings.enabledWorkflowHotkeys) {
+      // Skip if already registered in this session (prevents duplicate registration error)
+      if (this.registeredWorkflowPaths.includes(workflowId)) {
+        continue;
+      }
+
+      // Parse path#name format
+      const hashIndex = workflowId.lastIndexOf("#");
+      if (hashIndex === -1) continue;
+
+      const filePath = workflowId.substring(0, hashIndex);
+      const workflowName = workflowId.substring(hashIndex + 1);
+
+      const obsidianCommandId = `workflow-${workflowId.replace(/[^a-zA-Z0-9]/g, "-")}`;
+
+      // Register new command
+      this.addCommand({
+        id: obsidianCommandId,
+        name: `Workflow: ${workflowName}`,
+        callback: () => {
+          void this.executeWorkflowFromHotkey(filePath, workflowName);
+        },
+      });
+
+      // Track as registered (never re-register in this session)
+      this.registeredWorkflowPaths.push(workflowId);
+    }
+  }
+
+  /**
+   * Execute workflow from hotkey
+   */
+  private async executeWorkflowFromHotkey(filePath: string, workflowName: string): Promise<void> {
+    // Capture selection before execution
+    this.captureSelection();
+    const selection = this.lastSelection;
+    const selectionLocation = this.selectionLocation;
+
+    // Get active note content
+    let content = "";
+    const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
+    if (activeView?.file) {
+      content = await this.app.vault.read(activeView.file);
+    }
+
+    // Get the workflow file
+    const file = this.app.vault.getAbstractFileByPath(filePath);
+    if (!file || !("path" in file)) {
+      new Notice(`Workflow file not found: ${filePath}`);
+      return;
+    }
+
+    try {
+      const fileContent = await this.app.vault.read(file as TFile);
+      const workflow = parseWorkflowFromMarkdown(fileContent, workflowName);
+
+      const executor = new WorkflowExecutor(this.app, this);
+
+      const input: WorkflowInput = {
+        variables: new Map(),
+      };
+
+      // Set hotkey mode internal variables (used by prompt-file and prompt-selection nodes)
+      // The actual "file", "selection", "selectionInfo" variables are set by prompt nodes
+      input.variables.set("__hotkeyContent__", content);
+      input.variables.set("__hotkeySelection__", selection);
+
+      if (activeView?.file) {
+        input.variables.set("__hotkeyActiveFile__", JSON.stringify({
+          path: activeView.file.path,
+          basename: activeView.file.basename,
+          name: activeView.file.name,
+          extension: activeView.file.extension,
+        }));
+      }
+
+      if (selectionLocation) {
+        input.variables.set("__hotkeySelectionInfo__", JSON.stringify({
+          filePath: selectionLocation.filePath,
+          startLine: selectionLocation.startLine,
+          endLine: selectionLocation.endLine,
+          start: selectionLocation.start,
+          end: selectionLocation.end,
+        }));
+      }
+
+      // Prompt callbacks for hotkey execution
+      const promptCallbacks = {
+        promptForFile: async () => null,
+        promptForSelection: async () => null,
+        promptForValue: async () => null,
+        promptForConfirmation: (filePath: string, content: string, mode: string) =>
+          promptForConfirmation(this.app, filePath, content, mode),
+        promptForDialog: (title: string, message: string, options: string[], multiSelect: boolean, button1: string, button2?: string, markdown?: boolean, inputTitle?: string, defaults?: { input?: string; selected?: string[] }, multiline?: boolean) =>
+          promptForDialog(this.app, title, message, options, multiSelect, button1, button2, markdown, inputTitle, defaults, multiline),
+        openFile: async (notePath: string) => {
+          const noteFile = this.app.vault.getAbstractFileByPath(notePath);
+          if (noteFile instanceof TFile) {
+            await this.app.workspace.getLeaf().openFile(noteFile);
+          }
+        },
+      };
+
+      await executor.execute(
+        workflow,
+        input,
+        () => {}, // Log callback
+        {
+          workflowPath: filePath,
+          workflowName: workflowName,
+          recordHistory: true,
+        },
+        promptCallbacks
+      );
+
+      new Notice("Workflow completed successfully");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      new Notice(`Workflow failed: ${message}`);
+    }
   }
 
   // Get the path to the workspace state file
@@ -744,13 +887,15 @@ export class GeminiHelperPlugin extends Plugin {
       const from = editor.posToOffset(fromPos);
       const to = editor.posToOffset(toPos);
       this.applySelectionHighlight(view, from, to);
-      // Store file path and line numbers
+      // Store file path, line numbers, and character offsets
       const file = view.file;
       if (file) {
         this.selectionLocation = {
           filePath: file.path,
           startLine: fromPos.line + 1,
           endLine: toPos.line + 1,
+          start: from,
+          end: to,
         };
       }
     }
@@ -775,13 +920,15 @@ export class GeminiHelperPlugin extends Plugin {
         const from = editor.posToOffset(fromPos);
         const to = editor.posToOffset(toPos);
         this.applySelectionHighlight(activeView, from, to);
-        // Store file path and line numbers
+        // Store file path, line numbers, and character offsets
         const file = activeView.file;
         if (file) {
           this.selectionLocation = {
             filePath: file.path,
             startLine: fromPos.line + 1, // 1-indexed for display
             endLine: toPos.line + 1,
+            start: from,
+            end: to,
           };
         }
         return;
@@ -803,13 +950,15 @@ export class GeminiHelperPlugin extends Plugin {
           const from = editor.posToOffset(fromPos);
           const to = editor.posToOffset(toPos);
           this.applySelectionHighlight(view, from, to);
-          // Store file path and line numbers
+          // Store file path, line numbers, and character offsets
           const file = view.file;
           if (file) {
             this.selectionLocation = {
               filePath: file.path,
               startLine: fromPos.line + 1,
               endLine: toPos.line + 1,
+              start: from,
+              end: to,
             };
           }
           return;
@@ -1044,5 +1193,77 @@ export class GeminiHelperPlugin extends Plugin {
       return selected.storeIds;
     }
     return selected.storeId ? [selected.storeId] : [];
+  }
+
+  // Get slash commands for workflow
+  getSlashCommands(): SlashCommand[] {
+    return this.settings.slashCommands;
+  }
+
+  // Execute a slash command for workflow
+  async executeSlashCommand(
+    commandIdOrName: string,
+    options?: {
+      value?: string;
+      contentPath?: string;
+      selection?: { path: string; start: unknown; end: unknown };
+      chatId?: string;
+    }
+  ): Promise<{ response: string; chatId: string }> {
+    // Find the command
+    const command = this.settings.slashCommands.find(
+      (cmd) => cmd.id === commandIdOrName || cmd.name === commandIdOrName
+    );
+
+    if (!command) {
+      throw new Error(`Slash command not found: ${commandIdOrName}`);
+    }
+
+    // Get the content to use
+    let content = "";
+    if (options?.value) {
+      content = options.value;
+    } else if (options?.contentPath) {
+      // Read content from file
+      const file = this.app.vault.getAbstractFileByPath(options.contentPath);
+      if (file && "path" in file) {
+        content = await this.app.vault.read(file as TFile);
+      }
+    } else if (options?.selection) {
+      // Read content from selection
+      const selectionPath = options.selection.path;
+      const file = this.app.vault.getAbstractFileByPath(selectionPath);
+      if (file && "path" in file) {
+        const fileContent = await this.app.vault.read(file as TFile);
+        // For now, just use the whole file content
+        // TODO: Extract selection range
+        content = fileContent;
+      }
+    }
+
+    // Replace {selection} placeholder in template
+    const prompt = command.promptTemplate.replace(/\{selection\}/g, content);
+
+    // Get the Gemini client
+    const client = getGeminiClient();
+    if (!client) {
+      throw new Error("Gemini client not initialized");
+    }
+
+    // Set model if specified
+    if (command.model) {
+      client.setModel(command.model);
+    }
+
+    // Send message
+    const response = await client.chat(
+      [{ role: "user", content: prompt, timestamp: Date.now() }],
+      this.settings.systemPrompt || undefined
+    );
+
+    // Generate or use existing chatId
+    const chatId = options?.chatId || `workflow-${Date.now()}`;
+
+    return { response, chatId };
   }
 }

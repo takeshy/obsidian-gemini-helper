@@ -314,7 +314,8 @@ export function getActiveNoteInfo(app: App): NoteInfo | null {
 // Pending edit info stored globally
 export interface PendingEdit {
   originalPath: string;
-  originalContent: string;  // バックアップ用
+  originalContent: string;  // 元の内容（復元用）
+  newContent: string;       // 提案された新しい内容
   createdAt: number;
 }
 
@@ -325,12 +326,8 @@ export function getPendingEdit(): PendingEdit | null {
   return pendingEdit;
 }
 
-// Clear pending edit
-export function clearPendingEdit(): void {
-  pendingEdit = null;
-}
-
-// Propose an edit by directly modifying the file
+// Propose an edit - stores proposed changes without writing to file
+// User must confirm via applyEdit() to actually write
 export async function proposeEdit(
   app: App,
   fileName?: string,
@@ -371,7 +368,7 @@ export async function proposeEdit(
   }
 
   try {
-    // Read original content for backup
+    // Read original content
     const originalContent = await app.vault.read(file);
 
     // Calculate final content
@@ -383,58 +380,31 @@ export async function proposeEdit(
       finalContent = `${newContent}\n${originalContent}`;
     }
 
-    // Store pending edit info with original content backup
+    // Store pending edit info (do NOT write to file yet)
     pendingEdit = {
       originalPath: file.path,
       originalContent,
+      newContent: finalContent,
       createdAt: Date.now(),
     };
-
-    // Apply the edit directly to the file
-    await app.vault.modify(file, finalContent);
-
-    // Open the file to show changes
-    const leaf = app.workspace.getLeaf(false);
-    await leaf.openFile(file);
 
     return {
       success: true,
       originalPath: file.path,
-      message: `Applied changes to "${file.basename}". Click "Apply" to keep or "Discard" to undo.`,
+      message: `Proposed changes to "${file.basename}". Click "Apply" to write or "Discard" to cancel.`,
     };
   } catch (error) {
     return {
       success: false,
-      error: `Failed to edit: ${formatError(error)}`,
+      error: `Failed to propose edit: ${formatError(error)}`,
     };
   }
 }
 
-// Apply the pending edit (just clear the backup)
-export function applyEdit(
-  _app: App
-): Promise<{ success: boolean; path?: string; error?: string; message?: string }> {
-  if (!pendingEdit) {
-    return Promise.resolve({
-      success: false,
-      error: "No pending edit found.",
-    });
-  }
-
-  const appliedPath = pendingEdit.originalPath;
-  pendingEdit = null;
-
-  return Promise.resolve({
-    success: true,
-    path: appliedPath,
-    message: `Changes to "${appliedPath}" confirmed.`,
-  });
-}
-
-// Discard the pending edit (undo the changes)
-export async function discardEdit(
+// Apply the pending edit - actually writes to file
+export async function applyEdit(
   app: App
-): Promise<{ success: boolean; error?: string; message?: string }> {
+): Promise<{ success: boolean; path?: string; error?: string; message?: string }> {
   if (!pendingEdit) {
     return {
       success: false,
@@ -443,34 +413,422 @@ export async function discardEdit(
   }
 
   try {
-    const originalPath = pendingEdit.originalPath;
-    const file = app.vault.getAbstractFileByPath(originalPath);
+    const file = app.vault.getAbstractFileByPath(pendingEdit.originalPath);
 
     if (!(file instanceof TFile)) {
+      const path = pendingEdit.originalPath;
       pendingEdit = null;
       return {
         success: false,
-        error: `File "${originalPath}" no longer exists.`,
+        error: `File "${path}" no longer exists.`,
       };
     }
 
-    // Restore original content
-    await app.vault.modify(file, pendingEdit.originalContent);
+    // Write the new content to file
+    await app.vault.modify(file, pendingEdit.newContent);
 
-    // Refresh the view
+    // Open the file to show changes
     const leaf = app.workspace.getLeaf(false);
     await leaf.openFile(file);
 
+    const appliedPath = pendingEdit.originalPath;
     pendingEdit = null;
 
     return {
       success: true,
-      message: "Changes discarded and file restored.",
+      path: appliedPath,
+      message: `Changes to "${appliedPath}" applied.`,
     };
   } catch (error) {
     return {
       success: false,
-      error: `Failed to discard edit: ${formatError(error)}`,
+      error: `Failed to apply edit: ${formatError(error)}`,
     };
   }
+}
+
+// Discard the pending edit (just clear without writing)
+export async function discardEdit(
+  _app: App
+): Promise<{ success: boolean; error?: string; message?: string }> {
+  if (!pendingEdit) {
+    return {
+      success: false,
+      error: "No pending edit found.",
+    };
+  }
+
+  const discardedPath = pendingEdit.originalPath;
+  pendingEdit = null;
+
+  return {
+    success: true,
+    message: `Discarded proposed changes to "${discardedPath}".`,
+  };
+}
+
+// Pending delete info stored globally
+export interface PendingDelete {
+  path: string;
+  fileName: string;
+  content: string;
+  createdAt: number;
+}
+
+let pendingDelete: PendingDelete | null = null;
+
+// Get pending delete
+export function getPendingDelete(): PendingDelete | null {
+  return pendingDelete;
+}
+
+// Propose a delete - stores proposed deletion without actually deleting
+// User must confirm via applyDelete() to actually delete
+export async function proposeDelete(
+  app: App,
+  fileName: string
+): Promise<{ success: boolean; path?: string; error?: string; message?: string }> {
+  const file = findFileByName(app, fileName);
+  if (!file) {
+    return {
+      success: false,
+      error: `Could not find note "${fileName}".`,
+    };
+  }
+
+  // Read file content for preview
+  const content = await app.vault.read(file);
+
+  // Store pending delete info (do NOT delete yet)
+  pendingDelete = {
+    path: file.path,
+    fileName: file.basename,
+    content,
+    createdAt: Date.now(),
+  };
+
+  return {
+    success: true,
+    path: file.path,
+    message: `Proposed deletion of "${file.basename}". Click "Delete" to confirm or "Cancel" to keep the file.`,
+  };
+}
+
+// Apply the pending delete - actually deletes the file
+export async function applyDelete(
+  app: App
+): Promise<{ success: boolean; path?: string; error?: string; message?: string }> {
+  if (!pendingDelete) {
+    return {
+      success: false,
+      error: "No pending delete found.",
+    };
+  }
+
+  try {
+    const file = app.vault.getAbstractFileByPath(pendingDelete.path);
+
+    if (!(file instanceof TFile)) {
+      const path = pendingDelete.path;
+      pendingDelete = null;
+      return {
+        success: false,
+        error: `File "${path}" no longer exists.`,
+      };
+    }
+
+    // Delete the file (move to trash)
+    await app.fileManager.trashFile(file);
+
+    const deletedPath = pendingDelete.path;
+    pendingDelete = null;
+
+    return {
+      success: true,
+      path: deletedPath,
+      message: `Deleted "${deletedPath}".`,
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: `Failed to delete: ${formatError(error)}`,
+    };
+  }
+}
+
+// Discard the pending delete (cancel without deleting)
+export async function discardDelete(
+  _app: App
+): Promise<{ success: boolean; error?: string; message?: string }> {
+  if (!pendingDelete) {
+    return {
+      success: false,
+      error: "No pending delete found.",
+    };
+  }
+
+  const discardedPath = pendingDelete.path;
+  pendingDelete = null;
+
+  return {
+    success: true,
+    message: `Cancelled deletion of "${discardedPath}".`,
+  };
+}
+
+// ============================================
+// Bulk Edit Operations
+// ============================================
+
+export interface BulkEditItem {
+  path: string;
+  originalContent: string;
+  newContent: string;
+  mode: "replace" | "append" | "prepend";
+}
+
+export interface PendingBulkEdit {
+  items: BulkEditItem[];
+  createdAt: number;
+}
+
+let pendingBulkEdit: PendingBulkEdit | null = null;
+
+export function getPendingBulkEdit(): PendingBulkEdit | null {
+  return pendingBulkEdit;
+}
+
+export function clearPendingBulkEdit(): void {
+  pendingBulkEdit = null;
+}
+
+// Propose bulk edits - stores proposed changes without writing
+export async function proposeBulkEdit(
+  app: App,
+  edits: Array<{ fileName: string; newContent: string; mode?: "replace" | "append" | "prepend" }>
+): Promise<{ success: boolean; items?: BulkEditItem[]; errors?: string[]; message?: string }> {
+  const items: BulkEditItem[] = [];
+  const errors: string[] = [];
+
+  for (const edit of edits) {
+    const file = findFileByName(app, edit.fileName);
+    if (!file) {
+      errors.push(`Could not find note "${edit.fileName}"`);
+      continue;
+    }
+
+    const originalContent = await app.vault.read(file);
+    const mode = edit.mode || "replace";
+    let finalContent = edit.newContent;
+
+    if (mode === "append") {
+      finalContent = `${originalContent}\n${edit.newContent}`;
+    } else if (mode === "prepend") {
+      finalContent = `${edit.newContent}\n${originalContent}`;
+    }
+
+    items.push({
+      path: file.path,
+      originalContent,
+      newContent: finalContent,
+      mode,
+    });
+  }
+
+  if (items.length === 0) {
+    return {
+      success: false,
+      errors,
+      message: "No valid files found for bulk edit.",
+    };
+  }
+
+  pendingBulkEdit = {
+    items,
+    createdAt: Date.now(),
+  };
+
+  return {
+    success: true,
+    items,
+    errors: errors.length > 0 ? errors : undefined,
+    message: `Proposed edits to ${items.length} file(s). Select files to apply changes.`,
+  };
+}
+
+// Apply selected bulk edits
+export async function applyBulkEdit(
+  app: App,
+  selectedPaths: string[]
+): Promise<{ success: boolean; applied: string[]; failed: string[]; message?: string }> {
+  if (!pendingBulkEdit) {
+    return {
+      success: false,
+      applied: [],
+      failed: [],
+      message: "No pending bulk edit found.",
+    };
+  }
+
+  const applied: string[] = [];
+  const failed: string[] = [];
+
+  for (const item of pendingBulkEdit.items) {
+    if (!selectedPaths.includes(item.path)) {
+      continue;
+    }
+
+    try {
+      const file = app.vault.getAbstractFileByPath(item.path);
+      if (file instanceof TFile) {
+        await app.vault.modify(file, item.newContent);
+        applied.push(item.path);
+      } else {
+        failed.push(item.path);
+      }
+    } catch {
+      failed.push(item.path);
+    }
+  }
+
+  pendingBulkEdit = null;
+
+  return {
+    success: applied.length > 0,
+    applied,
+    failed,
+    message: `Applied ${applied.length} edit(s)${failed.length > 0 ? `, ${failed.length} failed` : ""}.`,
+  };
+}
+
+// Discard bulk edit
+export function discardBulkEdit(): { success: boolean; message: string } {
+  pendingBulkEdit = null;
+  return {
+    success: true,
+    message: "Discarded bulk edit.",
+  };
+}
+
+// ============================================
+// Bulk Delete Operations
+// ============================================
+
+export interface BulkDeleteItem {
+  path: string;
+  fileName: string;
+  content: string;
+}
+
+export interface PendingBulkDelete {
+  items: BulkDeleteItem[];
+  createdAt: number;
+}
+
+let pendingBulkDelete: PendingBulkDelete | null = null;
+
+export function getPendingBulkDelete(): PendingBulkDelete | null {
+  return pendingBulkDelete;
+}
+
+export function clearPendingBulkDelete(): void {
+  pendingBulkDelete = null;
+}
+
+// Propose bulk deletes - stores proposed deletions without deleting
+export async function proposeBulkDelete(
+  app: App,
+  fileNames: string[]
+): Promise<{ success: boolean; items?: BulkDeleteItem[]; errors?: string[]; message?: string }> {
+  const items: BulkDeleteItem[] = [];
+  const errors: string[] = [];
+
+  for (const fileName of fileNames) {
+    const file = findFileByName(app, fileName);
+    if (!file) {
+      errors.push(`Could not find note "${fileName}"`);
+      continue;
+    }
+
+    const content = await app.vault.read(file);
+    items.push({
+      path: file.path,
+      fileName: file.basename,
+      content,
+    });
+  }
+
+  if (items.length === 0) {
+    return {
+      success: false,
+      errors,
+      message: "No valid files found for bulk delete.",
+    };
+  }
+
+  pendingBulkDelete = {
+    items,
+    createdAt: Date.now(),
+  };
+
+  return {
+    success: true,
+    items,
+    errors: errors.length > 0 ? errors : undefined,
+    message: `Proposed deletion of ${items.length} file(s). Select files to delete.`,
+  };
+}
+
+// Apply selected bulk deletes
+export async function applyBulkDelete(
+  app: App,
+  selectedPaths: string[]
+): Promise<{ success: boolean; deleted: string[]; failed: string[]; message?: string }> {
+  if (!pendingBulkDelete) {
+    return {
+      success: false,
+      deleted: [],
+      failed: [],
+      message: "No pending bulk delete found.",
+    };
+  }
+
+  const deleted: string[] = [];
+  const failed: string[] = [];
+
+  for (const item of pendingBulkDelete.items) {
+    if (!selectedPaths.includes(item.path)) {
+      continue;
+    }
+
+    try {
+      const file = app.vault.getAbstractFileByPath(item.path);
+      if (file instanceof TFile) {
+        await app.fileManager.trashFile(file);
+        deleted.push(item.path);
+      } else {
+        failed.push(item.path);
+      }
+    } catch {
+      failed.push(item.path);
+    }
+  }
+
+  pendingBulkDelete = null;
+
+  return {
+    success: deleted.length > 0,
+    deleted,
+    failed,
+    message: `Deleted ${deleted.length} file(s)${failed.length > 0 ? `, ${failed.length} failed` : ""}.`,
+  };
+}
+
+// Discard bulk delete
+export function discardBulkDelete(): { success: boolean; message: string } {
+  pendingBulkDelete = null;
+  return {
+    success: true,
+    message: "Discarded bulk delete.",
+  };
 }

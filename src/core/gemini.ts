@@ -52,14 +52,57 @@ export class GeminiClient {
 
   // Convert tool definitions to Gemini format
   private toolsToGeminiFormat(tools: ToolDefinition[]): Tool[] {
+    const convertProperty = (value: {
+      type: string;
+      description: string;
+      enum?: string[];
+      items?: unknown;
+    }): Schema => {
+      const schema: Schema = {
+        type: value.type.toUpperCase() as Type,
+        description: value.description,
+        enum: value.enum,
+      };
+
+      // Handle array items
+      if (value.type === "array" && value.items) {
+        const items = value.items as {
+          type: string;
+          description?: string;
+          properties?: Record<string, { type: string; description: string; enum?: string[] }>;
+          required?: string[];
+        };
+
+        if (items.type === "object" && items.properties) {
+          // Nested object in array
+          const nestedProperties: Record<string, Schema> = {};
+          for (const [propKey, propValue] of Object.entries(items.properties)) {
+            nestedProperties[propKey] = {
+              type: propValue.type.toUpperCase() as Type,
+              description: propValue.description,
+              enum: propValue.enum,
+            };
+          }
+          schema.items = {
+            type: Type.OBJECT,
+            properties: nestedProperties,
+            required: items.required,
+          };
+        } else {
+          // Simple type in array (e.g., string[])
+          schema.items = {
+            type: items.type.toUpperCase() as Type,
+          };
+        }
+      }
+
+      return schema;
+    };
+
     const functionDeclarations = tools.map((tool) => {
       const properties: Record<string, Schema> = {};
       for (const [key, value] of Object.entries(tool.parameters.properties)) {
-        properties[key] = {
-          type: value.type.toUpperCase() as Type,
-          description: value.description,
-          enum: value.enum,
-        };
+        properties[key] = convertProperty(value);
       }
 
       return {
@@ -177,9 +220,15 @@ export class GeminiClient {
       if (webSearchEnabled) {
         geminiTools = [{ googleSearch: {} } as Tool];
       } else {
-        geminiTools = this.toolsToGeminiFormat(tools);
+        // Only add function tools if there are any defined
+        if (tools.length > 0) {
+          geminiTools = this.toolsToGeminiFormat(tools);
+        }
         // Add File Search RAG if store IDs are provided
         if (ragStoreIds && ragStoreIds.length > 0) {
+          if (!geminiTools) {
+            geminiTools = [];
+          }
           geminiTools.push({
             fileSearch: {
               fileSearchStoreNames: ragStoreIds,
@@ -194,6 +243,9 @@ export class GeminiClient {
     const historyMessages = messages.slice(0, -1);
     const history = this.messagesToHistory(historyMessages);
 
+    // Check if model supports thinking (Gemma models don't support it)
+    const supportsThinking = !this.model.toLowerCase().includes("gemma");
+
     // Create a chat session with history
     const chat: Chat = this.ai.chats.create({
       model: this.model,
@@ -201,8 +253,8 @@ export class GeminiClient {
       config: {
         systemInstruction: systemPrompt,
         ...(geminiTools ? { tools: geminiTools } : {}),
-        // Ensure thought_signature is included for tool calls on thinking models.
-        ...(geminiTools ? { thinkingConfig: { includeThoughts: true } } : {}),
+        // Enable thinking for models that support it
+        ...(supportsThinking ? { thinkingConfig: { includeThoughts: true } } : {}),
       },
     });
 
@@ -253,10 +305,16 @@ export class GeminiClient {
           }
         }
 
-        // Check for grounding metadata (File Search or Web Search usage)
-        // Access candidates via type assertion for grounding metadata
+        // Check for grounding metadata and thinking parts
+        // Access candidates via type assertion for grounding metadata and thought parts
         const chunkWithCandidates = chunk as {
           candidates?: Array<{
+            content?: {
+              parts?: Array<{
+                text?: string;
+                thought?: boolean;
+              }>;
+            };
             groundingMetadata?: {
               groundingChunks?: Array<{
                 retrievedContext?: { uri?: string; title?: string };
@@ -265,6 +323,18 @@ export class GeminiClient {
           }>;
         };
         const candidates = chunkWithCandidates.candidates;
+
+        // Extract and yield thinking parts
+        if (candidates && candidates.length > 0) {
+          const parts = candidates[0]?.content?.parts;
+          if (parts) {
+            for (const part of parts) {
+              if (part.thought && part.text) {
+                yield { type: "thinking", content: part.text };
+              }
+            }
+          }
+        }
         if (!groundingEmitted && candidates && candidates.length > 0) {
           const groundingMetadata = candidates[0]?.groundingMetadata;
           if (groundingMetadata) {
@@ -417,34 +487,6 @@ export class GeminiClient {
     }
 
     yield { type: "done" };
-  }
-
-  // Chat with File Search RAG
-  async chatWithFileSearch(
-    messages: Message[],
-    storeIds: string[],
-    systemPrompt?: string
-  ): Promise<string> {
-    const contents = this.messagesToContents(messages);
-
-    const response = await this.ai.models.generateContent({
-      model: this.model,
-      contents,
-      config: {
-        systemInstruction: systemPrompt,
-        tools: [
-          {
-            retrieval: {
-              vertexRagStore: {
-                ragCorpora: storeIds,
-              },
-            },
-          },
-        ],
-      },
-    });
-
-    return response.text ?? "";
   }
 
   // Image generation using Gemini

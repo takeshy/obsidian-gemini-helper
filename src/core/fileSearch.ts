@@ -1,7 +1,6 @@
 import { GoogleGenAI } from "@google/genai";
 import type { TFile, App } from "obsidian";
 import type {
-  FileSearchStore,
   SyncStatus,
   RagSyncState,
 } from "src/types";
@@ -372,16 +371,6 @@ export class FileSearchManager {
     };
   }
 
-  // Get sync status
-  getSyncStatus(): SyncStatus {
-    return { ...this.syncStatus };
-  }
-
-  // Check if file search is available
-  isAvailable(): boolean {
-    return this.storeName !== null;
-  }
-
   // Query sync status for a specific file
   async getFileSyncStatus(
     filePath: string,
@@ -538,24 +527,6 @@ export class FileSearchManager {
     };
   }
 
-  // Get store info
-  async getStoreInfo(): Promise<FileSearchStore | null> {
-    if (!this.storeName) {
-      return null;
-    }
-
-    try {
-      const store = await this.ai.fileSearchStores.get({ name: this.storeName });
-      return {
-        id: store.name ?? "",
-        name: store.displayName ?? "",
-        createdAt: store.createTime ? new Date(store.createTime).getTime() : 0,
-        fileCount: 0, // API doesn't provide this directly
-      };
-    } catch {
-      return null;
-    }
-  }
 }
 
 // Singleton instance

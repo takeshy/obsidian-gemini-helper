@@ -1,365 +1,938 @@
 # Gemini Helper for Obsidian
 
-An AI-powered assistant plugin for Obsidian using Google Gemini with File Search RAG capabilities.
+**Free and open-source** AI assistant for Obsidian with **Chat**, **Workflow Automation**, and **Semantic Search** powered by Google Gemini.
 
-> **Free API Key Supported!** You can use this plugin with Google's free API key. Get your free API key at [ai.google.dev](https://ai.google.dev) - no credit card required.
+> **This plugin is completely free.** You only need a Google Gemini API key (free or paid) from [ai.google.dev](https://ai.google.dev), or a Google account via [Gemini CLI](https://github.com/google-gemini/gemini-cli).
+
+## Highlights
+
+- **AI Chat** - Streaming responses, file attachments, vault operations, slash commands
+- **Workflow Builder** - Automate multi-step tasks with visual node editor and 17 node types
+- **Semantic Search** - RAG-powered intelligent search across your vault
+- **Web Search** - Access up-to-date information via Google Search
+- **Image Generation** - Create images with Gemini image models
+
+## Google API Key Options
+
+This plugin requires a Google Gemini API key or a Google account (via Gemini CLI). You can choose between:
+
+| Feature | Free API Key | Paid API Key | Gemini CLI |
+|---------|--------------|--------------|------------|
+| Basic chat | ✅ | ✅ | ✅ |
+| Vault operations | ✅ | ✅ | Read/Search only |
+| Web Search | ✅ | ✅ | ❌ |
+| Semantic Search | ✅ (limited) | ✅ | ❌ |
+| Workflow | ✅ | ✅ | ✅ |
+| Image Generation | ❌ | ✅ | ❌ |
+| Models | Flash, Gemma | Flash, Pro, Image | **Gemini 2.5 Pro** |
+| Cost | **Free** | Pay per use | **Free** |
 
 > [!TIP]
-> **🚀 Gemini CLI: Access Pro-level Models for Free! (Experimental)**
->
-> With [Gemini CLI](https://github.com/google-gemini/gemini-cli), you can use **Gemini 2.5 Pro** (the most capable model) with just a Google account - no API key or payment required! Simply install the CLI, sign in with your Google account, and start chatting with the best model available.
->
-> **Note:** This feature is experimental and may be removed in future versions.
+> **Gemini CLI** lets you use **Gemini 2.5 Pro** (flagship model) with just a Google account - no API key needed! Install [Gemini CLI](https://github.com/google-gemini/gemini-cli), run `gemini` and authenticate with `/auth`.
 
-## Free Plan vs Paid Plan vs Gemini CLI
+### Free API Key Tips
 
-| Feature | Free API | Paid API | 🚀 Gemini CLI |
-|---------|----------|----------|---------------|
-| Basic chat | ✅ | ✅ | ✅ |
-| Vault operations (Function Calling) | ✅ (Gemini models only) | ✅ | Read/Search only |
-| Web Search | ✅ | ✅ | ❌ |
-| Semantic Search | ✅ (with limitations) | ✅ | ❌ |
-| Image Generation | ❌ | ✅ | ❌ |
-| Available Models | Flash, Flash Lite, Gemma | Flash/Pro, Image models | **Gemini 2.5 Pro** 🎉 |
-| Requirements | Free API Key | Paid API Key | **Google Account only** |
-| Rate Limits | Strict | Relaxed | Generous |
+- **Rate limits** are per-model and reset daily. Switch models to continue working.
+- **Semantic search sync** is limited. Run "Sync Vault" daily - already uploaded files are skipped.
+- **Gemma models** and **Gemini CLI** don't support vault operations in Chat, but **Workflows can still read/write notes** using `note`, `note-read`, and other node types. `{content}` and `{selection}` variables also work.
 
-**Why Gemini CLI?** With just a Google account, you get access to **Gemini 2.5 Pro** - the same flagship model that requires a paid API key otherwise. Perfect for users who want the best quality responses without any API costs.
+---
 
-### Free Plan Limitations
+# AI Chat
 
-**Rate Limits (per model, resets daily)**
-- When you hit a rate limit error, it only affects that specific model
-- **Tip**: Switch to a different model to continue working immediately
-- Limits reset once per day, so the blocked model will be available again the next day
-- **Check usage**: View your token and rate limit status at [Google AI Studio API Keys](https://aistudio.google.com/apikey) → click "View Usage" button
+The AI Chat feature provides an interactive conversation interface with Google Gemini, integrated with your Obsidian vault.
 
-**Semantic Search Sync**
-- File uploads are limited (only a few files per sync on free plan)
-- **Workaround**: Run "Sync Vault" daily - already uploaded files are skipped, so each sync continues from where it left off
-- After several days of daily syncing, all your files will be indexed
-
-**Gemma Models**
-- Gemma models (3 27B/12B/4B/1B) do not support vault operations or semantic search
-- However, `{content}` and `{selection}` variables still work (via @ mentions)
-- This allows Obsidian-native workflows like "summarize this note" or "explain selected text"
-
-**Search + Vault Operations Limitations**
-- Web Search and vault operations cannot be used together (API limitation, applies to all models including Pro)
-- Semantic Search (RAG) and vault operations can be used together on Pro models, but may not work on Flash models
-
-## Screenshots
-
-### AI Chat Interface
 ![Chat Interface](chat.png)
 
-### Settings
-![Settings](settings1.png)
+## Slash Commands
 
-### Semantic Search Settings
-![Semantic Search Settings](settings2.png)
+Create reusable prompt templates triggered by `/`:
 
-## Features
+- Define templates with `{selection}` (selected text) and `{content}` (active note)
+- Optional model and search override per command
+- Type `/` to see available commands
 
-### AI Chat Interface
-- **Streaming responses** - Real-time response streaming for natural conversation flow
-- **Model selection** - Switch between Gemini models directly from the chat interface (selection persisted)
-- **Image generation** - Generate images using Gemini image models with copy/save buttons
-- **HTML Infographic preview** - Preview and save HTML code blocks (great for AI-generated infographics). Modal is draggable and resizable.
-- **Web Search** - Search the web using Google Search for up-to-date information
-- **Semantic search setting selection** - Switch between semantic search configurations from the chat interface
-- **Slash commands** - Create reusable prompt templates triggered by typing `/` in chat
-- **Chat history** - Automatically saves chat sessions in Markdown format (viewable and editable)
-- **Conversation threading** - Maintains context across messages in the same chat
-- **Stop generation** - Stop AI responses mid-generation with the stop button
-- **Copy messages** - Easily copy any message to clipboard
-- **Clickable links** - Internal links in AI responses can be clicked to open notes
-- **Tool usage details** - Click on tool indicators to see which files were accessed
+**Default:** `/infographic` - Converts content to HTML infographic
 
-### Slash Commands
-Create custom prompt templates that can be triggered by typing `/` in the chat input:
-- **Custom prompts** - Define reusable prompt templates with variables
-- **Model override** - Optionally set a specific model for each command
-- **Search override** - Optionally set Web Search or semantic search for each command
-- **Variables** - Use `{selection}` for selected text (falls back to active note if no selection), `{content}` for active note content
-- **Autocomplete** - Type `/` to see available commands, filter by typing more characters
+![Infographic Example](chat_infographic.png)
 
-### @ Mentions
-Reference files and variables directly in your messages by typing `@`:
-- **Variables** - `{selection}` (only shown when text is selected), `{content}` (active note)
-- **Vault files** - Browse and insert any markdown file from your vault
-- **Autocomplete** - Type `@` to see suggestions, continue typing to filter
-- **Navigation** - Use Tab/Shift+Tab or arrow keys, Enter to select
-- **File preview** - Press Ctrl+Shift+O or click the eye icon to preview a file before selecting
-- Variables and file paths are automatically resolved when the message is sent
+## @ Mentions
 
-### File Attachments
-Attach files directly to your messages:
-- **Images** - PNG, JPEG, GIF, WebP
-- **Documents** - PDF files
-- **Text files** - Plain text, Markdown, CSV, JSON
+Reference files and variables by typing `@`:
 
-### Function Calling (Vault Operations)
-The AI can directly interact with your vault through these tools:
+- `{selection}` - Selected text
+- `{content}` - Active note content
+- Any vault file - Browse and insert (path only; AI reads content via tools)
+
+> [!NOTE]
+> Vault file @mentions insert only the file path - the AI reads content via tools. This doesn't work with Gemma models (no vault tool support). Gemini CLI can read files via shell, but response format may differ.
+
+## File Attachments
+
+Attach files directly: Images (PNG, JPEG, GIF, WebP), PDFs, Text files
+
+## Function Calling (Vault Operations)
+
+The AI can interact with your vault using these tools:
 
 | Tool | Description |
 |------|-------------|
-| `read_note` | Read note content by name or active note |
-| `create_note` | Create new notes with content and tags |
-| `propose_edit` | Edit notes with preview (apply/discard buttons) |
-| `search_notes` | Search by filename or content |
-| `list_notes` | List notes in a folder or entire vault |
+| `read_note` | Read note content |
+| `create_note` | Create new notes |
+| `propose_edit` | Edit with confirmation dialog |
+| `propose_delete` | Delete with confirmation dialog |
+| `bulk_propose_edit` | Bulk edit multiple files with selection dialog |
+| `bulk_propose_delete` | Bulk delete multiple files with selection dialog |
+| `search_notes` | Search vault by name or content |
+| `list_notes` | List notes in folder |
+| `rename_note` | Rename/move notes |
 | `create_folder` | Create new folders |
-| `list_folders` | List all folders in vault |
-| `get_active_note_info` | Get active note metadata |
-| `rename_note` | Rename or move notes |
-| `delete_note` | Delete notes (disabled by default) |
-| `get_rag_sync_status` | Check semantic search sync status for files |
+| `list_folders` | List folders in vault |
+| `get_active_note_info` | Get info about active note |
+| `get_rag_sync_status` | Check RAG sync status |
 
-### Safe Editing
-When the AI edits a note using `propose_edit`:
-1. Changes are applied directly to the file
-2. The original content is backed up in memory
-3. You can review the changes and click **Apply** to confirm or **Discard** to restore
+## Safe Editing
 
-### Semantic Search Integration
-Semantic search uses RAG (Retrieval-Augmented Generation) to search your vault intelligently.
+When AI uses `propose_edit`:
+1. A confirmation dialog shows the proposed changes
+2. Click **Apply** to write changes to the file
+3. Click **Discard** to cancel without modifying the file
 
-- **Multiple settings** - Create and manage multiple semantic search configurations
-- **Semantic search** - Search your entire vault using AI-powered semantic search
-- **Semantic search indicator** - Shows when semantic search was used to answer a question
-- **Internal mode** - Sync your vault files to a new semantic search store
-- **External mode** - Use existing semantic search stores (supports multiple store IDs)
-- **Incremental sync** - Only upload changed files (checksum-based detection)
-- **Target folders** - Specify which folders to include in indexing
-- **Exclude patterns** - Use regex patterns to exclude specific files
-- **Sync progress** - Real-time progress display with cancel support
-- **Store management** - Delete semantic search store from settings when needed
+> Changes are NOT written until you confirm.
+
+## Semantic Search
+
+RAG-powered intelligent vault search:
+
+- **Internal mode** - Sync vault files to Google File Search
+- **External mode** - Use existing store IDs
+- **Incremental sync** - Only upload changed files
+- **Target folders** - Specify folders to include
+- **Exclude patterns** - Regex patterns to exclude files
+
+![Semantic Search Settings](setting_semantic_search.png)
+
+---
+
+# Workflow Builder
+
+Build automated multi-step workflows directly in Markdown files. Combine LLM calls, file operations, API requests, and control flow.
+
+![Visual Workflow Editor](visual_workflow.png)
+
+## Quick Start
+
+Add a workflow code block to any Markdown file:
+
+````markdown
+```workflow
+name: Quick Summary
+nodes:
+  - id: input
+    type: dialog
+    title: Enter topic
+    inputTitle: Topic
+    saveTo: topic
+  - id: generate
+    type: command
+    prompt: "Write a brief summary about {{topic.input}}"
+    saveTo: result
+  - id: save
+    type: note
+    path: "summaries/{{topic.input}}.md"
+    content: "{{result}}"
+    mode: create
+```
+````
+
+Open the **Workflow** tab in the Gemini sidebar to run it.
+
+## Node Types
+
+| Category | Nodes | Description |
+|----------|-------|-------------|
+| Variables | `variable`, `set` | Declare and update variables |
+| Control | `if`, `while` | Conditional branching and loops |
+| LLM | `command` | Execute prompts with model/search options |
+| Data | `http`, `json` | HTTP requests and JSON parsing |
+| Notes | `note`, `note-read`, `note-search`, `note-list`, `folder-list`, `open` | Vault operations |
+| Prompts | `prompt-file`, `prompt-selection`, `dialog` | User input dialogs |
+| Composition | `workflow` | Execute another workflow as a sub-workflow |
+
+## Node Reference
+
+### command
+
+Execute an LLM prompt with optional model and search settings.
+
+```yaml
+- id: search
+  type: command
+  model: gemini-3-flash-preview  # Optional: specific model
+  ragSetting: __websearch__      # Optional: __websearch__, __none__, or setting name
+  prompt: "Search for {{topic}}"
+  saveTo: result
+```
+
+| Property | Description |
+|----------|-------------|
+| `prompt` | The prompt to send to the LLM (required) |
+| `model` | Override the current model (e.g., `gemini-3-flash-preview`) |
+| `ragSetting` | `__websearch__` (web search), `__none__` (no search), setting name, or omit for current |
+| `saveTo` | Variable name to store the response |
+
+### note
+
+Write content to a note file.
+
+```yaml
+- id: save
+  type: note
+  path: "output/{{filename}}.md"
+  content: "{{result}}"
+  mode: overwrite
+  confirm: true
+```
+
+| Property | Description |
+|----------|-------------|
+| `path` | File path (required) |
+| `content` | Content to write |
+| `mode` | `overwrite` (default), `append`, or `create` (skip if exists) |
+| `confirm` | `true` (default) shows confirmation dialog, `false` writes immediately |
+
+### note-list
+
+List notes with filtering and sorting.
+
+```yaml
+- id: list
+  type: note-list
+  folder: "Projects"
+  recursive: true
+  tags: "todo, project"
+  tagMatch: all
+  createdWithin: "7d"
+  modifiedWithin: "24h"
+  sortBy: modified
+  sortOrder: desc
+  limit: 20
+  saveTo: noteList
+```
+
+| Property | Description |
+|----------|-------------|
+| `folder` | Folder path (empty for entire vault) |
+| `recursive` | `true` includes subfolders, `false` (default) only direct children |
+| `tags` | Comma-separated tags to filter (with or without `#`) |
+| `tagMatch` | `any` (default) or `all` tags must match |
+| `createdWithin` | Filter by creation time: `30m`, `24h`, `7d` |
+| `modifiedWithin` | Filter by modification time |
+| `sortBy` | `created`, `modified`, or `name` |
+| `sortOrder` | `asc` or `desc` (default) |
+| `limit` | Maximum results (default: 50) |
+| `saveTo` | Variable for results |
+
+**Output format:**
+```json
+{
+  "count": 5,
+  "totalCount": 12,
+  "hasMore": true,
+  "notes": [
+    {"name": "Note1", "path": "folder/Note1.md", "created": 1234567890, "modified": 1234567900, "tags": ["#todo"]}
+  ]
+}
+```
+
+### http
+
+Make HTTP requests.
+
+```yaml
+- id: fetch
+  type: http
+  url: "https://api.example.com/data"
+  method: POST
+  headers: '{"Authorization": "Bearer {{token}}"}'
+  body: '{"query": "{{searchTerm}}"}'
+  saveTo: response
+  saveStatus: statusCode
+  throwOnError: "true"
+```
+
+| Property | Description |
+|----------|-------------|
+| `url` | Request URL (required) |
+| `method` | `GET` (default), `POST`, `PUT`, `PATCH`, `DELETE` |
+| `headers` | JSON object or `Key: Value` format (one per line) |
+| `body` | Request body (for POST/PUT/PATCH) |
+| `saveTo` | Variable for response body |
+| `saveStatus` | Variable for HTTP status code |
+| `throwOnError` | `true` to throw error on 4xx/5xx responses |
+
+### dialog
+
+Display a dialog with options, buttons, and/or text input.
+
+```yaml
+- id: ask
+  type: dialog
+  title: Select Options
+  message: Choose items to process
+  markdown: true
+  options: "Option A, Option B, Option C"
+  multiSelect: true
+  inputTitle: "Additional notes"
+  multiline: true
+  defaults: '{"input": "default text", "selected": ["Option A"]}'
+  button1: Confirm
+  button2: Cancel
+  saveTo: dialogResult
+```
+
+| Property | Description |
+|----------|-------------|
+| `title` | Dialog title |
+| `message` | Message content (supports `{{variables}}`) |
+| `markdown` | `true` renders message as Markdown |
+| `options` | Comma-separated list of choices (optional) |
+| `multiSelect` | `true` for checkboxes, `false` for radio buttons |
+| `inputTitle` | Label for text input field (shows input when set) |
+| `multiline` | `true` for multi-line text area |
+| `defaults` | JSON with `input` and `selected` initial values |
+| `button1` | Primary button label (default: "OK") |
+| `button2` | Secondary button label (optional) |
+| `saveTo` | Variable for result: `{"button": "Confirm", "selected": [...], "input": "..."}` |
+
+**Simple text input (replacement for prompt-value):**
+```yaml
+- id: input
+  type: dialog
+  title: Enter value
+  inputTitle: Your input
+  multiline: true
+  saveTo: userInput
+```
+
+### workflow
+
+Execute another workflow as a sub-workflow.
+
+```yaml
+- id: runSub
+  type: workflow
+  path: "workflows/summarize.md"
+  name: "Summarizer"
+  input: '{"text": "{{content}}"}'
+  output: '{"result": "summary"}'
+  prefix: "sub_"
+```
+
+| Property | Description |
+|----------|-------------|
+| `path` | Path to workflow file (required) |
+| `name` | Workflow name (for files with multiple workflows) |
+| `input` | JSON mapping sub-workflow variables to values |
+| `output` | JSON mapping parent variables to sub-workflow results |
+| `prefix` | Prefix for all output variables (when `output` not specified) |
+
+### prompt-file
+
+Show file picker or use active file in hotkey mode.
+
+```yaml
+- id: selectFile
+  type: prompt-file
+  title: Select a note
+  default: "notes/"
+  forcePrompt: "true"
+  saveTo: content
+  saveFileTo: fileInfo
+```
+
+| Property | Description |
+|----------|-------------|
+| `title` | Dialog title |
+| `default` | Default path |
+| `forcePrompt` | `true` always shows dialog, even in hotkey mode |
+| `saveTo` | Variable for file content |
+| `saveFileTo` | Variable for file info JSON |
+
+**File info format:** `{"path": "folder/note.md", "basename": "note.md", "name": "note", "extension": "md"}`
+
+### prompt-selection
+
+Get selected text or show selection dialog.
+
+```yaml
+- id: getSelection
+  type: prompt-selection
+  saveTo: text
+  saveSelectionTo: selectionInfo
+```
+
+| Property | Description |
+|----------|-------------|
+| `saveTo` | Variable for selected text |
+| `saveSelectionTo` | Variable for selection metadata JSON |
+
+**Selection info format:** `{"filePath": "...", "startLine": 1, "endLine": 1, "start": 0, "end": 10}`
+
+### if / while
+
+Conditional branching and loops.
+
+```yaml
+- id: branch
+  type: if
+  condition: "{{count}} > 10"
+  trueNext: handleMany
+  falseNext: handleFew
+
+- id: loop
+  type: while
+  condition: "{{counter}} < {{total}}"
+  trueNext: processItem
+  falseNext: done
+```
+
+| Property | Description |
+|----------|-------------|
+| `condition` | Expression with operators: `==`, `!=`, `<`, `>`, `<=`, `>=`, `contains` |
+| `trueNext` | Node ID when condition is true |
+| `falseNext` | Node ID when condition is false |
+
+### variable / set
+
+Declare and update variables.
+
+```yaml
+- id: init
+  type: variable
+  name: counter
+  value: 0
+
+- id: increment
+  type: set
+  name: counter
+  value: "{{counter}} + 1"
+```
+
+### Other Nodes
+
+| Node | Properties |
+|------|------------|
+| `note-read` | `path`, `saveTo` |
+| `note-search` | `query`, `searchContent`, `limit`, `saveTo` |
+| `folder-list` | `folder`, `saveTo` |
+| `open` | `path` |
+| `json` | `source`, `saveTo` |
+
+## Workflow Termination
+
+Use `next: end` to explicitly terminate the workflow:
+
+```yaml
+- id: save
+  type: note
+  path: "output.md"
+  content: "{{result}}"
+  next: end    # Workflow ends here
+
+- id: branch
+  type: if
+  condition: "{{cancel}}"
+  trueNext: end      # End workflow on true branch
+  falseNext: continue
+```
+
+## Variable Expansion
+
+Use `{{variable}}` syntax to reference variables:
+
+```yaml
+# Basic
+path: "{{folder}}/{{filename}}.md"
+
+# Object/Array access
+url: "https://api.example.com?lat={{geo.latitude}}"
+content: "{{items[0].name}}"
+
+# Nested variables (for loops)
+path: "{{parsed.notes[{{counter}}].path}}"
+```
+
+## Smart Input Nodes
+
+`prompt-selection` and `prompt-file` nodes automatically detect hotkey context:
+
+| Node | With Hotkey | Without Hotkey |
+|------|-------------|----------------|
+| `prompt-selection` | Uses current selection directly | Shows selection dialog |
+| `prompt-file` | Uses active file directly | Shows file picker dialog |
+
+## Practical Examples
+
+### 1. Note Summary
+
+````markdown
+```workflow
+name: Note Summary
+nodes:
+  - id: select
+    type: prompt-file
+    title: Select note
+    saveTo: content
+    saveFileTo: fileInfo
+  - id: parseFile
+    type: json
+    source: fileInfo
+    saveTo: file
+  - id: summarize
+    type: command
+    prompt: "Summarize this note:\n\n{{content}}"
+    saveTo: summary
+  - id: save
+    type: note
+    path: "summaries/{{file.name}}"
+    content: "# Summary\n\n{{summary}}\n\n---\n*Source: {{file.path}}*"
+    mode: create
+```
+````
+
+### 2. Web Research
+
+````markdown
+```workflow
+name: Web Research
+nodes:
+  - id: topic
+    type: dialog
+    title: Research topic
+    inputTitle: Topic
+    saveTo: input
+  - id: search
+    type: command
+    model: gemini-3-flash-preview
+    ragSetting: __websearch__
+    prompt: |
+      Search the web for: {{input.input}}
+
+      Include key facts, recent developments, and sources.
+    saveTo: research
+  - id: save
+    type: note
+    path: "research/{{input.input}}.md"
+    content: "# {{input.input}}\n\n{{research}}"
+    mode: overwrite
+```
+````
+
+### 3. Conditional Processing
+
+````markdown
+```workflow
+name: Smart Summarizer
+nodes:
+  - id: input
+    type: dialog
+    title: Enter text to process
+    inputTitle: Text
+    multiline: true
+    saveTo: userInput
+  - id: branch
+    type: if
+    condition: "{{userInput.input.length}} > 500"
+    trueNext: summarize
+    falseNext: enhance
+  - id: summarize
+    type: command
+    prompt: "Summarize this long text:\n\n{{userInput.input}}"
+    saveTo: result
+    next: save
+  - id: enhance
+    type: command
+    prompt: "Expand and enhance this short text:\n\n{{userInput.input}}"
+    saveTo: result
+    next: save
+  - id: save
+    type: note
+    path: "processed/output.md"
+    content: "{{result}}"
+    mode: overwrite
+```
+````
+
+### 4. Batch Process Notes
+
+````markdown
+```workflow
+name: Tag Analyzer
+nodes:
+  - id: init
+    type: variable
+    name: counter
+    value: 0
+  - id: initReport
+    type: variable
+    name: report
+    value: "# Tag Suggestions\n\n"
+  - id: list
+    type: note-list
+    folder: Clippings
+    limit: 5
+    saveTo: notes
+  - id: json
+    type: json
+    source: notes
+    saveTo: parsed
+  - id: loop
+    type: while
+    condition: "{{counter}} < {{parsed.count}}"
+    trueNext: read
+    falseNext: finish
+  - id: read
+    type: note-read
+    path: "{{parsed.notes[{{counter}}].path}}"
+    saveTo: content
+  - id: analyze
+    type: command
+    prompt: "Suggest 3 tags for:\n\n{{content}}"
+    saveTo: tags
+  - id: append
+    type: set
+    name: report
+    value: "{{report}}## {{parsed.notes[{{counter}}].name}}\n{{tags}}\n\n"
+  - id: increment
+    type: set
+    name: counter
+    value: "{{counter}} + 1"
+    next: loop
+  - id: finish
+    type: note
+    path: "reports/tag-suggestions.md"
+    content: "{{report}}"
+    mode: overwrite
+```
+````
+
+### 5. API Integration
+
+````markdown
+```workflow
+name: Weather Report
+nodes:
+  - id: city
+    type: dialog
+    title: City name
+    inputTitle: City
+    saveTo: cityInput
+  - id: geocode
+    type: http
+    url: "https://geocoding-api.open-meteo.com/v1/search?name={{cityInput.input}}&count=1"
+    method: GET
+    saveTo: geoResponse
+  - id: parseGeo
+    type: json
+    source: geoResponse
+    saveTo: geo
+  - id: weather
+    type: http
+    url: "https://api.open-meteo.com/v1/forecast?latitude={{geo.results[0].latitude}}&longitude={{geo.results[0].longitude}}&current=temperature_2m,weather_code&daily=temperature_2m_max,temperature_2m_min&timezone=auto"
+    method: GET
+    saveTo: weatherData
+  - id: parse
+    type: json
+    source: weatherData
+    saveTo: data
+  - id: report
+    type: command
+    prompt: "Create a weather report:\n{{data}}"
+    saveTo: summary
+  - id: save
+    type: note
+    path: "weather/{{cityInput.input}}.md"
+    content: "# Weather: {{cityInput.input}}\n\n{{summary}}"
+    mode: overwrite
+```
+````
+
+### 6. Translate Selection (with Hotkey)
+
+````markdown
+```workflow
+name: Translate Selection
+nodes:
+  - id: getSelection
+    type: prompt-selection
+    saveTo: text
+  - id: translate
+    type: command
+    prompt: "Translate the following text to English:\n\n{{text}}"
+    saveTo: translated
+  - id: output
+    type: note
+    path: "translations/translated.md"
+    content: "## Original\n{{text}}\n\n## Translation\n{{translated}}\n\n---\n"
+    mode: append
+  - id: show
+    type: open
+    path: "translations/translated.md"
+```
+````
+
+**Hotkey setup:**
+1. Add a `name:` field to your workflow
+2. Open the workflow file and select the workflow from dropdown
+3. Click the keyboard icon in the Workflow panel footer
+4. Go to Settings → Hotkeys → search "Workflow: Translate Selection"
+5. Assign a hotkey (e.g., `Ctrl+Shift+T`)
+
+### 7. Sub-Workflow Composition
+
+**File: `workflows/translate.md`**
+````markdown
+```workflow
+name: Translator
+nodes:
+  - id: translate
+    type: command
+    prompt: "Translate to {{targetLang}}:\n\n{{text}}"
+    saveTo: translated
+```
+````
+
+**File: `workflows/main.md`**
+````markdown
+```workflow
+name: Multi-Language Export
+nodes:
+  - id: input
+    type: dialog
+    title: Enter text to translate
+    inputTitle: Text
+    multiline: true
+    saveTo: userInput
+  - id: toJapanese
+    type: workflow
+    path: "workflows/translate.md"
+    name: "Translator"
+    input: '{"text": "{{userInput.input}}", "targetLang": "Japanese"}'
+    output: '{"japaneseText": "translated"}'
+  - id: toSpanish
+    type: workflow
+    path: "workflows/translate.md"
+    name: "Translator"
+    input: '{"text": "{{userInput.input}}", "targetLang": "Spanish"}'
+    output: '{"spanishText": "translated"}'
+  - id: save
+    type: note
+    path: "translations/output.md"
+    content: |
+      # Original
+      {{userInput.input}}
+
+      ## Japanese
+      {{japaneseText}}
+
+      ## Spanish
+      {{spanishText}}
+    mode: overwrite
+```
+````
+
+### 8. Interactive Task Selection
+
+````markdown
+```workflow
+name: Task Processor
+nodes:
+  - id: selectTasks
+    type: dialog
+    title: Select Tasks
+    message: Choose which tasks to perform on the current note
+    options: "Summarize, Extract key points, Translate to English, Fix grammar"
+    multiSelect: true
+    button1: Process
+    button2: Cancel
+    saveTo: selection
+  - id: checkCancel
+    type: if
+    condition: "{{selection.button}} == 'Cancel'"
+    trueNext: cancelled
+    falseNext: getFile
+  - id: getFile
+    type: prompt-file
+    saveTo: content
+  - id: process
+    type: command
+    prompt: |
+      Perform the following tasks on this text:
+      Tasks: {{selection.selected}}
+
+      Text:
+      {{content}}
+    saveTo: result
+  - id: save
+    type: note
+    path: "processed/result.md"
+    content: "{{result}}"
+    mode: create
+    next: end
+  - id: cancelled
+    type: dialog
+    title: Cancelled
+    message: Operation was cancelled by user.
+    button1: OK
+    next: end
+```
+````
+
+---
+
+# Common
 
 ## Supported Models
 
-### Paid Plan Models
+### Paid Plan
 | Model | Description |
 |-------|-------------|
-| Gemini 3 Flash Preview | Latest fast model with 1M context (default, recommended) |
-| Gemini 3 Pro Preview | Latest flagship model with 1M context |
+| Gemini 3 Flash Preview | Fast model, 1M context (default) |
+| Gemini 3 Pro Preview | Flagship model, 1M context |
 | Gemini 2.5 Flash Lite | Lightweight flash model |
-| Gemini 2.5 Flash (Image) | Fast image generation, max 1024px |
-| Gemini 3 Pro (Image) | Pro quality image generation, up to 4K, Web Search supported |
+| Gemini 2.5 Flash (Image) | Image generation, 1024px |
+| Gemini 3 Pro (Image) | Pro image generation, 4K |
 
-### Free Plan Models
-| Model | Description | Vault Operations |
-|-------|-------------|------------------|
-| Gemini 2.5 Flash | Free tier fast model | ✅ |
-| Gemini 2.5 Flash Lite | Free tier lightweight model | ✅ |
-| Gemini 3 Flash Preview | Free tier preview model | ✅ |
-| Gemma 3 27B | Free tier Gemma model | ❌ |
-| Gemma 3 12B | Free tier Gemma model | ❌ |
-| Gemma 3 4B | Free tier Gemma model | ❌ |
-| Gemma 3 1B | Free tier Gemma model | ❌ |
-
-**Note**:
-- Model selection is persisted across sessions
-- Gemma models do not support vault operations (function calling) or semantic search
-- Switch API plan in settings based on your API key type
+### Free Plan
+| Model | Vault Operations |
+|-------|------------------|
+| Gemini 2.5 Flash | ✅ |
+| Gemini 2.5 Flash Lite | ✅ |
+| Gemini 3 Flash Preview | ✅ |
+| Gemma 3 (27B/12B/4B/1B) | ❌ |
 
 ## Installation
 
-### Manual Installation
-1. Download the latest release (`main.js`, `manifest.json`, `styles.css`)
-2. Create a folder `gemini-helper` in your vault's `.obsidian/plugins/` directory
-3. Copy the downloaded files into the folder
-4. Enable the plugin in Obsidian Settings > Community Plugins
+### Manual
+1. Download `main.js`, `manifest.json`, `styles.css` from releases
+2. Create `gemini-helper` folder in `.obsidian/plugins/`
+3. Copy files and enable in Obsidian settings
 
 ### From Source
 ```bash
-git clone https://github.com/your-repo/obsidian-gemini-helper
+git clone https://github.com/takeshy/obsidian-gemini-helper
 cd obsidian-gemini-helper
 npm install
 npm run build
 ```
 
-Copy `main.js`, `manifest.json`, and `styles.css` to your vault's plugin folder.
-
 ## Configuration
 
 ### API Settings
-1. Get a Google AI API key from [ai.google.dev](https://ai.google.dev)
-2. Enter the API key in plugin settings
-3. Select your API plan (Paid or Free) based on your API key type
-4. Select your preferred default model
+1. Get API key from [ai.google.dev](https://ai.google.dev)
+2. Enter in plugin settings
+3. Select API plan (Free/Paid)
 
-### Gemini CLI Settings (Experimental)
-Instead of using an API key, you can use the Gemini CLI:
-1. Install the [Gemini CLI](https://github.com/google-gemini/gemini-cli)
-2. Run `gemini` in your terminal and complete authentication with `/auth`
-3. In plugin settings, enable "Command line mode" under CLI Settings
-4. Click "Verify" to confirm the CLI is working
-5. Once verified, "Gemini CLI (Experimental)" will appear as a model option in chat
+![Basic Settings](setting_basic.png)
 
-**Requirements:**
-- **macOS/Linux:** `gemini` command must be in PATH
-- **Windows:** gemini-cli must be installed at `%APPDATA%\npm` (default npm global install location)
+### Gemini CLI
+1. Install [Gemini CLI](https://github.com/google-gemini/gemini-cli)
+2. Authenticate with `gemini` → `/auth`
+3. Enable "Command line mode" in settings
+4. Click "Verify" to confirm
 
-**CLI Mode Limitations:**
-- Vault write operations are not available (read and search only)
-- Semantic search is not available
-- Web search is not available
-
-**Note:** This feature is experimental and may be removed in future versions.
-
-#### Security (CLI Mode)
-- CLI mode executes the external `gemini` command (Gemini CLI by Google)
-- Commands are executed with `shell: false` to prevent command injection
-- User input is passed as arguments, not through shell expansion
-- CLI mode is completely disabled on mobile devices
-- The plugin only executes: `gemini --version` (verification) and `gemini -p "prompt"` (chat)
+**Limitations:** Read-only vault operations, no semantic/web search
 
 ### Workspace Settings
-- **Workspace Folder** - Where to save chat histories and semantic search settings
-- **Save Chat History** - Toggle to enable/disable saving chat sessions
-- **System Prompt** - Additional instructions for the AI (e.g., "Always respond in Japanese")
+- **Workspace Folder** - Chat history and settings location
+- **System Prompt** - Additional AI instructions
+- **Tool Limits** - Control function call limits
+- **Slash Commands** - Define custom prompt templates
 
-### Slash Commands Settings
-1. Go to **Slash commands** section in settings
-2. Click **Add command** to create a new slash command
-3. Configure:
-   - **Command name** - The trigger name (e.g., `translate` for `/translate`)
-   - **Description** - Brief description shown in autocomplete
-   - **Prompt template** - The prompt text with optional variables:
-     - `{selection}` - Replaced with selected text (falls back to active note if no selection)
-     - `{content}` - Replaced with the active note's content
-   - **Model** (optional) - Override the current model when using this command
-   - **Search** (optional) - Override the current search setting (None, Web search, or semantic search)
-4. Use pencil icon to edit, trash icon to delete commands
-
-### Semantic Search Settings
-1. **Enable semantic search** - Toggle semantic search feature
-2. **Semantic search setting** - Select or create a semantic search configuration
-3. Click the **+** button to create a new semantic search setting
-4. Use pencil icon to rename, trash icon to delete
-
-#### Store Mode
-- **Internal (Vault Sync)** - Sync your vault files to Google's File Search
-  - **Target Folders** - Comma-separated list of folders to include (empty = all folders)
-  - **Excluded Patterns** - Regex patterns to exclude files (one per line)
-    - Example: `^daily/` excludes files in the daily folder
-    - Example: `\.excalidraw\.md$` excludes Excalidraw files
-  - **Sync Vault** - Upload files to the semantic search store
-  - **Reset Sync State** - Clear local sync state (re-upload all files on next sync)
-  - **Delete semantic search store** - Permanently delete the store from Google's servers
-
-- **External (Existing Store)** - Use existing semantic search stores
-  - **Semantic search store IDs** - Enter one or more store IDs (one per line)
-  - Useful for sharing stores across vaults or using pre-built stores
-
-### Tool Call Limits (Rate Limit Protection)
-These settings help prevent rate limit errors when using function calling:
-- **Max tool calls per message** - Maximum number of tool calls allowed per message (default: 20)
-- **Tool call warning threshold** - Show warning when remaining calls are at or below this number (default: 5)
-- **Default list_notes limit** - Maximum notes returned by list_notes when no limit specified (default: 50)
-- **Semantic search chunks (Top K)** - Number of chunks to retrieve for semantic search (default: 5, max: 20)
+![Tool Limit & Slash Commands](setting_tool_limit_slash_command.png)
 
 ## Usage
 
-### Opening the Chat
-- Click the Gemini icon in the left ribbon
-- Or use the command palette: "Gemini Helper: Open chat"
-- Or use "Gemini Helper: Toggle chat / editor" to quickly switch between chat and your last active note (assign a hotkey in Obsidian settings for quick access)
+### Opening Chat
+- Click Gemini icon in ribbon
+- Command: "Gemini Helper: Open chat"
+- Toggle: "Gemini Helper: Toggle chat / editor"
 
-### Chat Commands
+### Chat Controls
 - **Enter** - Send message
 - **Shift+Enter** - New line
-- **Paperclip icon** - Attach files
-- **Stop button** - Stop generation (appears while generating)
-- **+ button** - Start new chat
-- **History button** - View/load previous chats
+- **Stop button** - Stop generation
+- **+ button** - New chat
+- **History button** - Load previous chats
 
-### Model & Search Selection
-Use the dropdowns below the input area:
-- **Model dropdown** - Switch between Gemini models during a conversation
-- **Search dropdown** - Select Web Search or semantic search setting to use
+### Using Workflows
+1. Open **Workflow** tab in sidebar
+2. Open a file with `workflow` code block
+3. Select workflow from dropdown
+4. Click **Run** to execute
+5. Click **History** to view past runs
 
-### Using Slash Commands
-1. Type `/` in the chat input to see available commands
-2. Continue typing to filter commands (e.g., `/tr` shows commands starting with "tr")
-3. Use arrow keys to navigate, Tab or Enter to select
-4. The prompt template is inserted into the input with variables resolved
-5. Edit if needed, then press Enter or click Send
+![Workflow History](workflow_history.png)
 
-Example commands you might create:
-- `/translate` - "Translate the following to English: {selection}"
-- `/summarize` - "Summarize this note: {content}"
-- `/explain` - "Explain this concept: {selection}"
+**Export to Canvas:** View execution history as an Obsidian Canvas for visual analysis.
 
-**Default Command:**
-- `/infographic` - Converts content into an HTML infographic with Preview/Save buttons
-  - **Note**: The default prompt is in English. If you want output in another language, edit the command in settings and rewrite the prompt in your preferred language.
+![History Canvas View](history_canvas.png)
 
-### Semantic Search Sync
-1. Enable semantic search in settings
-2. Create a new semantic search setting or select an existing one
-3. Configure target folders and exclude patterns (Internal mode)
-4. Click "Sync Vault" to index your files
-5. Select the semantic search setting in the chat interface
-6. The AI will now use semantic search when answering questions
-7. Look for the semantic search indicator to see when it was used
+### AI Workflow Generation
 
-## Project Structure
+**Create New Workflow with AI:**
+1. Select **+ New (AI)** from the workflow dropdown
+2. Enter workflow name and output path (supports `{{name}}` variable)
+3. Describe what the workflow should do in natural language
+4. Select a model and click **Generate**
+5. The workflow is automatically created and saved
 
-```
-src/
-├── main.ts              # Entry point
-├── plugin.ts            # Main plugin class
-├── types/
-│   └── index.ts         # Type definitions
-├── core/
-│   ├── gemini.ts        # Gemini API client
-│   ├── fileSearch.ts    # File Search RAG management
-│   └── tools.ts         # Function Calling tool definitions
-├── vault/
-│   ├── notes.ts         # Note operations
-│   ├── search.ts        # Local search
-│   └── toolExecutor.ts  # Tool execution
-└── ui/
-    ├── ChatView.tsx     # Chat view
-    ├── SettingsTab.tsx  # Settings tab
-    └── components/      # React components
-```
+**Modify Existing Workflow with AI:**
+1. Load an existing workflow
+2. Click the **AI Modify** button (sparkle icon)
+3. Describe the changes you want
+4. Review the before/after comparison
+5. Click **Apply Changes** to update
 
-## Development
+![AI Workflow Modification](modify_workflow_with_ai.png)
 
-```bash
-# Install dependencies
-npm install
+**Manual Workflow Editing:**
 
-# Development build (watch mode)
-npm run dev
+Edit workflows directly in the visual node editor with drag-and-drop interface.
 
-# Production build
-npm run build
-```
+![Manual Workflow Editing](modify_workflow_manual.png)
 
-## Tech Stack
-
-- TypeScript
-- React 19
-- @google/genai (Gemini API SDK)
-- esbuild
-- Obsidian API
+**Reload from File:**
+- Select **Reload from file** from the dropdown to re-import workflow from the markdown file
 
 ## Requirements
 
-- Obsidian v0.15.0 or higher
-- Google AI API key
-- Works on both desktop and mobile
+- Obsidian v0.15.0+
+- Google AI API key (or Gemini CLI)
+- Desktop and mobile supported
 
 ## Privacy
 
-- Your API key is stored locally in your vault's settings
-- Files are uploaded to Google's File Search API when semantic search is enabled
-- Chat history is stored locally in your vault as Markdown files
-- Semantic search settings are stored in `gemini-workspace.json` in your workspace folder
+**Data stored locally:**
+- API key (stored in Obsidian settings)
+- Chat history (as Markdown files)
+- Workflow execution history
+
+**Data sent to Google:**
+- All chat messages and file attachments are sent to Google Gemini API for processing
+- When Semantic Search is enabled, vault files are uploaded to Google File Search
+- When Web Search is enabled, queries are sent to Google Search
+
+**Data sent to third-party services:**
+- Workflow `http` nodes can send data to any URL specified in the workflow
+
+**Security notes:**
+- Review workflows before running - `http` nodes can transmit vault data to external endpoints
+- Workflow `note` nodes show a confirmation dialog before writing files (default behavior)
+- Slash commands with `confirmEdits: false` will auto-apply file edits without showing Apply/Discard buttons
+
+See [Google AI Terms of Service](https://ai.google.dev/terms) for data retention policies.
 
 ## License
 
@@ -367,6 +940,11 @@ MIT
 
 ## Links
 
-- [Gemini API Documentation](https://ai.google.dev/docs)
-- [Gemini File Search API](https://ai.google.dev/gemini-api/docs/file-search)
-- [Obsidian Plugin Developer Docs](https://docs.obsidian.md/Plugins/Getting+started/Build+a+plugin)
+- [Gemini API Docs](https://ai.google.dev/docs)
+- [Obsidian Plugin Docs](https://docs.obsidian.md/Plugins/Getting+started/Build+a+plugin)
+
+## Support
+
+If you find this plugin useful, consider buying me a coffee!
+
+[![Buy Me A Coffee](https://img.shields.io/badge/Buy%20Me%20A%20Coffee-support-yellow?logo=buymeacoffee)](https://buymeacoffee.com/takeshy)

@@ -1,0 +1,1375 @@
+import { App, TFile, requestUrl } from "obsidian";
+import type { GeminiHelperPlugin } from "../plugin";
+import { getGeminiClient } from "../core/gemini";
+import {
+  WorkflowNode,
+  ExecutionContext,
+  ParsedCondition,
+  ComparisonOperator,
+  PromptCallbacks,
+} from "./types";
+
+// Get value from object/JSON string using dot notation path
+function getNestedValue(data: unknown, path: string): unknown {
+  const parts = path.split(".");
+  let current: unknown = data;
+
+  for (const part of parts) {
+    if (current === null || current === undefined) {
+      return undefined;
+    }
+
+    // Handle array index notation like "items[0]"
+    const arrayMatch = part.match(/^(\w+)\[(\d+)\]$/);
+    if (arrayMatch) {
+      current = (current as Record<string, unknown>)[arrayMatch[1]];
+      if (Array.isArray(current)) {
+        current = current[parseInt(arrayMatch[2], 10)];
+      } else {
+        return undefined;
+      }
+    } else {
+      current = (current as Record<string, unknown>)[part];
+    }
+  }
+
+  return current;
+}
+
+// Replace {{variable}} or {{variable.path.to.value}} placeholders with actual values
+export function replaceVariables(
+  template: string,
+  context: ExecutionContext
+): string {
+  // Loop until no more replacements are made (handles nested variables like {{arr[{{i}}].value}})
+  let result = template;
+  let previousResult = "";
+  let iterations = 0;
+  const maxIterations = 10; // Prevent infinite loops
+
+  while (result !== previousResult && iterations < maxIterations) {
+    previousResult = result;
+    iterations++;
+
+    // Match {{varName}} or {{varName.path.to.value}} or {{varName.items[0].name}}
+    result = result.replace(/\{\{([\w\.\[\]]+)\}\}/g, (match, fullPath) => {
+    // Check if it's a simple variable or a path
+    const dotIndex = fullPath.indexOf(".");
+    const bracketIndex = fullPath.indexOf("[");
+    const firstSpecialIndex = Math.min(
+      dotIndex === -1 ? Infinity : dotIndex,
+      bracketIndex === -1 ? Infinity : bracketIndex
+    );
+
+    if (firstSpecialIndex === Infinity) {
+      // Simple variable name
+      const value = context.variables.get(fullPath);
+      if (value !== undefined) {
+        return String(value);
+      }
+      return match;
+    }
+
+    // It's a path like "varName.path.to.value"
+    const varName = fullPath.substring(0, firstSpecialIndex);
+    const restPath = fullPath.substring(
+      firstSpecialIndex + (fullPath[firstSpecialIndex] === "." ? 1 : 0)
+    );
+
+    const varValue = context.variables.get(varName);
+    if (varValue === undefined) {
+      return match;
+    }
+
+    // Try to parse as JSON if it's a string
+    let parsedValue: unknown;
+    if (typeof varValue === "string") {
+      try {
+        // Try to extract JSON from markdown code block if present
+        let jsonString = varValue;
+        const codeBlockMatch = jsonString.match(/```(?:json)?\s*([\s\S]*?)```/);
+        if (codeBlockMatch) {
+          jsonString = codeBlockMatch[1].trim();
+        }
+        parsedValue = JSON.parse(jsonString);
+      } catch {
+        // Not valid JSON, try treating the whole path as a variable
+        return match;
+      }
+    } else {
+      parsedValue = varValue;
+    }
+
+    // Navigate the path
+    const pathToNavigate =
+      fullPath[firstSpecialIndex] === "["
+        ? fullPath.substring(varName.length) // Keep the bracket
+        : restPath;
+
+    // For bracket notation at root, we need special handling
+    if (fullPath[firstSpecialIndex] === "[") {
+      const arrayMatch = pathToNavigate.match(/^\[(\d+)\](.*)$/);
+      if (arrayMatch && Array.isArray(parsedValue)) {
+        let result: unknown = parsedValue[parseInt(arrayMatch[1], 10)];
+        if (arrayMatch[2]) {
+          // There's more path after the index
+          const remainingPath = arrayMatch[2].startsWith(".")
+            ? arrayMatch[2].substring(1)
+            : arrayMatch[2];
+          if (remainingPath) {
+            result = getNestedValue(result, remainingPath);
+          }
+        }
+        if (result !== undefined) {
+          return typeof result === "object"
+            ? JSON.stringify(result)
+            : String(result);
+        }
+      }
+      return match;
+    }
+
+    const nestedValue = getNestedValue(parsedValue, restPath);
+    if (nestedValue !== undefined) {
+      return typeof nestedValue === "object"
+        ? JSON.stringify(nestedValue)
+        : String(nestedValue);
+    }
+
+    return match;
+    });
+  }
+
+  return result;
+}
+
+// Parse a simple condition expression
+export function parseCondition(condition: string): ParsedCondition | null {
+  // Match patterns like: {{counter}} < 10, {{status}} == "end", {{text}} contains "error"
+  const operators: ComparisonOperator[] = [
+    "==",
+    "!=",
+    "<=",
+    ">=",
+    "<",
+    ">",
+    "contains",
+  ];
+
+  for (const op of operators) {
+    const parts = condition.split(op);
+    if (parts.length === 2) {
+      return {
+        left: parts[0].trim(),
+        operator: op,
+        right: parts[1].trim(),
+      };
+    }
+  }
+
+  return null;
+}
+
+// Evaluate a parsed condition
+export function evaluateCondition(
+  condition: ParsedCondition,
+  context: ExecutionContext
+): boolean {
+  // Replace variables in left and right sides
+  let left = replaceVariables(condition.left, context);
+  let right = replaceVariables(condition.right, context);
+
+  // Remove quotes from string values
+  left = left.replace(/^["'](.*)["']$/, "$1");
+  right = right.replace(/^["'](.*)["']$/, "$1");
+
+  // Try to convert to numbers for numeric comparisons
+  const leftNum = parseFloat(left);
+  const rightNum = parseFloat(right);
+  const bothNumbers = !isNaN(leftNum) && !isNaN(rightNum);
+
+  switch (condition.operator) {
+    case "==":
+      return bothNumbers ? leftNum === rightNum : left === right;
+    case "!=":
+      return bothNumbers ? leftNum !== rightNum : left !== right;
+    case "<":
+      return bothNumbers ? leftNum < rightNum : left < right;
+    case ">":
+      return bothNumbers ? leftNum > rightNum : left > right;
+    case "<=":
+      return bothNumbers ? leftNum <= rightNum : left <= right;
+    case ">=":
+      return bothNumbers ? leftNum >= rightNum : left >= right;
+    case "contains":
+      return left.includes(right);
+    default:
+      return false;
+  }
+}
+
+// Handle variable node (initial declaration)
+export function handleVariableNode(
+  node: WorkflowNode,
+  context: ExecutionContext
+): void {
+  const name = node.properties["name"];
+  const value: string | number = replaceVariables(
+    node.properties["value"] || "",
+    context
+  );
+
+  // Try to parse as number
+  const numValue = parseFloat(value);
+  if (!isNaN(numValue) && value === String(numValue)) {
+    context.variables.set(name, numValue);
+  } else {
+    context.variables.set(name, value);
+  }
+}
+
+// Evaluate simple arithmetic expression
+function evaluateExpression(
+  expr: string,
+  context: ExecutionContext
+): number | string {
+  // Replace variables first
+  const replaced = replaceVariables(expr, context);
+
+  // Try to evaluate as arithmetic expression
+  // Supported: +, -, *, /, %
+  const arithmeticMatch = replaced.match(
+    /^(-?\d+(?:\.\d+)?)\s*([\+\-\*\/%])\s*(-?\d+(?:\.\d+)?)$/
+  );
+  if (arithmeticMatch) {
+    const left = parseFloat(arithmeticMatch[1]);
+    const operator = arithmeticMatch[2];
+    const right = parseFloat(arithmeticMatch[3]);
+
+    switch (operator) {
+      case "+":
+        return left + right;
+      case "-":
+        return left - right;
+      case "*":
+        return left * right;
+      case "/":
+        return right !== 0 ? left / right : 0;
+      case "%":
+        return left % right;
+    }
+  }
+
+  // Try as simple number
+  const num = parseFloat(replaced);
+  if (!isNaN(num) && replaced === String(num)) {
+    return num;
+  }
+
+  // Return as string
+  return replaced;
+}
+
+// Handle set node (update existing variable)
+export function handleSetNode(
+  node: WorkflowNode,
+  context: ExecutionContext
+): void {
+  const name = node.properties["name"];
+  const expr = node.properties["value"] || "";
+
+  if (!name) {
+    throw new Error("Set node missing 'name' property");
+  }
+
+  const result = evaluateExpression(expr, context);
+  context.variables.set(name, result);
+}
+
+// Handle if node - returns condition result
+export function handleIfNode(
+  node: WorkflowNode,
+  context: ExecutionContext
+): boolean {
+  const conditionStr = node.properties["condition"] || "";
+  const condition = parseCondition(conditionStr);
+
+  if (!condition) {
+    throw new Error(`Invalid condition format: ${conditionStr}`);
+  }
+
+  return evaluateCondition(condition, context);
+}
+
+// Handle while node - returns condition result
+export function handleWhileNode(
+  node: WorkflowNode,
+  context: ExecutionContext
+): boolean {
+  const conditionStr = node.properties["condition"] || "";
+  const condition = parseCondition(conditionStr);
+
+  if (!condition) {
+    throw new Error(`Invalid condition format: ${conditionStr}`);
+  }
+
+  return evaluateCondition(condition, context);
+}
+
+// Handle command node - execute LLM with prompt directly
+export async function handleCommandNode(
+  node: WorkflowNode,
+  context: ExecutionContext,
+  app: App,
+  plugin: GeminiHelperPlugin
+): Promise<void> {
+  const promptTemplate = node.properties["prompt"];
+  if (!promptTemplate) {
+    throw new Error("Command node missing 'prompt' property");
+  }
+
+  // Replace variables in prompt
+  const prompt = replaceVariables(promptTemplate, context);
+
+  // Get model (use node's model or current selection)
+  const modelName = node.properties["model"] || "";
+  // Cast to ModelType - if invalid, it will use default
+  const model = (modelName || plugin.getSelectedModel()) as import("../types").ModelType;
+
+  // Get RAG setting
+  // undefined/"" = use current, "__none__" = no RAG, "__websearch__" = web search, other = setting name
+  const ragSettingName = node.properties["ragSetting"];
+  let storeIds: string[] = [];
+  let useWebSearch = false;
+
+  if (ragSettingName === "__websearch__") {
+    // Web search mode
+    useWebSearch = true;
+  } else if (ragSettingName === "__none__") {
+    // Explicitly no RAG - storeIds stays empty
+  } else if (ragSettingName && ragSettingName !== "") {
+    // Specific RAG setting
+    const ragSetting = plugin.workspaceState.ragSettings[ragSettingName];
+    if (ragSetting) {
+      if (ragSetting.isExternal && ragSetting.storeIds.length > 0) {
+        storeIds = ragSetting.storeIds;
+      } else if (ragSetting.storeId) {
+        storeIds = [ragSetting.storeId];
+      }
+    }
+  } else if (ragSettingName === undefined) {
+    // Use current RAG setting
+    const currentSetting = plugin.getSelectedRagSetting();
+    if (currentSetting) {
+      if (currentSetting.isExternal && currentSetting.storeIds.length > 0) {
+        storeIds = currentSetting.storeIds;
+      } else if (currentSetting.storeId) {
+        storeIds = [currentSetting.storeId];
+      }
+    }
+  }
+  // If ragSettingName === "", use no RAG (storeIds stays empty)
+
+  // Get GeminiClient
+  const client = getGeminiClient();
+  if (!client) {
+    throw new Error("GeminiClient not initialized");
+  }
+  client.setModel(model);
+
+  // Build messages
+  const messages = [
+    {
+      role: "user" as const,
+      content: prompt,
+      timestamp: Date.now(),
+    },
+  ];
+
+  // Execute LLM call
+  let fullResponse = "";
+  const stream = client.chatWithToolsStream(
+    messages,
+    [], // No tools for workflow command
+    undefined, // No system prompt
+    undefined, // No executeToolCall
+    storeIds.length > 0 ? storeIds : undefined, // RAG store IDs
+    useWebSearch, // Web search mode
+    undefined // No options
+  );
+
+  for await (const chunk of stream) {
+    if (chunk.type === "text") {
+      fullResponse += chunk.content;
+    } else if (chunk.type === "error") {
+      throw new Error(chunk.content);
+    }
+  }
+
+  // Save response to variable if specified
+  const saveTo = node.properties["saveTo"];
+  if (saveTo) {
+    context.variables.set(saveTo, fullResponse);
+  }
+}
+
+// Increment a numeric variable (useful for loop counters)
+export function incrementVariable(
+  varName: string,
+  context: ExecutionContext,
+  amount: number = 1
+): void {
+  const current = context.variables.get(varName);
+  if (typeof current === "number") {
+    context.variables.set(varName, current + amount);
+  } else if (typeof current === "string") {
+    const num = parseFloat(current);
+    if (!isNaN(num)) {
+      context.variables.set(varName, num + amount);
+    }
+  }
+}
+
+// Handle HTTP request node
+export async function handleHttpNode(
+  node: WorkflowNode,
+  context: ExecutionContext
+): Promise<void> {
+  const url = replaceVariables(node.properties["url"] || "", context);
+  const method = (node.properties["method"] || "GET").toUpperCase();
+
+  if (!url) {
+    throw new Error("HTTP node missing 'url' property");
+  }
+
+  // Build headers - only add Content-Type for requests with body
+  const headers: Record<string, string> = {};
+
+  // Parse custom headers (format: "Key: Value" per line or JSON)
+  const headersStr = node.properties["headers"];
+  if (headersStr) {
+    const replacedHeaders = replaceVariables(headersStr, context);
+    try {
+      // Try parsing as JSON first
+      const parsedHeaders = JSON.parse(replacedHeaders);
+      Object.assign(headers, parsedHeaders);
+    } catch {
+      // Parse as "Key: Value" format
+      const lines = replacedHeaders.split("\n");
+      for (const line of lines) {
+        const colonIndex = line.indexOf(":");
+        if (colonIndex !== -1) {
+          const key = line.substring(0, colonIndex).trim();
+          const value = line.substring(colonIndex + 1).trim();
+          if (key) {
+            headers[key] = value;
+          }
+        }
+      }
+    }
+  }
+
+  // Build body
+  let body: string | undefined;
+  const bodyStr = node.properties["body"];
+  if (bodyStr) {
+    body = replaceVariables(bodyStr, context);
+    // Add Content-Type only when there's a body
+    if (!headers["Content-Type"]) {
+      headers["Content-Type"] = "application/json";
+    }
+  }
+
+  // Make HTTP request using Obsidian's requestUrl (avoids CORS issues)
+  let response;
+  try {
+    const requestOptions: Parameters<typeof requestUrl>[0] = {
+      url,
+      method,
+    };
+
+    // Only add headers if there are any
+    if (Object.keys(headers).length > 0) {
+      requestOptions.headers = headers;
+    }
+
+    // Only add body for appropriate methods
+    if (body && (method === "POST" || method === "PUT" || method === "PATCH")) {
+      requestOptions.body = body;
+    }
+
+    response = await requestUrl(requestOptions);
+  } catch (err) {
+    // Network error or other fetch failure
+    const errorMessage = err instanceof Error ? err.message : String(err);
+    throw new Error(`HTTP request failed: ${method} ${url} - ${errorMessage}`);
+  }
+
+  // Get response text
+  const responseText = response.text;
+
+  // Try to parse as JSON for better handling
+  let responseData: string;
+  try {
+    const jsonData = JSON.parse(responseText);
+    responseData = JSON.stringify(jsonData);
+  } catch {
+    responseData = responseText;
+  }
+
+  // Save response to variable if specified
+  const saveTo = node.properties["saveTo"];
+  if (saveTo) {
+    context.variables.set(saveTo, responseData);
+  }
+
+  // Save status code if specified
+  const saveStatus = node.properties["saveStatus"];
+  if (saveStatus) {
+    context.variables.set(saveStatus, response.status);
+  }
+
+  // Throw error if response is not ok and throwOnError is set
+  if (response.status >= 400 && node.properties["throwOnError"] === "true") {
+    throw new Error(`HTTP ${response.status} ${method} ${url}: ${responseText}`);
+  }
+}
+
+// Handle JSON parse node - parse string to JSON object
+export function handleJsonNode(
+  node: WorkflowNode,
+  context: ExecutionContext
+): void {
+  const sourceVar = node.properties["source"];
+  const saveTo = node.properties["saveTo"];
+
+  if (!sourceVar) {
+    throw new Error("JSON node missing 'source' property");
+  }
+  if (!saveTo) {
+    throw new Error("JSON node missing 'saveTo' property");
+  }
+
+  // Get the source string
+  const sourceValue = context.variables.get(sourceVar);
+  if (sourceValue === undefined) {
+    throw new Error(`Variable '${sourceVar}' not found`);
+  }
+
+  let jsonString = String(sourceValue);
+
+  // Extract JSON from markdown code block if present
+  const codeBlockMatch = jsonString.match(/```(?:json)?\s*([\s\S]*?)```/);
+  if (codeBlockMatch) {
+    jsonString = codeBlockMatch[1].trim();
+  }
+
+  // Parse JSON and save as string (for consistent storage)
+  try {
+    const parsed = JSON.parse(jsonString);
+    // Store as JSON string so it can be accessed with dot notation
+    context.variables.set(saveTo, JSON.stringify(parsed));
+  } catch (e) {
+    throw new Error(`Failed to parse JSON from '${sourceVar}': ${e}`);
+  }
+}
+
+// Helper function to create file info object from path
+function createFileInfo(filePath: string): { path: string; basename: string; name: string; extension: string } {
+  const parts = filePath.split("/");
+  const basename = parts[parts.length - 1];
+  const lastDotIndex = basename.lastIndexOf(".");
+  const name = lastDotIndex > 0 ? basename.substring(0, lastDotIndex) : basename;
+  const extension = lastDotIndex > 0 ? basename.substring(lastDotIndex + 1) : "";
+  return { path: filePath, basename, name, extension };
+}
+
+// Handle prompt-file node - show file picker dialog or use active file in hotkey mode
+// In hotkey mode: Uses __hotkeyActiveFile__ to auto-select active file without dialog
+// In panel mode: Shows file picker dialog
+// Set forcePrompt: "true" to always show the file picker dialog
+// saveTo: stores file content, saveFileTo: stores file info JSON
+export async function handlePromptFileNode(
+  node: WorkflowNode,
+  context: ExecutionContext,
+  app: App,
+  promptCallbacks?: PromptCallbacks
+): Promise<void> {
+  const defaultPath = replaceVariables(
+    node.properties["default"] || "",
+    context
+  );
+  const saveTo = node.properties["saveTo"];
+  const saveFileTo = node.properties["saveFileTo"];
+  const forcePrompt = node.properties["forcePrompt"] === "true";
+
+  if (!saveTo) {
+    throw new Error("prompt-file node missing 'saveTo' property");
+  }
+
+  let filePath: string | null = null;
+
+  // Check for hotkey mode (active file info passed via __hotkeyActiveFile__)
+  const hotkeyActiveFile = context.variables.get("__hotkeyActiveFile__");
+
+  // If forcePrompt is true, always show the dialog
+  if (forcePrompt) {
+    if (!promptCallbacks?.promptForFile) {
+      throw new Error("File prompt callback not available");
+    }
+    filePath = await promptCallbacks.promptForFile(defaultPath);
+    if (filePath === null) {
+      throw new Error("File selection cancelled by user");
+    }
+  } else if (hotkeyActiveFile) {
+    // Hotkey mode: use active file without showing dialog
+    try {
+      const fileInfo = JSON.parse(String(hotkeyActiveFile));
+      if (fileInfo.path) {
+        filePath = fileInfo.path as string;
+      }
+    } catch {
+      // Invalid JSON, fall through to dialog
+    }
+  }
+
+  // Panel mode or fallback: show file picker dialog
+  if (filePath === null) {
+    if (!promptCallbacks?.promptForFile) {
+      throw new Error("File prompt callback not available");
+    }
+    filePath = await promptCallbacks.promptForFile(defaultPath);
+  }
+
+  if (filePath === null) {
+    throw new Error("File selection cancelled by user");
+  }
+
+  // Read file content
+  const notePath = filePath.endsWith(".md") ? filePath : `${filePath}.md`;
+  const file = app.vault.getAbstractFileByPath(notePath);
+  if (!file || !(file instanceof TFile)) {
+    throw new Error(`File not found: ${notePath}`);
+  }
+  const content = await app.vault.read(file);
+
+  // Set content to saveTo
+  context.variables.set(saveTo, content);
+
+  // Set file info to saveFileTo if specified
+  if (saveFileTo) {
+    const fileInfo = createFileInfo(filePath);
+    context.variables.set(saveFileTo, JSON.stringify(fileInfo));
+  }
+}
+
+// Handle prompt-selection node - show file preview with text selection or use hotkey selection
+// In hotkey mode: Uses __hotkeySelection__ to auto-use selected text without dialog
+// In panel mode: Shows selection dialog
+// saveTo: stores selected text, saveSelectionTo: stores selection metadata JSON
+export async function handlePromptSelectionNode(
+  node: WorkflowNode,
+  context: ExecutionContext,
+  app: App,
+  promptCallbacks?: PromptCallbacks
+): Promise<void> {
+  const saveTo = node.properties["saveTo"];
+  const saveSelectionTo = node.properties["saveSelectionTo"];
+
+  if (!saveTo) {
+    throw new Error("prompt-selection node missing 'saveTo' property");
+  }
+
+  // Check for hotkey mode (selection passed via __hotkeySelection__)
+  const hotkeySelection = context.variables.get("__hotkeySelection__");
+  const hotkeySelectionInfo = context.variables.get("__hotkeySelectionInfo__");
+
+  if (hotkeySelection !== undefined && hotkeySelection !== "") {
+    // Hotkey mode: use existing selection without dialog
+    const selectionText = String(hotkeySelection);
+
+    // Set user-specified variables only
+    context.variables.set(saveTo, selectionText);
+    if (saveSelectionTo && hotkeySelectionInfo) {
+      context.variables.set(saveSelectionTo, String(hotkeySelectionInfo));
+    }
+    return;
+  }
+
+  // Panel mode: show selection dialog
+  if (!promptCallbacks?.promptForSelection) {
+    throw new Error("Selection prompt callback not available");
+  }
+
+  const result = await promptCallbacks.promptForSelection();
+
+  if (result === null) {
+    throw new Error("Selection cancelled by user");
+  }
+
+  // Read the file content to extract the actual selected text
+  const file = app.vault.getAbstractFileByPath(result.path);
+  if (!file || !(file instanceof TFile)) {
+    throw new Error(`File not found: ${result.path}`);
+  }
+  const fileContent = await app.vault.read(file);
+
+  // Convert EditorPosition (line, ch) to character offsets
+  const lines = fileContent.split("\n");
+  let startOffset = 0;
+  for (let i = 0; i < result.start.line; i++) {
+    startOffset += lines[i].length + 1; // +1 for newline
+  }
+  startOffset += result.start.ch;
+
+  let endOffset = 0;
+  for (let i = 0; i < result.end.line; i++) {
+    endOffset += lines[i].length + 1;
+  }
+  endOffset += result.end.ch;
+
+  // Extract the selected text
+  const selectedText = fileContent.substring(startOffset, endOffset);
+
+  // Set user-specified variables only
+  context.variables.set(saveTo, selectedText);
+  if (saveSelectionTo) {
+    context.variables.set(saveSelectionTo, JSON.stringify({
+      filePath: result.path,
+      startLine: result.start.line,
+      endLine: result.end.line,
+      start: startOffset,
+      end: endOffset,
+    }));
+  }
+}
+
+// Recursively ensure all parent folders exist
+async function ensureFolderExists(app: App, folderPath: string): Promise<void> {
+  if (!folderPath) return;
+
+  const folder = app.vault.getAbstractFileByPath(folderPath);
+  if (folder) return; // Already exists
+
+  // Get parent folder path
+  const parentPath = folderPath.substring(0, folderPath.lastIndexOf("/"));
+  if (parentPath) {
+    // Recursively ensure parent exists first
+    await ensureFolderExists(app, parentPath);
+  }
+
+  // Now create this folder
+  try {
+    await app.vault.createFolder(folderPath);
+  } catch {
+    // Folder might have been created by another process
+  }
+}
+
+// Handle note node - write content to a note file
+export async function handleNoteNode(
+  node: WorkflowNode,
+  context: ExecutionContext,
+  app: App,
+  promptCallbacks?: PromptCallbacks
+): Promise<void> {
+  const path = replaceVariables(node.properties["path"] || "", context);
+  const content = replaceVariables(node.properties["content"] || "", context);
+  const mode = node.properties["mode"] || "overwrite"; // overwrite, append, create
+
+  if (!path) {
+    throw new Error("Note node missing 'path' property");
+  }
+
+  // Ensure .md extension
+  const notePath = path.endsWith(".md") ? path : `${path}.md`;
+
+  // Check if confirmation is required (default: true)
+  const confirm = node.properties["confirm"] !== "false";
+
+  if (confirm && promptCallbacks?.promptForConfirmation) {
+    const confirmed = await promptCallbacks.promptForConfirmation(
+      notePath,
+      content,
+      mode
+    );
+    if (!confirmed) {
+      throw new Error("Note write cancelled by user");
+    }
+  }
+
+  // Check if file exists
+  const existingFile = app.vault.getAbstractFileByPath(notePath);
+
+  // Ensure parent folder exists for all modes when creating new file
+  const folderPath = notePath.substring(0, notePath.lastIndexOf("/"));
+
+  if (mode === "create") {
+    // Only create if file doesn't exist
+    if (existingFile) {
+      // File already exists, skip
+      return;
+    }
+    await ensureFolderExists(app, folderPath);
+    await app.vault.create(notePath, content);
+  } else if (mode === "append") {
+    if (existingFile && existingFile instanceof TFile) {
+      // Append to existing file
+      const currentContent = await app.vault.read(existingFile);
+      await app.vault.modify(existingFile, currentContent + "\n" + content);
+    } else {
+      // Create new file with content
+      await ensureFolderExists(app, folderPath);
+      await app.vault.create(notePath, content);
+    }
+  } else {
+    // overwrite mode (default)
+    if (existingFile && existingFile instanceof TFile) {
+      await app.vault.modify(existingFile, content);
+    } else {
+      await ensureFolderExists(app, folderPath);
+      await app.vault.create(notePath, content);
+    }
+  }
+
+}
+
+// Handle note-read node - read note content from file
+// Always requires path - use prompt-file first to get the file path
+export async function handleNoteReadNode(
+  node: WorkflowNode,
+  context: ExecutionContext,
+  app: App,
+  _promptCallbacks?: PromptCallbacks
+): Promise<void> {
+  const pathRaw = node.properties["path"] || "";
+  const saveTo = node.properties["saveTo"];
+
+  if (!saveTo) {
+    throw new Error("note-read node missing 'saveTo' property");
+  }
+
+  if (!pathRaw.trim()) {
+    throw new Error("note-read node missing 'path' property. Use prompt-file first to get the file path.");
+  }
+
+  const path = replaceVariables(pathRaw, context);
+
+  // Ensure .md extension
+  const notePath = path.endsWith(".md") ? path : `${path}.md`;
+
+  const file = app.vault.getAbstractFileByPath(notePath);
+  if (!file) {
+    throw new Error(`Note not found: ${notePath}`);
+  }
+
+  if (!(file instanceof TFile)) {
+    throw new Error(`Path is not a file: ${notePath}`);
+  }
+
+  const content = await app.vault.read(file);
+  context.variables.set(saveTo, content);
+}
+
+// Handle note-search node - search for notes by name or content
+export async function handleNoteSearchNode(
+  node: WorkflowNode,
+  context: ExecutionContext,
+  app: App
+): Promise<void> {
+  const query = replaceVariables(node.properties["query"] || "", context);
+  const searchContent = node.properties["searchContent"] === "true";
+  const limitStr = node.properties["limit"] || "10";
+  const limit = parseInt(limitStr, 10) || 10;
+  const saveTo = node.properties["saveTo"];
+
+  if (!query) {
+    throw new Error("note-search node missing 'query' property");
+  }
+  if (!saveTo) {
+    throw new Error("note-search node missing 'saveTo' property");
+  }
+
+  const files = app.vault.getMarkdownFiles();
+  const results: { name: string; path: string; matchedContent?: string }[] = [];
+
+  if (searchContent) {
+    // Search within file contents
+    for (const file of files) {
+      if (results.length >= limit) break;
+
+      const content = await app.vault.cachedRead(file);
+      const lowerContent = content.toLowerCase();
+      const lowerQuery = query.toLowerCase();
+
+      if (lowerContent.includes(lowerQuery)) {
+        // Extract matched context (50 chars before and after)
+        const index = lowerContent.indexOf(lowerQuery);
+        const start = Math.max(0, index - 50);
+        const end = Math.min(content.length, index + query.length + 50);
+        const matchedContent = content.substring(start, end);
+
+        results.push({
+          name: file.basename,
+          path: file.path,
+          matchedContent:
+            (start > 0 ? "..." : "") +
+            matchedContent +
+            (end < content.length ? "..." : ""),
+        });
+      }
+    }
+  } else {
+    // Search by file name
+    const lowerQuery = query.toLowerCase();
+    for (const file of files) {
+      if (results.length >= limit) break;
+
+      if (
+        file.basename.toLowerCase().includes(lowerQuery) ||
+        file.path.toLowerCase().includes(lowerQuery)
+      ) {
+        results.push({
+          name: file.basename,
+          path: file.path,
+        });
+      }
+    }
+  }
+
+  context.variables.set(saveTo, JSON.stringify(results));
+}
+
+// Parse time duration string (e.g., "7d", "30m", "2h") to milliseconds
+function parseTimeDuration(duration: string): number | null {
+  if (!duration) return null;
+
+  const match = duration.trim().match(/^(\d+)\s*(m|min|h|hour|d|day)s?$/i);
+  if (!match) return null;
+
+  const value = parseInt(match[1], 10);
+  const unit = match[2].toLowerCase();
+
+  switch (unit) {
+    case "m":
+    case "min":
+      return value * 60 * 1000;
+    case "h":
+    case "hour":
+      return value * 60 * 60 * 1000;
+    case "d":
+    case "day":
+      return value * 24 * 60 * 60 * 1000;
+    default:
+      return null;
+  }
+}
+
+// Get tags from a file using Obsidian's metadata cache
+function getFileTags(app: App, filePath: string): string[] {
+  const cache = app.metadataCache.getCache(filePath);
+  if (!cache) return [];
+
+  const tags: string[] = [];
+
+  // Get tags from frontmatter
+  if (cache.frontmatter?.tags) {
+    const fmTags = cache.frontmatter.tags;
+    if (Array.isArray(fmTags)) {
+      tags.push(...fmTags.map((t) => (t.startsWith("#") ? t : `#${t}`)));
+    } else if (typeof fmTags === "string") {
+      tags.push(fmTags.startsWith("#") ? fmTags : `#${fmTags}`);
+    }
+  }
+
+  // Get inline tags
+  if (cache.tags) {
+    tags.push(...cache.tags.map((t) => t.tag));
+  }
+
+  return [...new Set(tags)]; // Remove duplicates
+}
+
+// Handle note-list node - list notes in a folder
+export async function handleNoteListNode(
+  node: WorkflowNode,
+  context: ExecutionContext,
+  app: App
+): Promise<void> {
+  const folder = replaceVariables(node.properties["folder"] || "", context);
+  const recursive = node.properties["recursive"] === "true";
+  const limitStr = node.properties["limit"] || "50";
+  const limit = parseInt(limitStr, 10) || 50;
+  const saveTo = node.properties["saveTo"];
+
+  // Date filtering
+  const createdWithin = replaceVariables(
+    node.properties["createdWithin"] || "",
+    context
+  );
+  const modifiedWithin = replaceVariables(
+    node.properties["modifiedWithin"] || "",
+    context
+  );
+  const sortBy = node.properties["sortBy"] || ""; // "created", "modified", "name"
+  const sortOrder = node.properties["sortOrder"] || "desc"; // "asc", "desc"
+
+  // Tag filtering
+  const tagsFilter = replaceVariables(node.properties["tags"] || "", context);
+  const tagMatchMode = node.properties["tagMatch"] || "any"; // "any" or "all"
+
+  if (!saveTo) {
+    throw new Error("note-list node missing 'saveTo' property");
+  }
+
+  const now = Date.now();
+  const createdThreshold = parseTimeDuration(createdWithin);
+  const modifiedThreshold = parseTimeDuration(modifiedWithin);
+
+  // Parse tag filter
+  const requiredTags = tagsFilter
+    ? tagsFilter
+        .split(",")
+        .map((t) => {
+          const trimmed = t.trim();
+          return trimmed.startsWith("#") ? trimmed : `#${trimmed}`;
+        })
+        .filter((t) => t.length > 1)
+    : [];
+
+  let files = app.vault.getMarkdownFiles();
+
+  // Filter by folder
+  if (folder) {
+    const normalizedFolder = folder.endsWith("/") ? folder : folder + "/";
+    files = files.filter((file) => {
+      if (recursive) {
+        return (
+          file.path.startsWith(normalizedFolder) ||
+          file.path === folder + ".md"
+        );
+      } else {
+        const fileFolder =
+          file.path.substring(0, file.path.lastIndexOf("/") + 1);
+        return fileFolder === normalizedFolder || file.parent?.path === folder;
+      }
+    });
+  }
+
+  // Filter by creation time
+  if (createdThreshold !== null) {
+    const cutoff = now - createdThreshold;
+    files = files.filter((file) => file.stat.ctime >= cutoff);
+  }
+
+  // Filter by modification time
+  if (modifiedThreshold !== null) {
+    const cutoff = now - modifiedThreshold;
+    files = files.filter((file) => file.stat.mtime >= cutoff);
+  }
+
+  // Filter by tags
+  if (requiredTags.length > 0) {
+    files = files.filter((file) => {
+      const fileTags = getFileTags(app, file.path);
+      if (tagMatchMode === "all") {
+        // All tags must be present
+        return requiredTags.every((tag) => fileTags.includes(tag));
+      } else {
+        // Any tag must be present
+        return requiredTags.some((tag) => fileTags.includes(tag));
+      }
+    });
+  }
+
+  // Sort files
+  if (sortBy === "created") {
+    files.sort((a, b) =>
+      sortOrder === "asc"
+        ? a.stat.ctime - b.stat.ctime
+        : b.stat.ctime - a.stat.ctime
+    );
+  } else if (sortBy === "modified") {
+    files.sort((a, b) =>
+      sortOrder === "asc"
+        ? a.stat.mtime - b.stat.mtime
+        : b.stat.mtime - a.stat.mtime
+    );
+  } else if (sortBy === "name") {
+    files.sort((a, b) =>
+      sortOrder === "asc"
+        ? a.basename.localeCompare(b.basename)
+        : b.basename.localeCompare(a.basename)
+    );
+  }
+
+  // Apply limit and build results
+  const totalCount = files.length;
+  const limitedFiles = files.slice(0, limit);
+
+  const results = limitedFiles.map((file) => ({
+    name: file.basename,
+    path: file.path,
+    created: file.stat.ctime,
+    modified: file.stat.mtime,
+    tags: getFileTags(app, file.path),
+  }));
+
+  context.variables.set(
+    saveTo,
+    JSON.stringify({
+      notes: results,
+      count: results.length,
+      totalCount,
+      hasMore: totalCount > limit,
+    })
+  );
+}
+
+// Handle folder-list node - list folders in the vault
+export async function handleFolderListNode(
+  node: WorkflowNode,
+  context: ExecutionContext,
+  app: App
+): Promise<void> {
+  const parentFolder = replaceVariables(
+    node.properties["folder"] || "",
+    context
+  );
+  const saveTo = node.properties["saveTo"];
+
+  if (!saveTo) {
+    throw new Error("folder-list node missing 'saveTo' property");
+  }
+
+  const folders: string[] = [];
+
+  // Get all folders from the vault
+  const allFiles = app.vault.getAllLoadedFiles();
+  for (const file of allFiles) {
+    // Check if it's a folder (has children property)
+    if ("children" in file && file.children !== undefined) {
+      const folderPath = file.path;
+
+      // Filter by parent folder if specified
+      if (parentFolder) {
+        const normalizedParent = parentFolder.endsWith("/")
+          ? parentFolder.slice(0, -1)
+          : parentFolder;
+        if (
+          !folderPath.startsWith(normalizedParent + "/") &&
+          folderPath !== normalizedParent
+        ) {
+          continue;
+        }
+      }
+
+      if (folderPath) {
+        folders.push(folderPath);
+      }
+    }
+  }
+
+  // Sort alphabetically
+  folders.sort();
+
+  context.variables.set(
+    saveTo,
+    JSON.stringify({
+      folders,
+      count: folders.length,
+    })
+  );
+}
+
+// Handle open node - open a file in Obsidian
+export async function handleOpenNode(
+  node: WorkflowNode,
+  context: ExecutionContext,
+  app: App,
+  promptCallbacks?: PromptCallbacks
+): Promise<void> {
+  const path = replaceVariables(node.properties["path"] || "", context);
+
+  if (!path) {
+    throw new Error("Open node missing 'path' property");
+  }
+
+  // Ensure .md extension
+  const notePath = path.endsWith(".md") ? path : `${path}.md`;
+
+  if (promptCallbacks?.openFile) {
+    await promptCallbacks.openFile(notePath);
+  }
+}
+
+// Handle dialog node - show a dialog with options and buttons
+export async function handleDialogNode(
+  node: WorkflowNode,
+  context: ExecutionContext,
+  _app: App,
+  promptCallbacks?: PromptCallbacks
+): Promise<void> {
+  const title = replaceVariables(node.properties["title"] || "Dialog", context);
+  const message = replaceVariables(node.properties["message"] || "", context);
+  const optionsStr = replaceVariables(node.properties["options"] || "", context);
+  const multiSelect = node.properties["multiSelect"] === "true";
+  const markdown = node.properties["markdown"] === "true";
+  const button1 = replaceVariables(node.properties["button1"] || "OK", context);
+  const button2Prop = node.properties["button2"];
+  const button2 = button2Prop ? replaceVariables(button2Prop, context) : undefined;
+  const inputTitleProp = node.properties["inputTitle"];
+  const inputTitle = inputTitleProp ? replaceVariables(inputTitleProp, context) : undefined;
+  const multiline = node.properties["multiline"] === "true";
+  const defaultsProp = node.properties["defaults"];
+  const saveTo = node.properties["saveTo"];
+
+  // Parse defaults JSON
+  let defaults: { input?: string; selected?: string[] } | undefined;
+  if (defaultsProp) {
+    try {
+      const parsed = JSON.parse(replaceVariables(defaultsProp, context));
+      defaults = {
+        input: parsed.input,
+        selected: Array.isArray(parsed.selected) ? parsed.selected : undefined,
+      };
+    } catch {
+      // Invalid JSON, ignore defaults
+    }
+  }
+
+  // Parse options (comma-separated)
+  const options = optionsStr
+    ? optionsStr.split(",").map((o) => o.trim()).filter((o) => o.length > 0)
+    : [];
+
+  if (!promptCallbacks?.promptForDialog) {
+    throw new Error("Dialog prompt callback not available");
+  }
+
+  const result = await promptCallbacks.promptForDialog(
+    title,
+    message,
+    options,
+    multiSelect,
+    button1,
+    button2,
+    markdown,
+    inputTitle,
+    defaults,
+    multiline
+  );
+
+  if (result === null) {
+    throw new Error("Dialog cancelled by user");
+  }
+
+  // Save result to variable
+  if (saveTo) {
+    context.variables.set(saveTo, JSON.stringify(result));
+  }
+}
+
+// Handle workflow node - execute a sub-workflow
+export async function handleWorkflowNode(
+  node: WorkflowNode,
+  context: ExecutionContext,
+  _app: App,
+  promptCallbacks?: PromptCallbacks
+): Promise<void> {
+  const path = replaceVariables(node.properties["path"] || "", context);
+  const name = node.properties["name"]
+    ? replaceVariables(node.properties["name"], context)
+    : undefined;
+  const inputStr = node.properties["input"] || "";
+  const outputStr = node.properties["output"] || "";
+
+  if (!path) {
+    throw new Error("Workflow node missing 'path' property");
+  }
+
+  if (!promptCallbacks?.executeSubWorkflow) {
+    throw new Error("Sub-workflow execution not available");
+  }
+
+  // Parse input variable mapping (JSON object: {"subVar": "{{parentVar}}"})
+  const inputVariables = new Map<string, string | number>();
+  if (inputStr) {
+    const replacedInput = replaceVariables(inputStr, context);
+    try {
+      const inputMapping = JSON.parse(replacedInput);
+      if (typeof inputMapping === "object" && inputMapping !== null) {
+        for (const [key, value] of Object.entries(inputMapping)) {
+          if (typeof value === "string" || typeof value === "number") {
+            inputVariables.set(key, value);
+          } else {
+            inputVariables.set(key, JSON.stringify(value));
+          }
+        }
+      }
+    } catch {
+      // If not valid JSON, try to parse as comma-separated key=value pairs
+      const pairs = replacedInput.split(",");
+      for (const pair of pairs) {
+        const eqIndex = pair.indexOf("=");
+        if (eqIndex !== -1) {
+          const key = pair.substring(0, eqIndex).trim();
+          const value = pair.substring(eqIndex + 1).trim();
+          if (key) {
+            // Try to get value from context if it looks like a variable reference
+            const contextValue = context.variables.get(value);
+            inputVariables.set(key, contextValue !== undefined ? contextValue : value);
+          }
+        }
+      }
+    }
+  }
+
+  // Execute sub-workflow
+  const resultVariables = await promptCallbacks.executeSubWorkflow(
+    path,
+    name,
+    inputVariables
+  );
+
+  // Copy output variables back to parent context
+  if (outputStr) {
+    // Parse output mapping (JSON object: {"parentVar": "subVar"} or comma-separated)
+    const replacedOutput = replaceVariables(outputStr, context);
+    try {
+      const outputMapping = JSON.parse(replacedOutput);
+      if (typeof outputMapping === "object" && outputMapping !== null) {
+        for (const [parentVar, subVar] of Object.entries(outputMapping)) {
+          if (typeof subVar === "string") {
+            const value = resultVariables.get(subVar);
+            if (value !== undefined) {
+              context.variables.set(parentVar, value);
+            }
+          }
+        }
+      }
+    } catch {
+      // Comma-separated: parentVar=subVar
+      const pairs = replacedOutput.split(",");
+      for (const pair of pairs) {
+        const eqIndex = pair.indexOf("=");
+        if (eqIndex !== -1) {
+          const parentVar = pair.substring(0, eqIndex).trim();
+          const subVar = pair.substring(eqIndex + 1).trim();
+          if (parentVar && subVar) {
+            const value = resultVariables.get(subVar);
+            if (value !== undefined) {
+              context.variables.set(parentVar, value);
+            }
+          }
+        }
+      }
+    }
+  } else {
+    // No explicit output mapping - copy all result variables with optional prefix
+    const prefix = node.properties["prefix"] || "";
+    for (const [key, value] of resultVariables) {
+      context.variables.set(prefix + key, value);
+    }
+  }
+}

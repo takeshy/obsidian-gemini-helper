@@ -9,6 +9,11 @@ import {
   proposeEdit,
   applyEdit,
   discardEdit,
+  proposeDelete,
+  applyDelete,
+  discardDelete,
+  proposeBulkEdit,
+  proposeBulkDelete,
 } from "./notes";
 import {
   searchByName,
@@ -276,6 +281,41 @@ async function executeToolCallInternal(
 
     case "discard_edit":
       return discardEdit(app);
+
+    case "propose_delete":
+      return proposeDelete(app, args.fileName as string);
+
+    case "apply_delete":
+      return applyDelete(app);
+
+    case "discard_delete":
+      return discardDelete(app);
+
+    case "bulk_propose_edit": {
+      const edits = args.edits as Array<{
+        fileName: string;
+        newContent: string;
+        mode?: "replace" | "append" | "prepend";
+      }>;
+      if (!edits || !Array.isArray(edits) || edits.length === 0) {
+        return {
+          success: false,
+          error: "No edits provided. The 'edits' array is required.",
+        };
+      }
+      return proposeBulkEdit(app, edits);
+    }
+
+    case "bulk_propose_delete": {
+      const fileNames = args.fileNames as string[];
+      if (!fileNames || !Array.isArray(fileNames) || fileNames.length === 0) {
+        return {
+          success: false,
+          error: "No files provided. The 'fileNames' array is required.",
+        };
+      }
+      return proposeBulkDelete(app, fileNames);
+    }
 
     default:
       return {

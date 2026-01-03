@@ -1,14 +1,14 @@
 import { createRoot, Root } from "react-dom/client";
 import { ItemView, WorkspaceLeaf, IconName, TFile } from "obsidian";
 import type { GeminiHelperPlugin } from "src/plugin";
-import Chat, { ChatRef } from "./components/Chat";
+import TabContainer, { TabContainerRef } from "./components/TabContainer";
 
 export const VIEW_TYPE_GEMINI_CHAT = "gemini-chat-view";
 
 export class ChatView extends ItemView {
   plugin: GeminiHelperPlugin;
   reactRoot!: Root;
-  private chatRef: ChatRef | null = null;
+  private tabContainerRef: TabContainerRef | null = null;
 
   constructor(leaf: WorkspaceLeaf, plugin: GeminiHelperPlugin) {
     super(leaf);
@@ -20,7 +20,7 @@ export class ChatView extends ItemView {
   }
 
   getDisplayText(): string {
-    return "Gemini chat";
+    return "Gemini";
   }
 
   getIcon(): IconName {
@@ -35,9 +35,9 @@ export class ChatView extends ItemView {
 
     const root = createRoot(container);
     root.render(
-      <Chat
+      <TabContainer
         ref={(ref) => {
-          this.chatRef = ref;
+          this.tabContainerRef = ref;
         }}
         plugin={this.plugin}
       />
@@ -53,10 +53,10 @@ export class ChatView extends ItemView {
   }
 
   getActiveChat(): TFile | null {
-    return this.chatRef?.getActiveChat() ?? null;
+    return this.tabContainerRef?.getActiveChat() ?? null;
   }
 
   setActiveChat(chat: TFile | null): void {
-    this.chatRef?.setActiveChat(chat);
+    this.tabContainerRef?.setActiveChat(chat);
   }
 }

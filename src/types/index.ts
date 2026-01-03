@@ -109,11 +109,12 @@ export type RagSyncState = Pick<RagState, "files" | "lastFullSync">;
 export type ApiPlan = "paid" | "free";
 
 // Chat provider types
-export type ChatProvider = "api" | "gemini-cli";
+export type ChatProvider = "api" | "gemini-cli" | "claude-cli";
 
 export interface CliProviderConfig {
   provider: ChatProvider;
-  cliVerified?: boolean;    // Whether CLI has been verified
+  cliVerified?: boolean;        // Whether Gemini CLI has been verified
+  claudeCliVerified?: boolean;  // Whether Claude CLI has been verified
 }
 
 export const DEFAULT_CLI_CONFIG: CliProviderConfig = {
@@ -134,7 +135,8 @@ export type ModelType =
   | "gemma-3-12b-it"
   | "gemma-3-4b-it"
   | "gemma-3-1b-it"
-  | "gemini-cli";
+  | "gemini-cli"
+  | "claude-cli";
 
 export interface ModelInfo {
   name: ModelType;
@@ -144,11 +146,18 @@ export interface ModelInfo {
   isCliModel?: boolean;    // true if this model is CLI-based
 }
 
-// CLI model definition
+// CLI model definitions
 export const CLI_MODEL: ModelInfo = {
   name: "gemini-cli",
   displayName: "Gemini CLI",
   description: "Google Gemini via command line (requires Google account)",
+  isCliModel: true,
+};
+
+export const CLAUDE_CLI_MODEL: ModelInfo = {
+  name: "claude-cli",
+  displayName: "Claude CLI",
+  description: "Anthropic Claude via command line (requires Anthropic account)",
   isCliModel: true,
 };
 

@@ -15,6 +15,7 @@ import {
 	getAvailableModels,
 	isModelAllowedForPlan,
 	CLI_MODEL,
+	CLAUDE_CLI_MODEL,
 	type Message,
 	type ModelType,
 	type Attachment,
@@ -26,7 +27,7 @@ import {
 } from "src/types";
 import { getGeminiClient } from "src/core/gemini";
 import { getEnabledTools } from "src/core/tools";
-import { GeminiCliProvider } from "src/core/cliProvider";
+import { GeminiCliProvider, ClaudeCliProvider } from "src/core/cliProvider";
 import { createToolExecutor } from "src/vault/toolExecutor";
 import {
 	getPendingEdit,
@@ -133,9 +134,15 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 	const [hasApiKey, setHasApiKey] = useState(!!plugin.settings.googleApiKey);
 
 	// CLI provider state (CLI not available on mobile)
-	const cliEnabled = !Platform.isMobile && cliConfig.provider === "gemini-cli";
-	const cliVerified = cliConfig.cliVerified === true;
-	const isCliMode = !Platform.isMobile && currentModel === "gemini-cli";
+	const geminiCliEnabled = !Platform.isMobile && cliConfig.provider === "gemini-cli";
+	const claudeCliEnabled = !Platform.isMobile && cliConfig.provider === "claude-cli";
+	const cliEnabled = geminiCliEnabled || claudeCliEnabled;
+	const geminiCliVerified = cliConfig.cliVerified === true;
+	const claudeCliVerified = cliConfig.claudeCliVerified === true;
+	const cliVerified = (geminiCliEnabled && geminiCliVerified) || (claudeCliEnabled && claudeCliVerified);
+	const isGeminiCliMode = !Platform.isMobile && currentModel === "gemini-cli";
+	const isClaudeCliMode = !Platform.isMobile && currentModel === "claude-cli";
+	const isCliMode = isGeminiCliMode || isClaudeCliMode;
 
 	// Check if configuration is ready (API key set OR CLI verified)
 	const isConfigReady = hasApiKey || (cliEnabled && cliVerified);
@@ -143,9 +150,13 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 	const allowWebSearch = !isCliMode;
 	const allowRag = ragEnabledState && !isCliMode;
 
-	// Build available models list (CLI option first if enabled AND verified)
+	// Build available models list (CLI options first if enabled AND verified)
 	const baseModels = getAvailableModels(apiPlan);
-	const availableModels = cliEnabled && cliVerified ? [CLI_MODEL, ...baseModels] : baseModels;
+	const cliModels = [
+		...(geminiCliEnabled && geminiCliVerified ? [CLI_MODEL] : []),
+		...(claudeCliEnabled && claudeCliVerified ? [CLAUDE_CLI_MODEL] : []),
+	];
+	const availableModels = [...cliModels, ...baseModels];
 
 	useImperativeHandle(ref, () => ({
 		getActiveChat: () => activeChat,
@@ -463,8 +474,8 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 	}, [plugin, selectedRagSetting]);
 
 	useEffect(() => {
-		// Skip plan check for CLI model
-		if (currentModel === "gemini-cli") return;
+		// Skip plan check for CLI models
+		if (currentModel === "gemini-cli" || currentModel === "claude-cli") return;
 		if (!isModelAllowedForPlan(apiPlan, currentModel)) {
 			setCurrentModel(DEFAULT_MODEL);
 			void plugin.selectModel(DEFAULT_MODEL);
@@ -483,7 +494,7 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 		void plugin.selectModel(model);
 
 		// Auto-adjust search setting for CLI mode and special models
-		if (model === "gemini-cli") {
+		if (model === "gemini-cli" || model === "claude-cli") {
 			// CLI mode: force Search to None
 			if (selectedRagSetting !== null) {
 				handleRagSettingChange(null);
@@ -676,7 +687,8 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 
 	// Send message via CLI provider
 	const sendMessageViaCli = async (content: string, attachments?: Attachment[]) => {
-		const provider = new GeminiCliProvider();
+		const isClaudeCli = currentModel === "claude-cli";
+		const provider = isClaudeCli ? new ClaudeCliProvider() : new GeminiCliProvider();
 
 		// Resolve variables in the content
 		const resolvedContent = await resolveMessageVariables(content);
@@ -701,8 +713,9 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 			const allMessages = [...messages, userMessage];
 
 			// Build system prompt for CLI (read-only mode)
+			const cliName = isClaudeCli ? "Claude CLI" : "Gemini CLI";
 			let systemPrompt = "You are a helpful AI assistant integrated with Obsidian.";
-			systemPrompt += "\n\nNote: You are running in CLI mode with limited capabilities. You can read and search vault files, but cannot modify them.";
+			systemPrompt += `\n\nNote: You are running in ${cliName} mode with limited capabilities. You can read and search vault files, but cannot modify them.`;
 			systemPrompt += `\n\nVault location: ${(plugin.app.vault.adapter as unknown as { basePath?: string }).basePath || "."}`;
 
 			if (plugin.settings.systemPrompt) {
@@ -749,7 +762,7 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 				role: "assistant",
 				content: fullContent,
 				timestamp: Date.now(),
-				model: "gemini-cli",
+				model: isClaudeCli ? "claude-cli" : "gemini-cli",
 			};
 
 			const newMessages = [...messages, userMessage, assistantMessage];
@@ -1403,10 +1416,11 @@ Always be helpful and provide clear, concise responses. When working with notes,
 				<div className="gemini-helper-config-required">
 					<div className="gemini-helper-config-message">
 						<h4>Configuration required</h4>
-						<p>To use Gemini chat, please configure one of the following in settings:</p>
+						<p>To use AI chat, please configure one of the following in settings:</p>
 						<ul>
 							<li><strong>Google API Key</strong> - Set your API key to use the Gemini API directly</li>
-							<li><strong>Gemini CLI</strong> - Enable CLI mode and verify the CLI is working</li>
+							<li><strong>Gemini CLI</strong> - Enable CLI mode and verify the Gemini CLI is working</li>
+							<li><strong>Claude CLI</strong> - Enable CLI mode and verify the Claude CLI is working</li>
 						</ul>
 						<p>Open Settings → Gemini Helper to configure.</p>
 					</div>

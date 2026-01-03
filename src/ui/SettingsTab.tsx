@@ -9,7 +9,7 @@ import {
 } from "obsidian";
 import type { GeminiHelperPlugin } from "src/plugin";
 import { getFileSearchManager } from "src/core/fileSearch";
-import { verifyCli } from "src/core/cliProvider";
+import { verifyCli, verifyClaudeCli } from "src/core/cliProvider";
 import { formatError } from "src/utils/error";
 import {
   DEFAULT_MODEL,
@@ -727,35 +727,47 @@ export class SettingsTab extends PluginSettingTab {
     cliConfig: import("src/types").CliProviderConfig,
     isCliMode: boolean
   ): void {
-    // CLI Mode toggle
+    // CLI Provider selection
     new Setting(containerEl)
-      .setName("Enable command line mode")
-      .setDesc("Use the CLI instead of the API")
-      .addToggle((toggle) =>
-        toggle.setValue(isCliMode).onChange((value) => {
+      .setName("CLI provider")
+      .setDesc("Select which CLI to use or disable CLI mode")
+      .addDropdown((dropdown) => {
+        dropdown.addOption("api", "Disabled (use API)");
+        dropdown.addOption("gemini-cli", "Gemini CLI");
+        dropdown.addOption("claude-cli", "Claude CLI");
+        dropdown.setValue(cliConfig.provider);
+        dropdown.onChange((value) => {
           void (async () => {
             this.plugin.settings.cliConfig = {
               ...cliConfig,
-              provider: value ? "gemini-cli" : "api",
+              provider: value as import("src/types").ChatProvider,
             };
             await this.plugin.saveSettings();
             this.display();
           })();
-        })
-      );
+        });
+      });
 
     // Show CLI settings only when enabled
     if (isCliMode) {
+      const isGeminiCli = cliConfig.provider === "gemini-cli";
+      const isClaudeCli = cliConfig.provider === "claude-cli";
+      const cliName = isGeminiCli ? "Gemini CLI" : "Claude CLI";
+
       // Status indicator
       const statusEl = containerEl.createDiv({ cls: "gemini-helper-cli-status" });
 
       // Verify button
       new Setting(containerEl)
-        .setName("Verify CLI")
-        .setDesc("Check if the CLI is installed and authenticated")
+        .setName(`Verify ${cliName}`)
+        .setDesc(`Check if the ${cliName} is installed and authenticated`)
         .addButton((button) =>
           button.setButtonText("Verify").onClick(() => {
-            void this.handleVerifyCli(statusEl);
+            if (isClaudeCli) {
+              void this.handleVerifyClaudeCli(statusEl);
+            } else {
+              void this.handleVerifyCli(statusEl);
+            }
           })
         );
 
@@ -767,19 +779,34 @@ export class SettingsTab extends PluginSettingTab {
       reqTitle.textContent = "Requirements:";
       const reqList = noticeEl.createEl("ul");
 
-      const geminiCmd = "gemini";
-      const appdataPath = "%APPDATA%\\npm";
+      if (isGeminiCli) {
+        const geminiCmd = "gemini";
+        const appdataPath = "%APPDATA%\\npm";
 
-      const macLi = reqList.createEl("li");
-      macLi.createEl("strong").textContent = "macOS/Linux:";
-      macLi.appendText(" ");
-      macLi.createEl("code").textContent = geminiCmd;
-      macLi.appendText(" command must be in PATH");
+        const macLi = reqList.createEl("li");
+        macLi.createEl("strong").textContent = "macOS/Linux:";
+        macLi.appendText(" ");
+        macLi.createEl("code").textContent = geminiCmd;
+        macLi.appendText(" command must be in PATH");
 
-      const winLi = reqList.createEl("li");
-      winLi.createEl("strong").textContent = "Windows:";
-      winLi.appendText(" gemini-cli must be installed at ");
-      winLi.createEl("code").textContent = appdataPath;
+        const winLi = reqList.createEl("li");
+        winLi.createEl("strong").textContent = "Windows:";
+        winLi.appendText(" gemini-cli must be installed at ");
+        winLi.createEl("code").textContent = appdataPath;
+      } else if (isClaudeCli) {
+        const claudeCmd = "claude";
+
+        const macLi = reqList.createEl("li");
+        macLi.createEl("strong").textContent = "macOS/Linux:";
+        macLi.appendText(" ");
+        macLi.createEl("code").textContent = claudeCmd;
+        macLi.appendText(" command must be in PATH");
+
+        const winLi = reqList.createEl("li");
+        winLi.createEl("strong").textContent = "Windows:";
+        winLi.appendText(" Claude CLI must be installed via ");
+        winLi.createEl("code").textContent = "npm install -g @anthropic-ai/claude-code";
+      }
 
       // Read-only mode section
       const roTitle = noticeEl.createEl("strong");
@@ -836,6 +863,61 @@ export class SettingsTab extends PluginSettingTab {
       this.plugin.settings.cliConfig = {
         ...this.plugin.settings.cliConfig,
         cliVerified: false,
+      };
+      await this.plugin.saveSettings();
+
+      statusEl.addClass("gemini-helper-cli-status--error");
+      statusEl.empty();
+      statusEl.createEl("strong", { text: "Error: " });
+      statusEl.createSpan({ text: String(err) });
+    }
+  }
+
+  private async handleVerifyClaudeCli(statusEl: HTMLElement): Promise<void> {
+    statusEl.empty();
+    statusEl.removeClass("gemini-helper-cli-status--success", "gemini-helper-cli-status--error");
+    statusEl.setText("Verifying Claude CLI...");
+
+    try {
+      const result = await verifyClaudeCli();
+
+      if (!result.success) {
+        statusEl.addClass("gemini-helper-cli-status--error");
+        // Save unverified status
+        this.plugin.settings.cliConfig = {
+          ...this.plugin.settings.cliConfig,
+          claudeCliVerified: false,
+        };
+        await this.plugin.saveSettings();
+
+        if (result.stage === "version") {
+          statusEl.empty();
+          statusEl.createEl("strong", { text: "CLI not found: " });
+          statusEl.createSpan({ text: result.error || "Claude CLI not found" });
+        } else {
+          statusEl.empty();
+          statusEl.createEl("strong", { text: "Login required: " });
+          statusEl.createSpan({ text: "Run 'claude' command and complete login" });
+        }
+        return;
+      }
+
+      // Success - save verified status
+      this.plugin.settings.cliConfig = {
+        ...this.plugin.settings.cliConfig,
+        claudeCliVerified: true,
+      };
+      await this.plugin.saveSettings();
+
+      statusEl.addClass("gemini-helper-cli-status--success");
+      statusEl.empty();
+      statusEl.createEl("strong", { text: "Claude CLI verified: " });
+      statusEl.createSpan({ text: "Ready to use" });
+    } catch (err) {
+      // Save unverified status on error
+      this.plugin.settings.cliConfig = {
+        ...this.plugin.settings.cliConfig,
+        claudeCliVerified: false,
       };
       await this.plugin.saveSettings();
 

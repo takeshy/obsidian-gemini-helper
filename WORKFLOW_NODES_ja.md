@@ -196,7 +196,7 @@ HTTP リクエストを実行。
 
 ### prompt-file
 
-ファイル選択ダイアログを表示、またはホットキーモードでアクティブファイルを使用。
+ファイル選択ダイアログを表示、またはホットキー/イベントモードでアクティブファイルを使用。
 
 ```yaml
 - id: selectFile
@@ -212,11 +212,18 @@ HTTP リクエストを実行。
 |------------|------|
 | `title` | ダイアログタイトル |
 | `default` | デフォルトパス |
-| `forcePrompt` | `true` でホットキーモードでも常にダイアログ表示 |
+| `forcePrompt` | `true` でホットキー/イベントモードでも常にダイアログ表示 |
 | `saveTo` | ファイル内容を保存する変数 |
 | `saveFileTo` | ファイル情報 JSON を保存する変数 |
 
 **ファイル情報形式:** `{"path": "folder/note.md", "basename": "note.md", "name": "note", "extension": "md"}`
+
+**トリガーモード別の動作:**
+| モード | 動作 |
+|--------|------|
+| パネル | ファイル選択ダイアログを表示 |
+| ホットキー | アクティブファイルを自動使用 |
+| イベント | イベント対象ファイルを自動使用 |
 
 ### prompt-selection
 
@@ -235,6 +242,14 @@ HTTP リクエストを実行。
 | `saveSelectionTo` | 選択メタデータ JSON を保存する変数 |
 
 **選択情報形式:** `{"filePath": "...", "startLine": 1, "endLine": 1, "start": 0, "end": 10}`
+
+**トリガーモード別の動作:**
+| モード | 動作 |
+|--------|------|
+| パネル | 選択ダイアログを表示 |
+| ホットキー（選択あり） | 現在の選択を使用 |
+| ホットキー（選択なし） | ファイル全体を使用 |
+| イベント | ファイル全体を使用 |
 
 ### if / while
 
@@ -324,12 +339,79 @@ path: "{{parsed.notes[{{counter}}].path}}"
 
 ## スマート入力ノード
 
-`prompt-selection` と `prompt-file` ノードはホットキーコンテキストを自動検出：
+`prompt-selection` と `prompt-file` ノードは実行コンテキストを自動検出：
 
-| ノード | ホットキー経由 | パネルから実行 |
-|--------|----------------|----------------|
-| `prompt-selection` | 現在の選択を直接使用 | 選択ダイアログを表示 |
-| `prompt-file` | アクティブファイルを直接使用 | ファイル選択ダイアログを表示 |
+| ノード | パネル | ホットキー | イベント |
+|--------|--------|------------|----------|
+| `prompt-file` | ファイル選択ダイアログ | アクティブファイルを使用 | イベント対象ファイルを使用 |
+| `prompt-selection` | 選択ダイアログ | 選択またはファイル全体を使用 | ファイル全体を使用 |
+
+---
+
+## イベントトリガー
+
+Obsidian のイベントでワークフローを自動実行できます。
+
+![イベントトリガー設定](event_setting.png)
+
+### 対応イベント
+
+| イベント | 説明 |
+|----------|------|
+| `create` | ファイル作成 |
+| `modify` | ファイル変更/保存（5秒デバウンス） |
+| `delete` | ファイル削除 |
+| `rename` | ファイル名変更 |
+| `file-open` | ファイルを開く |
+
+### イベント変数
+
+イベントでトリガーされると、以下の変数が自動設定されます：
+
+| 変数 | 説明 |
+|------|------|
+| `__eventType__` | イベント種別：`create`, `modify`, `delete`, `rename`, `file-open` |
+| `__eventFilePath__` | 対象ファイルのパス |
+| `__eventFile__` | JSON: `{"path": "...", "basename": "...", "name": "...", "extension": "..."}` |
+| `__eventFileContent__` | ファイル内容（create/modify/file-open イベント時） |
+| `__eventOldPath__` | 変更前のパス（rename イベント時のみ） |
+
+### ファイルパターン構文
+
+glob パターンでイベント対象をフィルタ：
+
+| パターン | マッチ対象 |
+|----------|------------|
+| `**/*.md` | 全フォルダの .md ファイル |
+| `journal/*.md` | journal フォルダ直下の .md ファイル |
+| `*.md` | ルートフォルダの .md ファイルのみ |
+| `**/{daily,weekly}/*.md` | daily または weekly フォルダ内のファイル |
+| `projects/[a-z]*.md` | 小文字で始まるファイル |
+| `docs/**` | docs フォルダ配下のすべてのファイル |
+
+### イベントトリガーワークフロー例
+
+````markdown
+```workflow
+name: 新規ノート自動タグ付け
+nodes:
+  - id: getContent
+    type: prompt-selection
+    saveTo: content
+  - id: analyze
+    type: command
+    prompt: "このノートに3つのタグを提案して:\n\n{{content}}"
+    saveTo: tags
+  - id: prepend
+    type: note
+    path: "{{__eventFilePath__}}"
+    content: "---\ntags: {{tags}}\n---\n\n{{content}}"
+    mode: overwrite
+    confirm: false
+```
+````
+
+**設定方法:** Workflow パネルで ⚡ をクリック → 「ファイル作成」を有効化 → パターン `**/*.md` を設定
 
 ---
 

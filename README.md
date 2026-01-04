@@ -186,6 +186,60 @@ Open the **Workflow** tab in the Gemini sidebar to run it.
 
 > **For detailed node specifications and examples, see [WORKFLOW_NODES.md](WORKFLOW_NODES.md)**
 
+## Hotkey Mode
+
+Assign keyboard shortcuts to run workflows instantly:
+
+1. Add a `name:` field to your workflow
+2. Open the workflow file and select the workflow from dropdown
+3. Click the keyboard icon (⌨️) in the Workflow panel footer
+4. Go to Settings → Hotkeys → search "Workflow: [Your Workflow Name]"
+5. Assign a hotkey (e.g., `Ctrl+Shift+T`)
+
+When triggered by hotkey:
+- `prompt-file` uses the active file automatically (no dialog)
+- `prompt-selection` uses the current selection, or full file content if no selection
+
+## Event Triggers
+
+Workflows can be automatically triggered by Obsidian events:
+
+![Event Trigger Settings](event_setting.png)
+
+| Event | Description |
+|-------|-------------|
+| File Created | Triggered when a new file is created |
+| File Modified | Triggered when a file is saved (debounced 5s) |
+| File Deleted | Triggered when a file is deleted |
+| File Renamed | Triggered when a file is renamed |
+| File Opened | Triggered when a file is opened |
+
+**Event trigger setup:**
+1. Add a `name:` field to your workflow
+2. Open the workflow file and select the workflow from dropdown
+3. Click the zap icon (⚡) in the Workflow panel footer
+4. Select which events should trigger the workflow
+5. Optionally add a file pattern filter
+
+**File pattern examples:**
+- `**/*.md` - All Markdown files in any folder
+- `journal/*.md` - Markdown files in journal folder only
+- `*.md` - Markdown files in root folder only
+- `**/{daily,weekly}/*.md` - Files in daily or weekly folders
+- `projects/[a-z]*.md` - Files starting with lowercase letter
+
+**Event variables:** When triggered by an event, these variables are set automatically:
+
+| Variable | Description |
+|----------|-------------|
+| `__eventType__` | Event type: `create`, `modify`, `delete`, `rename`, `file-open` |
+| `__eventFilePath__` | Path of the affected file |
+| `__eventFile__` | JSON with file info (path, basename, name, extension) |
+| `__eventFileContent__` | File content (for create/modify/file-open events) |
+| `__eventOldPath__` | Previous path (for rename events only) |
+
+> **Note:** `prompt-file` and `prompt-selection` nodes automatically use the event file when triggered by events. `prompt-selection` uses the entire file content as the selection.
+
 ---
 
 # Common

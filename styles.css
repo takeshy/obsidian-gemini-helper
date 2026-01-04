@@ -1463,6 +1463,18 @@
   color: var(--interactive-accent);
 }
 
+.workflow-sidebar-footer .workflow-sidebar-event-btn {
+  flex: 0;
+  padding: 6px 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.workflow-sidebar-footer .workflow-sidebar-event-btn.gemini-helper-event-enabled {
+  color: var(--color-yellow);
+}
+
 /* Node List */
 .workflow-node-list {
   display: flex;

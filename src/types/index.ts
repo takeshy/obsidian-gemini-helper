@@ -1,5 +1,20 @@
 import type { Content } from "@google/genai";
 
+// Obsidian event types for workflow triggers
+export type ObsidianEventType =
+  | "create"    // vault.on("create") - New file created
+  | "modify"    // vault.on("modify") - File modified/saved
+  | "delete"    // vault.on("delete") - File deleted
+  | "rename"    // vault.on("rename") - File renamed
+  | "file-open"; // workspace.on("file-open") - File opened
+
+// Event trigger configuration for workflows
+export interface WorkflowEventTrigger {
+  workflowId: string;        // Format: "path#name" (e.g., "folder/file.md#MyWorkflow")
+  events: ObsidianEventType[]; // Which events trigger this workflow
+  filePattern?: string;       // Optional glob pattern to filter files (e.g., "*.md", "folder/**")
+}
+
 // Slash command definition
 export interface SlashCommand {
   id: string;
@@ -33,6 +48,9 @@ export interface GeminiHelperSettings {
 
   // Workflow hotkeys
   enabledWorkflowHotkeys: string[];  // Workflow identifiers in format "path#name" (e.g., "folder/file.md#MyWorkflow")
+
+  // Workflow event triggers
+  enabledWorkflowEventTriggers: WorkflowEventTrigger[];  // Event-triggered workflows
 
   // Function call limits (for settings UI)
   maxFunctionCalls: number;           // 最大function call回数
@@ -409,6 +427,7 @@ export const DEFAULT_SETTINGS: GeminiHelperSettings = {
   systemPrompt: "",
   slashCommands: DEFAULT_SLASH_COMMANDS,
   enabledWorkflowHotkeys: [],
+  enabledWorkflowEventTriggers: [],
   // Function call limits
   maxFunctionCalls: 20,
   functionCallWarningThreshold: 5,

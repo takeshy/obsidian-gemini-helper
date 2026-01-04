@@ -112,6 +112,7 @@ Make HTTP requests.
   type: http
   url: "https://api.example.com/data"
   method: POST
+  contentType: json
   headers: '{"Authorization": "Bearer {{token}}"}'
   body: '{"query": "{{searchTerm}}"}'
   saveTo: response
@@ -123,11 +124,27 @@ Make HTTP requests.
 |----------|-------------|
 | `url` | Request URL (required) |
 | `method` | `GET` (default), `POST`, `PUT`, `PATCH`, `DELETE` |
+| `contentType` | `json` (default), `form-data`, `text` |
 | `headers` | JSON object or `Key: Value` format (one per line) |
 | `body` | Request body (for POST/PUT/PATCH) |
 | `saveTo` | Variable for response body |
 | `saveStatus` | Variable for HTTP status code |
 | `throwOnError` | `true` to throw error on 4xx/5xx responses |
+
+**form-data example** (file upload):
+
+```yaml
+- id: upload
+  type: http
+  url: "https://example.com/upload"
+  method: POST
+  contentType: form-data
+  headers: '{"X-API-Key": "{{apiKey}}"}'
+  body: '{"file:{{filename}}": "{{content}}"}'
+  saveTo: response
+```
+
+For `form-data`, use `fieldName:filename` syntax for file fields (e.g., `"file:report.html": "{{htmlContent}}"`)
 
 ### dialog
 

@@ -111,6 +111,7 @@ HTTP リクエストを実行。
   type: http
   url: "https://api.example.com/data"
   method: POST
+  contentType: json
   headers: '{"Authorization": "Bearer {{token}}"}'
   body: '{"query": "{{searchTerm}}"}'
   saveTo: response
@@ -122,11 +123,27 @@ HTTP リクエストを実行。
 |------------|------|
 | `url` | リクエスト URL（必須） |
 | `method` | `GET`（デフォルト）、`POST`、`PUT`、`PATCH`、`DELETE` |
+| `contentType` | `json`（デフォルト）、`form-data`、`text` |
 | `headers` | JSON オブジェクトまたは `Key: Value` 形式（1行1つ） |
 | `body` | リクエストボディ（POST/PUT/PATCH 用） |
 | `saveTo` | レスポンスボディを保存する変数 |
 | `saveStatus` | HTTP ステータスコードを保存する変数 |
 | `throwOnError` | `true` で 4xx/5xx 応答時にエラーをスロー |
+
+**form-data 例**（ファイルアップロード）:
+
+```yaml
+- id: upload
+  type: http
+  url: "https://example.com/upload"
+  method: POST
+  contentType: form-data
+  headers: '{"X-API-Key": "{{apiKey}}"}'
+  body: '{"file:{{filename}}": "{{content}}"}'
+  saveTo: response
+```
+
+`form-data` の場合、ファイルフィールドには `フィールド名:ファイル名` 構文を使用（例: `"file:report.html": "{{htmlContent}}"`）
 
 ### dialog
 

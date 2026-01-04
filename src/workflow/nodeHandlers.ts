@@ -524,6 +524,60 @@ export function incrementVariable(
   }
 }
 
+// Build multipart/form-data body manually
+function buildMultipartBody(
+  fields: Record<string, string>,
+  boundary: string
+): string {
+  let body = "";
+
+  for (const [name, value] of Object.entries(fields)) {
+    body += `--${boundary}\r\n`;
+
+    // Check if this looks like a file upload (has filename in field name or content suggests file)
+    // Format: "fieldName" for regular fields, or use special property "fieldName:filename" for files
+    const colonIndex = name.indexOf(":");
+    if (colonIndex !== -1) {
+      // File field: "file:filename.html"
+      const fieldName = name.substring(0, colonIndex);
+      const filename = name.substring(colonIndex + 1);
+      const contentType = guessContentType(filename);
+      body += `Content-Disposition: form-data; name="${fieldName}"; filename="${filename}"\r\n`;
+      body += `Content-Type: ${contentType}\r\n\r\n`;
+    } else {
+      // Regular field
+      body += `Content-Disposition: form-data; name="${name}"\r\n\r\n`;
+    }
+
+    body += value + "\r\n";
+  }
+
+  body += `--${boundary}--\r\n`;
+  return body;
+}
+
+// Guess content type from filename
+function guessContentType(filename: string): string {
+  const ext = filename.toLowerCase().split(".").pop();
+  const types: Record<string, string> = {
+    html: "text/html",
+    htm: "text/html",
+    txt: "text/plain",
+    json: "application/json",
+    xml: "application/xml",
+    css: "text/css",
+    js: "application/javascript",
+    png: "image/png",
+    jpg: "image/jpeg",
+    jpeg: "image/jpeg",
+    gif: "image/gif",
+    webp: "image/webp",
+    svg: "image/svg+xml",
+    pdf: "application/pdf",
+  };
+  return types[ext || ""] || "application/octet-stream";
+}
+
 // Handle HTTP request node
 export async function handleHttpNode(
   node: WorkflowNode,
@@ -531,6 +585,7 @@ export async function handleHttpNode(
 ): Promise<void> {
   const url = replaceVariables(node.properties["url"] || "", context);
   const method = (node.properties["method"] || "GET").toUpperCase();
+  const contentType = node.properties["contentType"] || "json"; // json, form-data, text
 
   if (!url) {
     throw new Error("HTTP node missing 'url' property");
@@ -563,14 +618,42 @@ export async function handleHttpNode(
     }
   }
 
-  // Build body
+  // Build body based on contentType
   let body: string | undefined;
   const bodyStr = node.properties["body"];
-  if (bodyStr) {
-    body = replaceVariables(bodyStr, context);
-    // Add Content-Type only when there's a body
-    if (!headers["Content-Type"]) {
-      headers["Content-Type"] = "application/json";
+
+  if (bodyStr && (method === "POST" || method === "PUT" || method === "PATCH")) {
+    if (contentType === "form-data") {
+      // Build multipart/form-data body
+      // For form-data, parse JSON first, then replace variables in each field
+      // This prevents variable content (like HTML) from breaking JSON parsing
+      try {
+        const rawFields = JSON.parse(bodyStr);
+        const fields: Record<string, string> = {};
+        for (const [key, value] of Object.entries(rawFields)) {
+          // Replace variables in key and value separately
+          const expandedKey = replaceVariables(key, context);
+          const expandedValue = replaceVariables(String(value), context);
+          fields[expandedKey] = expandedValue;
+        }
+        const boundary = "----WebKitFormBoundary" + Math.random().toString(36).substring(2);
+        body = buildMultipartBody(fields, boundary);
+        headers["Content-Type"] = `multipart/form-data; boundary=${boundary}`;
+      } catch {
+        throw new Error("form-data contentType requires body to be a valid JSON object");
+      }
+    } else if (contentType === "text") {
+      // Plain text body
+      body = replaceVariables(bodyStr, context);
+      if (!headers["Content-Type"]) {
+        headers["Content-Type"] = "text/plain";
+      }
+    } else {
+      // Default: JSON body
+      body = replaceVariables(bodyStr, context);
+      if (!headers["Content-Type"]) {
+        headers["Content-Type"] = "application/json";
+      }
     }
   }
 

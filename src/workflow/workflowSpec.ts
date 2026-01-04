@@ -56,11 +56,27 @@ Execute LLM prompt.
 Make HTTP request.
 - **url** (required): Request URL (supports {{variables}})
 - **method** (optional): GET, POST, PUT, DELETE, PATCH (default: POST)
+- **contentType** (optional): "json", "form-data", "text" (default: "json")
 - **headers** (optional): JSON headers
-- **body** (optional): JSON body (supports {{variables}})
+- **body** (optional): Request body (supports {{variables}})
+  - For "json": JSON string
+  - For "form-data": JSON object where keys are field names. Use "fieldName:filename" for file fields.
+  - For "text": Plain text
 - **saveTo** (optional): Variable name for response
 - **saveStatus** (optional): Variable name for HTTP status code
 - **throwOnError** (optional): "true" to throw on 4xx/5xx
+
+**form-data example** (file upload):
+\`\`\`yaml
+- id: upload
+  type: http
+  url: "https://example.com/upload"
+  method: POST
+  contentType: form-data
+  headers: '{"X-API-Key": "{{apiKey}}"}'
+  body: '{"file:{{filename}}": "{{content}}"}'
+  saveTo: response
+\`\`\`
 
 ### 7. json
 Parse JSON string.

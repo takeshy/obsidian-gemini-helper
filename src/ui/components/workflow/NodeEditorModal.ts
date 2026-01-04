@@ -187,9 +187,12 @@ export class NodeEditorModal extends Modal {
       case "http":
         this.addTextField(container, "url", "URL", "https://api.example.com/endpoint");
         this.addDropdown(container, "method", "Method", ["GET", "POST", "PUT", "DELETE", "PATCH"]);
+        this.addDropdown(container, "contentType", "Content Type", ["json", "form-data", "text"], "json: JSON body, form-data: multipart/form-data, text: plain text");
         this.addTextArea(container, "headers", "Headers (JSON)", '{"Authorization": "Bearer {{token}}"}');
-        this.addTextArea(container, "body", "Body (JSON)", '{"key": "{{value}}"}');
+        this.addTextArea(container, "body", "Body", '{"key": "{{value}}"}\nFor form-data: {"file:filename.html": "{{content}}"}');
         this.addTextField(container, "saveTo", "Save To", "Variable name to store response");
+        this.addTextField(container, "saveStatus", "Save Status To", "Variable name to store HTTP status code");
+        this.addDropdown(container, "throwOnError", "Throw on Error", ["false", "true"], "Throw error on 4xx/5xx responses");
         break;
 
       case "json":

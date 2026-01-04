@@ -395,6 +395,11 @@ Edit workflows directly in the visual node editor with drag-and-drop interface.
 **Data sent to third-party services:**
 - Workflow `http` nodes can send data to any URL specified in the workflow
 
+**CLI providers (optional):**
+- When CLI mode is enabled, external CLI tools (gemini, claude, codex) are executed via child_process
+- This only occurs when explicitly configured and verified by the user
+- CLI mode is desktop-only (not available on mobile)
+
 **Security notes:**
 - Review workflows before running - `http` nodes can transmit vault data to external endpoints
 - Workflow `note` nodes show a confirmation dialog before writing files (default behavior)

@@ -21,6 +21,7 @@ const NODE_TYPE_LABELS: Record<WorkflowNodeType, string> = {
   "prompt-selection": "Prompt Selection",
   workflow: "Workflow",
   "rag-sync": "RAG Sync",
+  mcp: "MCP",
 };
 
 export class NodeEditorModal extends Modal {

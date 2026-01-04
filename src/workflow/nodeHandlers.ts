@@ -3,6 +3,7 @@ import type { GeminiHelperPlugin } from "../plugin";
 import { getGeminiClient } from "../core/gemini";
 import { getFileSearchManager } from "../core/fileSearch";
 import { CliProviderManager } from "../core/cliProvider";
+import { getMcpClient, findMcpServer } from "../core/mcpClient";
 import {
   WorkflowNode,
   ExecutionContext,
@@ -1726,5 +1727,53 @@ export async function handleRagSyncNode(
       ragSetting: ragSettingName,
       syncedAt: Date.now(),
     }));
+  }
+}
+
+// Handle MCP node - call external MCP server tool
+export async function handleMcpNode(
+  node: WorkflowNode,
+  context: ExecutionContext,
+  _app: App,
+  plugin: GeminiHelperPlugin
+): Promise<void> {
+  const serverName = replaceVariables(node.properties["server"] || "", context);
+  const toolName = replaceVariables(node.properties["tool"] || "", context);
+  const argsStr = node.properties["args"] || "";
+  const saveTo = node.properties["saveTo"];
+
+  if (!serverName) {
+    throw new Error("MCP node missing 'server' property");
+  }
+  if (!toolName) {
+    throw new Error("MCP node missing 'tool' property");
+  }
+
+  // Find the MCP server configuration
+  const serverConfig = findMcpServer(plugin.settings.mcpServers, serverName);
+  if (!serverConfig) {
+    throw new Error(`MCP server not found: ${serverName}. Please configure it in settings.`);
+  }
+
+  // Parse arguments
+  let args: Record<string, unknown> = {};
+  if (argsStr) {
+    const replacedArgs = replaceVariables(argsStr, context);
+    try {
+      args = JSON.parse(replacedArgs);
+    } catch {
+      throw new Error(`Invalid JSON in MCP args: ${replacedArgs}`);
+    }
+  }
+
+  // Get or create MCP client
+  const client = getMcpClient(serverConfig);
+
+  // Call the tool
+  const result = await client.callTool(toolName, args);
+
+  // Save result to variable if specified
+  if (saveTo) {
+    context.variables.set(saveTo, result);
   }
 }

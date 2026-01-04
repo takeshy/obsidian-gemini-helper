@@ -17,7 +17,8 @@ export type WorkflowNodeType =
   | "prompt-file"
   | "prompt-selection"
   | "workflow"
-  | "rag-sync";
+  | "rag-sync"
+  | "mcp";
 
 export interface WorkflowNode {
   id: string;

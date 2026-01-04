@@ -21,7 +21,7 @@ nodes:
     saveTo: result
 \`\`\`
 
-## Node Types (18 total)
+## Node Types (19 total)
 
 ### 1. variable
 Initialize a new variable.
@@ -216,6 +216,25 @@ Sync a note to RAG (File Search) store.
   path: "{{notePath}}"
   ragSetting: "my-rag-store"
 \`\`\`
+
+### 19. mcp
+Call an external MCP (Model Context Protocol) server tool. Requires MCP server configuration in plugin settings.
+- **server** (required): MCP server name (as configured in settings)
+- **tool** (required): Tool name to call on the MCP server
+- **args** (optional): JSON object with tool arguments (supports {{variables}})
+- **saveTo** (optional): Variable name for the result
+
+**Example**:
+\`\`\`yaml
+- id: search-web
+  type: mcp
+  server: "brave-search"
+  tool: "brave_web_search"
+  args: '{"query": "{{searchQuery}}"}'
+  saveTo: searchResults
+\`\`\`
+
+**Use case**: Call external tools like web search, file operations, API integrations, etc. through MCP-compatible servers.
 
 ## Control Flow
 

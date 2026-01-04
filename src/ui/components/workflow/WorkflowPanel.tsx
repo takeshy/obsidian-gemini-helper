@@ -40,6 +40,7 @@ const NODE_TYPE_LABELS: Record<WorkflowNodeType, string> = {
   "prompt-selection": "Prompt Selection",
   workflow: "Workflow",
   "rag-sync": "RAG Sync",
+  mcp: "MCP",
 };
 
 const ADDABLE_NODE_TYPES: WorkflowNodeType[] = [
@@ -61,6 +62,7 @@ const ADDABLE_NODE_TYPES: WorkflowNodeType[] = [
   "prompt-selection",
   "workflow",
   "rag-sync",
+  "mcp",
 ];
 
 function getDefaultProperties(type: WorkflowNodeType): Record<string, string> {
@@ -99,6 +101,8 @@ function getDefaultProperties(type: WorkflowNodeType): Record<string, string> {
       return { path: "", name: "", input: "", output: "", prefix: "" };
     case "rag-sync":
       return { path: "", ragSetting: "", saveTo: "" };
+    case "mcp":
+      return { server: "", tool: "", args: "", saveTo: "" };
     default:
       return {};
   }
@@ -204,6 +208,8 @@ function getNodeSummary(node: SidebarNode): string {
       return `${node.properties["path"]}${node.properties["name"] ? ` (${node.properties["name"]})` : ""}`;
     case "rag-sync":
       return `${node.properties["path"]} → ${node.properties["ragSetting"]}`;
+    case "mcp":
+      return `${node.properties["server"]}/${node.properties["tool"]}`;
   }
 }
 

@@ -225,7 +225,7 @@ Sync a note to a RAG (semantic search) store.
 
 ### prompt-file
 
-Show file picker or use active file in hotkey mode.
+Show file picker or use active file in hotkey/event mode.
 
 ```yaml
 - id: selectFile
@@ -241,11 +241,18 @@ Show file picker or use active file in hotkey mode.
 |----------|-------------|
 | `title` | Dialog title |
 | `default` | Default path |
-| `forcePrompt` | `true` always shows dialog, even in hotkey mode |
+| `forcePrompt` | `true` always shows dialog, even in hotkey/event mode |
 | `saveTo` | Variable for file content |
 | `saveFileTo` | Variable for file info JSON |
 
 **File info format:** `{"path": "folder/note.md", "basename": "note.md", "name": "note", "extension": "md"}`
+
+**Behavior by trigger mode:**
+| Mode | Behavior |
+|------|----------|
+| Panel | Shows file picker dialog |
+| Hotkey | Uses active file automatically |
+| Event | Uses event file automatically |
 
 ### prompt-selection
 
@@ -264,6 +271,14 @@ Get selected text or show selection dialog.
 | `saveSelectionTo` | Variable for selection metadata JSON |
 
 **Selection info format:** `{"filePath": "...", "startLine": 1, "endLine": 1, "start": 0, "end": 10}`
+
+**Behavior by trigger mode:**
+| Mode | Behavior |
+|------|----------|
+| Panel | Shows selection dialog |
+| Hotkey (with selection) | Uses current selection |
+| Hotkey (no selection) | Uses full file content |
+| Event | Uses full file content |
 
 ### if / while
 
@@ -353,12 +368,79 @@ path: "{{parsed.notes[{{counter}}].path}}"
 
 ## Smart Input Nodes
 
-`prompt-selection` and `prompt-file` nodes automatically detect hotkey context:
+`prompt-selection` and `prompt-file` nodes automatically detect execution context:
 
-| Node | With Hotkey | Without Hotkey |
-|------|-------------|----------------|
-| `prompt-selection` | Uses current selection directly | Shows selection dialog |
-| `prompt-file` | Uses active file directly | Shows file picker dialog |
+| Node | Panel Mode | Hotkey Mode | Event Mode |
+|------|------------|-------------|------------|
+| `prompt-file` | Shows file picker | Uses active file | Uses event file |
+| `prompt-selection` | Shows selection dialog | Uses selection or full file | Uses full file content |
+
+---
+
+## Event Triggers
+
+Workflows can be triggered automatically by Obsidian events.
+
+![Event Trigger Settings](event_setting.png)
+
+### Available Events
+
+| Event | Description |
+|-------|-------------|
+| `create` | File created |
+| `modify` | File modified/saved (debounced 5s) |
+| `delete` | File deleted |
+| `rename` | File renamed |
+| `file-open` | File opened |
+
+### Event Variables
+
+When triggered by an event, these variables are automatically set:
+
+| Variable | Description |
+|----------|-------------|
+| `__eventType__` | Event type: `create`, `modify`, `delete`, `rename`, `file-open` |
+| `__eventFilePath__` | Path of the affected file |
+| `__eventFile__` | JSON: `{"path": "...", "basename": "...", "name": "...", "extension": "..."}` |
+| `__eventFileContent__` | File content (for create/modify/file-open events) |
+| `__eventOldPath__` | Previous path (for rename events only) |
+
+### File Pattern Syntax
+
+Filter events by file path using glob patterns:
+
+| Pattern | Matches |
+|---------|---------|
+| `**/*.md` | All .md files in any folder |
+| `journal/*.md` | .md files directly in journal folder |
+| `*.md` | .md files in root folder only |
+| `**/{daily,weekly}/*.md` | Files in daily or weekly folders |
+| `projects/[a-z]*.md` | Files starting with lowercase letter |
+| `docs/**` | All files under docs folder |
+
+### Event-Triggered Workflow Example
+
+````markdown
+```workflow
+name: Auto-Tag New Notes
+nodes:
+  - id: getContent
+    type: prompt-selection
+    saveTo: content
+  - id: analyze
+    type: command
+    prompt: "Suggest 3 tags for this note:\n\n{{content}}"
+    saveTo: tags
+  - id: prepend
+    type: note
+    path: "{{__eventFilePath__}}"
+    content: "---\ntags: {{tags}}\n---\n\n{{content}}"
+    mode: overwrite
+    confirm: false
+```
+````
+
+**Setup:** Click ⚡ in Workflow panel → enable "File Created" → set pattern `**/*.md`
 
 ---
 

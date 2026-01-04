@@ -11,6 +11,8 @@ import {
   type RagState,
   type ModelType,
   type SlashCommand,
+  type ObsidianEventType,
+  type WorkflowEventTrigger,
   DEFAULT_SETTINGS,
   DEFAULT_MODEL,
   DEFAULT_WORKSPACE_STATE,
@@ -96,6 +98,12 @@ export class GeminiHelperPlugin extends Plugin {
   private selectionLocation: SelectionLocationInfo | null = null;
   private lastActiveMarkdownView: MarkdownView | null = null;
   private registeredWorkflowPaths: string[] = [];
+  private eventListenersRegistered = false;
+  // Event loop prevention: tracks files being modified by workflows
+  private workflowModifiedFiles = new Set<string>();
+  // Debounce timers for modify events (per file)
+  private modifyDebounceTimers = new Map<string, ReturnType<typeof setTimeout>>();
+  private static readonly MODIFY_DEBOUNCE_MS = 5000; // 5 seconds debounce for modify events
 
   onload(): void {
     // Load settings and workspace state
@@ -110,6 +118,8 @@ export class GeminiHelperPlugin extends Plugin {
       }
       // Register workflows as Obsidian commands for hotkey support
       this.registerWorkflowHotkeys();
+      // Register event listeners for workflow triggers
+      this.registerWorkflowEventListeners();
       // Emit event to refresh UI after workspace state is loaded
       this.settingsEmitter.emit("workspace-state-loaded", this.workspaceState);
     });
@@ -184,6 +194,13 @@ export class GeminiHelperPlugin extends Plugin {
     this.clearSelectionHighlight();
     resetGeminiClient();
     resetFileSearchManager();
+
+    // Clean up debounce timers
+    for (const timer of this.modifyDebounceTimers.values()) {
+      clearTimeout(timer);
+    }
+    this.modifyDebounceTimers.clear();
+    this.workflowModifiedFiles.clear();
   }
 
   async loadSettings() {
@@ -349,6 +366,340 @@ export class GeminiHelperPlugin extends Plugin {
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       new Notice(`Workflow failed: ${message}`);
+    }
+  }
+
+  /**
+   * Register event listeners for workflow triggers.
+   * Unlike hotkeys, event listeners can be dynamically updated.
+   */
+  registerWorkflowEventListeners(): void {
+    // Only register once to avoid duplicate listeners
+    if (this.eventListenersRegistered) {
+      return;
+    }
+    this.eventListenersRegistered = true;
+
+    // File created
+    this.registerEvent(
+      this.app.vault.on("create", (file) => {
+        if (file instanceof TFile) {
+          void this.handleWorkflowEvent("create", file.path, { file });
+        }
+      })
+    );
+
+    // File modified
+    this.registerEvent(
+      this.app.vault.on("modify", (file) => {
+        if (file instanceof TFile) {
+          void this.handleWorkflowEvent("modify", file.path, { file });
+        }
+      })
+    );
+
+    // File deleted
+    this.registerEvent(
+      this.app.vault.on("delete", (file) => {
+        if (file instanceof TFile) {
+          void this.handleWorkflowEvent("delete", file.path, { file });
+        }
+      })
+    );
+
+    // File renamed
+    this.registerEvent(
+      this.app.vault.on("rename", (file, oldPath) => {
+        if (file instanceof TFile) {
+          void this.handleWorkflowEvent("rename", file.path, { file, oldPath });
+        }
+      })
+    );
+
+    // File opened
+    this.registerEvent(
+      this.app.workspace.on("file-open", (file) => {
+        if (file instanceof TFile) {
+          void this.handleWorkflowEvent("file-open", file.path, { file });
+        }
+      })
+    );
+  }
+
+  /**
+   * Glob pattern matching for file paths.
+   * Supports: * (any characters except /), ** (any characters including /), ? (single char),
+   * {a,b,c} (brace expansion), [abc] (character class), [a-z] (character range), [!abc] (negated class)
+   */
+  private matchFilePattern(pattern: string, filePath: string): boolean {
+    // Handle brace expansion first: {a,b,c} -> (a|b|c)
+    // This needs to be done before regex escaping
+    const expandBraces = (p: string): string => {
+      const braceRegex = /\{([^{}]+)\}/g;
+      return p.replace(braceRegex, (_, content: string) => {
+        const alternatives = content.split(",").map((alt: string) => alt.trim());
+        return `(${alternatives.join("|")})`;
+      });
+    };
+
+    let regexPattern = expandBraces(pattern);
+
+    // Handle character classes [abc], [a-z], [!abc] before escaping
+    // Replace [!...] with [^...] for negation
+    regexPattern = regexPattern.replace(/\[!/g, "[^");
+
+    // Now escape regex special characters except *, ?, and character class brackets
+    // We need to be careful not to escape brackets that are part of character classes
+    const escapeRegexChars = (p: string): string => {
+      let result = "";
+      let inCharClass = false;
+      for (let i = 0; i < p.length; i++) {
+        const char = p[i];
+        if (char === "[" && !inCharClass) {
+          inCharClass = true;
+          result += char;
+        } else if (char === "]" && inCharClass) {
+          inCharClass = false;
+          result += char;
+        } else if (!inCharClass && ".+^${}()|\\".includes(char)) {
+          // Escape special regex chars (except * and ? which we handle separately)
+          // Note: {} are already processed by brace expansion, but we keep them in case of nested/unmatched
+          result += "\\" + char;
+        } else {
+          result += char;
+        }
+      }
+      return result;
+    };
+
+    regexPattern = escapeRegexChars(regexPattern);
+
+    // Convert ** to a placeholder first (before handling single *)
+    regexPattern = regexPattern.replace(/\*\*/g, "<<<DOUBLESTAR>>>");
+    // Convert * to match anything except /
+    regexPattern = regexPattern.replace(/\*/g, "[^/]*");
+    // Convert ? to match any single character (except /)
+    regexPattern = regexPattern.replace(/\?/g, "[^/]");
+    // Convert ** placeholder to match anything including /
+    regexPattern = regexPattern.replace(/<<<DOUBLESTAR>>>/g, ".*");
+
+    // Ensure the pattern matches the whole path
+    try {
+      const regex = new RegExp(`^${regexPattern}$`);
+      return regex.test(filePath);
+    } catch {
+      // Invalid regex pattern, return false
+      console.warn(`Invalid file pattern: ${pattern}`);
+      return false;
+    }
+  }
+
+  /**
+   * Handle a workflow event trigger.
+   * Includes event loop prevention and debouncing for modify events.
+   */
+  private async handleWorkflowEvent(
+    eventType: ObsidianEventType,
+    filePath: string,
+    eventData: { file?: TFile; oldPath?: string }
+  ): Promise<void> {
+    const triggers = this.settings.enabledWorkflowEventTriggers;
+    if (!triggers || triggers.length === 0) {
+      return;
+    }
+
+    // Event loop prevention: skip if this file was recently modified by a workflow
+    if (this.workflowModifiedFiles.has(filePath)) {
+      return;
+    }
+
+    // For modify events, use debouncing to avoid triggering on every autosave
+    if (eventType === "modify") {
+      // Clear existing timer for this file
+      const existingTimer = this.modifyDebounceTimers.get(filePath);
+      if (existingTimer) {
+        clearTimeout(existingTimer);
+      }
+
+      // Set new debounced handler
+      const timer = setTimeout(() => {
+        this.modifyDebounceTimers.delete(filePath);
+        void this.executeMatchingWorkflows(eventType, filePath, eventData, triggers);
+      }, GeminiHelperPlugin.MODIFY_DEBOUNCE_MS);
+
+      this.modifyDebounceTimers.set(filePath, timer);
+      return;
+    }
+
+    // For other events, execute immediately
+    await this.executeMatchingWorkflows(eventType, filePath, eventData, triggers);
+  }
+
+  /**
+   * Find and execute all matching workflows for an event.
+   * Uses Promise.allSettled for proper error handling.
+   */
+  private async executeMatchingWorkflows(
+    eventType: ObsidianEventType,
+    filePath: string,
+    eventData: { file?: TFile; oldPath?: string },
+    triggers: WorkflowEventTrigger[]
+  ): Promise<void> {
+    // Find all matching triggers for this event
+    const matchingTriggers = triggers.filter((trigger) => {
+      // Check if this trigger responds to this event type
+      if (!trigger.events.includes(eventType)) {
+        return false;
+      }
+
+      // Check file pattern if specified
+      if (trigger.filePattern) {
+        if (!this.matchFilePattern(trigger.filePattern, filePath)) {
+          return false;
+        }
+      }
+
+      return true;
+    });
+
+    if (matchingTriggers.length === 0) {
+      return;
+    }
+
+    // Execute all matching workflows and collect results
+    const results = await Promise.allSettled(
+      matchingTriggers.map((trigger) =>
+        this.executeWorkflowFromEvent(trigger, eventType, filePath, eventData)
+      )
+    );
+
+    // Log any failures
+    results.forEach((result, index) => {
+      if (result.status === "rejected") {
+        const trigger = matchingTriggers[index];
+        const workflowName = trigger.workflowId.split("#").pop() || trigger.workflowId;
+        console.error(
+          `Workflow (${workflowName}) triggered by ${eventType} failed:`,
+          result.reason
+        );
+      }
+    });
+  }
+
+  /**
+   * Execute workflow from event trigger.
+   * Includes event loop prevention by tracking modified files.
+   */
+  private async executeWorkflowFromEvent(
+    trigger: WorkflowEventTrigger,
+    eventType: ObsidianEventType,
+    filePath: string,
+    eventData: { file?: TFile; oldPath?: string }
+  ): Promise<void> {
+    // Parse path#name format
+    const hashIndex = trigger.workflowId.lastIndexOf("#");
+    if (hashIndex === -1) return;
+
+    const workflowFilePath = trigger.workflowId.substring(0, hashIndex);
+    const workflowName = trigger.workflowId.substring(hashIndex + 1);
+
+    // Get the workflow file
+    const workflowFile = this.app.vault.getAbstractFileByPath(workflowFilePath);
+    if (!(workflowFile instanceof TFile)) {
+      throw new Error(`Workflow file not found: ${workflowFilePath}`);
+    }
+
+    // Event loop prevention: mark the trigger file as being processed
+    // This prevents workflows from re-triggering on the same file they just modified
+    this.workflowModifiedFiles.add(filePath);
+
+    // Also mark the workflow file itself to prevent self-modification loops
+    this.workflowModifiedFiles.add(workflowFilePath);
+
+    // Set up cleanup timer to remove the file from the blocked set
+    // Use a longer timeout to account for async file operations
+    const cleanupTimeout = setTimeout(() => {
+      this.workflowModifiedFiles.delete(filePath);
+      this.workflowModifiedFiles.delete(workflowFilePath);
+    }, 2000); // 2 seconds should be enough for most workflows
+
+    try {
+      const fileContent = await this.app.vault.read(workflowFile);
+      const workflow = parseWorkflowFromMarkdown(fileContent, workflowName);
+
+      const executor = new WorkflowExecutor(this.app, this);
+
+      const input: WorkflowInput = {
+        variables: new Map(),
+      };
+
+      // Set event-specific variables
+      input.variables.set("__eventType__", eventType);
+      input.variables.set("__eventFilePath__", filePath);
+
+      if (eventData.file) {
+        input.variables.set("__eventFile__", JSON.stringify({
+          path: eventData.file.path,
+          basename: eventData.file.basename,
+          name: eventData.file.name,
+          extension: eventData.file.extension,
+        }));
+      }
+
+      if (eventData.oldPath) {
+        input.variables.set("__eventOldPath__", eventData.oldPath);
+      }
+
+      // Read file content for created/modified/opened events
+      if (eventData.file && (eventType === "create" || eventType === "modify" || eventType === "file-open")) {
+        try {
+          const content = await this.app.vault.read(eventData.file);
+          input.variables.set("__eventFileContent__", content);
+        } catch {
+          // File might not be readable (e.g., binary file)
+        }
+      }
+
+      // Prompt callbacks for event execution (minimal interaction)
+      // Track files modified by this workflow for event loop prevention
+      const promptCallbacks = {
+        promptForFile: () => Promise.resolve(null),
+        promptForSelection: () => Promise.resolve(null),
+        promptForValue: () => Promise.resolve(null),
+        promptForConfirmation: (confirmPath: string, content: string, mode: string) => {
+          // Track the file being confirmed for modification
+          this.workflowModifiedFiles.add(confirmPath);
+          setTimeout(() => this.workflowModifiedFiles.delete(confirmPath), 2000);
+          return promptForConfirmation(this.app, confirmPath, content, mode);
+        },
+        promptForDialog: (title: string, message: string, options: string[], multiSelect: boolean, button1: string, button2?: string, markdown?: boolean, inputTitle?: string, defaults?: { input?: string; selected?: string[] }, multiline?: boolean) =>
+          promptForDialog(this.app, title, message, options, multiSelect, button1, button2, markdown, inputTitle, defaults, multiline),
+        openFile: async (notePath: string) => {
+          const noteFile = this.app.vault.getAbstractFileByPath(notePath);
+          if (noteFile instanceof TFile) {
+            await this.app.workspace.getLeaf().openFile(noteFile);
+          }
+        },
+      };
+
+      await executor.execute(
+        workflow,
+        input,
+        () => {}, // Log callback
+        {
+          workflowPath: workflowFilePath,
+          workflowName: workflowName,
+          recordHistory: true,
+        },
+        promptCallbacks
+      );
+
+      // Silent success for event-triggered workflows to avoid notification spam
+    } finally {
+      // Clean up the timer if workflow completed before timeout
+      clearTimeout(cleanupTimeout);
+      // Note: We don't immediately remove from workflowModifiedFiles here
+      // because the file system events might still be propagating
     }
   }
 

@@ -704,7 +704,9 @@ export async function handlePromptFileNode(
   let filePath: string | null = null;
 
   // Check for hotkey mode (active file info passed via __hotkeyActiveFile__)
+  // or event mode (file info passed via __eventFile__)
   const hotkeyActiveFile = context.variables.get("__hotkeyActiveFile__");
+  const eventFile = context.variables.get("__eventFile__");
 
   // If forcePrompt is true, always show the dialog
   if (forcePrompt) {
@@ -719,6 +721,16 @@ export async function handlePromptFileNode(
     // Hotkey mode: use active file without showing dialog
     try {
       const fileInfo = JSON.parse(String(hotkeyActiveFile));
+      if (fileInfo.path) {
+        filePath = fileInfo.path as string;
+      }
+    } catch {
+      // Invalid JSON, fall through to dialog
+    }
+  } else if (eventFile) {
+    // Event mode: use event file without showing dialog
+    try {
+      const fileInfo = JSON.parse(String(eventFile));
       if (fileInfo.path) {
         filePath = fileInfo.path as string;
       }
@@ -757,8 +769,10 @@ export async function handlePromptFileNode(
   }
 }
 
-// Handle prompt-selection node - show file preview with text selection or use hotkey selection
+// Handle prompt-selection node - show file preview with text selection or use hotkey/event selection
 // In hotkey mode: Uses __hotkeySelection__ to auto-use selected text without dialog
+// In event mode: Uses __eventFileContent__ as full file selection
+// In hotkey/event mode without selection: Uses full file content as selection
 // In panel mode: Shows selection dialog
 // saveTo: stores selected text, saveSelectionTo: stores selection metadata JSON
 export async function handlePromptSelectionNode(
@@ -779,7 +793,7 @@ export async function handlePromptSelectionNode(
   const hotkeySelectionInfo = context.variables.get("__hotkeySelectionInfo__");
 
   if (hotkeySelection !== undefined && hotkeySelection !== "") {
-    // Hotkey mode: use existing selection without dialog
+    // Hotkey mode with selection: use existing selection without dialog
     const selectionText = String(hotkeySelection);
 
     // Set user-specified variables only
@@ -788,6 +802,87 @@ export async function handlePromptSelectionNode(
       context.variables.set(saveSelectionTo, String(hotkeySelectionInfo));
     }
     return;
+  }
+
+  // Check for hotkey mode without selection - use full file content
+  const hotkeyContent = context.variables.get("__hotkeyContent__");
+  const hotkeyActiveFile = context.variables.get("__hotkeyActiveFile__");
+
+  if (hotkeyContent !== undefined && hotkeyContent !== "") {
+    // Hotkey mode without selection: use full file content
+    const fullContent = String(hotkeyContent);
+    context.variables.set(saveTo, fullContent);
+
+    // Create selection info for full file
+    if (saveSelectionTo && hotkeyActiveFile) {
+      try {
+        const fileInfo = JSON.parse(String(hotkeyActiveFile));
+        const lines = fullContent.split("\n");
+        context.variables.set(saveSelectionTo, JSON.stringify({
+          filePath: fileInfo.path,
+          startLine: 1,
+          endLine: lines.length,
+          start: 0,
+          end: fullContent.length,
+        }));
+      } catch {
+        // Invalid JSON, skip setting selection info
+      }
+    }
+    return;
+  }
+
+  // Check for event mode - use event file content
+  const eventFileContent = context.variables.get("__eventFileContent__");
+  const eventFile = context.variables.get("__eventFile__");
+  const eventFilePath = context.variables.get("__eventFilePath__");
+
+  if (eventFileContent !== undefined && eventFileContent !== "") {
+    // Event mode: use full file content as selection
+    const fullContent = String(eventFileContent);
+    context.variables.set(saveTo, fullContent);
+
+    // Create selection info for full file
+    if (saveSelectionTo) {
+      const filePath = eventFilePath ? String(eventFilePath) : "";
+      const lines = fullContent.split("\n");
+      context.variables.set(saveSelectionTo, JSON.stringify({
+        filePath: filePath,
+        startLine: 1,
+        endLine: lines.length,
+        start: 0,
+        end: fullContent.length,
+      }));
+    }
+    return;
+  }
+
+  // Event mode without content (e.g., delete event) - try to read from event file
+  if (eventFile) {
+    try {
+      const fileInfo = JSON.parse(String(eventFile));
+      if (fileInfo.path) {
+        const file = app.vault.getAbstractFileByPath(fileInfo.path);
+        if (file && file instanceof TFile) {
+          const content = await app.vault.read(file);
+          context.variables.set(saveTo, content);
+
+          if (saveSelectionTo) {
+            const lines = content.split("\n");
+            context.variables.set(saveSelectionTo, JSON.stringify({
+              filePath: fileInfo.path,
+              startLine: 1,
+              endLine: lines.length,
+              start: 0,
+              end: content.length,
+            }));
+          }
+          return;
+        }
+      }
+    } catch {
+      // Invalid JSON or file not readable, fall through to dialog
+    }
   }
 
   // Panel mode: show selection dialog

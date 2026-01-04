@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { TFile, Notice, Menu, MarkdownView, stringifyYaml } from "obsidian";
-import { Keyboard, KeyboardOff, Plus, Sparkles } from "lucide-react";
+import { Keyboard, KeyboardOff, Plus, Sparkles, Zap, ZapOff } from "lucide-react";
+import { EventTriggerModal } from "./EventTriggerModal";
+import type { WorkflowEventTrigger } from "src/types";
 import { promptForAIWorkflow } from "./AIWorkflowModal";
 import type { GeminiHelperPlugin } from "src/plugin";
 import { SidebarNode, WorkflowNodeType, WorkflowInput, PromptCallbacks } from "src/workflow/types";
@@ -215,6 +217,7 @@ export default function WorkflowPanel({ plugin }: WorkflowPanelProps) {
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [dropTarget, setDropTarget] = useState<{ index: number; position: "above" | "below" } | null>(null);
   const [enabledHotkeys, setEnabledHotkeys] = useState<string[]>(plugin.settings.enabledWorkflowHotkeys);
+  const [eventTriggers, setEventTriggers] = useState<WorkflowEventTrigger[]>(plugin.settings.enabledWorkflowEventTriggers);
   const addBtnRef = useRef<HTMLButtonElement>(null);
 
   // Load workflow from active file
@@ -917,31 +920,76 @@ ${result.nodes.map(node => {
         {(() => {
           const workflowId = workflowName ? `${workflowFile.path}#${workflowName}` : "";
           const isHotkeyEnabled = workflowName && enabledHotkeys.includes(workflowId);
+          const currentEventTrigger = eventTriggers.find(t => t.workflowId === workflowId);
+          const hasEventTrigger = !!currentEventTrigger;
           return (
-            <button
-              className={`workflow-sidebar-hotkey-btn ${isHotkeyEnabled ? "gemini-helper-hotkey-enabled" : ""}`}
-              onClick={() => {
-                if (!workflowName) {
-                  new Notice("Workflow must have a name to enable hotkey");
-                  return;
-                }
-                let newEnabledHotkeys: string[];
-                if (isHotkeyEnabled) {
-                  newEnabledHotkeys = enabledHotkeys.filter(id => id !== workflowId);
-                  new Notice("Hotkey disabled (reload plugin to fully unregister)");
-                } else {
-                  newEnabledHotkeys = [...enabledHotkeys, workflowId];
-                  new Notice(`Hotkey enabled for "${workflowName}". Assign in Settings > Hotkeys`);
-                }
-                setEnabledHotkeys(newEnabledHotkeys);
-                plugin.settings.enabledWorkflowHotkeys = newEnabledHotkeys;
-                void plugin.saveSettings();
-              }}
-              title={isHotkeyEnabled ? "Hotkey enabled (click to disable)" : "Enable hotkey for this workflow"}
-              disabled={!workflowName}
-            >
-              {isHotkeyEnabled ? <Keyboard size={16} /> : <KeyboardOff size={16} />}
-            </button>
+            <>
+              <button
+                className={`workflow-sidebar-hotkey-btn ${isHotkeyEnabled ? "gemini-helper-hotkey-enabled" : ""}`}
+                onClick={() => {
+                  if (!workflowName) {
+                    new Notice("Workflow must have a name to enable hotkey");
+                    return;
+                  }
+                  let newEnabledHotkeys: string[];
+                  if (isHotkeyEnabled) {
+                    newEnabledHotkeys = enabledHotkeys.filter(id => id !== workflowId);
+                    new Notice("Hotkey disabled (reload plugin to fully unregister)");
+                  } else {
+                    newEnabledHotkeys = [...enabledHotkeys, workflowId];
+                    new Notice(`Hotkey enabled for "${workflowName}". Assign in Settings > Hotkeys`);
+                  }
+                  setEnabledHotkeys(newEnabledHotkeys);
+                  plugin.settings.enabledWorkflowHotkeys = newEnabledHotkeys;
+                  void plugin.saveSettings();
+                }}
+                title={isHotkeyEnabled ? "Hotkey enabled (click to disable)" : "Enable hotkey for this workflow"}
+                disabled={!workflowName}
+              >
+                {isHotkeyEnabled ? <Keyboard size={16} /> : <KeyboardOff size={16} />}
+              </button>
+              <button
+                className={`workflow-sidebar-event-btn ${hasEventTrigger ? "gemini-helper-event-enabled" : ""}`}
+                onClick={() => {
+                  if (!workflowName) {
+                    new Notice("Workflow must have a name to enable event triggers");
+                    return;
+                  }
+                  const modal = new EventTriggerModal(
+                    plugin.app,
+                    workflowId,
+                    workflowName,
+                    currentEventTrigger || null,
+                    (trigger) => {
+                      let newTriggers: WorkflowEventTrigger[];
+                      if (trigger === null) {
+                        // Remove trigger
+                        newTriggers = eventTriggers.filter(t => t.workflowId !== workflowId);
+                        new Notice("Event triggers removed");
+                      } else {
+                        // Add or update trigger
+                        const existingIndex = eventTriggers.findIndex(t => t.workflowId === workflowId);
+                        if (existingIndex >= 0) {
+                          newTriggers = [...eventTriggers];
+                          newTriggers[existingIndex] = trigger;
+                        } else {
+                          newTriggers = [...eventTriggers, trigger];
+                        }
+                        new Notice(`Event triggers enabled for "${workflowName}"`);
+                      }
+                      setEventTriggers(newTriggers);
+                      plugin.settings.enabledWorkflowEventTriggers = newTriggers;
+                      void plugin.saveSettings();
+                    }
+                  );
+                  modal.open();
+                }}
+                title={hasEventTrigger ? `Event triggers: ${currentEventTrigger?.events.join(", ")}` : "Configure event triggers for this workflow"}
+                disabled={!workflowName}
+              >
+                {hasEventTrigger ? <Zap size={16} /> : <ZapOff size={16} />}
+              </button>
+            </>
           );
         })()}
       </div>

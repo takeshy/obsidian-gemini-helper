@@ -2,33 +2,36 @@
 
 **無料・オープンソース**の Obsidian 向け AI アシスタント。Google Gemini を活用した**チャット**、**ワークフロー自動化**、**セマンティック検索**を搭載。
 
-> **このプラグインは完全に無料です。** Google Gemini API キー（無料または有料）、または [Gemini CLI](https://github.com/google-gemini/gemini-cli) 経由で Google アカウントが必要です。
+> **このプラグインは完全に無料です。** Google Gemini API キー（無料または有料）、または CLI ツール（[Gemini CLI](https://github.com/google-gemini/gemini-cli)、[Claude Code](https://github.com/anthropics/claude-code)、[Codex CLI](https://github.com/openai/codex)）が必要です。
 
 ## 主な機能
 
 - **AI チャット** - ストリーミング応答、ファイル添付、Vault 操作、スラッシュコマンド
-- **ワークフロービルダー** - ビジュアルノードエディタと 17 種類のノードでマルチステップタスクを自動化
+- **ワークフロービルダー** - ビジュアルノードエディタと 18 種類のノードでマルチステップタスクを自動化
 - **セマンティック検索** - RAG による Vault 全体の知的検索
 - **Web 検索** - Google 検索で最新情報を取得
 - **画像生成** - Gemini 画像モデルで画像を作成
 
-## Google API キーの選択肢
+## API キー / CLI の選択肢
 
-このプラグインには Google Gemini API キーまたは Google アカウント（Gemini CLI 経由）が必要です。以下から選択できます：
+このプラグインには Google Gemini API キーまたは CLI ツールが必要です。以下から選択できます：
 
-| 機能 | 無料 API キー | 有料 API キー | Gemini CLI |
-|------|---------------|---------------|------------|
+| 機能 | 無料 API キー | 有料 API キー | CLI |
+|------|---------------|---------------|-----|
 | 基本チャット | ✅ | ✅ | ✅ |
 | Vault 操作 | ✅ | ✅ | 読み取り/検索のみ |
 | Web 検索 | ✅ | ✅ | ❌ |
 | セマンティック検索 | ✅（制限あり） | ✅ | ❌ |
 | ワークフロー | ✅ | ✅ | ✅ |
 | 画像生成 | ❌ | ✅ | ❌ |
-| モデル | Flash, Gemma | Flash, Pro, Image | **Gemini 2.5 Pro** |
+| モデル | Flash, Gemma | Flash, Pro, Image | Gemini CLI, Claude Code, Codex |
 | 料金 | **無料** | 従量課金 | **無料** |
 
 > [!TIP]
-> **Gemini CLI** を使えば、Google アカウントだけで **Gemini 2.5 Pro**（フラッグシップモデル）が使えます！[Gemini CLI](https://github.com/google-gemini/gemini-cli) をインストールし、`gemini` を実行して `/auth` で認証。
+> **CLI オプション**を使えば、アカウントだけでフラッグシップモデルが使えます（API キー不要）！
+> - **Gemini CLI**: [Gemini CLI](https://github.com/google-gemini/gemini-cli) をインストールし、`gemini` を実行して `/auth` で認証
+> - **Claude CLI**: [Claude Code](https://github.com/anthropics/claude-code) をインストール（`npm install -g @anthropic-ai/claude-code`）し、`claude` で認証
+> - **Codex CLI**: [Codex CLI](https://github.com/openai/codex) をインストール（`npm install -g @openai/codex`）し、`codex` で認証
 
 ### 無料 API キーのヒント
 
@@ -168,7 +171,7 @@ Gemini サイドバーの **Workflow** タブを開いて実行。
 
 ## 利用可能なノードタイプ
 
-17 種類のノードタイプでワークフローを構築できます：
+18 種類のノードタイプでワークフローを構築できます：
 
 | カテゴリ | ノード |
 |----------|--------|
@@ -179,6 +182,7 @@ Gemini サイドバーの **Workflow** タブを開いて実行。
 | ノート | `note`, `note-read`, `note-search`, `note-list`, `folder-list`, `open` |
 | プロンプト | `prompt-file`, `prompt-selection`, `dialog` |
 | 合成 | `workflow` |
+| RAG | `rag-sync` |
 
 > **詳細なノード仕様と実例は [WORKFLOW_NODES_ja.md](WORKFLOW_NODES_ja.md) を参照してください**
 
@@ -235,13 +239,24 @@ npm run build
 
 ![基本設定](setting_basic.png)
 
-### Gemini CLI
+### CLI モード（Gemini / Claude / Codex）
+
+**Gemini CLI:**
 1. [Gemini CLI](https://github.com/google-gemini/gemini-cli) をインストール
 2. `gemini` → `/auth` で認証
-3. 設定で「Command line mode」を有効化
-4. 「Verify」で確認
+3. Gemini CLI セクションで「Verify」をクリック
 
-**制限:** Vault 読み取り専用、セマンティック/Web 検索なし
+**Claude CLI:**
+1. [Claude Code](https://github.com/anthropics/claude-code) をインストール: `npm install -g @anthropic-ai/claude-code`
+2. `claude` で認証
+3. Claude CLI セクションで「Verify」をクリック
+
+**Codex CLI:**
+1. [Codex CLI](https://github.com/openai/codex) をインストール: `npm install -g @openai/codex`
+2. `codex` で認証
+3. Codex CLI セクションで「Verify」をクリック
+
+**CLI の制限:** Vault 読み取り専用、セマンティック/Web 検索なし
 
 ### ワークスペース設定
 - **Workspace Folder** - チャット履歴と設定の保存先
@@ -308,8 +323,8 @@ npm run build
 ## 動作要件
 
 - Obsidian v0.15.0 以上
-- Google AI API キー（または Gemini CLI）
-- デスクトップ版・モバイル版対応
+- Google AI API キー、または CLI ツール（Gemini CLI / Claude CLI / Codex CLI）
+- デスクトップ版・モバイル版対応（CLI モードはデスクトップ版のみ）
 
 ## プライバシー
 

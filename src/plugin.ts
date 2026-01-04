@@ -32,7 +32,7 @@ import {
 } from "src/core/fileSearch";
 import { initCliProviderManager } from "src/core/cliProvider";
 import { formatError } from "src/utils/error";
-import { DEFAULT_CLI_CONFIG } from "src/types";
+import { DEFAULT_CLI_CONFIG, hasVerifiedCli } from "src/types";
 
 const WORKSPACE_STATE_FILENAME = "gemini-workspace.json";
 const OLD_WORKSPACE_STATE_FILENAME = ".gemini-workspace.json";
@@ -103,9 +103,9 @@ export class GeminiHelperPlugin extends Plugin {
       // Migrate from old settings format first (one-time)
       await this.migrateFromOldSettings();
       await this.loadWorkspaceState();
-      // Initialize clients if API key is set or CLI mode is enabled
+      // Initialize clients if API key is set or any CLI is verified
       const cliConfig = this.settings.cliConfig || DEFAULT_CLI_CONFIG;
-      if (this.settings.googleApiKey || cliConfig.provider !== "api") {
+      if (this.settings.googleApiKey || hasVerifiedCli(cliConfig)) {
         this.initializeClients();
       }
       // Register workflows as Obsidian commands for hotkey support
@@ -597,16 +597,25 @@ export class GeminiHelperPlugin extends Plugin {
   getSelectedModel(): ModelType {
     const selected = this.workspaceState.selectedModel || DEFAULT_MODEL;
 
-    // CLI model is only allowed on desktop if CLI mode is enabled and verified
+    // CLI models are only allowed on desktop if verified
+    const cliConfig = this.settings.cliConfig;
     if (selected === "gemini-cli") {
-      if (Platform.isMobile) {
+      if (Platform.isMobile || !cliConfig?.cliVerified) {
         return DEFAULT_MODEL;
       }
-      const cliConfig = this.settings.cliConfig;
-      if (cliConfig?.provider === "gemini-cli" && cliConfig?.cliVerified) {
-        return selected;
+      return selected;
+    }
+    if (selected === "claude-cli") {
+      if (Platform.isMobile || !cliConfig?.claudeCliVerified) {
+        return DEFAULT_MODEL;
       }
-      return DEFAULT_MODEL;
+      return selected;
+    }
+    if (selected === "codex-cli") {
+      if (Platform.isMobile || !cliConfig?.codexCliVerified) {
+        return DEFAULT_MODEL;
+      }
+      return selected;
     }
 
     return isModelAllowedForPlan(this.settings.apiPlan, selected)

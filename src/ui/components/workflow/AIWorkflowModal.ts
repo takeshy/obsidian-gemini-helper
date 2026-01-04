@@ -1,8 +1,8 @@
 import { App, Modal, Notice, Platform, parseYaml } from "obsidian";
 import type { GeminiHelperPlugin } from "src/plugin";
-import { GeminiCliProvider } from "src/core/cliProvider";
+import { GeminiCliProvider, ClaudeCliProvider, CodexCliProvider } from "src/core/cliProvider";
 import { GeminiClient } from "src/core/gemini";
-import { CLI_MODEL, DEFAULT_CLI_CONFIG, getAvailableModels, type ModelType } from "src/types";
+import { CLI_MODEL, CLAUDE_CLI_MODEL, CODEX_CLI_MODEL, DEFAULT_CLI_CONFIG, getAvailableModels, type ModelType } from "src/types";
 import { WORKFLOW_SPECIFICATION } from "src/workflow/workflowSpec";
 import type { SidebarNode, WorkflowNodeType } from "src/workflow/types";
 
@@ -274,12 +274,16 @@ export class AIWorkflowModal extends Modal {
     });
 
     const cliConfig = this.plugin.settings.cliConfig || DEFAULT_CLI_CONFIG;
-    const cliEnabled = !Platform.isMobile && cliConfig.provider === "gemini-cli";
-    const cliVerified = cliConfig.cliVerified === true;
+    const geminiCliVerified = !Platform.isMobile && cliConfig.cliVerified === true;
+    const claudeCliVerified = !Platform.isMobile && cliConfig.claudeCliVerified === true;
+    const codexCliVerified = !Platform.isMobile && cliConfig.codexCliVerified === true;
     const baseModels = getAvailableModels(this.plugin.settings.apiPlan);
-    const availableModels = cliEnabled && cliVerified
-      ? [CLI_MODEL, ...baseModels]
-      : baseModels;
+    const cliModels = [
+      ...(geminiCliVerified ? [CLI_MODEL] : []),
+      ...(claudeCliVerified ? [CLAUDE_CLI_MODEL] : []),
+      ...(codexCliVerified ? [CODEX_CLI_MODEL] : []),
+    ];
+    const availableModels = [...cliModels, ...baseModels];
     const currentModel = this.plugin.getSelectedModel();
 
     for (const model of availableModels) {
@@ -361,7 +365,10 @@ export class AIWorkflowModal extends Modal {
       return;
     }
 
-    const isCliModel = selectedModel === "gemini-cli";
+    const isGeminiCli = selectedModel === "gemini-cli";
+    const isClaudeCli = selectedModel === "claude-cli";
+    const isCodexCli = selectedModel === "codex-cli";
+    const isCliModel = isGeminiCli || isClaudeCli || isCodexCli;
 
     // Check API key (skip for CLI model)
     if (!isCliModel && !this.plugin.settings.googleApiKey) {
@@ -387,13 +394,26 @@ export class AIWorkflowModal extends Modal {
       let response = "";
       if (isCliModel) {
         const cliConfig = this.plugin.settings.cliConfig || DEFAULT_CLI_CONFIG;
-        const cliEnabled = !Platform.isMobile && cliConfig.provider === "gemini-cli";
-        const cliVerified = cliConfig.cliVerified === true;
-        if (!cliEnabled || !cliVerified) {
-          throw new Error("Gemini CLI is not available");
+
+        // Select appropriate CLI provider
+        let provider: GeminiCliProvider | ClaudeCliProvider | CodexCliProvider;
+        if (isClaudeCli) {
+          if (!cliConfig.claudeCliVerified) {
+            throw new Error("Claude CLI is not available. Please verify it in settings.");
+          }
+          provider = new ClaudeCliProvider();
+        } else if (isCodexCli) {
+          if (!cliConfig.codexCliVerified) {
+            throw new Error("Codex CLI is not available. Please verify it in settings.");
+          }
+          provider = new CodexCliProvider();
+        } else {
+          if (!cliConfig.cliVerified) {
+            throw new Error("Gemini CLI is not available. Please verify it in settings.");
+          }
+          provider = new GeminiCliProvider();
         }
 
-        const provider = new GeminiCliProvider();
         const vaultBasePath =
           (this.plugin.app.vault.adapter as unknown as { basePath?: string }).basePath || ".";
         const cliSystemPrompt = `${systemPrompt}\n\nNote: You are running in CLI mode with limited capabilities. You can read and search vault files, but cannot modify them.`;

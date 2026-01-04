@@ -2,6 +2,7 @@ import { App, TFile, requestUrl } from "obsidian";
 import type { GeminiHelperPlugin } from "../plugin";
 import { getGeminiClient } from "../core/gemini";
 import { getFileSearchManager } from "../core/fileSearch";
+import { CliProviderManager } from "../core/cliProvider";
 import {
   WorkflowNode,
   ExecutionContext,
@@ -383,6 +384,52 @@ export async function handleCommandNode(
   // Cast to ModelType - if invalid, it will use default
   const model = (modelName || plugin.getSelectedModel()) as import("../types").ModelType;
 
+  // Check if this is a CLI model
+  const isCliModel = model === "gemini-cli" || model === "claude-cli" || model === "codex-cli";
+
+  if (isCliModel) {
+    // Use CLI provider for CLI models
+    const cliManager = new CliProviderManager();
+    const providerName = model === "claude-cli" ? "claude-cli" : model === "codex-cli" ? "codex-cli" : "gemini-cli";
+    const provider = cliManager.getProvider(providerName);
+
+    if (!provider) {
+      throw new Error(`CLI provider ${providerName} not available`);
+    }
+
+    // Build messages
+    const messages = [
+      {
+        role: "user" as const,
+        content: prompt,
+        timestamp: Date.now(),
+      },
+    ];
+
+    // Get vault path as working directory
+    const vaultPath = (app.vault.adapter as { basePath?: string }).basePath || "";
+
+    // Execute CLI call
+    let fullResponse = "";
+    const stream = provider.chatStream(messages, "", vaultPath);
+
+    for await (const chunk of stream) {
+      if (chunk.type === "text") {
+        fullResponse += chunk.content;
+      } else if (chunk.type === "error") {
+        throw new Error(chunk.error);
+      }
+    }
+
+    // Save response to variable if specified
+    const saveTo = node.properties["saveTo"];
+    if (saveTo) {
+      context.variables.set(saveTo, fullResponse);
+    }
+    return;
+  }
+
+  // Non-CLI model: use GeminiClient
   // Get RAG setting
   // undefined/"" = use current, "__none__" = no RAG, "__websearch__" = web search, other = setting name
   const ragSettingName = node.properties["ragSetting"];

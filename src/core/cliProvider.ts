@@ -1,10 +1,10 @@
 /**
  * CLI Provider abstraction layer
- * Allows using Gemini CLI as chat backend
+ * Allows using Gemini CLI or Claude CLI as chat backend
  *
  * Requirements:
- * - Non-Windows: `gemini` command must be in PATH
- * - Windows: gemini-cli must be installed at %APPDATA%\npm
+ * - Non-Windows: `gemini` or `claude` command must be in PATH
+ * - Windows: CLI must be installed at %APPDATA%\npm or %LOCALAPPDATA%
  *
  * Note: child_process is dynamically imported to avoid loading on mobile
  */
@@ -71,6 +71,84 @@ function formatWindowsCliError(message: string | undefined): string | undefined 
   return message;
 }
 
+/**
+ * Resolve the Claude CLI command and arguments
+ * Always uses shell: false for security
+ */
+function resolveClaudeCommand(args: string[]): { command: string; args: string[] } {
+  // On Windows, resolve to the npm global package at APPDATA or LOCALAPPDATA
+  if (isWindows() && typeof process !== "undefined") {
+    const appdata = process.env?.APPDATA;
+    const localAppdata = process.env?.LOCALAPPDATA;
+
+    // Try APPDATA\npm first (npm global installs)
+    if (appdata) {
+      const npmPath = `${appdata}\\npm`;
+      const scriptPath = `${npmPath}\\node_modules\\@anthropic-ai\\claude-code\\cli.js`;
+      return { command: "node", args: [scriptPath, ...args] };
+    }
+
+    // Fallback to LOCALAPPDATA
+    if (localAppdata) {
+      const scriptPath = `${localAppdata}\\Programs\\claude\\claude.exe`;
+      return { command: scriptPath, args };
+    }
+  }
+
+  // Non-Windows: use claude command directly (must be in PATH)
+  return { command: "claude", args };
+}
+
+function formatWindowsClaudeCliError(message: string | undefined): string | undefined {
+  if (!isWindows()) return message;
+  if (!message) {
+    return "Claude CLI not found. Install it with `npm install -g @anthropic-ai/claude-code`.";
+  }
+  if (
+    message.includes("Cannot find module") ||
+    message.includes("MODULE_NOT_FOUND") ||
+    message.includes("@anthropic-ai\\claude-code")
+  ) {
+    return "Claude CLI not found. Install it with `npm install -g @anthropic-ai/claude-code`.";
+  }
+  return message;
+}
+
+/**
+ * Resolve the Codex CLI command and arguments
+ * Always uses shell: false for security
+ */
+function resolveCodexCommand(args: string[]): { command: string; args: string[] } {
+  // On Windows, resolve to the npm global package at APPDATA
+  if (isWindows() && typeof process !== "undefined") {
+    const appdata = process.env?.APPDATA;
+
+    if (appdata) {
+      const npmPath = `${appdata}\\npm`;
+      const scriptPath = `${npmPath}\\node_modules\\@openai\\codex\\bin\\codex.js`;
+      return { command: "node", args: [scriptPath, ...args] };
+    }
+  }
+
+  // Non-Windows: use codex command directly (must be in PATH)
+  return { command: "codex", args };
+}
+
+function formatWindowsCodexCliError(message: string | undefined): string | undefined {
+  if (!isWindows()) return message;
+  if (!message) {
+    return "Codex CLI not found. Install it with `npm install -g @openai/codex`.";
+  }
+  if (
+    message.includes("Cannot find module") ||
+    message.includes("MODULE_NOT_FOUND") ||
+    message.includes("@openai\\codex")
+  ) {
+    return "Codex CLI not found. Install it with `npm install -g @openai/codex`.";
+  }
+  return message;
+}
+
 export interface CliProviderInterface {
   name: ChatProvider;
   displayName: string;
@@ -116,6 +194,11 @@ abstract class BaseCliProvider implements CliProviderInterface {
   abstract name: ChatProvider;
   abstract displayName: string;
 
+  /**
+   * Resolve the CLI command for version check
+   */
+  protected abstract resolveVersionCommand(): { command: string; args: string[] };
+
   async isAvailable(): Promise<boolean> {
     // CLI is not available on mobile
     if (Platform.isMobile) {
@@ -124,7 +207,7 @@ abstract class BaseCliProvider implements CliProviderInterface {
 
     try {
       const { spawn } = getChildProcess();
-      const { command, args } = resolveGeminiCommand(["--version"]);
+      const { command, args } = this.resolveVersionCommand();
 
       return new Promise((resolve) => {
         try {
@@ -170,6 +253,10 @@ abstract class BaseCliProvider implements CliProviderInterface {
 export class GeminiCliProvider extends BaseCliProvider {
   name: ChatProvider = "gemini-cli";
   displayName = "Gemini CLI";
+
+  protected resolveVersionCommand(): { command: string; args: string[] } {
+    return resolveGeminiCommand(["--version"]);
+  }
 
   async *chatStream(
     messages: Message[],
@@ -239,6 +326,223 @@ export class GeminiCliProvider extends BaseCliProvider {
 }
 
 /**
+ * Claude CLI provider
+ * Uses: claude -p "prompt" --output-format stream-json
+ */
+export class ClaudeCliProvider extends BaseCliProvider {
+  name: ChatProvider = "claude-cli";
+  displayName = "Claude CLI";
+
+  protected resolveVersionCommand(): { command: string; args: string[] } {
+    return resolveClaudeCommand(["--version"]);
+  }
+
+  async *chatStream(
+    messages: Message[],
+    systemPrompt: string,
+    workingDirectory: string,
+    signal?: AbortSignal
+  ): AsyncGenerator<StreamChunk> {
+    // Dynamically import child_process (not available on mobile)
+    const { spawn } = getChildProcess();
+
+    const prompt = formatHistoryAsPrompt(messages, systemPrompt);
+
+    // Use -p for non-interactive prompt mode with stream-json output (requires --verbose)
+    const { command, args } = resolveClaudeCommand(["-p", prompt, "--output-format", "stream-json", "--verbose"]);
+    const proc = spawn(command, args, {
+      stdio: ["pipe", "pipe", "pipe"],
+      shell: false,
+      cwd: workingDirectory,
+      env: typeof process !== "undefined" ? process.env : undefined,
+    });
+
+    // Close stdin immediately to signal no more input
+    proc.stdin?.end();
+
+    // Handle abort
+    if (signal) {
+      signal.addEventListener("abort", () => {
+        proc.kill("SIGTERM");
+      });
+    }
+
+    yield* this.processOutput(proc);
+  }
+
+  private async *processOutput(proc: ChildProcessType): AsyncGenerator<StreamChunk> {
+    // Process stdout - Claude CLI with --output-format stream-json outputs JSON lines
+    if (proc.stdout) {
+      proc.stdout.setEncoding("utf8");
+      let buffer = "";
+
+      for await (const chunk of proc.stdout) {
+        buffer += chunk;
+
+        // Process complete JSON lines
+        const lines = buffer.split("\n");
+        buffer = lines.pop() || "";  // Keep incomplete line in buffer
+
+        for (const line of lines) {
+          if (!line.trim()) continue;
+
+          try {
+            const parsed = JSON.parse(line) as Record<string, unknown>;
+
+            // Handle different message types from Claude CLI stream-json format
+            if (parsed.type === "assistant") {
+              // Assistant message with content
+              const message = parsed.message as Record<string, unknown> | undefined;
+              if (message && Array.isArray(message.content)) {
+                for (const block of message.content as Array<Record<string, unknown>>) {
+                  if (block.type === "text" && typeof block.text === "string") {
+                    yield { type: "text", content: block.text };
+                  }
+                }
+              }
+            } else if (parsed.type === "content_block_delta") {
+              // Streaming delta
+              const delta = parsed.delta as Record<string, unknown> | undefined;
+              if (delta && delta.type === "text_delta" && typeof delta.text === "string") {
+                yield { type: "text", content: delta.text };
+              }
+            } else if (parsed.type === "error") {
+              // Error message
+              const error = parsed.error as Record<string, unknown> | undefined;
+              const errorMessage = typeof error?.message === "string" ? error.message : (typeof parsed.message === "string" ? parsed.message : "Unknown error");
+              yield { type: "error", error: errorMessage };
+            }
+          } catch {
+            // Ignore JSON parse errors
+          }
+        }
+      }
+
+      // Process any remaining buffer
+      if (buffer.trim()) {
+        try {
+          const parsed = JSON.parse(buffer) as Record<string, unknown>;
+          if (parsed.type === "assistant") {
+            const message = parsed.message as Record<string, unknown> | undefined;
+            if (message && Array.isArray(message.content)) {
+              for (const block of message.content as Array<Record<string, unknown>>) {
+                if (block.type === "text" && typeof block.text === "string") {
+                  yield { type: "text", content: block.text };
+                }
+              }
+            }
+          }
+        } catch {
+          // Ignore JSON parse errors
+        }
+      }
+    }
+
+    yield { type: "done" };
+  }
+}
+
+/**
+ * Codex CLI provider
+ * Uses: codex exec "prompt" --json --skip-git-repo-check
+ */
+export class CodexCliProvider extends BaseCliProvider {
+  name: ChatProvider = "codex-cli";
+  displayName = "Codex CLI";
+
+  protected resolveVersionCommand(): { command: string; args: string[] } {
+    return resolveCodexCommand(["--version"]);
+  }
+
+  async *chatStream(
+    messages: Message[],
+    systemPrompt: string,
+    workingDirectory: string,
+    signal?: AbortSignal
+  ): AsyncGenerator<StreamChunk> {
+    // Dynamically import child_process (not available on mobile)
+    const { spawn } = getChildProcess();
+
+    const prompt = formatHistoryAsPrompt(messages, systemPrompt);
+
+    // Use exec for non-interactive mode with JSON output
+    const { command, args } = resolveCodexCommand(["exec", prompt, "--json", "--skip-git-repo-check"]);
+    const proc = spawn(command, args, {
+      stdio: ["pipe", "pipe", "pipe"],
+      shell: false,
+      cwd: workingDirectory,
+      env: typeof process !== "undefined" ? process.env : undefined,
+    });
+
+    // Close stdin immediately to signal no more input
+    proc.stdin?.end();
+
+    // Handle abort
+    if (signal) {
+      signal.addEventListener("abort", () => {
+        proc.kill("SIGTERM");
+      });
+    }
+
+    yield* this.processOutput(proc);
+  }
+
+  private async *processOutput(proc: ChildProcessType): AsyncGenerator<StreamChunk> {
+    // Process stdout - Codex CLI with --json outputs newline-delimited JSON
+    if (proc.stdout) {
+      proc.stdout.setEncoding("utf8");
+      let buffer = "";
+
+      for await (const chunk of proc.stdout) {
+        buffer += chunk;
+
+        // Process complete JSON lines
+        const lines = buffer.split("\n");
+        buffer = lines.pop() || "";  // Keep incomplete line in buffer
+
+        for (const line of lines) {
+          if (!line.trim()) continue;
+
+          try {
+            const parsed = JSON.parse(line) as Record<string, unknown>;
+
+            // Handle Codex CLI JSON format
+            if (parsed.type === "item.completed") {
+              const item = parsed.item as Record<string, unknown> | undefined;
+              if (item && item.type === "agent_message" && typeof item.text === "string") {
+                yield { type: "text", content: item.text };
+              }
+            } else if (parsed.type === "error") {
+              const errorMessage = typeof parsed.message === "string" ? parsed.message : (typeof parsed.error === "string" ? parsed.error : "Unknown error");
+              yield { type: "error", error: errorMessage };
+            }
+          } catch {
+            // Ignore JSON parse errors
+          }
+        }
+      }
+
+      // Process any remaining buffer
+      if (buffer.trim()) {
+        try {
+          const parsed = JSON.parse(buffer) as Record<string, unknown>;
+          if (parsed.type === "item.completed") {
+            const item = parsed.item as Record<string, unknown> | undefined;
+            if (item && item.type === "agent_message" && typeof item.text === "string") {
+              yield { type: "text", content: item.text };
+            }
+          }
+        } catch {
+          // Ignore JSON parse errors
+        }
+      }
+    }
+
+    yield { type: "done" };
+  }
+}
+
+/**
  * CLI Provider Manager
  * Manages provider instances and selection
  */
@@ -247,6 +551,8 @@ export class CliProviderManager {
 
   constructor() {
     this.providers.set("gemini-cli", new GeminiCliProvider());
+    this.providers.set("claude-cli", new ClaudeCliProvider());
+    this.providers.set("codex-cli", new CodexCliProvider());
   }
 
   getProvider(name: ChatProvider): CliProviderInterface | undefined {
@@ -384,6 +690,216 @@ export async function verifyCli(): Promise<CliVerifyResult> {
 
   if (!loginCheck.success) {
     return { success: false, stage: "login", error: loginCheck.error || "Please run 'gemini' in terminal to log in" };
+  }
+
+  return { success: true, stage: "login" };
+}
+
+/**
+ * Verify Claude CLI installation and login status
+ */
+export async function verifyClaudeCli(): Promise<CliVerifyResult> {
+  if (Platform.isMobile) {
+    return { success: false, stage: "version", error: "CLI not available on mobile" };
+  }
+
+  // Dynamically import child_process (not available on mobile)
+  const { spawn } = getChildProcess();
+
+  // Step 1: Check if CLI exists (--version)
+  const versionCheck = await new Promise<{ success: boolean; error?: string }>((resolve) => {
+    try {
+      const { command, args } = resolveClaudeCommand(["--version"]);
+      const proc = spawn(command, args, {
+        stdio: ["pipe", "pipe", "pipe"],
+        shell: false,
+        env: typeof process !== "undefined" ? process.env : undefined,
+      });
+
+      // Close stdin immediately to signal no more input
+      proc.stdin?.end();
+
+      let stderr = "";
+      proc.stderr?.on("data", (data: Uint8Array) => {
+        stderr += new TextDecoder().decode(data);
+      });
+
+      proc.on("close", (code: number | null) => {
+        if (code === 0) {
+          resolve({ success: true });
+        } else {
+          resolve({ success: false, error: formatWindowsClaudeCliError(stderr) || `Exit code: ${code}` });
+        }
+      });
+
+      proc.on("error", (err: Error) => {
+        resolve({ success: false, error: formatWindowsClaudeCliError(err.message) });
+      });
+
+      setTimeout(() => {
+        proc.kill();
+        resolve({ success: false, error: formatWindowsClaudeCliError("Timeout") });
+      }, 30000);
+    } catch (err) {
+      resolve({ success: false, error: formatWindowsClaudeCliError(String(err)) });
+    }
+  });
+
+  if (!versionCheck.success) {
+    return { success: false, stage: "version", error: versionCheck.error || "Claude CLI not found" };
+  }
+
+  // Step 2: Check if logged in (run a simple prompt)
+  const loginCheck = await new Promise<{ success: boolean; error?: string }>((resolve) => {
+    try {
+      const { command, args } = resolveClaudeCommand(["-p", "Hello", "--output-format", "text"]);
+      const proc = spawn(command, args, {
+        stdio: ["pipe", "pipe", "pipe"],
+        shell: false,
+        env: typeof process !== "undefined" ? process.env : undefined,
+      });
+
+      // Close stdin immediately to signal no more input
+      proc.stdin?.end();
+
+      let stderr = "";
+      proc.stderr?.on("data", (data: Uint8Array) => {
+        stderr += new TextDecoder().decode(data);
+      });
+
+      // Drain stdout to prevent buffer blocking
+      proc.stdout?.on("data", () => {
+        // Ignore stdout data, just drain the buffer
+      });
+
+      proc.on("close", (code: number | null) => {
+        if (code === 0) {
+          resolve({ success: true });
+        } else {
+          resolve({ success: false, error: formatWindowsClaudeCliError(stderr) || `Exit code: ${code}` });
+        }
+      });
+
+      proc.on("error", (err: Error) => {
+        resolve({ success: false, error: formatWindowsClaudeCliError(err.message) });
+      });
+
+      setTimeout(() => {
+        proc.kill();
+        resolve({ success: false, error: formatWindowsClaudeCliError("Timeout - CLI may not be logged in") });
+      }, 30000);
+    } catch (err) {
+      resolve({ success: false, error: formatWindowsClaudeCliError(String(err)) });
+    }
+  });
+
+  if (!loginCheck.success) {
+    return { success: false, stage: "login", error: loginCheck.error || "Please run 'claude' in terminal to log in" };
+  }
+
+  return { success: true, stage: "login" };
+}
+
+/**
+ * Verify Codex CLI installation and login status
+ */
+export async function verifyCodexCli(): Promise<CliVerifyResult> {
+  if (Platform.isMobile) {
+    return { success: false, stage: "version", error: "CLI not available on mobile" };
+  }
+
+  // Dynamically import child_process (not available on mobile)
+  const { spawn } = getChildProcess();
+
+  // Step 1: Check if CLI exists (--version)
+  const versionCheck = await new Promise<{ success: boolean; error?: string }>((resolve) => {
+    try {
+      const { command, args } = resolveCodexCommand(["--version"]);
+      const proc = spawn(command, args, {
+        stdio: ["pipe", "pipe", "pipe"],
+        shell: false,
+        env: typeof process !== "undefined" ? process.env : undefined,
+      });
+
+      // Close stdin immediately to signal no more input
+      proc.stdin?.end();
+
+      let stderr = "";
+      proc.stderr?.on("data", (data: Uint8Array) => {
+        stderr += new TextDecoder().decode(data);
+      });
+
+      proc.on("close", (code: number | null) => {
+        if (code === 0) {
+          resolve({ success: true });
+        } else {
+          resolve({ success: false, error: formatWindowsCodexCliError(stderr) || `Exit code: ${code}` });
+        }
+      });
+
+      proc.on("error", (err: Error) => {
+        resolve({ success: false, error: formatWindowsCodexCliError(err.message) });
+      });
+
+      setTimeout(() => {
+        proc.kill();
+        resolve({ success: false, error: formatWindowsCodexCliError("Timeout") });
+      }, 30000);
+    } catch (err) {
+      resolve({ success: false, error: formatWindowsCodexCliError(String(err)) });
+    }
+  });
+
+  if (!versionCheck.success) {
+    return { success: false, stage: "version", error: versionCheck.error || "Codex CLI not found" };
+  }
+
+  // Step 2: Check if logged in (run a simple prompt)
+  const loginCheck = await new Promise<{ success: boolean; error?: string }>((resolve) => {
+    try {
+      const { command, args } = resolveCodexCommand(["exec", "Hello", "--json", "--skip-git-repo-check"]);
+      const proc = spawn(command, args, {
+        stdio: ["pipe", "pipe", "pipe"],
+        shell: false,
+        env: typeof process !== "undefined" ? process.env : undefined,
+      });
+
+      // Close stdin immediately to signal no more input
+      proc.stdin?.end();
+
+      let stderr = "";
+      proc.stderr?.on("data", (data: Uint8Array) => {
+        stderr += new TextDecoder().decode(data);
+      });
+
+      // Drain stdout to prevent buffer blocking
+      proc.stdout?.on("data", () => {
+        // Ignore stdout data, just drain the buffer
+      });
+
+      proc.on("close", (code: number | null) => {
+        if (code === 0) {
+          resolve({ success: true });
+        } else {
+          resolve({ success: false, error: formatWindowsCodexCliError(stderr) || `Exit code: ${code}` });
+        }
+      });
+
+      proc.on("error", (err: Error) => {
+        resolve({ success: false, error: formatWindowsCodexCliError(err.message) });
+      });
+
+      setTimeout(() => {
+        proc.kill();
+        resolve({ success: false, error: formatWindowsCodexCliError("Timeout - CLI may not be logged in") });
+      }, 60000);
+    } catch (err) {
+      resolve({ success: false, error: formatWindowsCodexCliError(String(err)) });
+    }
+  });
+
+  if (!loginCheck.success) {
+    return { success: false, stage: "login", error: loginCheck.error || "Please run 'codex' in terminal to log in" };
   }
 
   return { success: true, stage: "login" };

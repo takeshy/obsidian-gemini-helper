@@ -2,7 +2,7 @@
 
 **Free and open-source** AI assistant for Obsidian with **Chat**, **Workflow Automation**, and **Semantic Search** powered by Google Gemini.
 
-> **This plugin is completely free.** You only need a Google Gemini API key (free or paid) from [ai.google.dev](https://ai.google.dev), or a Google account via [Gemini CLI](https://github.com/google-gemini/gemini-cli).
+> **This plugin is completely free.** You only need a Google Gemini API key (free or paid) from [ai.google.dev](https://ai.google.dev), or use CLI tools: [Gemini CLI](https://github.com/google-gemini/gemini-cli), [Claude Code](https://github.com/anthropics/claude-code), or [Codex CLI](https://github.com/openai/codex).
 
 ## Highlights
 
@@ -12,23 +12,26 @@
 - **Web Search** - Access up-to-date information via Google Search
 - **Image Generation** - Create images with Gemini image models
 
-## Google API Key Options
+## API Key / CLI Options
 
-This plugin requires a Google Gemini API key or a Google account (via Gemini CLI). You can choose between:
+This plugin requires a Google Gemini API key or a CLI tool. You can choose between:
 
-| Feature | Free API Key | Paid API Key | Gemini CLI |
-|---------|--------------|--------------|------------|
+| Feature | Free API Key | Paid API Key | CLI |
+|---------|--------------|--------------|-----|
 | Basic chat | ✅ | ✅ | ✅ |
 | Vault operations | ✅ | ✅ | Read/Search only |
 | Web Search | ✅ | ✅ | ❌ |
 | Semantic Search | ✅ (limited) | ✅ | ❌ |
 | Workflow | ✅ | ✅ | ✅ |
 | Image Generation | ❌ | ✅ | ❌ |
-| Models | Flash, Gemma | Flash, Pro, Image | **Gemini 2.5 Pro** |
+| Models | Flash, Gemma | Flash, Pro, Image | Gemini CLI, Claude Code, Codex |
 | Cost | **Free** | Pay per use | **Free** |
 
 > [!TIP]
-> **Gemini CLI** lets you use **Gemini 2.5 Pro** (flagship model) with just a Google account - no API key needed! Install [Gemini CLI](https://github.com/google-gemini/gemini-cli), run `gemini` and authenticate with `/auth`.
+> **CLI Options** let you use flagship models with just an account - no API key needed!
+> - **Gemini CLI**: Install [Gemini CLI](https://github.com/google-gemini/gemini-cli), run `gemini` and authenticate with `/auth`
+> - **Claude CLI**: Install [Claude Code](https://github.com/anthropics/claude-code) (`npm install -g @anthropic-ai/claude-code`), run `claude` and authenticate
+> - **Codex CLI**: Install [Codex CLI](https://github.com/openai/codex) (`npm install -g @openai/codex`), run `codex` and authenticate
 
 ### Free API Key Tips
 
@@ -236,13 +239,24 @@ npm run build
 
 ![Basic Settings](setting_basic.png)
 
-### Gemini CLI
+### CLI Mode (Gemini / Claude / Codex)
+
+**Gemini CLI:**
 1. Install [Gemini CLI](https://github.com/google-gemini/gemini-cli)
 2. Authenticate with `gemini` → `/auth`
-3. Enable "Command line mode" in settings
-4. Click "Verify" to confirm
+3. Click "Verify" in Gemini CLI section
 
-**Limitations:** Read-only vault operations, no semantic/web search
+**Claude CLI:**
+1. Install [Claude Code](https://github.com/anthropics/claude-code): `npm install -g @anthropic-ai/claude-code`
+2. Authenticate with `claude`
+3. Click "Verify" in Claude CLI section
+
+**Codex CLI:**
+1. Install [Codex CLI](https://github.com/openai/codex): `npm install -g @openai/codex`
+2. Authenticate with `codex`
+3. Click "Verify" in Codex CLI section
+
+**CLI Limitations:** Read-only vault operations, no semantic/web search
 
 ### Workspace Settings
 - **Workspace Folder** - Chat history and settings location
@@ -309,8 +323,8 @@ Edit workflows directly in the visual node editor with drag-and-drop interface.
 ## Requirements
 
 - Obsidian v0.15.0+
-- Google AI API key (or Gemini CLI)
-- Desktop and mobile supported
+- Google AI API key, or CLI tool (Gemini CLI / Claude CLI / Codex CLI)
+- Desktop and mobile supported (CLI mode: desktop only)
 
 ## Privacy
 

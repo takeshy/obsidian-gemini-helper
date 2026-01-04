@@ -1285,12 +1285,46 @@
   background-color: var(--background-modifier-error);
 }
 
+/* Settings Tab - CLI Row Status (inline badge) */
+.gemini-helper-cli-row-status {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2em 0.6em;
+  border-radius: 4px;
+  font-size: 0.85em;
+  margin-right: 0.5em;
+  min-width: 70px;
+  justify-content: center;
+}
+
+.gemini-helper-cli-row-status:empty {
+  display: none;
+}
+
+.gemini-helper-cli-row-status.gemini-helper-cli-status--success {
+  background-color: var(--background-modifier-success);
+  color: var(--text-on-accent);
+}
+
+.gemini-helper-cli-row-status.gemini-helper-cli-status--error {
+  background-color: var(--background-modifier-error);
+  color: var(--text-on-accent);
+}
+
+/* Settings Tab - CLI Introduction */
+.gemini-helper-cli-intro {
+  margin-bottom: 1em;
+}
+
 /* Settings Tab - CLI Notice Box */
 .gemini-helper-cli-notice {
-  margin-top: 1em;
   padding: 0.5em;
   background-color: var(--background-modifier-message);
   border-radius: 4px;
+}
+
+.gemini-helper-cli-notice--spaced {
+  margin-top: 1em;
 }
 
 .gemini-helper-cli-notice ul {

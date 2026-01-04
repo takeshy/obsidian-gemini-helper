@@ -1,5 +1,6 @@
 import { App, Modal, Setting } from "obsidian";
 import { SidebarNode, WorkflowNodeType } from "src/workflow/types";
+import type { CliProviderConfig } from "src/types";
 
 const NODE_TYPE_LABELS: Record<WorkflowNodeType, string> = {
   variable: "Variable",
@@ -30,12 +31,14 @@ export class NodeEditorModal extends Modal {
   private editedTrueNext?: string;
   private editedFalseNext?: string;
   private ragSettingNames: string[];
+  private cliConfig?: CliProviderConfig;
 
   constructor(
     app: App,
     node: SidebarNode,
     onSave: (node: SidebarNode) => void,
-    ragSettingNames: string[] = []
+    ragSettingNames: string[] = [],
+    cliConfig?: CliProviderConfig
   ) {
     super(app);
     this.node = node;
@@ -45,6 +48,7 @@ export class NodeEditorModal extends Modal {
     this.editedTrueNext = node.trueNext;
     this.editedFalseNext = node.falseNext;
     this.ragSettingNames = ragSettingNames;
+    this.cliConfig = cliConfig;
   }
 
   onOpen(): void {
@@ -99,23 +103,86 @@ export class NodeEditorModal extends Modal {
         );
         break;
 
-      case "command":
+      case "command": {
         this.addTextArea(container, "prompt", "Prompt", "Enter prompt template (supports {{variables}})");
-        this.addLabeledDropdown(container, "model", "Model", [
+
+        // Model dropdown with Search auto-reset for CLI models
+        // Only show verified CLI models
+        const cliOptions: Array<{ value: string; label: string }> = [];
+        if (this.cliConfig?.cliVerified) {
+          cliOptions.push({ value: "gemini-cli", label: "Gemini CLI" });
+        }
+        if (this.cliConfig?.claudeCliVerified) {
+          cliOptions.push({ value: "claude-cli", label: "Claude CLI" });
+        }
+        if (this.cliConfig?.codexCliVerified) {
+          cliOptions.push({ value: "codex-cli", label: "Codex CLI" });
+        }
+
+        const modelOptions = [
           { value: "", label: "Use current model" },
           { value: "gemini-3-flash-preview", label: "Gemini 3 Flash Preview" },
           { value: "gemini-3-pro-preview", label: "Gemini 3 Pro Preview" },
           { value: "gemini-2.5-flash", label: "Gemini 2.5 Flash" },
           { value: "gemini-2.5-pro", label: "Gemini 2.5 Pro" },
           { value: "gemini-2.5-flash-lite", label: "Gemini 2.5 Flash Lite" },
-        ]);
-        this.addLabeledDropdown(container, "ragSetting", "Search", [
+          ...cliOptions,
+        ];
+        const searchOptions = [
           { value: "__none__", label: "None" },
           { value: "__websearch__", label: "Web search" },
           ...this.ragSettingNames.map(name => ({ value: name, label: `Semantic search: ${name}` })),
-        ]);
+        ];
+
+        let searchDropdown: HTMLSelectElement | null = null;
+        const isCliModel = (model: string) => model === "gemini-cli" || model === "claude-cli" || model === "codex-cli";
+
+        // Model dropdown
+        new Setting(container).setName("Model").addDropdown((dropdown) => {
+          for (const opt of modelOptions) {
+            dropdown.addOption(opt.value, opt.label);
+          }
+          dropdown.setValue(this.editedProperties["model"] || "");
+          dropdown.onChange((value) => {
+            this.editedProperties["model"] = value;
+            // Auto-set Search to None and disable for CLI models
+            if (isCliModel(value)) {
+              this.editedProperties["ragSetting"] = "__none__";
+              if (searchDropdown) {
+                searchDropdown.value = "__none__";
+                searchDropdown.disabled = true;
+              }
+            } else {
+              if (searchDropdown) {
+                searchDropdown.disabled = false;
+              }
+            }
+          });
+        });
+
+        // Search dropdown
+        const initialModel = this.editedProperties["model"] || "";
+        new Setting(container).setName("Search").addDropdown((dropdown) => {
+          searchDropdown = dropdown.selectEl;
+          for (const opt of searchOptions) {
+            dropdown.addOption(opt.value, opt.label);
+          }
+          // Set initial disabled state based on current model
+          if (isCliModel(initialModel)) {
+            this.editedProperties["ragSetting"] = "__none__";
+            dropdown.setValue("__none__");
+            searchDropdown.disabled = true;
+          } else {
+            dropdown.setValue(this.editedProperties["ragSetting"] || "__none__");
+          }
+          dropdown.onChange((value) => {
+            this.editedProperties["ragSetting"] = value;
+          });
+        });
+
         this.addTextField(container, "saveTo", "Save To", "Variable name to store result");
         break;
+      }
 
       case "http":
         this.addTextField(container, "url", "URL", "https://api.example.com/endpoint");

@@ -476,7 +476,7 @@ ${result.nodes.map(node => {
       const updatedNodes = newNodes.map((n) => (n.id === updatedNode.id ? updatedNode : n));
       setNodes(updatedNodes);
       void saveWorkflow(updatedNodes);
-    }, ragSettingNames);
+    }, ragSettingNames, plugin.settings.cliConfig);
     modal.open();
   };
 
@@ -492,7 +492,7 @@ ${result.nodes.map(node => {
       const newNodes = nodes.map((n, i) => (i === index ? updatedNode : n));
       setNodes(newNodes);
       void saveWorkflow(newNodes);
-    }, ragSettingNames);
+    }, ragSettingNames, plugin.settings.cliConfig);
     modal.open();
   };
 

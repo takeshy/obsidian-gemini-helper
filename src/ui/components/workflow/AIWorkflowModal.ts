@@ -5,6 +5,7 @@ import { GeminiClient } from "src/core/gemini";
 import { CLI_MODEL, CLAUDE_CLI_MODEL, CODEX_CLI_MODEL, DEFAULT_CLI_CONFIG, getAvailableModels, type ModelType } from "src/types";
 import { WORKFLOW_SPECIFICATION } from "src/workflow/workflowSpec";
 import type { SidebarNode, WorkflowNodeType } from "src/workflow/types";
+import { computeLineDiff } from "./EditConfirmationModal";
 
 export type AIWorkflowMode = "create" | "modify";
 
@@ -55,24 +56,29 @@ class WorkflowConfirmModal extends Modal {
       explanationContainer.createEl("p", { text: this.explanation });
     }
 
-    // Create side-by-side comparison
-    const comparisonContainer = contentEl.createDiv({ cls: "ai-workflow-comparison" });
+    // Create diff view
+    const diffContainer = contentEl.createDiv({ cls: "gemini-helper-diff-view" });
+    const diffLines = computeLineDiff(this.oldYaml, this.newYaml);
 
-    // Old workflow
-    const oldContainer = comparisonContainer.createDiv({ cls: "ai-workflow-compare-panel" });
-    oldContainer.createEl("h3", { text: "Before" });
-    oldContainer.createEl("pre", {
-      text: this.oldYaml,
-      cls: "ai-workflow-compare-code",
-    });
+    for (const line of diffLines) {
+      const lineEl = diffContainer.createDiv({
+        cls: `gemini-helper-diff-line gemini-helper-diff-${line.type}`,
+      });
 
-    // New workflow
-    const newContainer = comparisonContainer.createDiv({ cls: "ai-workflow-compare-panel" });
-    newContainer.createEl("h3", { text: "After" });
-    newContainer.createEl("pre", {
-      text: this.newYaml,
-      cls: "ai-workflow-compare-code",
-    });
+      // Line number gutter
+      const gutterEl = lineEl.createSpan({ cls: "gemini-helper-diff-gutter" });
+      if (line.type === "removed") {
+        gutterEl.textContent = "-";
+      } else if (line.type === "added") {
+        gutterEl.textContent = "+";
+      } else {
+        gutterEl.textContent = " ";
+      }
+
+      // Content
+      const contentEl = lineEl.createSpan({ cls: "gemini-helper-diff-content" });
+      contentEl.textContent = line.content;
+    }
 
     // Buttons
     const buttonContainer = contentEl.createDiv({ cls: "ai-workflow-buttons" });

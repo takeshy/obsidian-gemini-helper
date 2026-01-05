@@ -19,6 +19,8 @@ const NODE_TYPE_LABELS: Record<WorkflowNodeType, string> = {
   dialog: "Dialog",
   "prompt-file": "Prompt File",
   "prompt-selection": "Prompt Selection",
+  "file-explorer": "File Explorer",
+  "file-save": "File Save",
   workflow: "Workflow",
   "rag-sync": "RAG Sync",
 };
@@ -123,9 +125,11 @@ export class NodeEditorModal extends Modal {
           { value: "", label: "Use current model" },
           { value: "gemini-3-flash-preview", label: "Gemini 3 Flash Preview" },
           { value: "gemini-3-pro-preview", label: "Gemini 3 Pro Preview" },
+          { value: "gemini-3-pro-image-preview", label: "Gemini 3 Pro (Image)" },
           { value: "gemini-2.5-flash", label: "Gemini 2.5 Flash" },
           { value: "gemini-2.5-pro", label: "Gemini 2.5 Pro" },
           { value: "gemini-2.5-flash-lite", label: "Gemini 2.5 Flash Lite" },
+          { value: "gemini-2.5-flash-image", label: "Gemini 2.5 Flash (Image)" },
           ...cliOptions,
         ];
         const searchOptions = [
@@ -180,7 +184,9 @@ export class NodeEditorModal extends Modal {
           });
         });
 
-        this.addTextField(container, "saveTo", "Save To", "Variable name to store result");
+        this.addTextField(container, "attachments", "Attachments", "Variable names with file data (comma-separated)");
+        this.addTextField(container, "saveTo", "Save To", "Variable name to store text result");
+        this.addTextField(container, "saveImageTo", "Save Image To", "Variable name to store generated image (for image models)");
         break;
       }
 
@@ -267,6 +273,15 @@ export class NodeEditorModal extends Modal {
         this.addTextField(container, "saveSelectionTo", "Save Selection To", "Variable name for selection object");
         break;
 
+      case "file-explorer":
+        this.addDropdown(container, "mode", "Mode", ["select", "create"], "select: Pick existing file, create: Enter new path");
+        this.addTextField(container, "title", "Dialog Title", "Select a file");
+        this.addTextField(container, "extensions", "Extensions", "Allowed extensions (e.g., md,pdf,png)");
+        this.addTextField(container, "default", "Default Path", "Default path or folder");
+        this.addTextField(container, "saveTo", "Save Data To", "Variable for file data JSON (with content)");
+        this.addTextField(container, "savePathTo", "Save Path To", "Variable for file path only");
+        break;
+
       case "workflow":
         this.addTextField(container, "path", "Workflow Path", "Path to workflow file");
         this.addTextField(container, "name", "Workflow Name", "Name of workflow (if file has multiple)");
@@ -282,6 +297,12 @@ export class NodeEditorModal extends Modal {
           ...this.ragSettingNames.map(name => ({ value: name, label: name })),
         ]);
         this.addTextField(container, "saveTo", "Save To", "Variable name to store result (optional)");
+        break;
+
+      case "file-save":
+        this.addTextField(container, "source", "Source Variable", "Variable containing FileExplorerData (e.g., from file-explorer or saveImageTo)");
+        this.addTextField(container, "path", "Save Path", "Path to save the file (without extension if auto-detected)");
+        this.addTextField(container, "savePathTo", "Save Path To", "Variable to store final file path (optional)");
         break;
 
     }

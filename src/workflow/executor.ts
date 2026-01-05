@@ -27,6 +27,8 @@ import {
   handleDialogNode,
   handlePromptFileNode,
   handlePromptSelectionNode,
+  handleFileExplorerNode,
+  handleFileSaveNode,
   handleWorkflowNode,
   handleRagSyncNode,
   replaceVariables,
@@ -694,6 +696,69 @@ export class WorkflowExecutor {
             // Push next nodes
             const promptSelNextNodes = getNextNodes(workflow, node.id);
             for (const nextId of promptSelNextNodes.reverse()) {
+              stack.push({ nodeId: nextId, iterationCount: 0 });
+            }
+            break;
+          }
+
+          case "file-explorer": {
+            const fileExpTitle = node.properties["title"] || "Select a file";
+            const fileExpMode = node.properties["mode"] || "select";
+            const fileExpSaveTo = node.properties["saveTo"] || "";
+            const fileExpSavePathTo = node.properties["savePathTo"] || "";
+            log(
+              node.id,
+              node.type,
+              `File explorer (${fileExpMode}): ${fileExpTitle}`,
+              "info"
+            );
+
+            await handleFileExplorerNode(node, context, this.app, promptCallbacks);
+
+            const fileExpResult = fileExpSaveTo
+              ? context.variables.get(fileExpSaveTo)
+              : context.variables.get(fileExpSavePathTo);
+            log(node.id, node.type, `File explorer completed`, "success");
+            addHistoryStep(
+              node.id,
+              node.type,
+              { title: fileExpTitle, mode: fileExpMode },
+              fileExpResult,
+              "success"
+            );
+
+            // Push next nodes
+            const fileExpNextNodes = getNextNodes(workflow, node.id);
+            for (const nextId of fileExpNextNodes.reverse()) {
+              stack.push({ nodeId: nextId, iterationCount: 0 });
+            }
+            break;
+          }
+
+          case "file-save": {
+            const fileSaveSource = node.properties["source"] || "";
+            const fileSavePath = replaceVariables(node.properties["path"] || "", context);
+            log(
+              node.id,
+              node.type,
+              `Saving file from '${fileSaveSource}' to '${fileSavePath}'`,
+              "info"
+            );
+
+            await handleFileSaveNode(node, context, this.app);
+
+            log(node.id, node.type, `File saved to ${fileSavePath}`, "success");
+            addHistoryStep(
+              node.id,
+              node.type,
+              { source: fileSaveSource, path: fileSavePath },
+              fileSavePath,
+              "success"
+            );
+
+            // Push next nodes
+            const fileSaveNextNodes = getNextNodes(workflow, node.id);
+            for (const nextId of fileSaveNextNodes.reverse()) {
               stack.push({ nodeId: nextId, iterationCount: 0 });
             }
             break;

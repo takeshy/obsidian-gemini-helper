@@ -11,6 +11,7 @@ This document provides detailed specifications for all workflow node types. For 
 | LLM | `command` | Execute prompts with model/search options |
 | Data | `http`, `json` | HTTP requests and JSON parsing |
 | Notes | `note`, `note-read`, `note-search`, `note-list`, `folder-list`, `open` | Vault operations |
+| Files | `file-explorer`, `file-save` | File selection and saving (images, PDFs, etc.) |
 | Prompts | `prompt-file`, `prompt-selection`, `dialog` | User input dialogs |
 | Composition | `workflow` | Execute another workflow as a sub-workflow |
 | RAG | `rag-sync` | Sync notes to semantic search store |
@@ -35,9 +36,24 @@ Execute an LLM prompt with optional model and search settings.
 | Property | Description |
 |----------|-------------|
 | `prompt` | The prompt to send to the LLM (required) |
-| `model` | Override the current model (e.g., `gemini-3-flash-preview`) |
+| `model` | Override the current model (e.g., `gemini-3-flash-preview`, `gemini-3-pro-image-preview`) |
 | `ragSetting` | `__websearch__` (web search), `__none__` (no search), setting name, or omit for current |
-| `saveTo` | Variable name to store the response |
+| `attachments` | Comma-separated variable names containing FileExplorerData (from `file-explorer` node) |
+| `saveTo` | Variable name to store text response |
+| `saveImageTo` | Variable name to store generated image (FileExplorerData format, for image models) |
+
+**Image generation example**:
+```yaml
+- id: generate
+  type: command
+  prompt: "Generate a cute cat illustration"
+  model: gemini-3-pro-image-preview
+  saveImageTo: generatedImage
+- id: save-image
+  type: note
+  path: "images/cat"
+  content: "![cat](data:{{generatedImage.mimeType}};base64,{{generatedImage.data}})"
+```
 
 ### note
 
@@ -131,20 +147,26 @@ Make HTTP requests.
 | `saveStatus` | Variable for HTTP status code |
 | `throwOnError` | `true` to throw error on 4xx/5xx responses |
 
-**form-data example** (file upload):
+**form-data example** (binary file upload with file-explorer):
 
 ```yaml
+- id: select-pdf
+  type: file-explorer
+  path: "{{__eventFilePath__}}"
+  extensions: "pdf,png,jpg"
+  saveTo: fileData
 - id: upload
   type: http
   url: "https://example.com/upload"
   method: POST
   contentType: form-data
-  headers: '{"X-API-Key": "{{apiKey}}"}'
-  body: '{"file:{{filename}}": "{{content}}"}'
+  body: '{"file": "{{fileData}}"}'
   saveTo: response
 ```
 
-For `form-data`, use `fieldName:filename` syntax for file fields (e.g., `"file:report.html": "{{htmlContent}}"`)
+For `form-data`:
+- FileExplorerData (from `file-explorer` node) is auto-detected and sent as binary
+- Use `fieldName:filename` syntax for text file fields (e.g., `"file:report.html": "{{htmlContent}}"`)
 
 ### dialog
 
@@ -238,6 +260,111 @@ Sync a note to a RAG (semantic search) store.
   "ragSetting": "My RAG Store",
   "syncedAt": "2025-01-01T12:00:00.000Z"
 }
+```
+
+### file-explorer
+
+Select a file from vault or enter a new file path. Supports any file type including images and PDFs.
+
+```yaml
+- id: selectImage
+  type: file-explorer
+  mode: select
+  title: "Select an image"
+  extensions: "png,jpg,jpeg,gif,webp"
+  default: "images/"
+  saveTo: imageData
+  savePathTo: imagePath
+```
+
+| Property | Description |
+|----------|-------------|
+| `path` | Direct file path - skips dialog when set (supports `{{variables}}`) |
+| `mode` | `select` (pick existing file, default) or `create` (enter new path) |
+| `title` | Dialog title |
+| `extensions` | Comma-separated allowed extensions (e.g., `pdf,png,jpg`) |
+| `default` | Default path (supports `{{variables}}`) |
+| `saveTo` | Variable for FileExplorerData JSON |
+| `savePathTo` | Variable for just the file path |
+
+**FileExplorerData format:**
+```json
+{
+  "path": "folder/image.png",
+  "basename": "image.png",
+  "name": "image",
+  "extension": "png",
+  "mimeType": "image/png",
+  "contentType": "binary",
+  "data": "base64-encoded-content"
+}
+```
+
+**Example: Image Analysis (with dialog)**
+```yaml
+- id: selectImage
+  type: file-explorer
+  title: "Select an image to analyze"
+  extensions: "png,jpg,jpeg,gif,webp"
+  saveTo: imageData
+- id: analyze
+  type: command
+  prompt: "Describe this image in detail"
+  attachments: imageData
+  saveTo: analysis
+- id: save
+  type: note
+  path: "analysis/{{imageData.name}}.md"
+  content: "# Image Analysis\n\n{{analysis}}"
+```
+
+**Example: Event-triggered (no dialog)**
+```yaml
+- id: loadImage
+  type: file-explorer
+  path: "{{__eventFilePath__}}"
+  saveTo: imageData
+- id: analyze
+  type: command
+  prompt: "Describe this image"
+  attachments: imageData
+  saveTo: result
+```
+
+### file-save
+
+Save FileExplorerData as a file in the vault. Useful for saving generated images or copied files.
+
+```yaml
+- id: saveImage
+  type: file-save
+  source: generatedImage
+  path: "images/output"
+  savePathTo: savedPath
+```
+
+| Property | Description |
+|----------|-------------|
+| `source` | Variable name containing FileExplorerData (required) |
+| `path` | Path to save the file (extension auto-added if missing) |
+| `savePathTo` | Variable to store the final file path (optional) |
+
+**Example: Generate and save image**
+```yaml
+- id: generate
+  type: command
+  prompt: "Generate a landscape image"
+  model: gemini-3-pro-image-preview
+  saveImageTo: generatedImage
+- id: save
+  type: file-save
+  source: generatedImage
+  path: "images/landscape"
+  savePathTo: savedPath
+- id: showResult
+  type: dialog
+  title: "Image Saved"
+  message: "Image saved to {{savedPath}}"
 ```
 
 ### prompt-file

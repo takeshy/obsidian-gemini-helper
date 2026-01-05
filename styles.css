@@ -549,7 +549,7 @@
 /* RAG Used Indicator */
 .gemini-helper-rag-used {
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
   gap: 6px;
   margin-bottom: 8px;
   padding-bottom: 8px;
@@ -565,6 +565,24 @@
   display: inline-flex;
   align-items: center;
   gap: 4px;
+  width: fit-content;
+}
+
+.gemini-helper-rag-sources {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.gemini-helper-rag-source {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--text-muted);
+  background: var(--background-primary);
+  padding: 2px 8px;
+  border-radius: 12px;
 }
 
 /* Thinking Content (Collapsible) */
@@ -1590,7 +1608,8 @@
 
 .workflow-node-type-prompt-file,
 .workflow-node-type-prompt-selection,
-.workflow-node-type-prompt-value {
+.workflow-node-type-prompt-value,
+.workflow-node-type-file-explorer {
   background-color: var(--color-pink);
   color: white;
 }
@@ -2063,6 +2082,16 @@
   padding: 12px;
   background: var(--background-secondary);
   border-radius: 6px;
+}
+
+.workflow-file-preview-image {
+  max-width: 100%;
+  max-height: 300px;
+}
+
+.workflow-file-path-input input {
+  width: 100%;
+  margin-bottom: 10px;
   font-size: 13px;
 }
 
@@ -2805,4 +2834,92 @@
   background: var(--text-error);
   border: none;
   color: white;
+}
+
+/* ===============================================
+   Diff View Styles
+   =============================================== */
+
+.gemini-helper-diff-view {
+  font-family: var(--font-monospace);
+  font-size: 12px;
+  line-height: 1.5;
+  overflow-x: auto;
+  background: var(--background-primary);
+  border-radius: 4px;
+}
+
+.gemini-helper-diff-line {
+  display: flex;
+  white-space: pre;
+  min-height: 1.5em;
+}
+
+.gemini-helper-diff-gutter {
+  flex-shrink: 0;
+  width: 24px;
+  text-align: center;
+  user-select: none;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.gemini-helper-diff-content {
+  flex: 1;
+  padding-left: 8px;
+  padding-right: 8px;
+}
+
+/* Unchanged lines */
+.gemini-helper-diff-unchanged {
+  background: transparent;
+}
+
+.gemini-helper-diff-unchanged .gemini-helper-diff-gutter {
+  color: var(--text-faint);
+}
+
+/* Added lines */
+.gemini-helper-diff-added {
+  background: rgba(0, 200, 83, 0.15);
+}
+
+.gemini-helper-diff-added .gemini-helper-diff-gutter {
+  color: var(--color-green);
+  background: rgba(0, 200, 83, 0.25);
+}
+
+.gemini-helper-diff-added .gemini-helper-diff-content {
+  color: var(--text-normal);
+}
+
+/* Removed lines */
+.gemini-helper-diff-removed {
+  background: rgba(255, 100, 100, 0.15);
+}
+
+.gemini-helper-diff-removed .gemini-helper-diff-gutter {
+  color: var(--color-red);
+  background: rgba(255, 100, 100, 0.25);
+}
+
+.gemini-helper-diff-removed .gemini-helper-diff-content {
+  color: var(--text-normal);
+}
+
+/* Dark theme adjustments */
+.theme-dark .gemini-helper-diff-added {
+  background: rgba(0, 200, 83, 0.12);
+}
+
+.theme-dark .gemini-helper-diff-added .gemini-helper-diff-gutter {
+  background: rgba(0, 200, 83, 0.2);
+}
+
+.theme-dark .gemini-helper-diff-removed {
+  background: rgba(255, 100, 100, 0.12);
+}
+
+.theme-dark .gemini-helper-diff-removed .gemini-helper-diff-gutter {
+  background: rgba(255, 100, 100, 0.2);
 }

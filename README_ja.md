@@ -7,7 +7,7 @@
 ## 主な機能
 
 - **AI チャット** - ストリーミング応答、ファイル添付、Vault 操作、スラッシュコマンド
-- **ワークフロービルダー** - ビジュアルノードエディタと 18 種類のノードでマルチステップタスクを自動化
+- **ワークフロービルダー** - ビジュアルノードエディタと 20 種類のノードでマルチステップタスクを自動化
 - **セマンティック検索** - RAG による Vault 全体の知的検索
 - **Web 検索** - Google 検索で最新情報を取得
 - **画像生成** - Gemini 画像モデルで画像を作成
@@ -107,6 +107,7 @@ AI が `propose_edit` を使用時：
 
 RAG による Vault の知的検索：
 
+- **対応ファイル** - Markdown、PDF、画像（PNG、JPEG、GIF、WebP）
 - **Internal モード** - Vault ファイルを Google File Search に同期
 - **External モード** - 既存のストア ID を使用
 - **差分同期** - 変更ファイルのみアップロード
@@ -171,7 +172,7 @@ Gemini サイドバーの **Workflow** タブを開いて実行。
 
 ## 利用可能なノードタイプ
 
-18 種類のノードタイプでワークフローを構築できます：
+20 種類のノードタイプでワークフローを構築できます：
 
 | カテゴリ | ノード |
 |----------|--------|
@@ -180,6 +181,7 @@ Gemini サイドバーの **Workflow** タブを開いて実行。
 | LLM | `command` |
 | データ | `http`, `json` |
 | ノート | `note`, `note-read`, `note-search`, `note-list`, `folder-list`, `open` |
+| ファイル | `file-explorer`, `file-save` |
 | プロンプト | `prompt-file`, `prompt-selection`, `dialog` |
 | 合成 | `workflow` |
 | RAG | `rag-sync` |

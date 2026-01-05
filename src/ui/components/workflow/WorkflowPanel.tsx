@@ -11,7 +11,7 @@ import { listWorkflowOptions, parseWorkflowFromMarkdown, WorkflowOption } from "
 import { WorkflowExecutor } from "src/workflow/executor";
 import { NodeEditorModal } from "./NodeEditorModal";
 import { HistoryModal } from "./HistoryModal";
-import { promptForFile } from "./FilePromptModal";
+import { promptForFile, promptForAnyFile, promptForNewFilePath } from "./FilePromptModal";
 import { promptForValue } from "./ValuePromptModal";
 import { promptForSelection } from "./SelectionPromptModal";
 import { promptForConfirmation } from "./EditConfirmationModal";
@@ -38,6 +38,8 @@ const NODE_TYPE_LABELS: Record<WorkflowNodeType, string> = {
   dialog: "Dialog",
   "prompt-file": "Prompt File",
   "prompt-selection": "Prompt Selection",
+  "file-explorer": "File Explorer",
+  "file-save": "File Save",
   workflow: "Workflow",
   "rag-sync": "RAG Sync",
 };
@@ -59,6 +61,8 @@ const ADDABLE_NODE_TYPES: WorkflowNodeType[] = [
   "dialog",
   "prompt-file",
   "prompt-selection",
+  "file-explorer",
+  "file-save",
   "workflow",
   "rag-sync",
 ];
@@ -72,7 +76,7 @@ function getDefaultProperties(type: WorkflowNodeType): Record<string, string> {
     case "while":
       return { condition: "" };
     case "command":
-      return { prompt: "", model: "", ragSetting: "__none__", saveTo: "" };
+      return { prompt: "", model: "", ragSetting: "__none__", attachments: "", saveTo: "" };
     case "http":
       return { url: "", method: "POST", saveTo: "" };
     case "json":
@@ -95,10 +99,14 @@ function getDefaultProperties(type: WorkflowNodeType): Record<string, string> {
       return { title: "", saveTo: "", saveFileTo: "" };
     case "prompt-selection":
       return { title: "", saveTo: "", saveSelectionTo: "" };
+    case "file-explorer":
+      return { mode: "select", title: "", extensions: "", default: "", saveTo: "", savePathTo: "" };
     case "workflow":
       return { path: "", name: "", input: "", output: "", prefix: "" };
     case "rag-sync":
       return { path: "", ragSetting: "", saveTo: "" };
+    case "file-save":
+      return { source: "", path: "", savePathTo: "" };
     default:
       return {};
   }
@@ -199,11 +207,14 @@ function getNodeSummary(node: SidebarNode): string {
       return node.properties["title"] || "(no title)";
     case "prompt-file":
     case "prompt-selection":
+    case "file-explorer":
       return node.properties["title"] || "(no title)";
     case "workflow":
       return `${node.properties["path"]}${node.properties["name"] ? ` (${node.properties["name"]})` : ""}`;
     case "rag-sync":
       return `${node.properties["path"]} → ${node.properties["ragSetting"]}`;
+    case "file-save":
+      return `${node.properties["source"]} → ${node.properties["path"]}`;
   }
 }
 
@@ -590,6 +601,10 @@ ${result.nodes.map(node => {
       // Create prompt callbacks
       const promptCallbacks: PromptCallbacks = {
         promptForFile: (defaultPath?: string) => promptForFile(plugin.app, defaultPath || "Select a file"),
+        promptForAnyFile: (extensions?: string[], defaultPath?: string) =>
+          promptForAnyFile(plugin.app, extensions, defaultPath || "Select a file"),
+        promptForNewFilePath: (extensions?: string[], defaultPath?: string) =>
+          promptForNewFilePath(plugin.app, extensions, defaultPath),
         promptForSelection: () => promptForSelection(plugin.app, "Select text"),
         promptForValue: (prompt: string, defaultValue?: string, multiline?: boolean) =>
           promptForValue(plugin.app, prompt, defaultValue || "", multiline || false),

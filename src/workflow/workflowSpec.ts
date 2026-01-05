@@ -21,7 +21,7 @@ nodes:
     saveTo: result
 \`\`\`
 
-## Node Types (18 total)
+## Node Types (20 total)
 
 ### 1. variable
 Initialize a new variable.
@@ -48,9 +48,24 @@ Loop while condition is true.
 ### 5. command
 Execute LLM prompt.
 - **prompt** (required): Prompt template (supports {{variables}})
-- **model** (optional): Model override (gemini-3-flash-preview, gemini-3-pro-preview, etc.)
+- **model** (optional): Model override (gemini-3-flash-preview, gemini-3-pro-image-preview, etc.)
 - **ragSetting** (optional): Search setting (__websearch__, __none__, or setting name)
-- **saveTo** (optional): Variable name to store response
+- **attachments** (optional): Comma-separated variable names containing FileExplorerData (from file-explorer node)
+- **saveTo** (optional): Variable name to store text response
+- **saveImageTo** (optional): Variable name to store generated image (FileExplorerData format, for image models)
+
+**Image generation example**:
+\`\`\`yaml
+- id: generate
+  type: command
+  prompt: "Generate a cute cat illustration"
+  model: gemini-3-pro-image-preview
+  saveImageTo: generatedImage
+- id: save-image
+  type: note
+  path: "images/cat"
+  content: "![cat](data:{{generatedImage.mimeType}};base64,{{generatedImage.data}})"
+\`\`\`
 
 ### 6. http
 Make HTTP request.
@@ -60,21 +75,25 @@ Make HTTP request.
 - **headers** (optional): JSON headers
 - **body** (optional): Request body (supports {{variables}})
   - For "json": JSON string
-  - For "form-data": JSON object where keys are field names. Use "fieldName:filename" for file fields.
+  - For "form-data": JSON object. FileExplorerData is auto-detected and sent as binary.
   - For "text": Plain text
 - **saveTo** (optional): Variable name for response
 - **saveStatus** (optional): Variable name for HTTP status code
 - **throwOnError** (optional): "true" to throw on 4xx/5xx
 
-**form-data example** (file upload):
+**form-data example** (binary file upload with file-explorer):
 \`\`\`yaml
+- id: select-pdf
+  type: file-explorer
+  path: "{{__eventFilePath__}}"
+  extensions: "pdf,png,jpg"
+  saveTo: fileData
 - id: upload
   type: http
   url: "https://example.com/upload"
   method: POST
   contentType: form-data
-  headers: '{"X-API-Key": "{{apiKey}}"}'
-  body: '{"file:{{filename}}": "{{content}}"}'
+  body: '{"file": "{{fileData}}"}'
   saveTo: response
 \`\`\`
 
@@ -215,6 +234,77 @@ Sync a note to RAG (File Search) store.
   type: rag-sync
   path: "{{notePath}}"
   ragSetting: "my-rag-store"
+\`\`\`
+
+### 19. file-explorer
+Select a file from vault or enter a new file path.
+- **path** (optional): Direct file path - skips dialog when set (supports {{variables}})
+- **mode** (optional): "select" (pick existing file) or "create" (enter new path). Default: "select"
+- **title** (optional): Dialog title
+- **extensions** (optional): Comma-separated allowed extensions (e.g., "pdf,png,jpg")
+- **default** (optional): Default path (supports {{variables}})
+- **saveTo** (optional): Variable for FileExplorerData (JSON with path, basename, name, extension, mimeType, contentType, data)
+- **savePathTo** (optional): Variable for just the file path
+
+**FileExplorerData structure**:
+\`\`\`json
+{
+  "path": "folder/file.pdf",
+  "basename": "file.pdf",
+  "name": "file",
+  "extension": "pdf",
+  "mimeType": "application/pdf",
+  "contentType": "binary",
+  "data": "base64-encoded-content or text-content"
+}
+\`\`\`
+
+**Example** (image analysis with dialog):
+\`\`\`yaml
+- id: select-image
+  type: file-explorer
+  title: "Select an image to analyze"
+  extensions: "png,jpg,jpeg,gif,webp"
+  saveTo: imageData
+  savePathTo: imagePath
+- id: analyze
+  type: command
+  prompt: "Describe this image in detail"
+  attachments: imageData
+  saveTo: analysis
+\`\`\`
+
+**Example** (event-triggered, no dialog):
+\`\`\`yaml
+- id: load-image
+  type: file-explorer
+  path: "{{__eventFilePath__}}"
+  saveTo: imageData
+- id: analyze
+  type: command
+  prompt: "Describe this image"
+  attachments: imageData
+  saveTo: analysis
+\`\`\`
+
+### 20. file-save
+Save FileExplorerData as a file in the vault.
+- **source** (required): Variable name containing FileExplorerData (from file-explorer or saveImageTo)
+- **path** (required): Path to save the file (extension auto-added if missing)
+- **savePathTo** (optional): Variable to store the final file path
+
+**Example** (save generated image):
+\`\`\`yaml
+- id: generate
+  type: command
+  prompt: "Generate a landscape image"
+  model: gemini-3-pro-image-preview
+  saveImageTo: generatedImage
+- id: save
+  type: file-save
+  source: generatedImage
+  path: "images/landscape"
+  savePathTo: savedPath
 \`\`\`
 
 ## Control Flow

@@ -6,6 +6,35 @@ import type {
 } from "src/types";
 import { formatError } from "src/utils/error";
 
+// Supported file extensions for RAG upload
+const SUPPORTED_EXTENSIONS = [
+  // Text
+  "md",
+  // PDF
+  "pdf",
+  // Images
+  "png", "jpg", "jpeg", "gif", "webp",
+];
+
+// Get MIME type from file extension
+function getMimeType(extension: string): string {
+  const mimeTypes: Record<string, string> = {
+    md: "text/markdown",
+    pdf: "application/pdf",
+    png: "image/png",
+    jpg: "image/jpeg",
+    jpeg: "image/jpeg",
+    gif: "image/gif",
+    webp: "image/webp",
+  };
+  return mimeTypes[extension.toLowerCase()] || "application/octet-stream";
+}
+
+// Check if file extension is supported
+function isSupportedFile(file: TFile): boolean {
+  return SUPPORTED_EXTENSIONS.includes(file.extension.toLowerCase());
+}
+
 export interface SyncResult {
   uploaded: string[];
   skipped: string[];
@@ -64,12 +93,36 @@ export class FileSearchManager {
   }
 
   // Calculate checksum (simple hash based on content)
-  private async calculateChecksum(content: string): Promise<string> {
-    const encoder = new TextEncoder();
-    const data = encoder.encode(content);
+  private async calculateChecksum(content: string | ArrayBuffer): Promise<string> {
+    let data: BufferSource;
+    if (typeof content === "string") {
+      const encoder = new TextEncoder();
+      data = encoder.encode(content);
+    } else {
+      data = content;
+    }
     const hashBuffer = await crypto.subtle.digest("SHA-256", data);
     const hashArray = Array.from(new Uint8Array(hashBuffer));
     return hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
+  }
+
+  // Check if file is binary (non-text)
+  private isBinaryFile(file: TFile): boolean {
+    const binaryExtensions = ["pdf", "png", "jpg", "jpeg", "gif", "webp"];
+    return binaryExtensions.includes(file.extension.toLowerCase());
+  }
+
+  // Get all supported files from vault
+  private getSupportedFiles(): TFile[] {
+    return this.app.vault.getFiles().filter(isSupportedFile);
+  }
+
+  // Read file content (handles both text and binary)
+  private async readFileContent(file: TFile): Promise<string | ArrayBuffer> {
+    if (this.isBinaryFile(file)) {
+      return await this.app.vault.readBinary(file);
+    }
+    return await this.app.vault.read(file);
   }
 
   // Check if file should be included based on filter config
@@ -160,9 +213,10 @@ export class FileSearchManager {
       throw new Error("No File Search Store configured");
     }
 
-    const content = await this.app.vault.read(file);
+    const content = await this.readFileContent(file);
+    const mimeType = getMimeType(file.extension);
 
-    const blob = new Blob([content], { type: "text/markdown" });
+    const blob = new Blob([content], { type: mimeType });
 
     const operation = await this.ai.fileSearchStores.uploadToFileSearchStore({
       file: blob,
@@ -222,8 +276,8 @@ export class FileSearchManager {
     };
 
     try {
-      // Get all markdown files from vault
-      const vaultFiles = this.app.vault.getMarkdownFiles();
+      // Get all supported files from vault (markdown, PDF, images)
+      const vaultFiles = this.getSupportedFiles();
 
       // Filter to included files only
       const eligibleFiles = vaultFiles.filter(
@@ -271,18 +325,17 @@ export class FileSearchManager {
       // Prepare files for processing (calculate checksums first)
       const filesToProcess: Array<{
         file: TFile;
-        content: string;
         checksum: string;
         needsUpload: boolean;
       }> = [];
 
       for (const file of eligibleFiles) {
-        const content = await this.app.vault.read(file);
+        const content = await this.readFileContent(file);
         const newChecksum = await this.calculateChecksum(content);
         const existingInfo = currentSyncState.files[file.path];
 
         const needsUpload = !existingInfo || existingInfo.checksum !== newChecksum;
-        filesToProcess.push({ file, content, checksum: newChecksum, needsUpload });
+        filesToProcess.push({ file, checksum: newChecksum, needsUpload });
       }
 
       // Separate files to upload and skip
@@ -380,7 +433,7 @@ export class FileSearchManager {
 
     if (!file || !(file instanceof this.app.vault.adapter.constructor)) {
       // Try to find as TFile
-      const tfile = this.app.vault.getMarkdownFiles().find(f => f.path === filePath);
+      const tfile = this.getSupportedFiles().find(f => f.path === filePath);
       if (!tfile) {
         return {
           path: filePath,
@@ -397,10 +450,10 @@ export class FileSearchManager {
 
     if (!syncInfo) {
       // File not synced
-      const tfile = this.app.vault.getMarkdownFiles().find(f => f.path === filePath);
+      const tfile = this.getSupportedFiles().find(f => f.path === filePath);
       let currentChecksum: string | null = null;
       if (tfile) {
-        const content = await this.app.vault.read(tfile);
+        const content = await this.readFileContent(tfile);
         currentChecksum = await this.calculateChecksum(content);
       }
       return {
@@ -414,12 +467,12 @@ export class FileSearchManager {
     }
 
     // File is synced, check for diff
-    const tfile = this.app.vault.getMarkdownFiles().find(f => f.path === filePath);
+    const tfile = this.getSupportedFiles().find(f => f.path === filePath);
     let currentChecksum: string | null = null;
     let hasDiff = false;
 
     if (tfile) {
-      const content = await this.app.vault.read(tfile);
+      const content = await this.readFileContent(tfile);
       currentChecksum = await this.calculateChecksum(content);
       hasDiff = currentChecksum !== syncInfo.checksum;
     }
@@ -440,7 +493,7 @@ export class FileSearchManager {
     syncState: RagSyncState,
     filterConfig: FilterConfig
   ): Promise<DirectoryUnsyncedResult> {
-    const allFiles = this.app.vault.getMarkdownFiles();
+    const allFiles = this.getSupportedFiles();
 
     // Filter files in the specified directory
     const normalizedDir = directory.replace(/\/$/, "");
@@ -468,7 +521,7 @@ export class FileSearchManager {
       }
 
       // Check for diff
-      const content = await this.app.vault.read(file);
+      const content = await this.readFileContent(file);
       const currentChecksum = await this.calculateChecksum(content);
 
       if (currentChecksum !== syncInfo.checksum) {
@@ -491,7 +544,7 @@ export class FileSearchManager {
     syncState: RagSyncState,
     filterConfig: FilterConfig
   ): Promise<VaultSyncSummary> {
-    const allFiles = this.app.vault.getMarkdownFiles();
+    const allFiles = this.getSupportedFiles();
 
     // Filter to included files only
     const eligibleFiles = allFiles.filter(
@@ -508,7 +561,7 @@ export class FileSearchManager {
         continue;
       }
 
-      const content = await this.app.vault.read(file);
+      const content = await this.readFileContent(file);
       const currentChecksum = await this.calculateChecksum(content);
 
       if (currentChecksum === syncInfo.checksum) {

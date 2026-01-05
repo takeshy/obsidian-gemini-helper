@@ -7,7 +7,7 @@
 ## Highlights
 
 - **AI Chat** - Streaming responses, file attachments, vault operations, slash commands
-- **Workflow Builder** - Automate multi-step tasks with visual node editor and 18 node types
+- **Workflow Builder** - Automate multi-step tasks with visual node editor and 20 node types
 - **Semantic Search** - RAG-powered intelligent search across your vault
 - **Web Search** - Access up-to-date information via Google Search
 - **Image Generation** - Create images with Gemini image models
@@ -107,6 +107,7 @@ When AI uses `propose_edit`:
 
 RAG-powered intelligent vault search:
 
+- **Supported files** - Markdown, PDF, Images (PNG, JPEG, GIF, WebP)
 - **Internal mode** - Sync vault files to Google File Search
 - **External mode** - Use existing store IDs
 - **Incremental sync** - Only upload changed files
@@ -171,7 +172,7 @@ Open the **Workflow** tab in the Gemini sidebar to run it.
 
 ## Available Node Types
 
-18 node types are available for building workflows:
+20 node types are available for building workflows:
 
 | Category | Nodes |
 |----------|-------|
@@ -180,6 +181,7 @@ Open the **Workflow** tab in the Gemini sidebar to run it.
 | LLM | `command` |
 | Data | `http`, `json` |
 | Notes | `note`, `note-read`, `note-search`, `note-list`, `folder-list`, `open` |
+| Files | `file-explorer`, `file-save` |
 | Prompts | `prompt-file`, `prompt-selection`, `dialog` |
 | Composition | `workflow` |
 | RAG | `rag-sync` |

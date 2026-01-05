@@ -17,7 +17,9 @@ export type WorkflowNodeType =
   | "prompt-file"
   | "prompt-selection"
   | "workflow"
-  | "rag-sync";
+  | "rag-sync"
+  | "file-explorer"
+  | "file-save";
 
 export interface WorkflowNode {
   id: string;
@@ -64,6 +66,17 @@ export interface SelectionInfo {
   path: string;
   start: EditorPosition;
   end: EditorPosition;
+}
+
+// File explorer data for file-explorer node
+export interface FileExplorerData {
+  path: string;
+  basename: string;
+  name: string;
+  extension: string;
+  mimeType: string;
+  contentType: "text" | "binary";
+  data: string; // text content or Base64 encoded data
 }
 
 // Condition evaluation
@@ -131,6 +144,14 @@ export interface DialogResult {
 // Prompt callbacks for interactive nodes
 export interface PromptCallbacks {
   promptForFile: (defaultPath?: string) => Promise<string | null>;
+  promptForAnyFile?: (
+    extensions?: string[],
+    defaultPath?: string
+  ) => Promise<string | null>;
+  promptForNewFilePath?: (
+    extensions?: string[],
+    defaultPath?: string
+  ) => Promise<string | null>;
   promptForSelection: () => Promise<SelectionInfo | null>;
   promptForValue: (
     prompt: string,

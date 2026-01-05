@@ -294,12 +294,34 @@ export default function MessageBubble({
         </div>
       )}
 
-      {/* Semantic search indicator */}
+      {/* Semantic search indicator with sources */}
       {message.ragUsed && (
         <div className="gemini-helper-rag-used">
           <span className="gemini-helper-rag-indicator">
-            📚 Used semantic search
+            📚 Semantic search
           </span>
+          {message.ragSources && message.ragSources.length > 0 && (
+            <div className="gemini-helper-rag-sources">
+              {message.ragSources.map((source, index) => (
+                <span
+                  key={index}
+                  className="gemini-helper-rag-source gemini-helper-tool-clickable"
+                  onClick={() => {
+                    // Try to open the file if it's a vault file
+                    const file = app.vault.getAbstractFileByPath(source);
+                    if (file) {
+                      void app.workspace.openLinkText(source, "", false);
+                    } else {
+                      new Notice(`Source: ${source}`, 3000);
+                    }
+                  }}
+                  title={`Click to open: ${source}`}
+                >
+                  📄 {source.split("/").pop() || source}
+                </span>
+              ))}
+            </div>
+          )}
         </div>
       )}
 

@@ -355,8 +355,9 @@ export class GeminiClient {
             if (webSearchEnabled) {
               // Web Search was used
               yield { type: "web_search_used" };
+              groundingEmitted = true;
             } else {
-              // RAG/File Search was used
+              // RAG/File Search was used - only emit if actual sources were found
               const sources: string[] = [];
               // Extract source file names from grounding chunks
               if (groundingMetadata.groundingChunks) {
@@ -368,9 +369,13 @@ export class GeminiClient {
                   }
                 }
               }
-              yield { type: "rag_used", ragSources: sources };
+              // Only indicate RAG was used if we actually got sources
+              // This prevents false "semantic search used" when retrieval returned nothing
+              if (sources.length > 0) {
+                yield { type: "rag_used", ragSources: sources };
+                groundingEmitted = true;
+              }
             }
-            groundingEmitted = true;
           }
         }
 

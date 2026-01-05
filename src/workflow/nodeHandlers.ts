@@ -3,12 +3,14 @@ import type { GeminiHelperPlugin } from "../plugin";
 import { getGeminiClient } from "../core/gemini";
 import { getFileSearchManager } from "../core/fileSearch";
 import { CliProviderManager } from "../core/cliProvider";
+import { isImageGenerationModel, type ModelType } from "../types";
 import {
   WorkflowNode,
   ExecutionContext,
   ParsedCondition,
   ComparisonOperator,
   PromptCallbacks,
+  FileExplorerData,
 } from "./types";
 
 // Get value from object/JSON string using dot notation path
@@ -464,6 +466,16 @@ export async function handleCommandNode(
   }
   // If ragSettingName === "", use no RAG (storeIds stays empty)
 
+  // Image generation models don't support RAG (File Search)
+  // gemini-2.5-flash-image: no tools at all
+  // gemini-3-pro-image-preview: only Web Search
+  if (isImageGenerationModel(model as ModelType)) {
+    storeIds = []; // Disable RAG
+    if (model === "gemini-2.5-flash-image") {
+      useWebSearch = false; // No tools supported
+    }
+  }
+
   // Get GeminiClient
   const client = getGeminiClient();
   if (!client) {
@@ -471,32 +483,82 @@ export async function handleCommandNode(
   }
   client.setModel(model);
 
+  // Parse attachments property (comma-separated variable names containing FileExplorerData)
+  const attachmentsStr = node.properties["attachments"] || "";
+  const attachments: import("../types").Attachment[] = [];
+
+  if (attachmentsStr) {
+    const varNames = attachmentsStr.split(",").map((s) => s.trim()).filter((s) => s);
+    for (const varName of varNames) {
+      const varValue = context.variables.get(varName);
+      if (varValue && typeof varValue === "string") {
+        try {
+          const fileData: FileExplorerData = JSON.parse(varValue);
+          if (fileData.contentType === "binary" && fileData.data) {
+            // Determine attachment type from MIME type
+            let attachmentType: "image" | "pdf" | "text" = "text";
+            if (fileData.mimeType.startsWith("image/")) {
+              attachmentType = "image";
+            } else if (fileData.mimeType === "application/pdf") {
+              attachmentType = "pdf";
+            }
+            attachments.push({
+              name: fileData.basename,
+              type: attachmentType,
+              mimeType: fileData.mimeType,
+              data: fileData.data,
+            });
+          }
+          // Text files are already included via variable substitution in the prompt
+        } catch {
+          // Not valid FileExplorerData JSON, skip
+        }
+      }
+    }
+  }
+
   // Build messages
   const messages = [
     {
       role: "user" as const,
       content: prompt,
       timestamp: Date.now(),
+      attachments: attachments.length > 0 ? attachments : undefined,
     },
   ];
 
-  // Execute LLM call
+  // Execute LLM call - use generateImageStream for image models
   let fullResponse = "";
-  const stream = client.chatWithToolsStream(
-    messages,
-    [], // No tools for workflow command
-    undefined, // No system prompt
-    undefined, // No executeToolCall
-    storeIds.length > 0 ? storeIds : undefined, // RAG store IDs
-    useWebSearch, // Web search mode
-    undefined // No options
-  );
+  const generatedImages: Array<{ mimeType: string; data: string }> = [];
+  const isImageModel = isImageGenerationModel(model as ModelType);
+
+  const stream = isImageModel
+    ? client.generateImageStream(
+        messages,
+        model as ModelType,
+        undefined, // No system prompt for image generation
+        useWebSearch,
+        storeIds.length > 0 ? storeIds : undefined
+      )
+    : client.chatWithToolsStream(
+        messages,
+        [], // No tools for workflow command
+        undefined, // No system prompt
+        undefined, // No executeToolCall
+        storeIds.length > 0 ? storeIds : undefined, // RAG store IDs
+        useWebSearch, // Web search mode
+        undefined // No options
+      );
 
   for await (const chunk of stream) {
     if (chunk.type === "text") {
       fullResponse += chunk.content;
+    } else if (chunk.type === "image_generated" && chunk.generatedImage) {
+      generatedImages.push(chunk.generatedImage);
     } else if (chunk.type === "error") {
       throw new Error(chunk.content);
+    } else if (chunk.type === "done") {
+      break;
     }
   }
 
@@ -504,6 +566,32 @@ export async function handleCommandNode(
   const saveTo = node.properties["saveTo"];
   if (saveTo) {
     context.variables.set(saveTo, fullResponse);
+  }
+
+  // Save generated images to variable if specified
+  const saveImageTo = node.properties["saveImageTo"];
+  if (saveImageTo && generatedImages.length > 0) {
+    // Convert to FileExplorerData format for consistency with file-explorer node
+    const imageDataList: FileExplorerData[] = generatedImages.map((img, index) => {
+      const extension = img.mimeType.split("/")[1] || "png";
+      const filename = `generated-image-${index + 1}.${extension}`;
+      return {
+        path: filename,
+        basename: filename,
+        name: `generated-image-${index + 1}`,
+        extension,
+        mimeType: img.mimeType,
+        contentType: "binary" as const,
+        data: img.data,
+      };
+    });
+
+    // If single image, save as single object; if multiple, save as array
+    if (imageDataList.length === 1) {
+      context.variables.set(saveImageTo, JSON.stringify(imageDataList[0]));
+    } else {
+      context.variables.set(saveImageTo, JSON.stringify(imageDataList));
+    }
   }
 }
 
@@ -524,36 +612,94 @@ export function incrementVariable(
   }
 }
 
-// Build multipart/form-data body manually
-function buildMultipartBody(
+// Decode base64 string to Uint8Array
+function base64ToUint8Array(base64: string): Uint8Array {
+  const binaryString = atob(base64);
+  const bytes = new Uint8Array(binaryString.length);
+  for (let i = 0; i < binaryString.length; i++) {
+    bytes[i] = binaryString.charCodeAt(i);
+  }
+  return bytes;
+}
+
+// Try to parse FileExplorerData from string
+function tryParseFileExplorerData(value: string): FileExplorerData | null {
+  try {
+    const parsed = JSON.parse(value);
+    if (parsed && typeof parsed === "object" && "contentType" in parsed && "data" in parsed && "mimeType" in parsed) {
+      return parsed as FileExplorerData;
+    }
+  } catch {
+    // Not JSON or not FileExplorerData
+  }
+  return null;
+}
+
+// Build multipart/form-data body with binary support
+function buildMultipartBodyBinary(
   fields: Record<string, string>,
   boundary: string
-): string {
-  let body = "";
+): ArrayBuffer {
+  const encoder = new TextEncoder();
+  const parts: Uint8Array[] = [];
 
   for (const [name, value] of Object.entries(fields)) {
-    body += `--${boundary}\r\n`;
+    // Check if value is FileExplorerData JSON (from file-explorer node)
+    const fileData = tryParseFileExplorerData(value);
 
-    // Check if this looks like a file upload (has filename in field name or content suggests file)
-    // Format: "fieldName" for regular fields, or use special property "fieldName:filename" for files
+    let headerStr = `--${boundary}\r\n`;
+
+    // Check if this looks like a file upload (has filename in field name)
+    // Format: "fieldName" for regular fields, or "fieldName:filename" for files
     const colonIndex = name.indexOf(":");
-    if (colonIndex !== -1) {
-      // File field: "file:filename.html"
+
+    if (fileData) {
+      // FileExplorerData: use its metadata for Content-Disposition
+      const fieldName = colonIndex !== -1 ? name.substring(0, colonIndex) : name;
+      const filename = fileData.basename;
+      headerStr += `Content-Disposition: form-data; name="${fieldName}"; filename="${filename}"\r\n`;
+      headerStr += `Content-Type: ${fileData.mimeType}\r\n\r\n`;
+      parts.push(encoder.encode(headerStr));
+
+      // Add binary or text data
+      if (fileData.contentType === "binary" && fileData.data) {
+        parts.push(base64ToUint8Array(fileData.data));
+      } else {
+        parts.push(encoder.encode(fileData.data));
+      }
+      parts.push(encoder.encode("\r\n"));
+    } else if (colonIndex !== -1) {
+      // File field with explicit filename: "file:filename.html"
       const fieldName = name.substring(0, colonIndex);
       const filename = name.substring(colonIndex + 1);
       const contentType = guessContentType(filename);
-      body += `Content-Disposition: form-data; name="${fieldName}"; filename="${filename}"\r\n`;
-      body += `Content-Type: ${contentType}\r\n\r\n`;
+      headerStr += `Content-Disposition: form-data; name="${fieldName}"; filename="${filename}"\r\n`;
+      headerStr += `Content-Type: ${contentType}\r\n\r\n`;
+      parts.push(encoder.encode(headerStr));
+      parts.push(encoder.encode(value));
+      parts.push(encoder.encode("\r\n"));
     } else {
       // Regular field
-      body += `Content-Disposition: form-data; name="${name}"\r\n\r\n`;
+      headerStr += `Content-Disposition: form-data; name="${name}"\r\n\r\n`;
+      parts.push(encoder.encode(headerStr));
+      parts.push(encoder.encode(value));
+      parts.push(encoder.encode("\r\n"));
     }
-
-    body += value + "\r\n";
   }
 
-  body += `--${boundary}--\r\n`;
-  return body;
+  // Final boundary
+  parts.push(encoder.encode(`--${boundary}--\r\n`));
+
+  // Concatenate all parts
+  const totalLength = parts.reduce((sum, arr) => sum + arr.length, 0);
+  const result = new Uint8Array(totalLength);
+  let offset = 0;
+  for (const part of parts) {
+    result.set(part, offset);
+    offset += part.length;
+  }
+
+  return result.buffer;
 }
 
 // Guess content type from filename
@@ -619,12 +765,12 @@ export async function handleHttpNode(
   }
 
   // Build body based on contentType
-  let body: string | undefined;
+  let body: string | ArrayBuffer | undefined;
   const bodyStr = node.properties["body"];
 
   if (bodyStr && (method === "POST" || method === "PUT" || method === "PATCH")) {
     if (contentType === "form-data") {
-      // Build multipart/form-data body
+      // Build multipart/form-data body with binary support
       // For form-data, parse JSON first, then replace variables in each field
       // This prevents variable content (like HTML) from breaking JSON parsing
       try {
@@ -637,7 +783,7 @@ export async function handleHttpNode(
           fields[expandedKey] = expandedValue;
         }
         const boundary = "----WebKitFormBoundary" + Math.random().toString(36).substring(2);
-        body = buildMultipartBody(fields, boundary);
+        body = buildMultipartBodyBinary(fields, boundary);
         headers["Content-Type"] = `multipart/form-data; boundary=${boundary}`;
       } catch {
         throw new Error("form-data contentType requires body to be a valid JSON object");
@@ -1013,6 +1159,151 @@ export async function handlePromptSelectionNode(
       start: startOffset,
       end: endOffset,
     }));
+  }
+}
+
+// Binary file extensions that should be read as binary and encoded as Base64
+const BINARY_EXTENSIONS = ["pdf", "png", "jpg", "jpeg", "gif", "webp", "bmp", "ico", "svg"];
+
+// Check if a file extension is binary
+function isBinaryExtension(extension: string): boolean {
+  return BINARY_EXTENSIONS.includes(extension.toLowerCase());
+}
+
+// Get MIME type from file extension
+function getMimeType(extension: string): string {
+  const mimeTypes: Record<string, string> = {
+    md: "text/markdown",
+    txt: "text/plain",
+    json: "application/json",
+    csv: "text/csv",
+    pdf: "application/pdf",
+    png: "image/png",
+    jpg: "image/jpeg",
+    jpeg: "image/jpeg",
+    gif: "image/gif",
+    webp: "image/webp",
+    bmp: "image/bmp",
+    ico: "image/x-icon",
+    svg: "image/svg+xml",
+  };
+  return mimeTypes[extension.toLowerCase()] || "application/octet-stream";
+}
+
+// Convert ArrayBuffer to Base64
+function arrayBufferToBase64(buffer: ArrayBuffer): string {
+  const bytes = new Uint8Array(buffer);
+  let binary = "";
+  for (let i = 0; i < bytes.length; i++) {
+    binary += String.fromCharCode(bytes[i]);
+  }
+  return btoa(binary);
+}
+
+// Handle file-explorer node - select any file or create new file path
+// mode: "select" (default) - pick existing file, "create" - input new file path
+// extensions: comma-separated list of allowed extensions (empty = all)
+// saveTo: stores FileExplorerData JSON, savePathTo: stores just the file path
+export async function handleFileExplorerNode(
+  node: WorkflowNode,
+  context: ExecutionContext,
+  app: App,
+  promptCallbacks?: PromptCallbacks
+): Promise<void> {
+  const mode = node.properties["mode"] || "select";
+  const _title = node.properties["title"] || (mode === "create" ? "Enter file path" : "Select a file");
+  const extensionsStr = node.properties["extensions"] || "";
+  const defaultPath = replaceVariables(node.properties["default"] || "", context);
+  const directPath = replaceVariables(node.properties["path"] || "", context);
+  const saveTo = node.properties["saveTo"];
+  const savePathTo = node.properties["savePathTo"];
+
+  if (!saveTo && !savePathTo) {
+    throw new Error("file-explorer node requires 'saveTo' or 'savePathTo' property");
+  }
+
+  // Parse extensions
+  const extensions = extensionsStr
+    ? extensionsStr.split(",").map((e) => e.trim().toLowerCase().replace(/^\./, ""))
+    : undefined;
+
+  let filePath: string | null = null;
+
+  // If path is specified, use it directly without dialog
+  if (directPath) {
+    filePath = directPath;
+  } else if (mode === "create") {
+    // Create mode: prompt for new file path
+    if (!promptCallbacks?.promptForNewFilePath) {
+      throw new Error("New file path prompt callback not available");
+    }
+    filePath = await promptCallbacks.promptForNewFilePath(extensions, defaultPath);
+  } else {
+    // Select mode: pick existing file
+    if (!promptCallbacks?.promptForAnyFile) {
+      throw new Error("File picker callback not available");
+    }
+    filePath = await promptCallbacks.promptForAnyFile(extensions, defaultPath);
+  }
+
+  if (filePath === null) {
+    throw new Error("File selection cancelled by user");
+  }
+
+  // Save path if savePathTo is specified
+  if (savePathTo) {
+    context.variables.set(savePathTo, filePath);
+  }
+
+  // If saveTo is specified, read the file and create FileExplorerData
+  if (saveTo) {
+    if (mode === "create") {
+      // For create mode, just save empty data with path info
+      const basename = filePath.split("/").pop() || filePath;
+      const lastDotIndex = basename.lastIndexOf(".");
+      const name = lastDotIndex > 0 ? basename.substring(0, lastDotIndex) : basename;
+      const extension = lastDotIndex > 0 ? basename.substring(lastDotIndex + 1) : "";
+
+      const fileData: FileExplorerData = {
+        path: filePath,
+        basename,
+        name,
+        extension,
+        mimeType: getMimeType(extension),
+        contentType: isBinaryExtension(extension) ? "binary" : "text",
+        data: "",
+      };
+      context.variables.set(saveTo, JSON.stringify(fileData));
+    } else {
+      // Select mode: read the file
+      const file = app.vault.getAbstractFileByPath(filePath);
+      if (!file || !(file instanceof TFile)) {
+        throw new Error(`File not found: ${filePath}`);
+      }
+
+      const extension = file.extension.toLowerCase();
+      const mimeType = getMimeType(extension);
+      const isBinary = isBinaryExtension(extension);
+
+      let data: string;
+      if (isBinary) {
+        const buffer = await app.vault.readBinary(file);
+        data = arrayBufferToBase64(buffer);
+      } else {
+        data = await app.vault.read(file);
+      }
+
+      const fileData: FileExplorerData = {
+        path: filePath,
+        basename: file.basename + "." + file.extension,
+        name: file.basename,
+        extension,
+        mimeType,
+        contentType: isBinary ? "binary" : "text",
+        data,
+      };
+      context.variables.set(saveTo, JSON.stringify(fileData));
+    }
   }
 }
 
@@ -1726,5 +2017,81 @@ export async function handleRagSyncNode(
       ragSetting: ragSettingName,
       syncedAt: Date.now(),
     }));
+  }
+}
+
+// Handle file-save node - save FileExplorerData as a file in the vault
+export async function handleFileSaveNode(
+  node: WorkflowNode,
+  context: ExecutionContext,
+  app: App
+): Promise<void> {
+  const sourceProp = node.properties["source"];
+  const pathProp = node.properties["path"];
+
+  if (!sourceProp) {
+    throw new Error("file-save node requires 'source' property");
+  }
+  if (!pathProp) {
+    throw new Error("file-save node requires 'path' property");
+  }
+
+  // Get the source variable value
+  const sourceValue = context.variables.get(sourceProp);
+  if (!sourceValue || typeof sourceValue !== "string") {
+    throw new Error(`Source variable '${sourceProp}' not found or not a string`);
+  }
+
+  // Parse FileExplorerData
+  let fileData: FileExplorerData;
+  try {
+    fileData = JSON.parse(sourceValue);
+    if (!fileData.data || !fileData.contentType) {
+      throw new Error("Invalid FileExplorerData structure");
+    }
+  } catch {
+    throw new Error(`Source variable '${sourceProp}' is not valid FileExplorerData JSON`);
+  }
+
+  // Resolve path with variables
+  let filePath = replaceVariables(pathProp, context);
+
+  // Add extension if not present
+  if (!filePath.includes(".") && fileData.extension) {
+    filePath = `${filePath}.${fileData.extension}`;
+  }
+
+  // Ensure parent folder exists
+  const folderPath = filePath.substring(0, filePath.lastIndexOf("/"));
+  if (folderPath) {
+    await ensureFolderExists(app, folderPath);
+  }
+
+  // Check if file exists
+  const existingFile = app.vault.getAbstractFileByPath(filePath);
+
+  if (fileData.contentType === "binary") {
+    // Decode base64 to binary
+    const binaryData = base64ToUint8Array(fileData.data);
+    const arrayBuffer = binaryData.buffer.slice(binaryData.byteOffset, binaryData.byteOffset + binaryData.byteLength) as ArrayBuffer;
+
+    if (existingFile && existingFile instanceof TFile) {
+      await app.vault.modifyBinary(existingFile, arrayBuffer);
+    } else {
+      await app.vault.createBinary(filePath, arrayBuffer);
+    }
+  } else {
+    // Text file
+    if (existingFile && existingFile instanceof TFile) {
+      await app.vault.modify(existingFile, fileData.data);
+    } else {
+      await app.vault.create(filePath, fileData.data);
+    }
+  }
+
+  // Save path to variable if specified
+  const savePathTo = node.properties["savePathTo"];
+  if (savePathTo) {
+    context.variables.set(savePathTo, filePath);
   }
 }

@@ -11,8 +11,10 @@
 | LLM | `command` | モデル/検索設定付きプロンプト実行 |
 | データ | `http`, `json` | HTTP リクエストと JSON パース |
 | ノート | `note`, `note-read`, `note-search`, `note-list`, `folder-list`, `open` | Vault 操作 |
+| ファイル | `file-explorer`, `file-save` | ファイル選択と保存（画像、PDF など） |
 | プロンプト | `prompt-file`, `prompt-selection`, `dialog` | ユーザー入力ダイアログ |
 | 合成 | `workflow` | 別のワークフローをサブワークフローとして実行 |
+| RAG | `rag-sync` | ノートを RAG ストアに同期 |
 
 ---
 
@@ -34,9 +36,24 @@
 | プロパティ | 説明 |
 |------------|------|
 | `prompt` | LLM に送るプロンプト（必須） |
-| `model` | モデルを指定（例：`gemini-3-flash-preview`） |
+| `model` | モデルを指定（例：`gemini-3-flash-preview`、`gemini-3-pro-image-preview`） |
 | `ragSetting` | `__websearch__`（Web 検索）、`__none__`（検索なし）、設定名、または省略で現在の設定 |
-| `saveTo` | 応答を保存する変数名 |
+| `attachments` | FileExplorerData を含む変数名（カンマ区切り、`file-explorer` ノードから取得） |
+| `saveTo` | テキスト応答を保存する変数名 |
+| `saveImageTo` | 生成された画像を保存する変数名（FileExplorerData形式、画像モデル用） |
+
+**画像生成の例**:
+```yaml
+- id: generate
+  type: command
+  prompt: "かわいい猫のイラストを生成して"
+  model: gemini-3-pro-image-preview
+  saveImageTo: generatedImage
+- id: save-image
+  type: note
+  path: "images/cat"
+  content: "![cat](data:{{generatedImage.mimeType}};base64,{{generatedImage.data}})"
+```
 
 ### note
 
@@ -130,20 +147,26 @@ HTTP リクエストを実行。
 | `saveStatus` | HTTP ステータスコードを保存する変数 |
 | `throwOnError` | `true` で 4xx/5xx 応答時にエラーをスロー |
 
-**form-data 例**（ファイルアップロード）:
+**form-data 例**（file-explorer でバイナリファイルアップロード）:
 
 ```yaml
+- id: select-pdf
+  type: file-explorer
+  path: "{{__eventFilePath__}}"
+  extensions: "pdf,png,jpg"
+  saveTo: fileData
 - id: upload
   type: http
   url: "https://example.com/upload"
   method: POST
   contentType: form-data
-  headers: '{"X-API-Key": "{{apiKey}}"}'
-  body: '{"file:{{filename}}": "{{content}}"}'
+  body: '{"file": "{{fileData}}"}'
   saveTo: response
 ```
 
-`form-data` の場合、ファイルフィールドには `フィールド名:ファイル名` 構文を使用（例: `"file:report.html": "{{htmlContent}}"`）
+`form-data` の場合:
+- FileExplorerData（`file-explorer` ノードから）は自動検出されバイナリとして送信
+- テキストファイルには `フィールド名:ファイル名` 構文を使用（例: `"file:report.html": "{{htmlContent}}"`）
 
 ### dialog
 
@@ -267,6 +290,111 @@ HTTP リクエストを実行。
 | ホットキー（選択あり） | 現在の選択を使用 |
 | ホットキー（選択なし） | ファイル全体を使用 |
 | イベント | ファイル全体を使用 |
+
+### file-explorer
+
+Vault からファイルを選択、または新しいファイルパスを入力。画像や PDF などあらゆるファイルタイプに対応。
+
+```yaml
+- id: selectImage
+  type: file-explorer
+  mode: select
+  title: "画像を選択"
+  extensions: "png,jpg,jpeg,gif,webp"
+  default: "images/"
+  saveTo: imageData
+  savePathTo: imagePath
+```
+
+| プロパティ | 説明 |
+|------------|------|
+| `path` | 直接ファイルパス - 指定時はダイアログをスキップ（`{{variables}}` 対応） |
+| `mode` | `select`（既存ファイル選択、デフォルト）または `create`（新規パス入力） |
+| `title` | ダイアログタイトル |
+| `extensions` | 許可する拡張子（カンマ区切り、例：`pdf,png,jpg`） |
+| `default` | デフォルトパス（`{{variables}}` 対応） |
+| `saveTo` | FileExplorerData JSON を保存する変数 |
+| `savePathTo` | ファイルパスのみを保存する変数 |
+
+**FileExplorerData 形式:**
+```json
+{
+  "path": "folder/image.png",
+  "basename": "image.png",
+  "name": "image",
+  "extension": "png",
+  "mimeType": "image/png",
+  "contentType": "binary",
+  "data": "base64-encoded-content"
+}
+```
+
+**例: 画像解析（ダイアログあり）**
+```yaml
+- id: selectImage
+  type: file-explorer
+  title: "解析する画像を選択"
+  extensions: "png,jpg,jpeg,gif,webp"
+  saveTo: imageData
+- id: analyze
+  type: command
+  prompt: "この画像を詳細に説明してください"
+  attachments: imageData
+  saveTo: analysis
+- id: save
+  type: note
+  path: "analysis/{{imageData.name}}.md"
+  content: "# 画像解析\n\n{{analysis}}"
+```
+
+**例: イベントトリガー（ダイアログなし）**
+```yaml
+- id: loadImage
+  type: file-explorer
+  path: "{{__eventFilePath__}}"
+  saveTo: imageData
+- id: analyze
+  type: command
+  prompt: "この画像を説明して"
+  attachments: imageData
+  saveTo: result
+```
+
+### file-save
+
+FileExplorerData を Vault 内にファイルとして保存。生成された画像やコピーしたファイルの保存に便利。
+
+```yaml
+- id: saveImage
+  type: file-save
+  source: generatedImage
+  path: "images/output"
+  savePathTo: savedPath
+```
+
+| プロパティ | 説明 |
+|------------|------|
+| `source` | FileExplorerData を含む変数名（必須） |
+| `path` | 保存先パス（拡張子は自動追加） |
+| `savePathTo` | 最終ファイルパスを保存する変数（任意） |
+
+**例: 画像を生成して保存**
+```yaml
+- id: generate
+  type: command
+  prompt: "風景画像を生成して"
+  model: gemini-3-pro-image-preview
+  saveImageTo: generatedImage
+- id: save
+  type: file-save
+  source: generatedImage
+  path: "images/landscape"
+  savePathTo: savedPath
+- id: showResult
+  type: dialog
+  title: "保存完了"
+  message: "画像を {{savedPath}} に保存しました"
+```
 
 ### if / while
 

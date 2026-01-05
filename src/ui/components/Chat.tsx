@@ -892,7 +892,8 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 										plugin.app,
 										pending.originalPath,
 										pending.newContent,
-										"overwrite"
+										"overwrite",
+										pending.originalContent
 									);
 
 									if (confirmed) {

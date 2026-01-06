@@ -72,6 +72,22 @@ function formatWindowsCliError(message: string | undefined): string | undefined 
 }
 
 /**
+ * Check if a file exists (synchronously) - only for desktop
+ */
+function fileExistsSync(path: string): boolean {
+  try {
+    const loader =
+      (globalThis as unknown as { require?: (id: string) => unknown }).require ||
+      (globalThis as unknown as { module?: { require?: (id: string) => unknown } }).module?.require;
+    if (!loader) return false;
+    const fs = loader("fs") as typeof import("fs");
+    return fs.existsSync(path);
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Resolve the Claude CLI command and arguments
  * Always uses shell: false for security
  */
@@ -95,7 +111,32 @@ function resolveClaudeCommand(args: string[]): { command: string; args: string[]
     }
   }
 
-  // Non-Windows: use claude command directly (must be in PATH)
+  // Non-Windows: check common installation paths first (Obsidian may not have full PATH)
+  if (!isWindows() && typeof process !== "undefined") {
+    const home = process.env?.HOME;
+    const candidatePaths: string[] = [];
+
+    if (home) {
+      // Linux/Mac: ~/.local/bin/claude
+      candidatePaths.push(`${home}/.local/bin/claude`);
+      // npm global with custom prefix: ~/.npm-global/bin/claude
+      candidatePaths.push(`${home}/.npm-global/bin/claude`);
+    }
+
+    // Mac: Homebrew paths
+    // Apple Silicon
+    candidatePaths.push("/opt/homebrew/bin/claude");
+    // Intel Mac
+    candidatePaths.push("/usr/local/bin/claude");
+
+    for (const path of candidatePaths) {
+      if (fileExistsSync(path)) {
+        return { command: path, args };
+      }
+    }
+  }
+
+  // Fallback: use claude command directly (must be in PATH)
   return { command: "claude", args };
 }
 
@@ -214,6 +255,7 @@ abstract class BaseCliProvider implements CliProviderInterface {
           const proc = spawn(command, args, {
             stdio: ["pipe", "pipe", "pipe"],
             shell: false,
+            env: typeof process !== "undefined" ? process.env : undefined,
           });
 
           proc.on("close", (code: number | null) => {

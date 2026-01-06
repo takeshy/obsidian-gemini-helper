@@ -216,16 +216,23 @@ export class GeminiClient {
     let geminiTools: Tool[] | undefined;
 
     // Google Search cannot be used with function calling tools
+    // Flash Lite model gets confused when combining function calling with fileSearch,
+    // trying to call non-existent functions like "default_api.query" or "file_search.query".
+    // When RAG is enabled with Flash Lite, we only use fileSearch without function calling.
+    const isFlashLite = this.model.toLowerCase().includes("flash-lite");
+    const ragEnabled = ragStoreIds && ragStoreIds.length > 0;
+
     if (!options?.disableTools) {
       if (webSearchEnabled) {
         geminiTools = [{ googleSearch: {} } as Tool];
       } else {
         // Only add function tools if there are any defined
-        if (tools.length > 0) {
+        // Skip function calling for Flash Lite when RAG is enabled to avoid tool confusion
+        if (tools.length > 0 && !(isFlashLite && ragEnabled)) {
           geminiTools = this.toolsToGeminiFormat(tools);
         }
         // Add File Search RAG if store IDs are provided
-        if (ragStoreIds && ragStoreIds.length > 0) {
+        if (ragEnabled) {
           if (!geminiTools) {
             geminiTools = [];
           }

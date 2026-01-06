@@ -16,6 +16,18 @@ npm run lint     # ESLint check
 
 After building, reload the plugin in Obsidian to test changes.
 
+## Version Bumping
+
+Use npm's built-in version command which automatically updates all version files:
+
+```bash
+npm version patch   # 1.2.3 -> 1.2.4
+npm version minor   # 1.2.3 -> 1.3.0
+npm version major   # 1.2.3 -> 2.0.0
+```
+
+This runs `version-bump.mjs` which updates `package.json`, `manifest.json`, and `versions.json` together.
+
 ## Architecture
 
 ### Core Layer (`src/core/`)

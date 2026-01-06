@@ -21,7 +21,7 @@ nodes:
     saveTo: result
 \`\`\`
 
-## Node Types (20 total)
+## Node Types (21 total)
 
 ### 1. variable
 Initialize a new variable.
@@ -306,6 +306,27 @@ Save FileExplorerData as a file in the vault.
   path: "images/landscape"
   savePathTo: savedPath
 \`\`\`
+
+### 21. mcp
+Call a remote MCP (Model Context Protocol) server tool via HTTP.
+- **url** (required): MCP server endpoint URL (supports {{variables}})
+- **tool** (required): Tool name to call on the MCP server
+- **args** (optional): JSON object with tool arguments (supports {{variables}})
+- **headers** (optional): JSON object with HTTP headers (e.g., for authentication)
+- **saveTo** (optional): Variable name for the result
+
+**Example**:
+\`\`\`yaml
+- id: search-web
+  type: mcp
+  url: "https://mcp.example.com/v1"
+  tool: "web_search"
+  args: '{"query": "{{searchQuery}}"}'
+  headers: '{"Authorization": "Bearer {{apiKey}}"}'
+  saveTo: searchResults
+\`\`\`
+
+**Use case**: Call remote MCP servers for web search, API integrations, etc.
 
 ## Control Flow
 

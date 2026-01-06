@@ -95,7 +95,8 @@ function isWorkflowNodeType(value: unknown): value is WorkflowNodeType {
     value === "file-explorer" ||
     value === "file-save" ||
     value === "workflow" ||
-    value === "rag-sync"
+    value === "rag-sync" ||
+    value === "mcp"
   );
 }
 

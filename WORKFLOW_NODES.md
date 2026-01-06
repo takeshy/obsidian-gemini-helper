@@ -15,6 +15,7 @@ This document provides detailed specifications for all workflow node types. For 
 | Prompts | `prompt-file`, `prompt-selection`, `dialog` | User input dialogs |
 | Composition | `workflow` | Execute another workflow as a sub-workflow |
 | RAG | `rag-sync` | Sync notes to semantic search store |
+| External | `mcp` | Call external MCP server tools |
 
 ---
 
@@ -462,6 +463,65 @@ Declare and update variables.
   type: set
   name: counter
   value: "{{counter}} + 1"
+```
+
+### mcp
+
+Call a remote MCP (Model Context Protocol) server tool via HTTP.
+
+```yaml
+- id: search
+  type: mcp
+  url: "https://mcp.example.com/v1"
+  tool: "web_search"
+  args: '{"query": "{{searchTerm}}"}'
+  headers: '{"Authorization": "Bearer {{apiKey}}"}'
+  saveTo: searchResults
+```
+
+| Property | Description |
+|----------|-------------|
+| `url` | MCP server endpoint URL (required, supports `{{variables}}`) |
+| `tool` | Tool name to call on the MCP server (required) |
+| `args` | JSON object with tool arguments (supports `{{variables}}`) |
+| `headers` | JSON object with HTTP headers (e.g., for authentication) |
+| `saveTo` | Variable name for the result |
+
+**Use case:** Call remote MCP servers for RAG queries, web search, API integrations, etc.
+
+**Example: RAG query with ragujuary**
+
+[ragujuary](https://github.com/takeshy/ragujuary) is a CLI tool for managing Gemini File Search Stores with MCP server support.
+
+1. Install and setup:
+```bash
+go install github.com/takeshy/ragujuary@latest
+export GEMINI_API_KEY=your-api-key
+
+# Create a store and upload files
+ragujuary upload --create -s mystore ./docs
+
+# Start MCP server (use --transport http, not sse)
+ragujuary serve --transport http --port 8080 --serve-api-key mysecretkey
+```
+
+2. Workflow example:
+```yaml
+name: RAG Search
+nodes:
+  - id: query
+    type: mcp
+    url: "http://localhost:8080"
+    tool: "query"
+    args: '{"store_name": "mystore", "question": "How does authentication work?", "show_citations": true}'
+    headers: '{"X-API-Key": "mysecretkey"}'
+    saveTo: result
+  - id: show
+    type: dialog
+    title: "Search Result"
+    message: "{{result}}"
+    markdown: true
+    button1: "OK"
 ```
 
 ### Other Nodes

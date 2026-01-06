@@ -88,6 +88,7 @@ export function computeLineDiff(oldText: string, newText: string): DiffLine[] {
 export class EditConfirmationModal extends Modal {
   private filePath: string;
   private content: string;
+  private originalContent: string;
   private mode: string;
   private resolvePromise: ((value: boolean) => void) | null = null;
   private component: Component;
@@ -105,10 +106,11 @@ export class EditConfirmationModal extends Modal {
   private resizeStartWidth = 0;
   private resizeStartHeight = 0;
 
-  constructor(app: App, filePath: string, content: string, mode: string) {
+  constructor(app: App, filePath: string, content: string, mode: string, originalContent?: string) {
     super(app);
     this.filePath = filePath;
     this.content = content;
+    this.originalContent = originalContent || "";
     this.mode = mode;
     this.component = new Component();
   }
@@ -147,21 +149,48 @@ export class EditConfirmationModal extends Modal {
     const previewLabel = previewContainer.createDiv({
       cls: "gemini-helper-edit-confirm-preview-label",
     });
-    previewLabel.createEl("span", { text: "Content preview:" });
+    previewLabel.createEl("span", { text: "Changes:" });
 
     const previewContent = previewContainer.createDiv({
       cls: "gemini-helper-edit-confirm-preview-content",
     });
 
-    // Render markdown preview
+    // Render diff view if we have original content, otherwise render markdown preview
     this.component.load();
-    void MarkdownRenderer.render(
-      this.app,
-      this.content,
-      previewContent,
-      "",
-      this.component
-    );
+    if (this.originalContent || this.mode === "create") {
+      // For new files or when we have original content, show diff
+      const diffLines = computeLineDiff(this.originalContent, this.content);
+      const diffContainer = previewContent.createDiv({ cls: "gemini-helper-diff-view" });
+
+      for (const line of diffLines) {
+        const lineEl = diffContainer.createDiv({
+          cls: `gemini-helper-diff-line gemini-helper-diff-${line.type}`,
+        });
+
+        // Line number gutter
+        const gutterEl = lineEl.createSpan({ cls: "gemini-helper-diff-gutter" });
+        if (line.type === "removed") {
+          gutterEl.textContent = "-";
+        } else if (line.type === "added") {
+          gutterEl.textContent = "+";
+        } else {
+          gutterEl.textContent = " ";
+        }
+
+        // Line content
+        const lineContentEl = lineEl.createSpan({ cls: "gemini-helper-diff-content" });
+        lineContentEl.textContent = line.content || " "; // Empty lines show space
+      }
+    } else {
+      // Fallback to markdown preview if no original content
+      void MarkdownRenderer.render(
+        this.app,
+        this.content,
+        previewContent,
+        "",
+        this.component
+      );
+    }
 
     // Action buttons
     const actions = contentEl.createDiv({
@@ -358,15 +387,17 @@ export class EditConfirmationModal extends Modal {
  * @param filePath - Target file path
  * @param content - Content to be written
  * @param mode - Write mode (create, append, overwrite)
+ * @param originalContent - Original content for diff display (optional)
  * @returns Promise<boolean> - true if confirmed, false if cancelled
  */
 export function promptForConfirmation(
   app: App,
   filePath: string,
   content: string,
-  mode: string
+  mode: string,
+  originalContent?: string
 ): Promise<boolean> {
-  const modal = new EditConfirmationModal(app, filePath, content, mode);
+  const modal = new EditConfirmationModal(app, filePath, content, mode, originalContent);
   return modal.openAndWait();
 }
 

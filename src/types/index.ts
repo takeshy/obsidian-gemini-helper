@@ -1,5 +1,19 @@
 import type { Content } from "@google/genai";
 
+// MCP (Model Context Protocol) server configuration
+export interface McpServerConfig {
+  name: string;           // Server display name
+  url: string;            // Streamable HTTP endpoint URL
+  headers?: Record<string, string>;  // Optional headers for authentication
+}
+
+// MCP tool information (from server)
+export interface McpToolInfo {
+  name: string;
+  description?: string;
+  inputSchema?: Record<string, unknown>;
+}
+
 // Obsidian event types for workflow triggers
 export type ObsidianEventType =
   | "create"    // vault.on("create") - New file created
@@ -51,6 +65,9 @@ export interface GeminiHelperSettings {
 
   // Workflow event triggers
   enabledWorkflowEventTriggers: WorkflowEventTrigger[];  // Event-triggered workflows
+
+  // MCP servers
+  mcpServers: McpServerConfig[];  // External MCP server configurations
 
   // Function call limits (for settings UI)
   maxFunctionCalls: number;           // 最大function call回数
@@ -428,6 +445,7 @@ export const DEFAULT_SETTINGS: GeminiHelperSettings = {
   slashCommands: DEFAULT_SLASH_COMMANDS,
   enabledWorkflowHotkeys: [],
   enabledWorkflowEventTriggers: [],
+  mcpServers: [],
   // Function call limits
   maxFunctionCalls: 20,
   functionCallWarningThreshold: 5,

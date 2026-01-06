@@ -19,7 +19,8 @@ export type WorkflowNodeType =
   | "workflow"
   | "rag-sync"
   | "file-explorer"
-  | "file-save";
+  | "file-save"
+  | "mcp";
 
 export interface WorkflowNode {
   id: string;

@@ -42,6 +42,7 @@ const NODE_TYPE_LABELS: Record<WorkflowNodeType, string> = {
   "file-save": "File Save",
   workflow: "Workflow",
   "rag-sync": "RAG Sync",
+  mcp: "MCP",
 };
 
 const ADDABLE_NODE_TYPES: WorkflowNodeType[] = [
@@ -65,6 +66,7 @@ const ADDABLE_NODE_TYPES: WorkflowNodeType[] = [
   "file-save",
   "workflow",
   "rag-sync",
+  "mcp",
 ];
 
 function getDefaultProperties(type: WorkflowNodeType): Record<string, string> {
@@ -107,6 +109,8 @@ function getDefaultProperties(type: WorkflowNodeType): Record<string, string> {
       return { path: "", ragSetting: "", saveTo: "" };
     case "file-save":
       return { source: "", path: "", savePathTo: "" };
+    case "mcp":
+      return { url: "", tool: "", args: "", headers: "", saveTo: "" };
     default:
       return {};
   }
@@ -215,6 +219,8 @@ function getNodeSummary(node: SidebarNode): string {
       return `${node.properties["path"]} → ${node.properties["ragSetting"]}`;
     case "file-save":
       return `${node.properties["source"]} → ${node.properties["path"]}`;
+    case "mcp":
+      return `${node.properties["tool"]} @ ${node.properties["url"]}`;
   }
 }
 

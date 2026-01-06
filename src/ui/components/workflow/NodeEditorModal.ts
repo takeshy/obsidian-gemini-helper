@@ -23,6 +23,7 @@ const NODE_TYPE_LABELS: Record<WorkflowNodeType, string> = {
   "file-save": "File Save",
   workflow: "Workflow",
   "rag-sync": "RAG Sync",
+  mcp: "MCP",
 };
 
 export class NodeEditorModal extends Modal {
@@ -303,6 +304,14 @@ export class NodeEditorModal extends Modal {
         this.addTextField(container, "source", "Source Variable", "Variable containing FileExplorerData (e.g., from file-explorer or saveImageTo)");
         this.addTextField(container, "path", "Save Path", "Path to save the file (without extension if auto-detected)");
         this.addTextField(container, "savePathTo", "Save Path To", "Variable to store final file path (optional)");
+        break;
+
+      case "mcp":
+        this.addTextField(container, "url", "URL", "MCP server endpoint URL (e.g., http://localhost:8080)");
+        this.addTextField(container, "tool", "Tool", "Tool name to call on the MCP server");
+        this.addTextArea(container, "args", "Arguments", "JSON object with tool arguments (supports {{variables}})");
+        this.addTextArea(container, "headers", "Headers", "JSON object with HTTP headers (e.g., for authentication)");
+        this.addTextField(container, "saveTo", "Save To", "Variable name to store result (optional)");
         break;
 
     }

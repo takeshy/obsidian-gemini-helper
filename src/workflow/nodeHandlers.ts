@@ -4,6 +4,7 @@ import { getGeminiClient } from "../core/gemini";
 import { getFileSearchManager } from "../core/fileSearch";
 import { CliProviderManager } from "../core/cliProvider";
 import { isImageGenerationModel, type ModelType } from "../types";
+import { McpClient } from "../core/mcpClient";
 import {
   WorkflowNode,
   ExecutionContext,
@@ -2093,5 +2094,68 @@ export async function handleFileSaveNode(
   const savePathTo = node.properties["savePathTo"];
   if (savePathTo) {
     context.variables.set(savePathTo, filePath);
+  }
+}
+
+// Handle MCP node - call remote MCP server tool via HTTP
+export async function handleMcpNode(
+  node: WorkflowNode,
+  context: ExecutionContext,
+  _app: App,
+  _plugin: GeminiHelperPlugin
+): Promise<void> {
+  const url = replaceVariables(node.properties["url"] || "", context);
+  const toolName = replaceVariables(node.properties["tool"] || "", context);
+  const argsStr = node.properties["args"] || "";
+  const headersStr = node.properties["headers"] || "";
+  const saveTo = node.properties["saveTo"];
+
+  if (!url) {
+    throw new Error("MCP node missing 'url' property");
+  }
+  if (!toolName) {
+    throw new Error("MCP node missing 'tool' property");
+  }
+
+  // Parse headers if provided
+  let headers: Record<string, string> = {};
+  if (headersStr) {
+    const replacedHeaders = replaceVariables(headersStr, context);
+    try {
+      headers = JSON.parse(replacedHeaders);
+    } catch {
+      throw new Error(`Invalid JSON in MCP headers: ${replacedHeaders}`);
+    }
+  }
+
+  // Parse arguments
+  let args: Record<string, unknown> = {};
+  if (argsStr) {
+    const replacedArgs = replaceVariables(argsStr, context);
+    try {
+      args = JSON.parse(replacedArgs);
+    } catch {
+      throw new Error(`Invalid JSON in MCP args: ${replacedArgs}`);
+    }
+  }
+
+  // Create MCP client for this URL
+  const client = new McpClient({
+    name: url,
+    url: url,
+    headers: headers,
+  });
+
+  try {
+    // Call the tool
+    const result = await client.callTool(toolName, args);
+
+    // Save result to variable if specified
+    if (saveTo) {
+      context.variables.set(saveTo, result);
+    }
+  } finally {
+    // Close the client connection
+    await client.close();
   }
 }

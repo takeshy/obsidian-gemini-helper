@@ -15,6 +15,7 @@
 | プロンプト | `prompt-file`, `prompt-selection`, `dialog` | ユーザー入力ダイアログ |
 | 合成 | `workflow` | 別のワークフローをサブワークフローとして実行 |
 | RAG | `rag-sync` | ノートを RAG ストアに同期 |
+| 外部連携 | `mcp` | 外部 MCP サーバーツールを呼び出し |
 
 ---
 
@@ -434,6 +435,65 @@ FileExplorerData を Vault 内にファイルとして保存。生成された�
   type: set
   name: counter
   value: "{{counter}} + 1"
+```
+
+### mcp
+
+リモート MCP（Model Context Protocol）サーバーのツールを HTTP 経由で呼び出します。
+
+```yaml
+- id: search
+  type: mcp
+  url: "https://mcp.example.com/v1"
+  tool: "web_search"
+  args: '{"query": "{{searchTerm}}"}'
+  headers: '{"Authorization": "Bearer {{apiKey}}"}'
+  saveTo: searchResults
+```
+
+| プロパティ | 説明 |
+|------------|------|
+| `url` | MCP サーバーのエンドポイント URL（必須、`{{変数}}` 対応） |
+| `tool` | MCP サーバー上で呼び出すツール名（必須） |
+| `args` | ツール引数の JSON オブジェクト（`{{変数}}` 対応） |
+| `headers` | HTTP ヘッダーの JSON オブジェクト（認証など） |
+| `saveTo` | 結果を保存する変数名 |
+
+**使用例:** RAG クエリ、Web 検索、API 連携などのリモート MCP サーバー呼び出し。
+
+**例: ragujuary を使った RAG 検索**
+
+[ragujuary](https://github.com/takeshy/ragujuary) は Gemini File Search Store を管理する CLI ツールで、MCP サーバー機能を搭載しています。
+
+1. インストールとセットアップ:
+```bash
+go install github.com/takeshy/ragujuary@latest
+export GEMINI_API_KEY=your-api-key
+
+# ストアを作成してファイルをアップロード
+ragujuary upload --create -s mystore ./docs
+
+# MCP サーバーを起動（--transport http を使用、sse ではない）
+ragujuary serve --transport http --port 8080 --serve-api-key mysecretkey
+```
+
+2. ワークフロー例:
+```yaml
+name: RAG 検索
+nodes:
+  - id: query
+    type: mcp
+    url: "http://localhost:8080"
+    tool: "query"
+    args: '{"store_name": "mystore", "question": "認証の仕組みについて教えて", "show_citations": true}'
+    headers: '{"X-API-Key": "mysecretkey"}'
+    saveTo: result
+  - id: show
+    type: dialog
+    title: "検索結果"
+    message: "{{result}}"
+    markdown: true
+    button1: "OK"
 ```
 
 ### その他のノード

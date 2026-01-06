@@ -31,6 +31,7 @@ import {
   handleFileSaveNode,
   handleWorkflowNode,
   handleRagSyncNode,
+  handleMcpNode,
   replaceVariables,
 } from "./nodeHandlers";
 import { parseWorkflowFromMarkdown } from "./parser";
@@ -886,6 +887,52 @@ export class WorkflowExecutor {
             // Push next nodes
             const ragSyncNextNodes = getNextNodes(workflow, node.id);
             for (const nextId of ragSyncNextNodes.reverse()) {
+              stack.push({ nodeId: nextId, iterationCount: 0 });
+            }
+            break;
+          }
+
+          case "mcp": {
+            const mcpUrl = replaceVariables(node.properties["url"] || "", context);
+            const mcpTool = replaceVariables(node.properties["tool"] || "", context);
+            log(
+              node.id,
+              node.type,
+              `Calling MCP: ${mcpTool} @ ${mcpUrl}`,
+              "info"
+            );
+
+            const mcpInput: Record<string, unknown> = {
+              url: mcpUrl,
+              tool: mcpTool,
+            };
+            if (node.properties["args"]) {
+              mcpInput.args = replaceVariables(node.properties["args"], context);
+            }
+
+            await handleMcpNode(node, context, this.app, this.plugin);
+
+            const mcpSaveTo = node.properties["saveTo"];
+            const mcpResult = mcpSaveTo ? context.variables.get(mcpSaveTo) : undefined;
+            if (mcpSaveTo) {
+              const mcpPreview =
+                typeof mcpResult === "string"
+                  ? mcpResult.substring(0, 50) + (mcpResult.length > 50 ? "..." : "")
+                  : mcpResult;
+              log(
+                node.id,
+                node.type,
+                `MCP completed, saved to ${mcpSaveTo}: ${mcpPreview}`,
+                "success"
+              );
+            } else {
+              log(node.id, node.type, `MCP completed`, "success");
+            }
+            addHistoryStep(node.id, node.type, mcpInput, mcpResult, "success");
+
+            // Push next nodes
+            const mcpNextNodes = getNextNodes(workflow, node.id);
+            for (const nextId of mcpNextNodes.reverse()) {
               stack.push({ nodeId: nextId, iterationCount: 0 });
             }
             break;

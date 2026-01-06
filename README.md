@@ -7,7 +7,7 @@
 ## Highlights
 
 - **AI Chat** - Streaming responses, file attachments, vault operations, slash commands
-- **Workflow Builder** - Automate multi-step tasks with visual node editor and 20 node types
+- **Workflow Builder** - Automate multi-step tasks with visual node editor and 21 node types
 - **Semantic Search** - RAG-powered intelligent search across your vault
 - **Web Search** - Access up-to-date information via Google Search
 - **Image Generation** - Create images with Gemini image models
@@ -172,7 +172,7 @@ Open the **Workflow** tab in the Gemini sidebar to run it.
 
 ## Available Node Types
 
-20 node types are available for building workflows:
+21 node types are available for building workflows:
 
 | Category | Nodes |
 |----------|-------|
@@ -185,6 +185,7 @@ Open the **Workflow** tab in the Gemini sidebar to run it.
 | Prompts | `prompt-file`, `prompt-selection`, `dialog` |
 | Composition | `workflow` |
 | RAG | `rag-sync` |
+| External | `mcp` |
 
 > **For detailed node specifications and examples, see [WORKFLOW_NODES.md](WORKFLOW_NODES.md)**
 

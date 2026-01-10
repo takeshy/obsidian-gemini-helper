@@ -32,6 +32,7 @@ import {
   handleWorkflowNode,
   handleRagSyncNode,
   handleMcpNode,
+  handleObsidianCommandNode,
   replaceVariables,
 } from "./nodeHandlers";
 import { parseWorkflowFromMarkdown } from "./parser";
@@ -933,6 +934,47 @@ export class WorkflowExecutor {
             // Push next nodes
             const mcpNextNodes = getNextNodes(workflow, node.id);
             for (const nextId of mcpNextNodes.reverse()) {
+              stack.push({ nodeId: nextId, iterationCount: 0 });
+            }
+            break;
+          }
+
+          case "obsidian-command": {
+            const obsidianCommandId = replaceVariables(node.properties["command"] || "", context);
+            log(
+              node.id,
+              node.type,
+              `Executing Obsidian command: ${obsidianCommandId}`,
+              "info"
+            );
+
+            const obsidianCmdInput: Record<string, unknown> = {
+              command: obsidianCommandId,
+            };
+
+            await handleObsidianCommandNode(node, context, this.app);
+
+            const obsidianCmdSaveTo = node.properties["saveTo"];
+            const obsidianCmdResult = obsidianCmdSaveTo
+              ? context.variables.get(obsidianCmdSaveTo)
+              : undefined;
+            log(
+              node.id,
+              node.type,
+              `Obsidian command executed: ${obsidianCommandId}`,
+              "success"
+            );
+            addHistoryStep(
+              node.id,
+              node.type,
+              obsidianCmdInput,
+              obsidianCmdResult,
+              "success"
+            );
+
+            // Push next nodes
+            const obsidianCmdNextNodes = getNextNodes(workflow, node.id);
+            for (const nextId of obsidianCmdNextNodes.reverse()) {
               stack.push({ nodeId: nextId, iterationCount: 0 });
             }
             break;

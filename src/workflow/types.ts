@@ -20,7 +20,8 @@ export type WorkflowNodeType =
   | "rag-sync"
   | "file-explorer"
   | "file-save"
-  | "mcp";
+  | "mcp"
+  | "obsidian-command";
 
 export interface WorkflowNode {
   id: string;

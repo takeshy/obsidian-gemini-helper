@@ -284,6 +284,7 @@ export const it: Record<string, string> = {
   "workflow.nodeType.workflow": "Flusso di lavoro",
   "workflow.nodeType.ragSync": "Sync RAG",
   "workflow.nodeType.mcp": "MCP",
+  "workflow.nodeType.obsidianCommand": "Comando Obsidian",
   "workflow.nodeType.imageGeneration": "Generazione immagini",
 
   // Workflow Panel - UI Strings

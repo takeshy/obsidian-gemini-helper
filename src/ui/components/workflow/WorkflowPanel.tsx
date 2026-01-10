@@ -44,6 +44,7 @@ const getNodeTypeLabels = (): Record<WorkflowNodeType, string> => ({
   workflow: t("workflow.nodeType.workflow"),
   "rag-sync": t("workflow.nodeType.ragSync"),
   mcp: t("workflow.nodeType.mcp"),
+  "obsidian-command": t("workflow.nodeType.obsidianCommand"),
 });
 
 const ADDABLE_NODE_TYPES: WorkflowNodeType[] = [
@@ -68,6 +69,7 @@ const ADDABLE_NODE_TYPES: WorkflowNodeType[] = [
   "workflow",
   "rag-sync",
   "mcp",
+  "obsidian-command",
 ];
 
 function getDefaultProperties(type: WorkflowNodeType): Record<string, string> {
@@ -112,6 +114,8 @@ function getDefaultProperties(type: WorkflowNodeType): Record<string, string> {
       return { source: "", path: "", savePathTo: "" };
     case "mcp":
       return { url: "", tool: "", args: "", headers: "", saveTo: "" };
+    case "obsidian-command":
+      return { command: "", saveTo: "" };
     default:
       return {};
   }
@@ -222,6 +226,8 @@ function getNodeSummary(node: SidebarNode): string {
       return `${node.properties["source"]} → ${node.properties["path"]}`;
     case "mcp":
       return `${node.properties["tool"]} @ ${node.properties["url"]}`;
+    case "obsidian-command":
+      return node.properties["command"] || "(no command)";
   }
 }
 

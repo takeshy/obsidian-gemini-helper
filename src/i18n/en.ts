@@ -284,6 +284,7 @@ export const en = {
   "workflow.nodeType.workflow": "Workflow",
   "workflow.nodeType.ragSync": "RAG Sync",
   "workflow.nodeType.mcp": "MCP",
+  "workflow.nodeType.obsidianCommand": "Obsidian Command",
   "workflow.nodeType.imageGeneration": "Image Generation",
 
   // Workflow Panel - UI Strings

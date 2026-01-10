@@ -24,6 +24,7 @@ const NODE_TYPE_LABELS: Record<WorkflowNodeType, string> = {
   workflow: "Workflow",
   "rag-sync": "RAG Sync",
   mcp: "MCP",
+  "obsidian-command": "Obsidian Command",
 };
 
 export class NodeEditorModal extends Modal {
@@ -312,6 +313,11 @@ export class NodeEditorModal extends Modal {
         this.addTextArea(container, "args", "Arguments", "JSON object with tool arguments (supports {{variables}})");
         this.addTextArea(container, "headers", "Headers", "JSON object with HTTP headers (e.g., for authentication)");
         this.addTextField(container, "saveTo", "Save To", "Variable name to store result (optional)");
+        break;
+
+      case "obsidian-command":
+        this.addTextField(container, "command", "Command ID", "Obsidian command ID (e.g., editor:toggle-fold, app:reload)");
+        this.addTextField(container, "saveTo", "Save To", "Variable name to store execution result (optional)");
         break;
 
     }

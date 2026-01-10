@@ -21,7 +21,7 @@ nodes:
     saveTo: result
 \`\`\`
 
-## Node Types (21 total)
+## Node Types (22 total)
 
 ### 1. variable
 Initialize a new variable.
@@ -327,6 +327,20 @@ Call a remote MCP (Model Context Protocol) server tool via HTTP.
 \`\`\`
 
 **Use case**: Call remote MCP servers for web search, API integrations, etc.
+
+### 22. obsidian-command
+Execute an Obsidian command by its ID.
+- **command** (required): Command ID (e.g., "editor:toggle-fold", "app:reload")
+- **saveTo** (optional): Variable name to store execution result
+
+**Example**:
+\`\`\`yaml
+- id: toggle-fold
+  type: obsidian-command
+  command: "editor:toggle-fold"
+\`\`\`
+
+**Use case**: Trigger any Obsidian command, including commands from other plugins.
 
 ## Control Flow
 

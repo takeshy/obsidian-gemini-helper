@@ -2097,6 +2097,38 @@ export async function handleFileSaveNode(
   }
 }
 
+// Handle obsidian-command node - execute an Obsidian command
+export async function handleObsidianCommandNode(
+  node: WorkflowNode,
+  context: ExecutionContext,
+  app: App
+): Promise<void> {
+  const commandId = replaceVariables(node.properties["command"] || "", context);
+
+  if (!commandId) {
+    throw new Error("obsidian-command node missing 'command' property");
+  }
+
+  // Check if command exists
+  const command = (app as unknown as { commands: { commands: Record<string, unknown> } }).commands.commands[commandId];
+  if (!command) {
+    throw new Error(`Command not found: ${commandId}`);
+  }
+
+  // Execute the command
+  await (app as unknown as { commands: { executeCommandById: (id: string) => Promise<void> } }).commands.executeCommandById(commandId);
+
+  // Save execution info to variable if specified
+  const saveTo = node.properties["saveTo"];
+  if (saveTo) {
+    context.variables.set(saveTo, JSON.stringify({
+      commandId,
+      executed: true,
+      timestamp: Date.now(),
+    }));
+  }
+}
+
 // Handle MCP node - call remote MCP server tool via HTTP
 export async function handleMcpNode(
   node: WorkflowNode,

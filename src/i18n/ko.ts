@@ -284,6 +284,7 @@ export const ko: Record<string, string> = {
   "workflow.nodeType.workflow": "워크플로우",
   "workflow.nodeType.ragSync": "RAG 동기화",
   "workflow.nodeType.mcp": "MCP",
+  "workflow.nodeType.obsidianCommand": "Obsidian 명령",
   "workflow.nodeType.imageGeneration": "이미지 생성",
 
   // Workflow Panel - UI Strings

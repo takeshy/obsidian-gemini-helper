@@ -50,7 +50,8 @@ function isWorkflowNodeType(value: unknown): value is WorkflowNodeType {
     value === "file-save" ||
     value === "workflow" ||
     value === "rag-sync" ||
-    value === "mcp"
+    value === "mcp" ||
+    value === "obsidian-command"
   );
 }
 

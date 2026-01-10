@@ -4,6 +4,7 @@ import { Copy, Check, CheckCircle, XCircle, Download, Eye } from "lucide-react";
 import type { Message, ToolCall } from "src/types";
 import { AVAILABLE_MODELS } from "src/types";
 import { HTMLPreviewModal, extractHtmlFromCodeBlock } from "./HTMLPreviewModal";
+import { t } from "src/i18n";
 
 interface MessageBubbleProps {
   message: Message;
@@ -85,8 +86,8 @@ export default function MessageBubble({
 
   // Get model display name
   const getModelDisplayName = () => {
-    if (isUser) return "You";
-    if (!message.model) return "Gemini";
+    if (isUser) return t("message.you");
+    if (!message.model) return t("message.gemini");
     const modelInfo = AVAILABLE_MODELS.find(m => m.name === message.model);
     return modelInfo?.displayName || message.model;
   };
@@ -94,20 +95,20 @@ export default function MessageBubble({
   // Convert tool call to display info
   const getToolDisplayInfo = (toolName: string): { icon: string; label: string } => {
     const toolDisplayMap: Record<string, { icon: string; label: string }> = {
-      read_note: { icon: "📖", label: "Read" },
-      create_note: { icon: "📝", label: "Created" },
-      update_note: { icon: "✏️", label: "Updated" },
-      delete_note: { icon: "🗑️", label: "Deleted" },
-      rename_note: { icon: "📋", label: "Renamed" },
-      search_notes: { icon: "🔍", label: "Searched" },
-      list_notes: { icon: "📂", label: "Listed" },
-      list_folders: { icon: "📁", label: "Listed folders" },
-      create_folder: { icon: "📁", label: "Created folder" },
-      get_active_note_info: { icon: "📄", label: "Got active note" },
-      get_rag_sync_status: { icon: "🔄", label: "Checked sync" },
-      propose_edit: { icon: "✏️", label: "Editing" },
-      apply_edit: { icon: "✅", label: "Applied" },
-      discard_edit: { icon: "❌", label: "Discarded" },
+      read_note: { icon: "📖", label: t("tool.read") },
+      create_note: { icon: "📝", label: t("tool.created") },
+      update_note: { icon: "✏️", label: t("tool.updated") },
+      delete_note: { icon: "🗑️", label: t("tool.deleted") },
+      rename_note: { icon: "📋", label: t("tool.renamed") },
+      search_notes: { icon: "🔍", label: t("tool.searched") },
+      list_notes: { icon: "📂", label: t("tool.listed") },
+      list_folders: { icon: "📁", label: t("tool.listedFolders") },
+      create_folder: { icon: "📁", label: t("tool.createdFolder") },
+      get_active_note_info: { icon: "📄", label: t("tool.gotActiveNote") },
+      get_rag_sync_status: { icon: "🔄", label: t("tool.checkedSync") },
+      propose_edit: { icon: "✏️", label: t("tool.editing") },
+      apply_edit: { icon: "✅", label: t("tool.applied") },
+      discard_edit: { icon: "❌", label: t("tool.discarded") },
     };
     return toolDisplayMap[toolName] || { icon: "🔧", label: toolName };
   };
@@ -163,9 +164,9 @@ export default function MessageBubble({
       await navigator.clipboard.write([
         new ClipboardItem({ [blob.type]: blob })
       ]);
-      new Notice("Image copied to clipboard");
+      new Notice(t("message.imageCopied"));
     } catch {
-      new Notice("Failed to copy image");
+      new Notice(t("message.imageCopyFailed"));
     }
   };
 
@@ -234,9 +235,9 @@ export default function MessageBubble({
         const filePath = `${folderPath}/${fileName}`;
         await app.vault.create(filePath, mdContent);
 
-        new Notice(`Saved to ${filePath}`);
+        new Notice(t("message.savedTo", { path: filePath }));
       } catch (error) {
-        new Notice(`Failed to save: ${error instanceof Error ? error.message : "Unknown error"}`);
+        new Notice(t("message.saveFailed", { error: error instanceof Error ? error.message : "Unknown error" }));
       }
     } else {
       // PC: Download file
@@ -269,7 +270,7 @@ export default function MessageBubble({
             onClick={() => {
               void handleCopy();
             }}
-            title="Copy to clipboard"
+            title={t("message.copyToClipboard")}
           >
             {copied ? <Check size={14} /> : <Copy size={14} />}
           </button>
@@ -280,7 +281,7 @@ export default function MessageBubble({
       {message.webSearchUsed && (
         <div className="gemini-helper-rag-used">
           <span className="gemini-helper-rag-indicator">
-            🌐 Used web search
+            🌐 {t("message.webSearchUsed")}
           </span>
         </div>
       )}
@@ -289,7 +290,7 @@ export default function MessageBubble({
       {message.imageGenerationUsed && (
         <div className="gemini-helper-rag-used">
           <span className="gemini-helper-rag-indicator">
-            🎨 Generated image
+            🎨 {t("message.imageGenerated")}
           </span>
         </div>
       )}
@@ -298,7 +299,7 @@ export default function MessageBubble({
       {message.ragUsed && (
         <div className="gemini-helper-rag-used">
           <span className="gemini-helper-rag-indicator">
-            📚 Semantic search
+            📚 {t("message.rag")}
           </span>
           {message.ragSources && message.ragSources.length > 0 && (
             <div className="gemini-helper-rag-sources">
@@ -315,7 +316,7 @@ export default function MessageBubble({
                       new Notice(`Source: ${source}`, 3000);
                     }
                   }}
-                  title={`Click to open: ${source}`}
+                  title={t("message.clickToOpen", { source })}
                 >
                   📄 {source.split("/").pop() || source}
                 </span>
@@ -335,7 +336,7 @@ export default function MessageBubble({
                 key={index}
                 className="gemini-helper-tool-indicator gemini-helper-tool-clickable"
                 onClick={() => new Notice(getToolDetail(toolCall), 3000)}
-                title="Click to see details"
+                title={t("message.clickToSeeDetails")}
               >
                 {icon} {label}
               </span>
@@ -362,7 +363,7 @@ export default function MessageBubble({
       {message.thinking && (
         <details className="gemini-helper-thinking">
           <summary className="gemini-helper-thinking-summary">
-            💭 Thinking
+            💭 {t("message.thinking")}
           </summary>
           <div className="gemini-helper-thinking-content">
             {message.thinking}
@@ -376,24 +377,24 @@ export default function MessageBubble({
       {htmlContent && !isStreaming && (
         <div className="gemini-helper-html-actions">
           <span className="gemini-helper-html-indicator">
-            📊 HTML Infographic
+            📊 {t("message.htmlInfographic")}
           </span>
           <div className="gemini-helper-html-buttons">
             <button
               className="gemini-helper-html-btn"
               onClick={handlePreviewHtml}
-              title="Preview HTML"
+              title={t("message.previewHtml")}
             >
               <Eye size={14} />
-              <span>Preview</span>
+              <span>{t("message.preview")}</span>
             </button>
             <button
               className="gemini-helper-html-btn"
               onClick={() => void handleSaveHtml()}
-              title={Platform.isMobile ? "Save to vault" : "Download HTML"}
+              title={Platform.isMobile ? t("message.saveHtml") : t("message.downloadHtml")}
             >
               <Download size={14} />
-              <span>Save</span>
+              <span>{t("common.save")}</span>
             </button>
           </div>
         </div>
@@ -413,18 +414,18 @@ export default function MessageBubble({
                 <button
                   className="gemini-helper-image-btn"
                   onClick={() => void handleCopyImage(image.mimeType, image.data)}
-                  title="Copy image"
+                  title={t("message.copyImage")}
                 >
                   <Copy size={14} />
-                  <span>Copy</span>
+                  <span>{t("message.copy")}</span>
                 </button>
                 <button
                   className="gemini-helper-image-btn"
                   onClick={() => handleDownloadImage(image.mimeType, image.data, index)}
-                  title="Download image"
+                  title={t("message.downloadImage")}
                 >
                   <Download size={14} />
-                  <span>Save</span>
+                  <span>{t("common.save")}</span>
                 </button>
               </div>
             </div>
@@ -436,7 +437,7 @@ export default function MessageBubble({
       {message.pendingEdit && message.pendingEdit.status === "pending" && (
         <div className="gemini-helper-pending-edit">
           <div className="gemini-helper-pending-edit-info">
-            📄 Edited <strong>{message.pendingEdit.originalPath}</strong>
+            📄 {t("message.edited")} <strong>{message.pendingEdit.originalPath}</strong>
           </div>
           <div className="gemini-helper-pending-edit-actions">
             <button
@@ -444,20 +445,20 @@ export default function MessageBubble({
               onClick={() => {
                 void onApplyEdit?.();
               }}
-              title="Apply changes"
+              title={t("message.applyChanges")}
             >
               <CheckCircle size={16} />
-              Apply
+              {t("message.apply")}
             </button>
             <button
               className="gemini-helper-edit-btn gemini-helper-edit-discard"
               onClick={() => {
                 void onDiscardEdit?.();
               }}
-              title="Discard changes"
+              title={t("message.discardChanges")}
             >
               <XCircle size={16} />
-              Discard
+              {t("message.discard")}
             </button>
           </div>
         </div>
@@ -466,35 +467,35 @@ export default function MessageBubble({
       {/* Edit applied status */}
       {message.pendingEdit && message.pendingEdit.status === "applied" && (
         <div className="gemini-helper-edit-status gemini-helper-edit-applied">
-          ✅ Applied changes to <strong>{message.pendingEdit.originalPath}</strong>
+          ✅ {t("message.appliedChanges")} <strong>{message.pendingEdit.originalPath}</strong>
         </div>
       )}
 
       {/* Edit discarded status */}
       {message.pendingEdit && message.pendingEdit.status === "discarded" && (
         <div className="gemini-helper-edit-status gemini-helper-edit-discarded">
-          ❌ Discarded changes
+          ❌ {t("message.discardedChanges")}
         </div>
       )}
 
       {/* Delete status */}
       {message.pendingDelete && message.pendingDelete.status === "deleted" && (
         <div className="gemini-helper-edit-status gemini-helper-delete-applied">
-          🗑️ Deleted <strong>{message.pendingDelete.path}</strong>
+          🗑️ {t("message.deleted")} <strong>{message.pendingDelete.path}</strong>
         </div>
       )}
 
       {/* Delete cancelled status */}
       {message.pendingDelete && message.pendingDelete.status === "cancelled" && (
         <div className="gemini-helper-edit-status gemini-helper-delete-cancelled">
-          ↩️ Cancelled deletion of <strong>{message.pendingDelete.path}</strong>
+          ↩️ {t("message.cancelledDeletion")} <strong>{message.pendingDelete.path}</strong>
         </div>
       )}
 
       {/* Delete failed status */}
       {message.pendingDelete && message.pendingDelete.status === "failed" && (
         <div className="gemini-helper-edit-status gemini-helper-edit-discarded">
-          ❌ Failed to delete
+          ❌ {t("message.failedToDelete")}
         </div>
       )}
     </div>

@@ -52,11 +52,8 @@ import {
 } from "./workflow/EditConfirmationModal";
 import MessageList from "./MessageList";
 import InputArea, { type InputAreaHandle } from "./InputArea";
+import { t } from "src/i18n";
 
-const RATE_LIMIT_MESSAGE =
-	"The selected model is rate limited. Please use a different model until tomorrow.";
-const PAID_RATE_LIMIT_MESSAGE =
-	"This model may be rate limited. Please try a different model until tomorrow.";
 const PAID_RATE_LIMIT_RETRY_DELAYS_MS = [10000, 30000, 60000];
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -87,10 +84,10 @@ function isRateLimitError(error: unknown): boolean {
 
 function buildErrorMessage(error: unknown, apiPlan: string): string {
 	if (isRateLimitError(error)) {
-		return apiPlan === "free" ? RATE_LIMIT_MESSAGE : PAID_RATE_LIMIT_MESSAGE;
+		return apiPlan === "free" ? t("chat.rateLimitFree") : t("chat.rateLimitPaid");
 	}
-	const message = error instanceof Error ? error.message : "Unknown error";
-	return `Sorry, an error occurred: ${message}`;
+	const message = error instanceof Error ? error.message : t("chat.unknownError");
+	return t("chat.errorOccurred", { message });
 }
 
 interface ChatHistory {
@@ -683,7 +680,7 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 		if (currentChatId === chatId) {
 			startNewChat();
 		}
-		new Notice("Chat deleted");
+		new Notice(t("chat.chatDeleted"));
 	};
 
 	// Send message via CLI provider
@@ -760,7 +757,7 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 			}
 
 			if (stopped && fullContent) {
-				fullContent += "\n\n_(Generation stopped)_";
+				fullContent += `\n\n${t("chat.generationStopped")}`;
 			}
 
 			// Add assistant message with CLI model info
@@ -777,10 +774,10 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 			// Save chat history
 			await saveCurrentChat(newMessages);
 		} catch (error) {
-			const errorMessageText = error instanceof Error ? error.message : "Unknown error";
+			const errorMessageText = error instanceof Error ? error.message : t("chat.unknownError");
 			const errorMessage: Message = {
 				role: "assistant",
-				content: `Sorry, an error occurred: ${errorMessageText}`,
+				content: t("chat.errorOccurred", { message: errorMessageText }),
 				timestamp: Date.now(),
 			};
 			setMessages((prev) => [...prev, errorMessage]);
@@ -803,7 +800,7 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 
 		const client = getGeminiClient();
 		if (!client) {
-			new Notice("Gemini client not initialized. Please set API key.");
+			new Notice(t("chat.clientNotInitialized"));
 			return;
 		}
 
@@ -1168,7 +1165,7 @@ Always be helpful and provide clear, concise responses. When working with notes,
 
 				// If stopped, add partial message if any content was received
 				if (stopped && fullContent) {
-					fullContent += "\n\n_(Generation stopped)_";
+					fullContent += `\n\n${t("chat.generationStopped")}`;
 				}
 
 				// Get processed edit/delete info from tool executor (already confirmed during tool execution)
@@ -1221,7 +1218,11 @@ Always be helpful and provide clear, concise responses. When working with notes,
 						retryCount += 1;
 						setStreamingContent("");
 						new Notice(
-							`Rate limit detected. Retrying in ${Math.ceil(delayMs / 1000)}s (${retryCount}/${retryDelays.length})...`
+							t("chat.rateLimitRetrying", {
+								seconds: String(Math.ceil(delayMs / 1000)),
+								attempt: String(retryCount),
+								max: String(retryDelays.length),
+							})
 						);
 						await sleep(delayMs);
 						continue;
@@ -1272,12 +1273,12 @@ Always be helpful and provide clear, concise responses. When working with notes,
 					}
 					return newMessages;
 				});
-				new Notice(result.message || "Changes applied");
+				new Notice(result.message || t("message.appliedChanges"));
 			} else {
-				new Notice(result.error || "Failed to apply changes");
+				new Notice(result.error || t("message.applyChanges"));
 			}
 		} catch {
-			new Notice("Failed to apply changes");
+			new Notice(t("message.applyChanges"));
 		}
 	};
 
@@ -1302,12 +1303,12 @@ Always be helpful and provide clear, concise responses. When working with notes,
 					}
 					return newMessages;
 				});
-				new Notice(result.message || "Changes discarded");
+				new Notice(result.message || t("message.discardedChanges"));
 			} else {
-				new Notice(result.error || "Failed to discard changes");
+				new Notice(result.error || t("message.discardChanges"));
 			}
 		} catch {
-			new Notice("Failed to discard changes");
+			new Notice(t("message.discardChanges"));
 		}
 	};
 
@@ -1320,7 +1321,7 @@ Always be helpful and provide clear, concise responses. When working with notes,
 		if (diffDays === 0) {
 			return date.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
 		} else if (diffDays === 1) {
-			return "Yesterday";
+			return t("chat.yesterday");
 		} else if (diffDays < 7) {
 			return date.toLocaleDateString(undefined, { weekday: "short" });
 		} else {
@@ -1331,19 +1332,19 @@ Always be helpful and provide clear, concise responses. When working with notes,
 	return (
 		<div className="gemini-helper-chat">
 			<div className="gemini-helper-chat-header">
-				<h3>Gemini chat</h3>
+				<h3>{t("chat.title")}</h3>
 				<div className="gemini-helper-header-actions">
 					<button
 						className="gemini-helper-icon-btn"
 						onClick={startNewChat}
-						title="New chat"
+						title={t("chat.newChat")}
 					>
 						<Plus size={18} />
 					</button>
 					<button
 						className="gemini-helper-icon-btn"
 						onClick={() => setShowHistory(!showHistory)}
-						title="Chat history"
+						title={t("chat.chatHistory")}
 					>
 						<History size={18} />
 						{showHistory && <ChevronDown size={14} className="gemini-helper-chevron" />}
@@ -1369,7 +1370,7 @@ Always be helpful and provide clear, concise responses. When working with notes,
 									onClick={(e) => {
 										void deleteChat(history.id, e);
 									}}
-									title="Delete chat"
+									title={t("common.delete")}
 								>
 									×
 								</button>
@@ -1381,7 +1382,7 @@ Always be helpful and provide clear, concise responses. When working with notes,
 
 			{showHistory && chatHistories.length === 0 && (
 				<div className="gemini-helper-history-dropdown">
-					<div className="gemini-helper-history-empty">No chat history yet</div>
+					<div className="gemini-helper-history-empty">{t("chat.noChatHistory")}</div>
 				</div>
 			)}
 
@@ -1422,14 +1423,14 @@ Always be helpful and provide clear, concise responses. When working with notes,
 			) : (
 				<div className="gemini-helper-config-required">
 					<div className="gemini-helper-config-message">
-						<h4>Configuration required</h4>
-						<p>To use AI chat, please configure one of the following in settings:</p>
+						<h4>{t("chat.configRequired")}</h4>
+						<p>{t("chat.configRequiredDesc")}</p>
 						<ul>
-							<li><strong>Google API Key</strong> - Set your API key to use the Gemini API directly</li>
-							<li><strong>Gemini CLI</strong> - Enable CLI mode and verify the Gemini CLI is working</li>
-							<li><strong>Claude CLI</strong> - Enable CLI mode and verify the Claude CLI is working</li>
+							<li><strong>{t("chat.configApiKey")}</strong> - {t("chat.configApiKeyDesc")}</li>
+							<li><strong>{t("chat.configGeminiCli")}</strong> - {t("chat.configGeminiCliDesc")}</li>
+							<li><strong>{t("chat.configClaudeCli")}</strong> - {t("chat.configClaudeCliDesc")}</li>
 						</ul>
-						<p>Open Settings → Gemini Helper to configure.</p>
+						<p>{t("chat.openSettings")}</p>
 					</div>
 				</div>
 			)}

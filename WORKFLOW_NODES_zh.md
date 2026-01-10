@@ -1,49 +1,49 @@
-# Workflow Node Reference
+# 工作流节点参考
 
-This document provides detailed specifications for all workflow node types. For most users, **you don't need to learn these details** - just describe what you want in natural language, and the AI will create or modify workflows for you.
+本文档提供了所有工作流节点类型的详细规格说明。对于大多数用户来说，**您无需学习这些细节** - 只需用自然语言描述您想要的内容，AI 就会为您创建或修改工作流。
 
-## Node Types Overview
+## 节点类型概览
 
-| Category | Nodes | Description |
+| 类别 | 节点 | 描述 |
 |----------|-------|-------------|
-| Variables | `variable`, `set` | Declare and update variables |
-| Control | `if`, `while` | Conditional branching and loops |
-| LLM | `command` | Execute prompts with model/search options |
-| Data | `http`, `json` | HTTP requests and JSON parsing |
-| Notes | `note`, `note-read`, `note-search`, `note-list`, `folder-list`, `open` | Vault operations |
-| Files | `file-explorer`, `file-save` | File selection and saving (images, PDFs, etc.) |
-| Prompts | `prompt-file`, `prompt-selection`, `dialog` | User input dialogs |
-| Composition | `workflow` | Execute another workflow as a sub-workflow |
-| RAG | `rag-sync` | Sync notes to RAG store |
-| External | `mcp` | Call external MCP server tools |
+| 变量 | `variable`, `set` | 声明和更新变量 |
+| 控制 | `if`, `while` | 条件分支和循环 |
+| LLM | `command` | 执行带有模型/搜索选项的提示词 |
+| 数据 | `http`, `json` | HTTP 请求和 JSON 解析 |
+| 笔记 | `note`, `note-read`, `note-search`, `note-list`, `folder-list`, `open` | 仓库操作 |
+| 文件 | `file-explorer`, `file-save` | 文件选择和保存（图片、PDF 等） |
+| 提示 | `prompt-file`, `prompt-selection`, `dialog` | 用户输入对话框 |
+| 组合 | `workflow` | 将另一个工作流作为子工作流执行 |
+| RAG | `rag-sync` | 同步笔记到 RAG 存储 |
+| 外部 | `mcp` | 调用外部 MCP 服务器工具 |
 
 ---
 
-## Node Reference
+## 节点参考
 
 ### command
 
-Execute an LLM prompt with optional model and search settings.
+执行带有可选模型和搜索设置的 LLM 提示词。
 
 ```yaml
 - id: search
   type: command
-  model: gemini-3-flash-preview  # Optional: specific model
-  ragSetting: __websearch__      # Optional: __websearch__, __none__, or setting name
+  model: gemini-3-flash-preview  # 可选：指定模型
+  ragSetting: __websearch__      # 可选：__websearch__、__none__ 或设置名称
   prompt: "Search for {{topic}}"
   saveTo: result
 ```
 
-| Property | Description |
+| 属性 | 描述 |
 |----------|-------------|
-| `prompt` | The prompt to send to the LLM (required) |
-| `model` | Override the current model (e.g., `gemini-3-flash-preview`, `gemini-3-pro-image-preview`) |
-| `ragSetting` | `__websearch__` (web search), `__none__` (no search), setting name, or omit for current |
-| `attachments` | Comma-separated variable names containing FileExplorerData (from `file-explorer` node) |
-| `saveTo` | Variable name to store text response |
-| `saveImageTo` | Variable name to store generated image (FileExplorerData format, for image models) |
+| `prompt` | 发送给 LLM 的提示词（必填） |
+| `model` | 覆盖当前模型（例如 `gemini-3-flash-preview`、`gemini-3-pro-image-preview`） |
+| `ragSetting` | `__websearch__`（网络搜索）、`__none__`（无搜索）、设置名称，或省略以使用当前设置 |
+| `attachments` | 包含 FileExplorerData 的变量名称，用逗号分隔（来自 `file-explorer` 节点） |
+| `saveTo` | 用于存储文本响应的变量名 |
+| `saveImageTo` | 用于存储生成图片的变量名（FileExplorerData 格式，用于图像模型） |
 
-**Image generation example**:
+**图像生成示例**：
 ```yaml
 - id: generate
   type: command
@@ -58,7 +58,7 @@ Execute an LLM prompt with optional model and search settings.
 
 ### note
 
-Write content to a note file.
+将内容写入笔记文件。
 
 ```yaml
 - id: save
@@ -69,16 +69,16 @@ Write content to a note file.
   confirm: true
 ```
 
-| Property | Description |
+| 属性 | 描述 |
 |----------|-------------|
-| `path` | File path (required) |
-| `content` | Content to write |
-| `mode` | `overwrite` (default), `append`, or `create` (skip if exists) |
-| `confirm` | `true` (default) shows confirmation dialog, `false` writes immediately |
+| `path` | 文件路径（必填） |
+| `content` | 要写入的内容 |
+| `mode` | `overwrite`（默认）、`append` 或 `create`（如果存在则跳过） |
+| `confirm` | `true`（默认）显示确认对话框，`false` 立即写入 |
 
 ### note-list
 
-List notes with filtering and sorting.
+列出笔记，支持筛选和排序。
 
 ```yaml
 - id: list
@@ -95,20 +95,20 @@ List notes with filtering and sorting.
   saveTo: noteList
 ```
 
-| Property | Description |
+| 属性 | 描述 |
 |----------|-------------|
-| `folder` | Folder path (empty for entire vault) |
-| `recursive` | `true` includes subfolders, `false` (default) only direct children |
-| `tags` | Comma-separated tags to filter (with or without `#`) |
-| `tagMatch` | `any` (default) or `all` tags must match |
-| `createdWithin` | Filter by creation time: `30m`, `24h`, `7d` |
-| `modifiedWithin` | Filter by modification time |
-| `sortBy` | `created`, `modified`, or `name` |
-| `sortOrder` | `asc` or `desc` (default) |
-| `limit` | Maximum results (default: 50) |
-| `saveTo` | Variable for results |
+| `folder` | 文件夹路径（留空表示整个仓库） |
+| `recursive` | `true` 包含子文件夹，`false`（默认）仅包含直接子项 |
+| `tags` | 用于筛选的标签，用逗号分隔（带或不带 `#`） |
+| `tagMatch` | `any`（默认）或 `all` 标签必须匹配 |
+| `createdWithin` | 按创建时间筛选：`30m`、`24h`、`7d` |
+| `modifiedWithin` | 按修改时间筛选 |
+| `sortBy` | `created`、`modified` 或 `name` |
+| `sortOrder` | `asc` 或 `desc`（默认） |
+| `limit` | 最大结果数（默认：50） |
+| `saveTo` | 用于存储结果的变量 |
 
-**Output format:**
+**输出格式：**
 ```json
 {
   "count": 5,
@@ -122,7 +122,7 @@ List notes with filtering and sorting.
 
 ### http
 
-Make HTTP requests.
+发送 HTTP 请求。
 
 ```yaml
 - id: fetch
@@ -137,18 +137,18 @@ Make HTTP requests.
   throwOnError: "true"
 ```
 
-| Property | Description |
+| 属性 | 描述 |
 |----------|-------------|
-| `url` | Request URL (required) |
-| `method` | `GET` (default), `POST`, `PUT`, `PATCH`, `DELETE` |
-| `contentType` | `json` (default), `form-data`, `text` |
-| `headers` | JSON object or `Key: Value` format (one per line) |
-| `body` | Request body (for POST/PUT/PATCH) |
-| `saveTo` | Variable for response body |
-| `saveStatus` | Variable for HTTP status code |
-| `throwOnError` | `true` to throw error on 4xx/5xx responses |
+| `url` | 请求 URL（必填） |
+| `method` | `GET`（默认）、`POST`、`PUT`、`PATCH`、`DELETE` |
+| `contentType` | `json`（默认）、`form-data`、`text` |
+| `headers` | JSON 对象或 `Key: Value` 格式（每行一个） |
+| `body` | 请求体（用于 POST/PUT/PATCH） |
+| `saveTo` | 用于存储响应体的变量 |
+| `saveStatus` | 用于存储 HTTP 状态码的变量 |
+| `throwOnError` | `true` 在 4xx/5xx 响应时抛出错误 |
 
-**form-data example** (binary file upload with file-explorer):
+**form-data 示例**（使用 file-explorer 上传二进制文件）：
 
 ```yaml
 - id: select-pdf
@@ -165,13 +165,13 @@ Make HTTP requests.
   saveTo: response
 ```
 
-For `form-data`:
-- FileExplorerData (from `file-explorer` node) is auto-detected and sent as binary
-- Use `fieldName:filename` syntax for text file fields (e.g., `"file:report.html": "{{htmlContent}}"`)
+对于 `form-data`：
+- FileExplorerData（来自 `file-explorer` 节点）会被自动检测并作为二进制发送
+- 对于文本文件字段使用 `fieldName:filename` 语法（例如 `"file:report.html": "{{htmlContent}}"`）
 
 ### dialog
 
-Display a dialog with options, buttons, and/or text input.
+显示带有选项、按钮和/或文本输入的对话框。
 
 ```yaml
 - id: ask
@@ -189,21 +189,21 @@ Display a dialog with options, buttons, and/or text input.
   saveTo: dialogResult
 ```
 
-| Property | Description |
+| 属性 | 描述 |
 |----------|-------------|
-| `title` | Dialog title |
-| `message` | Message content (supports `{{variables}}`) |
-| `markdown` | `true` renders message as Markdown |
-| `options` | Comma-separated list of choices (optional) |
-| `multiSelect` | `true` for checkboxes, `false` for radio buttons |
-| `inputTitle` | Label for text input field (shows input when set) |
-| `multiline` | `true` for multi-line text area |
-| `defaults` | JSON with `input` and `selected` initial values |
-| `button1` | Primary button label (default: "OK") |
-| `button2` | Secondary button label (optional) |
-| `saveTo` | Variable for result: `{"button": "Confirm", "selected": [...], "input": "..."}` |
+| `title` | 对话框标题 |
+| `message` | 消息内容（支持 `{{variables}}`） |
+| `markdown` | `true` 将消息渲染为 Markdown |
+| `options` | 用逗号分隔的选项列表（可选） |
+| `multiSelect` | `true` 使用复选框，`false` 使用单选按钮 |
+| `inputTitle` | 文本输入字段的标签（设置时显示输入框） |
+| `multiline` | `true` 使用多行文本区域 |
+| `defaults` | 包含 `input` 和 `selected` 初始值的 JSON |
+| `button1` | 主按钮标签（默认："OK"） |
+| `button2` | 次按钮标签（可选） |
+| `saveTo` | 用于存储结果的变量：`{"button": "Confirm", "selected": [...], "input": "..."}` |
 
-**Simple text input:**
+**简单文本输入：**
 ```yaml
 - id: input
   type: dialog
@@ -215,7 +215,7 @@ Display a dialog with options, buttons, and/or text input.
 
 ### workflow
 
-Execute another workflow as a sub-workflow.
+将另一个工作流作为子工作流执行。
 
 ```yaml
 - id: runSub
@@ -227,17 +227,17 @@ Execute another workflow as a sub-workflow.
   prefix: "sub_"
 ```
 
-| Property | Description |
+| 属性 | 描述 |
 |----------|-------------|
-| `path` | Path to workflow file (required) |
-| `name` | Workflow name (for files with multiple workflows) |
-| `input` | JSON mapping sub-workflow variables to values |
-| `output` | JSON mapping parent variables to sub-workflow results |
-| `prefix` | Prefix for all output variables (when `output` not specified) |
+| `path` | 工作流文件路径（必填） |
+| `name` | 工作流名称（用于包含多个工作流的文件） |
+| `input` | 将子工作流变量映射到值的 JSON |
+| `output` | 将父变量映射到子工作流结果的 JSON |
+| `prefix` | 所有输出变量的前缀（当未指定 `output` 时） |
 
 ### rag-sync
 
-Sync a note to a RAG store.
+将笔记同步到 RAG 存储。
 
 ```yaml
 - id: sync
@@ -247,13 +247,13 @@ Sync a note to a RAG store.
   saveTo: syncResult
 ```
 
-| Property | Description |
+| 属性 | 描述 |
 |----------|-------------|
-| `path` | Note path to sync (required, supports `{{variables}}`) |
-| `ragSetting` | RAG setting name (required) |
-| `saveTo` | Variable to store result (optional) |
+| `path` | 要同步的笔记路径（必填，支持 `{{variables}}`） |
+| `ragSetting` | RAG 设置名称（必填） |
+| `saveTo` | 用于存储结果的变量（可选） |
 
-**Output format:**
+**输出格式：**
 ```json
 {
   "path": "folder/note.md",
@@ -265,7 +265,7 @@ Sync a note to a RAG store.
 
 ### file-explorer
 
-Select a file from vault or enter a new file path. Supports any file type including images and PDFs.
+从仓库中选择文件或输入新文件路径。支持任何文件类型，包括图片和 PDF。
 
 ```yaml
 - id: selectImage
@@ -278,17 +278,17 @@ Select a file from vault or enter a new file path. Supports any file type includ
   savePathTo: imagePath
 ```
 
-| Property | Description |
+| 属性 | 描述 |
 |----------|-------------|
-| `path` | Direct file path - skips dialog when set (supports `{{variables}}`) |
-| `mode` | `select` (pick existing file, default) or `create` (enter new path) |
-| `title` | Dialog title |
-| `extensions` | Comma-separated allowed extensions (e.g., `pdf,png,jpg`) |
-| `default` | Default path (supports `{{variables}}`) |
-| `saveTo` | Variable for FileExplorerData JSON |
-| `savePathTo` | Variable for just the file path |
+| `path` | 直接文件路径 - 设置时跳过对话框（支持 `{{variables}}`） |
+| `mode` | `select`（选择现有文件，默认）或 `create`（输入新路径） |
+| `title` | 对话框标题 |
+| `extensions` | 允许的扩展名，用逗号分隔（例如 `pdf,png,jpg`） |
+| `default` | 默认路径（支持 `{{variables}}`） |
+| `saveTo` | 用于存储 FileExplorerData JSON 的变量 |
+| `savePathTo` | 仅用于存储文件路径的变量 |
 
-**FileExplorerData format:**
+**FileExplorerData 格式：**
 ```json
 {
   "path": "folder/image.png",
@@ -301,7 +301,7 @@ Select a file from vault or enter a new file path. Supports any file type includ
 }
 ```
 
-**Example: Image Analysis (with dialog)**
+**示例：图像分析（带对话框）**
 ```yaml
 - id: selectImage
   type: file-explorer
@@ -319,7 +319,7 @@ Select a file from vault or enter a new file path. Supports any file type includ
   content: "# Image Analysis\n\n{{analysis}}"
 ```
 
-**Example: Event-triggered (no dialog)**
+**示例：事件触发（无对话框）**
 ```yaml
 - id: loadImage
   type: file-explorer
@@ -334,7 +334,7 @@ Select a file from vault or enter a new file path. Supports any file type includ
 
 ### file-save
 
-Save FileExplorerData as a file in the vault. Useful for saving generated images or copied files.
+将 FileExplorerData 保存为仓库中的文件。适用于保存生成的图片或复制的文件。
 
 ```yaml
 - id: saveImage
@@ -344,13 +344,13 @@ Save FileExplorerData as a file in the vault. Useful for saving generated images
   savePathTo: savedPath
 ```
 
-| Property | Description |
+| 属性 | 描述 |
 |----------|-------------|
-| `source` | Variable name containing FileExplorerData (required) |
-| `path` | Path to save the file (extension auto-added if missing) |
-| `savePathTo` | Variable to store the final file path (optional) |
+| `source` | 包含 FileExplorerData 的变量名（必填） |
+| `path` | 保存文件的路径（如果缺少扩展名会自动添加） |
+| `savePathTo` | 用于存储最终文件路径的变量（可选） |
 
-**Example: Generate and save image**
+**示例：生成并保存图片**
 ```yaml
 - id: generate
   type: command
@@ -370,7 +370,7 @@ Save FileExplorerData as a file in the vault. Useful for saving generated images
 
 ### prompt-file
 
-Show file picker or use active file in hotkey/event mode.
+显示文件选择器，或在快捷键/事件模式下使用活动文件。
 
 ```yaml
 - id: selectFile
@@ -382,26 +382,26 @@ Show file picker or use active file in hotkey/event mode.
   saveFileTo: fileInfo
 ```
 
-| Property | Description |
+| 属性 | 描述 |
 |----------|-------------|
-| `title` | Dialog title |
-| `default` | Default path |
-| `forcePrompt` | `true` always shows dialog, even in hotkey/event mode |
-| `saveTo` | Variable for file content |
-| `saveFileTo` | Variable for file info JSON |
+| `title` | 对话框标题 |
+| `default` | 默认路径 |
+| `forcePrompt` | `true` 始终显示对话框，即使在快捷键/事件模式下 |
+| `saveTo` | 用于存储文件内容的变量 |
+| `saveFileTo` | 用于存储文件信息 JSON 的变量 |
 
-**File info format:** `{"path": "folder/note.md", "basename": "note.md", "name": "note", "extension": "md"}`
+**文件信息格式：** `{"path": "folder/note.md", "basename": "note.md", "name": "note", "extension": "md"}`
 
-**Behavior by trigger mode:**
-| Mode | Behavior |
+**按触发模式的行为：**
+| 模式 | 行为 |
 |------|----------|
-| Panel | Shows file picker dialog |
-| Hotkey | Uses active file automatically |
-| Event | Uses event file automatically |
+| 面板 | 显示文件选择器对话框 |
+| 快捷键 | 自动使用活动文件 |
+| 事件 | 自动使用事件文件 |
 
 ### prompt-selection
 
-Get selected text or show selection dialog.
+获取选中的文本或显示选择对话框。
 
 ```yaml
 - id: getSelection
@@ -410,24 +410,24 @@ Get selected text or show selection dialog.
   saveSelectionTo: selectionInfo
 ```
 
-| Property | Description |
+| 属性 | 描述 |
 |----------|-------------|
-| `saveTo` | Variable for selected text |
-| `saveSelectionTo` | Variable for selection metadata JSON |
+| `saveTo` | 用于存储选中文本的变量 |
+| `saveSelectionTo` | 用于存储选择元数据 JSON 的变量 |
 
-**Selection info format:** `{"filePath": "...", "startLine": 1, "endLine": 1, "start": 0, "end": 10}`
+**选择信息格式：** `{"filePath": "...", "startLine": 1, "endLine": 1, "start": 0, "end": 10}`
 
-**Behavior by trigger mode:**
-| Mode | Behavior |
+**按触发模式的行为：**
+| 模式 | 行为 |
 |------|----------|
-| Panel | Shows selection dialog |
-| Hotkey (with selection) | Uses current selection |
-| Hotkey (no selection) | Uses full file content |
-| Event | Uses full file content |
+| 面板 | 显示选择对话框 |
+| 快捷键（有选择） | 使用当前选择 |
+| 快捷键（无选择） | 使用整个文件内容 |
+| 事件 | 使用整个文件内容 |
 
 ### if / while
 
-Conditional branching and loops.
+条件分支和循环。
 
 ```yaml
 - id: branch
@@ -443,15 +443,15 @@ Conditional branching and loops.
   falseNext: done
 ```
 
-| Property | Description |
+| 属性 | 描述 |
 |----------|-------------|
-| `condition` | Expression with operators: `==`, `!=`, `<`, `>`, `<=`, `>=`, `contains` |
-| `trueNext` | Node ID when condition is true |
-| `falseNext` | Node ID when condition is false |
+| `condition` | 包含运算符的表达式：`==`、`!=`、`<`、`>`、`<=`、`>=`、`contains` |
+| `trueNext` | 条件为真时的节点 ID |
+| `falseNext` | 条件为假时的节点 ID |
 
 ### variable / set
 
-Declare and update variables.
+声明和更新变量。
 
 ```yaml
 - id: init
@@ -467,7 +467,7 @@ Declare and update variables.
 
 ### mcp
 
-Call a remote MCP (Model Context Protocol) server tool via HTTP.
+通过 HTTP 调用远程 MCP (Model Context Protocol) 服务器工具。
 
 ```yaml
 - id: search
@@ -479,33 +479,33 @@ Call a remote MCP (Model Context Protocol) server tool via HTTP.
   saveTo: searchResults
 ```
 
-| Property | Description |
+| 属性 | 描述 |
 |----------|-------------|
-| `url` | MCP server endpoint URL (required, supports `{{variables}}`) |
-| `tool` | Tool name to call on the MCP server (required) |
-| `args` | JSON object with tool arguments (supports `{{variables}}`) |
-| `headers` | JSON object with HTTP headers (e.g., for authentication) |
-| `saveTo` | Variable name for the result |
+| `url` | MCP 服务器端点 URL（必填，支持 `{{variables}}`） |
+| `tool` | 在 MCP 服务器上调用的工具名称（必填） |
+| `args` | 包含工具参数的 JSON 对象（支持 `{{variables}}`） |
+| `headers` | 包含 HTTP 头的 JSON 对象（例如用于身份验证） |
+| `saveTo` | 用于存储结果的变量名 |
 
-**Use case:** Call remote MCP servers for RAG queries, web search, API integrations, etc.
+**用例：** 调用远程 MCP 服务器进行 RAG 查询、网络搜索、API 集成等。
 
-**Example: RAG query with ragujuary**
+**示例：使用 ragujuary 进行 RAG 查询**
 
-[ragujuary](https://github.com/takeshy/ragujuary) is a CLI tool for managing Gemini File Search Stores with MCP server support.
+[ragujuary](https://github.com/takeshy/ragujuary) 是一个用于管理 Gemini File Search Stores 的 CLI 工具，支持 MCP 服务器。
 
-1. Install and setup:
+1. 安装和设置：
 ```bash
 go install github.com/takeshy/ragujuary@latest
 export GEMINI_API_KEY=your-api-key
 
-# Create a store and upload files
+# 创建存储并上传文件
 ragujuary upload --create -s mystore ./docs
 
-# Start MCP server (use --transport http, not sse)
+# 启动 MCP 服务器（使用 --transport http，而不是 sse）
 ragujuary serve --transport http --port 8080 --serve-api-key mysecretkey
 ```
 
-2. Workflow example:
+2. 工作流示例：
 ```yaml
 name: RAG Search
 nodes:
@@ -524,9 +524,9 @@ nodes:
     button1: "OK"
 ```
 
-### Other Nodes
+### 其他节点
 
-| Node | Properties |
+| 节点 | 属性 |
 |------|------------|
 | `note-read` | `path`, `saveTo` |
 | `note-search` | `query`, `searchContent`, `limit`, `saveTo` |
@@ -536,93 +536,93 @@ nodes:
 
 ---
 
-## Workflow Termination
+## 工作流终止
 
-Use `next: end` to explicitly terminate the workflow:
+使用 `next: end` 显式终止工作流：
 
 ```yaml
 - id: save
   type: note
   path: "output.md"
   content: "{{result}}"
-  next: end    # Workflow ends here
+  next: end    # 工作流在此结束
 
 - id: branch
   type: if
   condition: "{{cancel}}"
-  trueNext: end      # End workflow on true branch
+  trueNext: end      # 在真分支上结束工作流
   falseNext: continue
 ```
 
-## Variable Expansion
+## 变量展开
 
-Use `{{variable}}` syntax to reference variables:
+使用 `{{variable}}` 语法引用变量：
 
 ```yaml
-# Basic
+# 基本用法
 path: "{{folder}}/{{filename}}.md"
 
-# Object/Array access
+# 对象/数组访问
 url: "https://api.example.com?lat={{geo.latitude}}"
 content: "{{items[0].name}}"
 
-# Nested variables (for loops)
+# 嵌套变量（用于循环）
 path: "{{parsed.notes[{{counter}}].path}}"
 ```
 
-## Smart Input Nodes
+## 智能输入节点
 
-`prompt-selection` and `prompt-file` nodes automatically detect execution context:
+`prompt-selection` 和 `prompt-file` 节点会自动检测执行上下文：
 
-| Node | Panel Mode | Hotkey Mode | Event Mode |
+| 节点 | 面板模式 | 快捷键模式 | 事件模式 |
 |------|------------|-------------|------------|
-| `prompt-file` | Shows file picker | Uses active file | Uses event file |
-| `prompt-selection` | Shows selection dialog | Uses selection or full file | Uses full file content |
+| `prompt-file` | 显示文件选择器 | 使用活动文件 | 使用事件文件 |
+| `prompt-selection` | 显示选择对话框 | 使用选择或整个文件 | 使用整个文件内容 |
 
 ---
 
-## Event Triggers
+## 事件触发器
 
-Workflows can be triggered automatically by Obsidian events.
+工作流可以由 Obsidian 事件自动触发。
 
-![Event Trigger Settings](event_setting.png)
+![事件触发器设置](event_setting.png)
 
-### Available Events
+### 可用事件
 
-| Event | Description |
+| 事件 | 描述 |
 |-------|-------------|
-| `create` | File created |
-| `modify` | File modified/saved (debounced 5s) |
-| `delete` | File deleted |
-| `rename` | File renamed |
-| `file-open` | File opened |
+| `create` | 文件创建 |
+| `modify` | 文件修改/保存（防抖 5 秒） |
+| `delete` | 文件删除 |
+| `rename` | 文件重命名 |
+| `file-open` | 文件打开 |
 
-### Event Variables
+### 事件变量
 
-When triggered by an event, these variables are automatically set:
+当由事件触发时，这些变量会自动设置：
 
-| Variable | Description |
+| 变量 | 描述 |
 |----------|-------------|
-| `__eventType__` | Event type: `create`, `modify`, `delete`, `rename`, `file-open` |
-| `__eventFilePath__` | Path of the affected file |
-| `__eventFile__` | JSON: `{"path": "...", "basename": "...", "name": "...", "extension": "..."}` |
-| `__eventFileContent__` | File content (for create/modify/file-open events) |
-| `__eventOldPath__` | Previous path (for rename events only) |
+| `__eventType__` | 事件类型：`create`、`modify`、`delete`、`rename`、`file-open` |
+| `__eventFilePath__` | 受影响文件的路径 |
+| `__eventFile__` | JSON：`{"path": "...", "basename": "...", "name": "...", "extension": "..."}` |
+| `__eventFileContent__` | 文件内容（用于 create/modify/file-open 事件） |
+| `__eventOldPath__` | 之前的路径（仅用于 rename 事件） |
 
-### File Pattern Syntax
+### 文件模式语法
 
-Filter events by file path using glob patterns:
+使用 glob 模式按文件路径筛选事件：
 
-| Pattern | Matches |
+| 模式 | 匹配 |
 |---------|---------|
-| `**/*.md` | All .md files in any folder |
-| `journal/*.md` | .md files directly in journal folder |
-| `*.md` | .md files in root folder only |
-| `**/{daily,weekly}/*.md` | Files in daily or weekly folders |
-| `projects/[a-z]*.md` | Files starting with lowercase letter |
-| `docs/**` | All files under docs folder |
+| `**/*.md` | 任意文件夹中的所有 .md 文件 |
+| `journal/*.md` | journal 文件夹中直接的 .md 文件 |
+| `*.md` | 仅根文件夹中的 .md 文件 |
+| `**/{daily,weekly}/*.md` | daily 或 weekly 文件夹中的文件 |
+| `projects/[a-z]*.md` | 以小写字母开头的文件 |
+| `docs/**` | docs 文件夹下的所有文件 |
 
-### Event-Triggered Workflow Example
+### 事件触发工作流示例
 
 ````markdown
 ```workflow
@@ -644,13 +644,13 @@ nodes:
 ```
 ````
 
-**Setup:** Click ⚡ in Workflow panel → enable "File Created" → set pattern `**/*.md`
+**设置：** 在工作流面板中点击 ⚡ → 启用"文件创建" → 设置模式 `**/*.md`
 
 ---
 
-## Practical Examples
+## 实用示例
 
-### 1. Note Summary
+### 1. 笔记摘要
 
 ````markdown
 ```workflow
@@ -677,7 +677,7 @@ nodes:
 ```
 ````
 
-### 2. Web Research
+### 2. 网络研究
 
 ````markdown
 ```workflow
@@ -705,7 +705,7 @@ nodes:
 ```
 ````
 
-### 3. Conditional Processing
+### 3. 条件处理
 
 ````markdown
 ```workflow
@@ -740,7 +740,7 @@ nodes:
 ```
 ````
 
-### 4. Batch Process Notes
+### 4. 批量处理笔记
 
 ````markdown
 ```workflow
@@ -793,7 +793,7 @@ nodes:
 ```
 ````
 
-### 5. API Integration
+### 5. API 集成
 
 ````markdown
 ```workflow
@@ -834,7 +834,7 @@ nodes:
 ```
 ````
 
-### 6. Translate Selection (with Hotkey)
+### 6. 翻译选中内容（带快捷键）
 
 ````markdown
 ```workflow
@@ -858,16 +858,16 @@ nodes:
 ```
 ````
 
-**Hotkey setup:**
-1. Add a `name:` field to your workflow
-2. Open the workflow file and select the workflow from dropdown
-3. Click the keyboard icon in the Workflow panel footer
-4. Go to Settings → Hotkeys → search "Workflow: Translate Selection"
-5. Assign a hotkey (e.g., `Ctrl+Shift+T`)
+**快捷键设置：**
+1. 为您的工作流添加 `name:` 字段
+2. 打开工作流文件并从下拉菜单中选择工作流
+3. 点击工作流面板底部的键盘图标
+4. 进入设置 → 快捷键 → 搜索"Workflow: Translate Selection"
+5. 分配快捷键（例如 `Ctrl+Shift+T`）
 
-### 7. Sub-Workflow Composition
+### 7. 子工作流组合
 
-**File: `workflows/translate.md`**
+**文件：`workflows/translate.md`**
 ````markdown
 ```workflow
 name: Translator
@@ -879,7 +879,7 @@ nodes:
 ```
 ````
 
-**File: `workflows/main.md`**
+**文件：`workflows/main.md`**
 ````markdown
 ```workflow
 name: Multi-Language Export
@@ -918,7 +918,7 @@ nodes:
 ```
 ````
 
-### 8. Interactive Task Selection
+### 8. 交互式任务选择
 
 ````markdown
 ```workflow

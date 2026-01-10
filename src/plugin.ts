@@ -35,6 +35,7 @@ import {
 import { initCliProviderManager } from "src/core/cliProvider";
 import { formatError } from "src/utils/error";
 import { DEFAULT_CLI_CONFIG, hasVerifiedCli } from "src/types";
+import { initLocale } from "src/i18n";
 
 const WORKSPACE_STATE_FILENAME = "gemini-workspace.json";
 const OLD_WORKSPACE_STATE_FILENAME = ".gemini-workspace.json";
@@ -106,6 +107,9 @@ export class GeminiHelperPlugin extends Plugin {
   private static readonly MODIFY_DEBOUNCE_MS = 5000; // 5 seconds debounce for modify events
 
   onload(): void {
+    // Initialize i18n locale
+    initLocale();
+
     // Load settings and workspace state
     void this.loadSettings().then(async () => {
       // Migrate from old settings format first (one-time)

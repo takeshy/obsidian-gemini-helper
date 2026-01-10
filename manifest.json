@@ -2,7 +2,7 @@
 	"id": "gemini-helper",
 	"name": "Gemini Helper",
 	"minAppVersion": "0.15.0",
-	"description": "AI-powered assistant using Google Gemini with File Search RAG capabilities.",
+	"description": "AI assistant with chat, workflow automation, and semantic search (RAG). Powered by Gemini API or CLI tools.",
 	"author": "takeshy",
 	"authorUrl": "https://github.com/takeshy",
 	"fundingUrl": "https://buymeacoffee.com/takeshy",

@@ -235,6 +235,34 @@ HTTP リクエストを実行。
 | `output` | 親変数へのマッピング JSON |
 | `prefix` | 出力変数の接頭辞（`output` 未指定時） |
 
+### rag-sync
+
+ノートを RAG ストアに同期。
+
+```yaml
+- id: sync
+  type: rag-sync
+  path: "{{fileInfo.path}}"
+  ragSetting: "My RAG Store"
+  saveTo: syncResult
+```
+
+| プロパティ | 説明 |
+|------------|------|
+| `path` | 同期するノートのパス（必須、`{{変数}}` 対応） |
+| `ragSetting` | RAG 設定名（必須） |
+| `saveTo` | 結果を保存する変数（任意） |
+
+**出力形式:**
+```json
+{
+  "path": "folder/note.md",
+  "fileId": "abc123...",
+  "ragSetting": "My RAG Store",
+  "syncedAt": "2025-01-01T12:00:00.000Z"
+}
+```
+
 ### prompt-file
 
 ファイル選択ダイアログを表示、またはホットキー/イベントモードでアクティブファイルを使用。

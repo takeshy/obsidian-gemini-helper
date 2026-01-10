@@ -16,34 +16,35 @@ import { promptForValue } from "./ValuePromptModal";
 import { promptForSelection } from "./SelectionPromptModal";
 import { promptForConfirmation } from "./EditConfirmationModal";
 import { promptForDialog } from "./DialogPromptModal";
+import { t } from "src/i18n";
 
 interface WorkflowPanelProps {
   plugin: GeminiHelperPlugin;
 }
 
-const NODE_TYPE_LABELS: Record<WorkflowNodeType, string> = {
-  variable: "Variable",
-  set: "Set",
-  if: "If",
-  while: "While",
-  command: "Command",
-  http: "HTTP",
-  json: "JSON",
-  note: "Note",
-  "note-read": "Note Read",
-  "note-search": "Note Search",
-  "note-list": "Note List",
-  "folder-list": "Folder List",
-  open: "Open",
-  dialog: "Dialog",
-  "prompt-file": "Prompt File",
-  "prompt-selection": "Prompt Selection",
-  "file-explorer": "File Explorer",
-  "file-save": "File Save",
-  workflow: "Workflow",
-  "rag-sync": "RAG Sync",
-  mcp: "MCP",
-};
+const getNodeTypeLabels = (): Record<WorkflowNodeType, string> => ({
+  variable: t("workflow.nodeType.variable"),
+  set: t("workflow.nodeType.set"),
+  if: t("workflow.nodeType.if"),
+  while: t("workflow.nodeType.while"),
+  command: t("workflow.nodeType.command"),
+  http: t("workflow.nodeType.http"),
+  json: t("workflow.nodeType.json"),
+  note: t("workflow.nodeType.note"),
+  "note-read": t("workflow.nodeType.noteRead"),
+  "note-search": t("workflow.nodeType.noteSearch"),
+  "note-list": t("workflow.nodeType.noteList"),
+  "folder-list": t("workflow.nodeType.folderList"),
+  open: t("workflow.nodeType.open"),
+  dialog: t("workflow.nodeType.dialog"),
+  "prompt-file": t("workflow.nodeType.promptFile"),
+  "prompt-selection": t("workflow.nodeType.promptSelection"),
+  "file-explorer": t("workflow.nodeType.fileExplorer"),
+  "file-save": t("workflow.nodeType.fileSave"),
+  workflow: t("workflow.nodeType.workflow"),
+  "rag-sync": t("workflow.nodeType.ragSync"),
+  mcp: t("workflow.nodeType.mcp"),
+});
 
 const ADDABLE_NODE_TYPES: WorkflowNodeType[] = [
   "variable",
@@ -301,7 +302,7 @@ export default function WorkflowPanel({ plugin }: WorkflowPanelProps) {
     if (value === "__reload__") {
       e.target.value = String(currentWorkflowIndex);
       await loadWorkflow();
-      new Notice("Workflow reloaded from file");
+      new Notice(t("workflow.reloaded"));
       return;
     }
 
@@ -369,11 +370,11 @@ ${result.nodes.map(node => {
           const separator = existingContent.endsWith("\n") ? "\n" : "\n\n";
           await plugin.app.vault.modify(existingFile, existingContent + separator + workflowContent);
           targetFile = existingFile;
-          new Notice(`Workflow "${result.name}" appended to ${filePath}`);
+          new Notice(t("workflow.appendedTo", { name: result.name, path: filePath }));
         } else {
           // Create new file
           targetFile = await plugin.app.vault.create(filePath, workflowContent);
-          new Notice(`Workflow "${result.name}" created at ${filePath}`);
+          new Notice(t("workflow.createdAt", { name: result.name, path: filePath }));
         }
 
         // Open the file
@@ -419,10 +420,11 @@ ${result.nodes.map(node => {
   // Show add node menu
   const showAddNodeMenu = (e: React.MouseEvent) => {
     const menu = new Menu();
+    const nodeTypeLabels = getNodeTypeLabels();
 
     for (const nodeType of ADDABLE_NODE_TYPES) {
       menu.addItem((item) => {
-        item.setTitle(NODE_TYPE_LABELS[nodeType]);
+        item.setTitle(nodeTypeLabels[nodeType]);
         item.onClick(() => addNode(nodeType));
       });
     }
@@ -456,7 +458,7 @@ ${result.nodes.map(node => {
   // Handle AI modification
   const handleModifyWithAI = async () => {
     if (!workflowFile || nodes.length === 0) {
-      new Notice("No workflow to modify");
+      new Notice(t("workflow.noWorkflowToModify"));
       return;
     }
 
@@ -473,7 +475,7 @@ ${result.nodes.map(node => {
       setNodes(result.nodes);
       setWorkflowName(result.name);
       await saveWorkflow(result.nodes);
-      new Notice("Workflow modified successfully");
+      new Notice(t("workflow.modifiedSuccessfully"));
     }
   };
 
@@ -573,7 +575,7 @@ ${result.nodes.map(node => {
   // Run workflow
   const runWorkflow = async () => {
     if (!workflowFile || nodes.length === 0) {
-      new Notice("No workflow to run");
+      new Notice(t("workflow.noWorkflowToRun"));
       return;
     }
 
@@ -638,10 +640,10 @@ ${result.nodes.map(node => {
         promptCallbacks
       );
 
-      new Notice("Workflow completed successfully");
+      new Notice(t("workflow.completedSuccessfully"));
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      new Notice(`Workflow failed: ${message}`);
+      new Notice(t("workflow.failed", { message }));
     } finally {
       setIsRunning(false);
     }
@@ -650,7 +652,7 @@ ${result.nodes.map(node => {
   // Show history
   const showHistory = () => {
     if (!workflowFile) {
-      new Notice("No Markdown file selected");
+      new Notice(t("workflow.noFileSelected"));
       return;
     }
 
@@ -667,7 +669,7 @@ ${result.nodes.map(node => {
       <div className="workflow-sidebar">
         <div className="workflow-sidebar-content">
           <div className="workflow-empty-state">
-            Open a Markdown file with a workflow code block to edit.
+            {t("workflow.openMarkdownFile")}
           </div>
         </div>
       </div>
@@ -730,10 +732,10 @@ ${result.nodes.map(node => {
           const separator = existingContent.endsWith("\n") ? "\n" : "\n\n";
           await plugin.app.vault.modify(existingFile, existingContent + separator + workflowContent);
           targetFile = existingFile;
-          new Notice(`Workflow "${result.name}" appended to ${filePath}`);
+          new Notice(t("workflow.appendedTo", { name: result.name, path: filePath }));
         } else {
           targetFile = await plugin.app.vault.create(filePath, workflowContent);
-          new Notice(`Workflow "${result.name}" created at ${filePath}`);
+          new Notice(t("workflow.createdAt", { name: result.name, path: filePath }));
         }
 
         await plugin.app.workspace.getLeaf().openFile(targetFile);
@@ -744,14 +746,14 @@ ${result.nodes.map(node => {
       <div className="workflow-sidebar">
         <div className="workflow-sidebar-content">
           <div className="workflow-empty-state">
-            <p>No workflow found in this file.</p>
+            <p>{t("workflow.noWorkflowInFile")}</p>
             <button
               className="workflow-sidebar-ai-btn mod-cta"
               onClick={() => void handleCreateWithAI()}
               style={{ marginTop: "12px", display: "inline-flex", alignItems: "center" }}
             >
               <Sparkles size={14} />
-              <span style={{ marginLeft: "6px" }}>Create Workflow with AI</span>
+              <span style={{ marginLeft: "6px" }}>{t("workflow.createWithAI")}</span>
             </button>
           </div>
         </div>
@@ -770,7 +772,7 @@ ${result.nodes.map(node => {
         >
           {workflowOptions.length === 0 ? (
             <option value="" disabled>
-              No workflows
+              {t("workflow.noWorkflows")}
             </option>
           ) : (
             workflowOptions.map((option, index) => (
@@ -779,27 +781,27 @@ ${result.nodes.map(node => {
               </option>
             ))
           )}
-          <option value="__new_ai__">+ New (AI)</option>
-          <option value="__reload__">Reload from file</option>
+          <option value="__new_ai__">{t("workflow.newAI")}</option>
+          <option value="__reload__">{t("workflow.reloadFromFile")}</option>
         </select>
         <div className="workflow-sidebar-buttons">
           <button
             ref={addBtnRef}
             className="workflow-sidebar-add-btn"
             onClick={showAddNodeMenu}
-            title="Add Node"
+            title={t("workflow.addNode")}
           >
             <Plus size={14} />
-            <span className="workflow-btn-label">Add Node</span>
+            <span className="workflow-btn-label">{t("workflow.addNode")}</span>
           </button>
           <button
             className="workflow-sidebar-ai-btn"
             onClick={() => void handleModifyWithAI()}
             disabled={nodes.length === 0}
-            title="Modify workflow with AI"
+            title={t("workflow.modifyWithAI")}
           >
             <Sparkles size={14} />
-            <span className="workflow-btn-label">AI Modify</span>
+            <span className="workflow-btn-label">{t("workflow.aiModify")}</span>
           </button>
         </div>
       </div>
@@ -809,9 +811,10 @@ ${result.nodes.map(node => {
         <div className="workflow-node-list">
           {nodes.length === 0 ? (
             <div className="workflow-empty-state">
-              No nodes. Click "Add Node" to start.
+              {t("workflow.noNodes")}
             </div>
           ) : (() => {
+            const NODE_TYPE_LABELS = getNodeTypeLabels();
             const incomingMap = buildIncomingMap(nodes);
             const outgoingMap = buildOutgoingMap(nodes);
 
@@ -877,7 +880,7 @@ ${result.nodes.map(node => {
                           editNode(index);
                         }}
                       >
-                        Edit
+                        {t("common.edit")}
                       </button>
                       <button
                         className="workflow-node-action-btn workflow-node-action-delete"
@@ -886,7 +889,7 @@ ${result.nodes.map(node => {
                           void deleteNode(index);
                         }}
                       >
-                        Delete
+                        {t("common.delete")}
                       </button>
                     </div>
                   </div>
@@ -895,14 +898,14 @@ ${result.nodes.map(node => {
                   {isBranchNode ? (
                     <div className="workflow-node-branch">
                       <div className="workflow-branch-row">
-                        <span className="workflow-branch-label workflow-branch-label-true">True</span>
+                        <span className="workflow-branch-label workflow-branch-label-true">{t("workflow.branchTrue")}</span>
                         <span className="workflow-branch-arrow">→</span>
-                        <span className="workflow-branch-target">{node.trueNext || "(next)"}</span>
+                        <span className="workflow-branch-target">{node.trueNext || t("workflow.branchNext")}</span>
                       </div>
                       <div className="workflow-branch-row">
-                        <span className="workflow-branch-label workflow-branch-label-false">False</span>
+                        <span className="workflow-branch-label workflow-branch-label-false">{t("workflow.branchFalse")}</span>
                         <span className="workflow-branch-arrow">→</span>
-                        <span className="workflow-branch-target">{node.falseNext || "(end)"}</span>
+                        <span className="workflow-branch-target">{node.falseNext || t("workflow.branchEnd")}</span>
                       </div>
                     </div>
                   ) : outgoing.length > 0 ? (
@@ -930,13 +933,13 @@ ${result.nodes.map(node => {
           onClick={() => void runWorkflow()}
           disabled={isRunning || nodes.length === 0}
         >
-          {isRunning ? "Running..." : "Run"}
+          {isRunning ? t("workflow.running") : t("workflow.run")}
         </button>
         <button
           className="workflow-sidebar-history-btn"
           onClick={showHistory}
         >
-          History
+          {t("workflow.history")}
         </button>
         {(() => {
           const workflowId = workflowName ? `${workflowFile.path}#${workflowName}` : "";
@@ -949,22 +952,22 @@ ${result.nodes.map(node => {
                 className={`workflow-sidebar-hotkey-btn ${isHotkeyEnabled ? "gemini-helper-hotkey-enabled" : ""}`}
                 onClick={() => {
                   if (!workflowName) {
-                    new Notice("Workflow must have a name to enable hotkey");
+                    new Notice(t("workflow.mustHaveNameForHotkey"));
                     return;
                   }
                   let newEnabledHotkeys: string[];
                   if (isHotkeyEnabled) {
                     newEnabledHotkeys = enabledHotkeys.filter(id => id !== workflowId);
-                    new Notice("Hotkey disabled (reload plugin to fully unregister)");
+                    new Notice(t("workflow.hotkeyDisabled"));
                   } else {
                     newEnabledHotkeys = [...enabledHotkeys, workflowId];
-                    new Notice(`Hotkey enabled for "${workflowName}". Assign in Settings > Hotkeys`);
+                    new Notice(t("workflow.hotkeyEnabled", { name: workflowName }));
                   }
                   setEnabledHotkeys(newEnabledHotkeys);
                   plugin.settings.enabledWorkflowHotkeys = newEnabledHotkeys;
                   void plugin.saveSettings();
                 }}
-                title={isHotkeyEnabled ? "Hotkey enabled (click to disable)" : "Enable hotkey for this workflow"}
+                title={isHotkeyEnabled ? t("workflow.hotkeyEnabledClick") : t("workflow.enableHotkey")}
                 disabled={!workflowName}
               >
                 {isHotkeyEnabled ? <Keyboard size={16} /> : <KeyboardOff size={16} />}
@@ -973,7 +976,7 @@ ${result.nodes.map(node => {
                 className={`workflow-sidebar-event-btn ${hasEventTrigger ? "gemini-helper-event-enabled" : ""}`}
                 onClick={() => {
                   if (!workflowName) {
-                    new Notice("Workflow must have a name to enable event triggers");
+                    new Notice(t("workflow.mustHaveNameForEvent"));
                     return;
                   }
                   const modal = new EventTriggerModal(
@@ -986,7 +989,7 @@ ${result.nodes.map(node => {
                       if (trigger === null) {
                         // Remove trigger
                         newTriggers = eventTriggers.filter(t => t.workflowId !== workflowId);
-                        new Notice("Event triggers removed");
+                        new Notice(t("workflow.eventTriggersRemoved"));
                       } else {
                         // Add or update trigger
                         const existingIndex = eventTriggers.findIndex(t => t.workflowId === workflowId);
@@ -996,7 +999,7 @@ ${result.nodes.map(node => {
                         } else {
                           newTriggers = [...eventTriggers, trigger];
                         }
-                        new Notice(`Event triggers enabled for "${workflowName}"`);
+                        new Notice(t("workflow.eventTriggersEnabled", { name: workflowName }));
                       }
                       setEventTriggers(newTriggers);
                       plugin.settings.enabledWorkflowEventTriggers = newTriggers;
@@ -1005,7 +1008,7 @@ ${result.nodes.map(node => {
                   );
                   modal.open();
                 }}
-                title={hasEventTrigger ? `Event triggers: ${currentEventTrigger?.events.join(", ")}` : "Configure event triggers for this workflow"}
+                title={hasEventTrigger ? t("workflow.eventTriggersActive", { events: currentEventTrigger?.events.join(", ") || "" }) : t("workflow.configureEventTriggers")}
                 disabled={!workflowName}
               >
                 {hasEventTrigger ? <Zap size={16} /> : <ZapOff size={16} />}

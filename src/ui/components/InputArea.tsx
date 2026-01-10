@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, KeyboardEvent, ChangeEvent, forwardRef, us
 import { Send, Paperclip, StopCircle, Eye } from "lucide-react";
 import type { App } from "obsidian";
 import { isImageGenerationModel, type ModelInfo, type ModelType, type Attachment, type SlashCommand } from "src/types";
+import { t } from "src/i18n";
 
 interface InputAreaProps {
   onSend: (content: string, attachments?: Attachment[]) => void | Promise<void>;
@@ -111,14 +112,14 @@ const InputArea = forwardRef<InputAreaHandle, InputAreaProps>(function InputArea
     const hasActiveNote = !!app.workspace.getActiveFile();
     const variables: MentionItem[] = [
       // Only show {selection} if there's an active selection
-      ...(hasSelection ? [{ value: "{selection}", description: "Selected text in editor", isVariable: true }] : []),
+      ...(hasSelection ? [{ value: "{selection}", description: t("input.selectionVariable"), isVariable: true }] : []),
       // Only show {content} if there's an active note
-      ...(hasActiveNote ? [{ value: "{content}", description: "Active note content", isVariable: true }] : []),
+      ...(hasActiveNote ? [{ value: "{content}", description: t("input.contentVariable"), isVariable: true }] : []),
     ];
     // Don't show vault files for Gemma models (no function calling support)
     const files: MentionItem[] = isGemmaModel ? [] : vaultFiles.map((f) => ({
       value: f,
-      description: "Vault file",
+      description: t("input.vaultFile"),
       isVariable: false,
     }));
     const all = [...variables, ...files];
@@ -341,7 +342,7 @@ const InputArea = forwardRef<InputAreaHandle, InputAreaProps>(function InputArea
               <button
                 className="gemini-helper-pending-attachment-remove"
                 onClick={() => removeAttachment(index)}
-                title="Remove attachment"
+                title={t("input.removeAttachment")}
               >
                 ×
               </button>
@@ -400,7 +401,7 @@ const InputArea = forwardRef<InputAreaHandle, InputAreaProps>(function InputArea
                       void app.workspace.openLinkText(mention.value, "", true);
                       setTimeout(() => textareaRef.current?.focus(), 100);
                     }}
-                    title="Open file (Ctrl+Shift+O)"
+                    title={t("input.openFile")}
                   >
                     <Eye size={12} />
                   </button>
@@ -427,7 +428,7 @@ const InputArea = forwardRef<InputAreaHandle, InputAreaProps>(function InputArea
           className="gemini-helper-attachment-btn"
           onClick={() => fileInputRef.current?.click()}
           disabled={isLoading}
-          title="Attach file (images, PDF, text)"
+          title={t("input.attach")}
         >
           <Paperclip size={18} />
         </button>
@@ -438,14 +439,14 @@ const InputArea = forwardRef<InputAreaHandle, InputAreaProps>(function InputArea
           value={input}
           onChange={handleInputChange}
           onKeyDown={handleKeyDown}
-          placeholder="Type your message... (Enter to send, Shift+Enter for new line)"
+          placeholder={t("input.placeholder")}
           rows={3}
         />
         {isLoading ? (
           <button
             className="gemini-helper-stop-btn"
             onClick={onStop}
-            title="Stop generation"
+            title={t("input.stop")}
           >
             <StopCircle size={18} />
           </button>
@@ -454,7 +455,7 @@ const InputArea = forwardRef<InputAreaHandle, InputAreaProps>(function InputArea
             className="gemini-helper-send-btn"
             onClick={handleSubmit}
             disabled={!input.trim() && pendingAttachments.length === 0}
-            title="Send message"
+            title={t("input.send")}
           >
             <Send size={18} />
           </button>
@@ -479,13 +480,13 @@ const InputArea = forwardRef<InputAreaHandle, InputAreaProps>(function InputArea
           onChange={(e) => onRagSettingChange(e.target.value || null)}
           disabled={isLoading || (!allowWebSearch && !ragEnabled) || model.toLowerCase().includes("gemma")}
         >
-          <option value="">Search: None</option>
+          <option value="">{t("input.searchNone")}</option>
           {allowWebSearch && (
             <option
               value="__websearch__"
               disabled={model === "gemini-2.5-flash-image"}
             >
-              Web Search
+              {t("input.webSearch")}
             </option>
           )}
           {ragEnabled && ragSettings.map((name) => (
@@ -494,7 +495,7 @@ const InputArea = forwardRef<InputAreaHandle, InputAreaProps>(function InputArea
               value={name}
               disabled={isImageGenerationModel(model)}
             >
-              Semantic search: {name}
+              {t("input.rag", { name })}
             </option>
           ))}
         </select>

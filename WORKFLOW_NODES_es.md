@@ -1,49 +1,49 @@
-# Workflow Node Reference
+# Referencia de Nodos de Workflow
 
-This document provides detailed specifications for all workflow node types. For most users, **you don't need to learn these details** - just describe what you want in natural language, and the AI will create or modify workflows for you.
+Este documento proporciona especificaciones detalladas para todos los tipos de nodos de workflow. Para la mayoria de los usuarios, **no necesitas aprender estos detalles** - simplemente describe lo que quieres en lenguaje natural, y la IA creara o modificara los workflows por ti.
 
-## Node Types Overview
+## Resumen de Tipos de Nodos
 
-| Category | Nodes | Description |
+| Categoria | Nodos | Descripcion |
 |----------|-------|-------------|
-| Variables | `variable`, `set` | Declare and update variables |
-| Control | `if`, `while` | Conditional branching and loops |
-| LLM | `command` | Execute prompts with model/search options |
-| Data | `http`, `json` | HTTP requests and JSON parsing |
-| Notes | `note`, `note-read`, `note-search`, `note-list`, `folder-list`, `open` | Vault operations |
-| Files | `file-explorer`, `file-save` | File selection and saving (images, PDFs, etc.) |
-| Prompts | `prompt-file`, `prompt-selection`, `dialog` | User input dialogs |
-| Composition | `workflow` | Execute another workflow as a sub-workflow |
-| RAG | `rag-sync` | Sync notes to RAG store |
-| External | `mcp` | Call external MCP server tools |
+| Variables | `variable`, `set` | Declarar y actualizar variables |
+| Control | `if`, `while` | Ramificacion condicional y bucles |
+| LLM | `command` | Ejecutar prompts con opciones de modelo/busqueda |
+| Datos | `http`, `json` | Solicitudes HTTP y analisis JSON |
+| Notas | `note`, `note-read`, `note-search`, `note-list`, `folder-list`, `open` | Operaciones de vault |
+| Archivos | `file-explorer`, `file-save` | Seleccion y guardado de archivos (imagenes, PDFs, etc.) |
+| Prompts | `prompt-file`, `prompt-selection`, `dialog` | Dialogos de entrada de usuario |
+| Composicion | `workflow` | Ejecutar otro workflow como sub-workflow |
+| RAG | `rag-sync` | Sincronizar notas al almacen RAG |
+| Externo | `mcp` | Llamar herramientas de servidor MCP externo |
 
 ---
 
-## Node Reference
+## Referencia de Nodos
 
 ### command
 
-Execute an LLM prompt with optional model and search settings.
+Ejecuta un prompt de LLM con configuraciones opcionales de modelo y busqueda.
 
 ```yaml
 - id: search
   type: command
-  model: gemini-3-flash-preview  # Optional: specific model
-  ragSetting: __websearch__      # Optional: __websearch__, __none__, or setting name
+  model: gemini-3-flash-preview  # Opcional: modelo especifico
+  ragSetting: __websearch__      # Opcional: __websearch__, __none__, o nombre de configuracion
   prompt: "Search for {{topic}}"
   saveTo: result
 ```
 
-| Property | Description |
+| Propiedad | Descripcion |
 |----------|-------------|
-| `prompt` | The prompt to send to the LLM (required) |
-| `model` | Override the current model (e.g., `gemini-3-flash-preview`, `gemini-3-pro-image-preview`) |
-| `ragSetting` | `__websearch__` (web search), `__none__` (no search), setting name, or omit for current |
-| `attachments` | Comma-separated variable names containing FileExplorerData (from `file-explorer` node) |
-| `saveTo` | Variable name to store text response |
-| `saveImageTo` | Variable name to store generated image (FileExplorerData format, for image models) |
+| `prompt` | El prompt a enviar al LLM (requerido) |
+| `model` | Sobrescribir el modelo actual (ej., `gemini-3-flash-preview`, `gemini-3-pro-image-preview`) |
+| `ragSetting` | `__websearch__` (busqueda web), `__none__` (sin busqueda), nombre de configuracion, u omitir para actual |
+| `attachments` | Nombres de variables separados por coma conteniendo FileExplorerData (del nodo `file-explorer`) |
+| `saveTo` | Nombre de variable para almacenar respuesta de texto |
+| `saveImageTo` | Nombre de variable para almacenar imagen generada (formato FileExplorerData, para modelos de imagen) |
 
-**Image generation example**:
+**Ejemplo de generacion de imagen**:
 ```yaml
 - id: generate
   type: command
@@ -58,7 +58,7 @@ Execute an LLM prompt with optional model and search settings.
 
 ### note
 
-Write content to a note file.
+Escribe contenido en un archivo de nota.
 
 ```yaml
 - id: save
@@ -69,16 +69,16 @@ Write content to a note file.
   confirm: true
 ```
 
-| Property | Description |
+| Propiedad | Descripcion |
 |----------|-------------|
-| `path` | File path (required) |
-| `content` | Content to write |
-| `mode` | `overwrite` (default), `append`, or `create` (skip if exists) |
-| `confirm` | `true` (default) shows confirmation dialog, `false` writes immediately |
+| `path` | Ruta del archivo (requerido) |
+| `content` | Contenido a escribir |
+| `mode` | `overwrite` (predeterminado), `append`, o `create` (omitir si existe) |
+| `confirm` | `true` (predeterminado) muestra dialogo de confirmacion, `false` escribe inmediatamente |
 
 ### note-list
 
-List notes with filtering and sorting.
+Lista notas con filtrado y ordenamiento.
 
 ```yaml
 - id: list
@@ -95,20 +95,20 @@ List notes with filtering and sorting.
   saveTo: noteList
 ```
 
-| Property | Description |
+| Propiedad | Descripcion |
 |----------|-------------|
-| `folder` | Folder path (empty for entire vault) |
-| `recursive` | `true` includes subfolders, `false` (default) only direct children |
-| `tags` | Comma-separated tags to filter (with or without `#`) |
-| `tagMatch` | `any` (default) or `all` tags must match |
-| `createdWithin` | Filter by creation time: `30m`, `24h`, `7d` |
-| `modifiedWithin` | Filter by modification time |
-| `sortBy` | `created`, `modified`, or `name` |
-| `sortOrder` | `asc` or `desc` (default) |
-| `limit` | Maximum results (default: 50) |
-| `saveTo` | Variable for results |
+| `folder` | Ruta de carpeta (vacio para todo el vault) |
+| `recursive` | `true` incluye subcarpetas, `false` (predeterminado) solo hijos directos |
+| `tags` | Etiquetas separadas por coma para filtrar (con o sin `#`) |
+| `tagMatch` | `any` (predeterminado) o `all` las etiquetas deben coincidir |
+| `createdWithin` | Filtrar por tiempo de creacion: `30m`, `24h`, `7d` |
+| `modifiedWithin` | Filtrar por tiempo de modificacion |
+| `sortBy` | `created`, `modified`, o `name` |
+| `sortOrder` | `asc` o `desc` (predeterminado) |
+| `limit` | Resultados maximos (predeterminado: 50) |
+| `saveTo` | Variable para resultados |
 
-**Output format:**
+**Formato de salida:**
 ```json
 {
   "count": 5,
@@ -122,7 +122,7 @@ List notes with filtering and sorting.
 
 ### http
 
-Make HTTP requests.
+Realiza solicitudes HTTP.
 
 ```yaml
 - id: fetch
@@ -137,18 +137,18 @@ Make HTTP requests.
   throwOnError: "true"
 ```
 
-| Property | Description |
+| Propiedad | Descripcion |
 |----------|-------------|
-| `url` | Request URL (required) |
-| `method` | `GET` (default), `POST`, `PUT`, `PATCH`, `DELETE` |
-| `contentType` | `json` (default), `form-data`, `text` |
-| `headers` | JSON object or `Key: Value` format (one per line) |
-| `body` | Request body (for POST/PUT/PATCH) |
-| `saveTo` | Variable for response body |
-| `saveStatus` | Variable for HTTP status code |
-| `throwOnError` | `true` to throw error on 4xx/5xx responses |
+| `url` | URL de la solicitud (requerido) |
+| `method` | `GET` (predeterminado), `POST`, `PUT`, `PATCH`, `DELETE` |
+| `contentType` | `json` (predeterminado), `form-data`, `text` |
+| `headers` | Objeto JSON o formato `Key: Value` (uno por linea) |
+| `body` | Cuerpo de la solicitud (para POST/PUT/PATCH) |
+| `saveTo` | Variable para el cuerpo de respuesta |
+| `saveStatus` | Variable para codigo de estado HTTP |
+| `throwOnError` | `true` para lanzar error en respuestas 4xx/5xx |
 
-**form-data example** (binary file upload with file-explorer):
+**Ejemplo de form-data** (carga de archivo binario con file-explorer):
 
 ```yaml
 - id: select-pdf
@@ -165,13 +165,13 @@ Make HTTP requests.
   saveTo: response
 ```
 
-For `form-data`:
-- FileExplorerData (from `file-explorer` node) is auto-detected and sent as binary
-- Use `fieldName:filename` syntax for text file fields (e.g., `"file:report.html": "{{htmlContent}}"`)
+Para `form-data`:
+- FileExplorerData (del nodo `file-explorer`) se detecta automaticamente y se envia como binario
+- Usa la sintaxis `fieldName:filename` para campos de archivo de texto (ej., `"file:report.html": "{{htmlContent}}"`)
 
 ### dialog
 
-Display a dialog with options, buttons, and/or text input.
+Muestra un dialogo con opciones, botones y/o entrada de texto.
 
 ```yaml
 - id: ask
@@ -189,21 +189,21 @@ Display a dialog with options, buttons, and/or text input.
   saveTo: dialogResult
 ```
 
-| Property | Description |
+| Propiedad | Descripcion |
 |----------|-------------|
-| `title` | Dialog title |
-| `message` | Message content (supports `{{variables}}`) |
-| `markdown` | `true` renders message as Markdown |
-| `options` | Comma-separated list of choices (optional) |
-| `multiSelect` | `true` for checkboxes, `false` for radio buttons |
-| `inputTitle` | Label for text input field (shows input when set) |
-| `multiline` | `true` for multi-line text area |
-| `defaults` | JSON with `input` and `selected` initial values |
-| `button1` | Primary button label (default: "OK") |
-| `button2` | Secondary button label (optional) |
-| `saveTo` | Variable for result: `{"button": "Confirm", "selected": [...], "input": "..."}` |
+| `title` | Titulo del dialogo |
+| `message` | Contenido del mensaje (soporta `{{variables}}`) |
+| `markdown` | `true` renderiza el mensaje como Markdown |
+| `options` | Lista de opciones separadas por coma (opcional) |
+| `multiSelect` | `true` para casillas de verificacion, `false` para botones de radio |
+| `inputTitle` | Etiqueta para campo de entrada de texto (muestra entrada cuando se establece) |
+| `multiline` | `true` para area de texto multilinea |
+| `defaults` | JSON con valores iniciales de `input` y `selected` |
+| `button1` | Etiqueta del boton primario (predeterminado: "OK") |
+| `button2` | Etiqueta del boton secundario (opcional) |
+| `saveTo` | Variable para resultado: `{"button": "Confirm", "selected": [...], "input": "..."}` |
 
-**Simple text input:**
+**Entrada de texto simple:**
 ```yaml
 - id: input
   type: dialog
@@ -215,7 +215,7 @@ Display a dialog with options, buttons, and/or text input.
 
 ### workflow
 
-Execute another workflow as a sub-workflow.
+Ejecuta otro workflow como sub-workflow.
 
 ```yaml
 - id: runSub
@@ -227,17 +227,17 @@ Execute another workflow as a sub-workflow.
   prefix: "sub_"
 ```
 
-| Property | Description |
+| Propiedad | Descripcion |
 |----------|-------------|
-| `path` | Path to workflow file (required) |
-| `name` | Workflow name (for files with multiple workflows) |
-| `input` | JSON mapping sub-workflow variables to values |
-| `output` | JSON mapping parent variables to sub-workflow results |
-| `prefix` | Prefix for all output variables (when `output` not specified) |
+| `path` | Ruta al archivo de workflow (requerido) |
+| `name` | Nombre del workflow (para archivos con multiples workflows) |
+| `input` | Mapeo JSON de variables del sub-workflow a valores |
+| `output` | Mapeo JSON de variables padre a resultados del sub-workflow |
+| `prefix` | Prefijo para todas las variables de salida (cuando no se especifica `output`) |
 
 ### rag-sync
 
-Sync a note to a RAG store.
+Sincroniza una nota a un almacen RAG.
 
 ```yaml
 - id: sync
@@ -247,13 +247,13 @@ Sync a note to a RAG store.
   saveTo: syncResult
 ```
 
-| Property | Description |
+| Propiedad | Descripcion |
 |----------|-------------|
-| `path` | Note path to sync (required, supports `{{variables}}`) |
-| `ragSetting` | RAG setting name (required) |
-| `saveTo` | Variable to store result (optional) |
+| `path` | Ruta de la nota a sincronizar (requerido, soporta `{{variables}}`) |
+| `ragSetting` | Nombre de configuracion RAG (requerido) |
+| `saveTo` | Variable para almacenar resultado (opcional) |
 
-**Output format:**
+**Formato de salida:**
 ```json
 {
   "path": "folder/note.md",
@@ -265,7 +265,7 @@ Sync a note to a RAG store.
 
 ### file-explorer
 
-Select a file from vault or enter a new file path. Supports any file type including images and PDFs.
+Selecciona un archivo del vault o ingresa una nueva ruta de archivo. Soporta cualquier tipo de archivo incluyendo imagenes y PDFs.
 
 ```yaml
 - id: selectImage
@@ -278,17 +278,17 @@ Select a file from vault or enter a new file path. Supports any file type includ
   savePathTo: imagePath
 ```
 
-| Property | Description |
+| Propiedad | Descripcion |
 |----------|-------------|
-| `path` | Direct file path - skips dialog when set (supports `{{variables}}`) |
-| `mode` | `select` (pick existing file, default) or `create` (enter new path) |
-| `title` | Dialog title |
-| `extensions` | Comma-separated allowed extensions (e.g., `pdf,png,jpg`) |
-| `default` | Default path (supports `{{variables}}`) |
-| `saveTo` | Variable for FileExplorerData JSON |
-| `savePathTo` | Variable for just the file path |
+| `path` | Ruta directa del archivo - omite el dialogo cuando se establece (soporta `{{variables}}`) |
+| `mode` | `select` (seleccionar archivo existente, predeterminado) o `create` (ingresar nueva ruta) |
+| `title` | Titulo del dialogo |
+| `extensions` | Extensiones permitidas separadas por coma (ej., `pdf,png,jpg`) |
+| `default` | Ruta predeterminada (soporta `{{variables}}`) |
+| `saveTo` | Variable para FileExplorerData JSON |
+| `savePathTo` | Variable solo para la ruta del archivo |
 
-**FileExplorerData format:**
+**Formato de FileExplorerData:**
 ```json
 {
   "path": "folder/image.png",
@@ -301,7 +301,7 @@ Select a file from vault or enter a new file path. Supports any file type includ
 }
 ```
 
-**Example: Image Analysis (with dialog)**
+**Ejemplo: Analisis de Imagen (con dialogo)**
 ```yaml
 - id: selectImage
   type: file-explorer
@@ -319,7 +319,7 @@ Select a file from vault or enter a new file path. Supports any file type includ
   content: "# Image Analysis\n\n{{analysis}}"
 ```
 
-**Example: Event-triggered (no dialog)**
+**Ejemplo: Activado por evento (sin dialogo)**
 ```yaml
 - id: loadImage
   type: file-explorer
@@ -334,7 +334,7 @@ Select a file from vault or enter a new file path. Supports any file type includ
 
 ### file-save
 
-Save FileExplorerData as a file in the vault. Useful for saving generated images or copied files.
+Guarda FileExplorerData como un archivo en el vault. Util para guardar imagenes generadas o archivos copiados.
 
 ```yaml
 - id: saveImage
@@ -344,13 +344,13 @@ Save FileExplorerData as a file in the vault. Useful for saving generated images
   savePathTo: savedPath
 ```
 
-| Property | Description |
+| Propiedad | Descripcion |
 |----------|-------------|
-| `source` | Variable name containing FileExplorerData (required) |
-| `path` | Path to save the file (extension auto-added if missing) |
-| `savePathTo` | Variable to store the final file path (optional) |
+| `source` | Nombre de variable conteniendo FileExplorerData (requerido) |
+| `path` | Ruta para guardar el archivo (extension se agrega automaticamente si falta) |
+| `savePathTo` | Variable para almacenar la ruta final del archivo (opcional) |
 
-**Example: Generate and save image**
+**Ejemplo: Generar y guardar imagen**
 ```yaml
 - id: generate
   type: command
@@ -370,7 +370,7 @@ Save FileExplorerData as a file in the vault. Useful for saving generated images
 
 ### prompt-file
 
-Show file picker or use active file in hotkey/event mode.
+Muestra selector de archivo o usa el archivo activo en modo hotkey/evento.
 
 ```yaml
 - id: selectFile
@@ -382,26 +382,26 @@ Show file picker or use active file in hotkey/event mode.
   saveFileTo: fileInfo
 ```
 
-| Property | Description |
+| Propiedad | Descripcion |
 |----------|-------------|
-| `title` | Dialog title |
-| `default` | Default path |
-| `forcePrompt` | `true` always shows dialog, even in hotkey/event mode |
-| `saveTo` | Variable for file content |
-| `saveFileTo` | Variable for file info JSON |
+| `title` | Titulo del dialogo |
+| `default` | Ruta predeterminada |
+| `forcePrompt` | `true` siempre muestra dialogo, incluso en modo hotkey/evento |
+| `saveTo` | Variable para contenido del archivo |
+| `saveFileTo` | Variable para info del archivo JSON |
 
-**File info format:** `{"path": "folder/note.md", "basename": "note.md", "name": "note", "extension": "md"}`
+**Formato de info de archivo:** `{"path": "folder/note.md", "basename": "note.md", "name": "note", "extension": "md"}`
 
-**Behavior by trigger mode:**
-| Mode | Behavior |
+**Comportamiento por modo de activacion:**
+| Modo | Comportamiento |
 |------|----------|
-| Panel | Shows file picker dialog |
-| Hotkey | Uses active file automatically |
-| Event | Uses event file automatically |
+| Panel | Muestra dialogo de selector de archivo |
+| Hotkey | Usa archivo activo automaticamente |
+| Evento | Usa archivo del evento automaticamente |
 
 ### prompt-selection
 
-Get selected text or show selection dialog.
+Obtiene texto seleccionado o muestra dialogo de seleccion.
 
 ```yaml
 - id: getSelection
@@ -410,24 +410,24 @@ Get selected text or show selection dialog.
   saveSelectionTo: selectionInfo
 ```
 
-| Property | Description |
+| Propiedad | Descripcion |
 |----------|-------------|
-| `saveTo` | Variable for selected text |
-| `saveSelectionTo` | Variable for selection metadata JSON |
+| `saveTo` | Variable para texto seleccionado |
+| `saveSelectionTo` | Variable para metadatos de seleccion JSON |
 
-**Selection info format:** `{"filePath": "...", "startLine": 1, "endLine": 1, "start": 0, "end": 10}`
+**Formato de info de seleccion:** `{"filePath": "...", "startLine": 1, "endLine": 1, "start": 0, "end": 10}`
 
-**Behavior by trigger mode:**
-| Mode | Behavior |
+**Comportamiento por modo de activacion:**
+| Modo | Comportamiento |
 |------|----------|
-| Panel | Shows selection dialog |
-| Hotkey (with selection) | Uses current selection |
-| Hotkey (no selection) | Uses full file content |
-| Event | Uses full file content |
+| Panel | Muestra dialogo de seleccion |
+| Hotkey (con seleccion) | Usa seleccion actual |
+| Hotkey (sin seleccion) | Usa contenido completo del archivo |
+| Evento | Usa contenido completo del archivo |
 
 ### if / while
 
-Conditional branching and loops.
+Ramificacion condicional y bucles.
 
 ```yaml
 - id: branch
@@ -443,15 +443,15 @@ Conditional branching and loops.
   falseNext: done
 ```
 
-| Property | Description |
+| Propiedad | Descripcion |
 |----------|-------------|
-| `condition` | Expression with operators: `==`, `!=`, `<`, `>`, `<=`, `>=`, `contains` |
-| `trueNext` | Node ID when condition is true |
-| `falseNext` | Node ID when condition is false |
+| `condition` | Expresion con operadores: `==`, `!=`, `<`, `>`, `<=`, `>=`, `contains` |
+| `trueNext` | ID del nodo cuando la condicion es verdadera |
+| `falseNext` | ID del nodo cuando la condicion es falsa |
 
 ### variable / set
 
-Declare and update variables.
+Declara y actualiza variables.
 
 ```yaml
 - id: init
@@ -467,7 +467,7 @@ Declare and update variables.
 
 ### mcp
 
-Call a remote MCP (Model Context Protocol) server tool via HTTP.
+Llama a una herramienta de servidor MCP (Model Context Protocol) remoto via HTTP.
 
 ```yaml
 - id: search
@@ -479,33 +479,33 @@ Call a remote MCP (Model Context Protocol) server tool via HTTP.
   saveTo: searchResults
 ```
 
-| Property | Description |
+| Propiedad | Descripcion |
 |----------|-------------|
-| `url` | MCP server endpoint URL (required, supports `{{variables}}`) |
-| `tool` | Tool name to call on the MCP server (required) |
-| `args` | JSON object with tool arguments (supports `{{variables}}`) |
-| `headers` | JSON object with HTTP headers (e.g., for authentication) |
-| `saveTo` | Variable name for the result |
+| `url` | URL del endpoint del servidor MCP (requerido, soporta `{{variables}}`) |
+| `tool` | Nombre de la herramienta a llamar en el servidor MCP (requerido) |
+| `args` | Objeto JSON con argumentos de la herramienta (soporta `{{variables}}`) |
+| `headers` | Objeto JSON con cabeceras HTTP (ej., para autenticacion) |
+| `saveTo` | Nombre de variable para el resultado |
 
-**Use case:** Call remote MCP servers for RAG queries, web search, API integrations, etc.
+**Caso de uso:** Llamar servidores MCP remotos para consultas RAG, busqueda web, integraciones API, etc.
 
-**Example: RAG query with ragujuary**
+**Ejemplo: Consulta RAG con ragujuary**
 
-[ragujuary](https://github.com/takeshy/ragujuary) is a CLI tool for managing Gemini File Search Stores with MCP server support.
+[ragujuary](https://github.com/takeshy/ragujuary) es una herramienta CLI para gestionar Gemini File Search Stores con soporte de servidor MCP.
 
-1. Install and setup:
+1. Instalar y configurar:
 ```bash
 go install github.com/takeshy/ragujuary@latest
 export GEMINI_API_KEY=your-api-key
 
-# Create a store and upload files
+# Crear un almacen y subir archivos
 ragujuary upload --create -s mystore ./docs
 
-# Start MCP server (use --transport http, not sse)
+# Iniciar servidor MCP (usar --transport http, no sse)
 ragujuary serve --transport http --port 8080 --serve-api-key mysecretkey
 ```
 
-2. Workflow example:
+2. Ejemplo de workflow:
 ```yaml
 name: RAG Search
 nodes:
@@ -524,9 +524,9 @@ nodes:
     button1: "OK"
 ```
 
-### Other Nodes
+### Otros Nodos
 
-| Node | Properties |
+| Nodo | Propiedades |
 |------|------------|
 | `note-read` | `path`, `saveTo` |
 | `note-search` | `query`, `searchContent`, `limit`, `saveTo` |
@@ -536,93 +536,93 @@ nodes:
 
 ---
 
-## Workflow Termination
+## Terminacion del Workflow
 
-Use `next: end` to explicitly terminate the workflow:
+Usa `next: end` para terminar explicitamente el workflow:
 
 ```yaml
 - id: save
   type: note
   path: "output.md"
   content: "{{result}}"
-  next: end    # Workflow ends here
+  next: end    # El workflow termina aqui
 
 - id: branch
   type: if
   condition: "{{cancel}}"
-  trueNext: end      # End workflow on true branch
+  trueNext: end      # Terminar workflow en rama verdadera
   falseNext: continue
 ```
 
-## Variable Expansion
+## Expansion de Variables
 
-Use `{{variable}}` syntax to reference variables:
+Usa la sintaxis `{{variable}}` para referenciar variables:
 
 ```yaml
-# Basic
+# Basico
 path: "{{folder}}/{{filename}}.md"
 
-# Object/Array access
+# Acceso a Objeto/Array
 url: "https://api.example.com?lat={{geo.latitude}}"
 content: "{{items[0].name}}"
 
-# Nested variables (for loops)
+# Variables anidadas (para bucles)
 path: "{{parsed.notes[{{counter}}].path}}"
 ```
 
-## Smart Input Nodes
+## Nodos de Entrada Inteligente
 
-`prompt-selection` and `prompt-file` nodes automatically detect execution context:
+Los nodos `prompt-selection` y `prompt-file` detectan automaticamente el contexto de ejecucion:
 
-| Node | Panel Mode | Hotkey Mode | Event Mode |
+| Nodo | Modo Panel | Modo Hotkey | Modo Evento |
 |------|------------|-------------|------------|
-| `prompt-file` | Shows file picker | Uses active file | Uses event file |
-| `prompt-selection` | Shows selection dialog | Uses selection or full file | Uses full file content |
+| `prompt-file` | Muestra selector de archivo | Usa archivo activo | Usa archivo del evento |
+| `prompt-selection` | Muestra dialogo de seleccion | Usa seleccion o archivo completo | Usa contenido completo del archivo |
 
 ---
 
-## Event Triggers
+## Disparadores de Eventos
 
-Workflows can be triggered automatically by Obsidian events.
+Los workflows pueden ser activados automaticamente por eventos de Obsidian.
 
 ![Event Trigger Settings](event_setting.png)
 
-### Available Events
+### Eventos Disponibles
 
-| Event | Description |
+| Evento | Descripcion |
 |-------|-------------|
-| `create` | File created |
-| `modify` | File modified/saved (debounced 5s) |
-| `delete` | File deleted |
-| `rename` | File renamed |
-| `file-open` | File opened |
+| `create` | Archivo creado |
+| `modify` | Archivo modificado/guardado (con debounce de 5s) |
+| `delete` | Archivo eliminado |
+| `rename` | Archivo renombrado |
+| `file-open` | Archivo abierto |
 
-### Event Variables
+### Variables de Evento
 
-When triggered by an event, these variables are automatically set:
+Cuando se activa por un evento, estas variables se establecen automaticamente:
 
-| Variable | Description |
+| Variable | Descripcion |
 |----------|-------------|
-| `__eventType__` | Event type: `create`, `modify`, `delete`, `rename`, `file-open` |
-| `__eventFilePath__` | Path of the affected file |
+| `__eventType__` | Tipo de evento: `create`, `modify`, `delete`, `rename`, `file-open` |
+| `__eventFilePath__` | Ruta del archivo afectado |
 | `__eventFile__` | JSON: `{"path": "...", "basename": "...", "name": "...", "extension": "..."}` |
-| `__eventFileContent__` | File content (for create/modify/file-open events) |
-| `__eventOldPath__` | Previous path (for rename events only) |
+| `__eventFileContent__` | Contenido del archivo (para eventos create/modify/file-open) |
+| `__eventOldPath__` | Ruta anterior (solo para eventos rename) |
 
-### File Pattern Syntax
+### Sintaxis de Patron de Archivo
 
-Filter events by file path using glob patterns:
+Filtra eventos por ruta de archivo usando patrones glob:
 
-| Pattern | Matches |
+| Patron | Coincide |
 |---------|---------|
-| `**/*.md` | All .md files in any folder |
-| `journal/*.md` | .md files directly in journal folder |
-| `*.md` | .md files in root folder only |
-| `**/{daily,weekly}/*.md` | Files in daily or weekly folders |
-| `projects/[a-z]*.md` | Files starting with lowercase letter |
-| `docs/**` | All files under docs folder |
+| `**/*.md` | Todos los archivos .md en cualquier carpeta |
+| `journal/*.md` | Archivos .md directamente en carpeta journal |
+| `*.md` | Archivos .md solo en carpeta raiz |
+| `**/{daily,weekly}/*.md` | Archivos en carpetas daily o weekly |
+| `projects/[a-z]*.md` | Archivos que comienzan con letra minuscula |
+| `docs/**` | Todos los archivos bajo carpeta docs |
 
-### Event-Triggered Workflow Example
+### Ejemplo de Workflow Activado por Evento
 
 ````markdown
 ```workflow
@@ -644,13 +644,13 @@ nodes:
 ```
 ````
 
-**Setup:** Click ⚡ in Workflow panel → enable "File Created" → set pattern `**/*.md`
+**Configuracion:** Haz clic en el icono de rayo en el panel de Workflow, habilita "File Created", establece el patron `**/*.md`
 
 ---
 
-## Practical Examples
+## Ejemplos Practicos
 
-### 1. Note Summary
+### 1. Resumen de Nota
 
 ````markdown
 ```workflow
@@ -677,7 +677,7 @@ nodes:
 ```
 ````
 
-### 2. Web Research
+### 2. Investigacion Web
 
 ````markdown
 ```workflow
@@ -705,7 +705,7 @@ nodes:
 ```
 ````
 
-### 3. Conditional Processing
+### 3. Procesamiento Condicional
 
 ````markdown
 ```workflow
@@ -740,7 +740,7 @@ nodes:
 ```
 ````
 
-### 4. Batch Process Notes
+### 4. Procesar Notas en Lote
 
 ````markdown
 ```workflow
@@ -793,7 +793,7 @@ nodes:
 ```
 ````
 
-### 5. API Integration
+### 5. Integracion API
 
 ````markdown
 ```workflow
@@ -834,7 +834,7 @@ nodes:
 ```
 ````
 
-### 6. Translate Selection (with Hotkey)
+### 6. Traducir Seleccion (con Hotkey)
 
 ````markdown
 ```workflow
@@ -858,16 +858,16 @@ nodes:
 ```
 ````
 
-**Hotkey setup:**
-1. Add a `name:` field to your workflow
-2. Open the workflow file and select the workflow from dropdown
-3. Click the keyboard icon in the Workflow panel footer
-4. Go to Settings → Hotkeys → search "Workflow: Translate Selection"
-5. Assign a hotkey (e.g., `Ctrl+Shift+T`)
+**Configuracion de hotkey:**
+1. Agrega un campo `name:` a tu workflow
+2. Abre el archivo de workflow y selecciona el workflow del menu desplegable
+3. Haz clic en el icono de teclado en el pie del panel de Workflow
+4. Ve a Configuracion, Atajos de teclado, busca "Workflow: Translate Selection"
+5. Asigna un atajo de teclado (ej., `Ctrl+Shift+T`)
 
-### 7. Sub-Workflow Composition
+### 7. Composicion de Sub-Workflow
 
-**File: `workflows/translate.md`**
+**Archivo: `workflows/translate.md`**
 ````markdown
 ```workflow
 name: Translator
@@ -879,7 +879,7 @@ nodes:
 ```
 ````
 
-**File: `workflows/main.md`**
+**Archivo: `workflows/main.md`**
 ````markdown
 ```workflow
 name: Multi-Language Export
@@ -918,7 +918,7 @@ nodes:
 ```
 ````
 
-### 8. Interactive Task Selection
+### 8. Seleccion Interactiva de Tareas
 
 ````markdown
 ```workflow

@@ -1,6 +1,6 @@
 # Gemini Helper for Obsidian
 
-**Free and open-source** AI assistant for Obsidian with **Chat**, **Workflow Automation**, and **Semantic Search** powered by Google Gemini.
+**Free and open-source** AI assistant for Obsidian with **Chat**, **Workflow Automation**, and **RAG** powered by Google Gemini.
 
 > **This plugin is completely free.** You only need a Google Gemini API key (free or paid) from [ai.google.dev](https://ai.google.dev), or use CLI tools: [Gemini CLI](https://github.com/google-gemini/gemini-cli), [Claude Code](https://github.com/anthropics/claude-code), or [Codex CLI](https://github.com/openai/codex).
 
@@ -8,7 +8,7 @@
 
 - **AI Chat** - Streaming responses, file attachments, vault operations, slash commands
 - **Workflow Builder** - Automate multi-step tasks with visual node editor and 21 node types
-- **Semantic Search** - RAG-powered intelligent search across your vault
+- **RAG** - Retrieval-Augmented Generation for intelligent search across your vault
 - **Web Search** - Access up-to-date information via Google Search
 - **Image Generation** - Create images with Gemini image models
 
@@ -21,7 +21,7 @@ This plugin requires a Google Gemini API key or a CLI tool. You can choose betwe
 | Basic chat | ✅ | ✅ | ✅ |
 | Vault operations | ✅ | ✅ | Read/Search only |
 | Web Search | ✅ | ✅ | ❌ |
-| Semantic Search | ✅ (limited) | ✅ | ❌ |
+| RAG | ✅ (limited) | ✅ | ❌ |
 | Workflow | ✅ | ✅ | ✅ |
 | Image Generation | ❌ | ✅ | ❌ |
 | Models | Flash, Gemma | Flash, Pro, Image | Gemini CLI, Claude Code, Codex |
@@ -36,7 +36,7 @@ This plugin requires a Google Gemini API key or a CLI tool. You can choose betwe
 ### Free API Key Tips
 
 - **Rate limits** are per-model and reset daily. Switch models to continue working.
-- **Semantic search sync** is limited. Run "Sync Vault" daily - already uploaded files are skipped.
+- **RAG sync** is limited. Run "Sync Vault" daily - already uploaded files are skipped.
 - **Gemma models** and **Gemini CLI** don't support vault operations in Chat, but **Workflows can still read/write notes** using `note`, `note-read`, and other node types. `{content}` and `{selection}` variables also work.
 
 ---
@@ -103,9 +103,9 @@ When AI uses `propose_edit`:
 
 > Changes are NOT written until you confirm.
 
-## Semantic Search
+## RAG
 
-RAG-powered intelligent vault search:
+Retrieval-Augmented Generation for intelligent vault search:
 
 - **Supported files** - Markdown, PDF, Images (PNG, JPEG, GIF, WebP)
 - **Internal mode** - Sync vault files to Google File Search
@@ -114,7 +114,7 @@ RAG-powered intelligent vault search:
 - **Target folders** - Specify folders to include
 - **Exclude patterns** - Regex patterns to exclude files
 
-![Semantic Search Settings](setting_semantic_search.png)
+![RAG Settings](setting_semantic_search.png)
 
 ---
 
@@ -392,7 +392,7 @@ Edit workflows directly in the visual node editor with drag-and-drop interface.
 
 **Data sent to Google:**
 - All chat messages and file attachments are sent to Google Gemini API for processing
-- When Semantic Search is enabled, vault files are uploaded to Google File Search
+- When RAG is enabled, vault files are uploaded to Google File Search
 - When Web Search is enabled, queries are sent to Google Search
 
 **Data sent to third-party services:**

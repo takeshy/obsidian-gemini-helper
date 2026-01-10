@@ -1,6 +1,6 @@
 # Gemini Helper for Obsidian
 
-**無料・オープンソース**の Obsidian 向け AI アシスタント。Google Gemini を活用した**チャット**、**ワークフロー自動化**、**セマンティック検索**を搭載。
+**無料・オープンソース**の Obsidian 向け AI アシスタント。Google Gemini を活用した**チャット**、**ワークフロー自動化**、**RAG**を搭載。
 
 > **このプラグインは完全に無料です。** Google Gemini API キー（無料または有料）、または CLI ツール（[Gemini CLI](https://github.com/google-gemini/gemini-cli)、[Claude Code](https://github.com/anthropics/claude-code)、[Codex CLI](https://github.com/openai/codex)）が必要です。
 
@@ -8,7 +8,7 @@
 
 - **AI チャット** - ストリーミング応答、ファイル添付、Vault 操作、スラッシュコマンド
 - **ワークフロービルダー** - ビジュアルノードエディタと 21 種類のノードでマルチステップタスクを自動化
-- **セマンティック検索** - RAG による Vault 全体の知的検索
+- **RAG** - Vault 全体の知的検索（Retrieval-Augmented Generation）
 - **Web 検索** - Google 検索で最新情報を取得
 - **画像生成** - Gemini 画像モデルで画像を作成
 
@@ -21,7 +21,7 @@
 | 基本チャット | ✅ | ✅ | ✅ |
 | Vault 操作 | ✅ | ✅ | 読み取り/検索のみ |
 | Web 検索 | ✅ | ✅ | ❌ |
-| セマンティック検索 | ✅（制限あり） | ✅ | ❌ |
+| RAG | ✅（制限あり） | ✅ | ❌ |
 | ワークフロー | ✅ | ✅ | ✅ |
 | 画像生成 | ❌ | ✅ | ❌ |
 | モデル | Flash, Gemma | Flash, Pro, Image | Gemini CLI, Claude Code, Codex |
@@ -36,7 +36,7 @@
 ### 無料 API キーのヒント
 
 - **レート制限**はモデルごとで毎日リセット。別モデルに切り替えて作業を継続。
-- **セマンティック検索同期**は制限あり。毎日「Sync Vault」を実行（アップロード済みファイルはスキップ）。
+- **RAG同期**は制限あり。毎日「Sync Vault」を実行（アップロード済みファイルはスキップ）。
 - **Gemma モデル**や **Gemini CLI** はチャットでの Vault 操作に非対応ですが、**ワークフローでは `note`、`note-read` などのノードでノートの読み書きが可能**です。`{content}` と `{selection}` 変数も使用可能。
 
 ---
@@ -103,9 +103,9 @@ AI が `propose_edit` を使用時：
 
 > 確認するまでファイルは変更されません。
 
-## セマンティック検索
+## RAG
 
-RAG による Vault の知的検索：
+Vault の知的検索（Retrieval-Augmented Generation）：
 
 - **対応ファイル** - Markdown、PDF、画像（PNG、JPEG、GIF、WebP）
 - **Internal モード** - Vault ファイルを Google File Search に同期
@@ -114,7 +114,7 @@ RAG による Vault の知的検索：
 - **対象フォルダ** - インデックスするフォルダを指定
 - **除外パターン** - 正規表現でファイルを除外
 
-![セマンティック検索設定](setting_semantic_search.png)
+![RAG設定](setting_semantic_search.png)
 
 ---
 
@@ -392,7 +392,7 @@ npm run build
 
 **Google に送信されるデータ：**
 - すべてのチャットメッセージと添付ファイルは Google Gemini API に送信されます
-- セマンティック検索を有効にすると、Vault ファイルが Google File Search にアップロードされます
+- RAGを有効にすると、Vault ファイルが Google File Search にアップロードされます
 - Web 検索を有効にすると、検索クエリが Google Search に送信されます
 
 **サードパーティサービスへの送信：**

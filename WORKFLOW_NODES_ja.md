@@ -15,7 +15,7 @@
 | プロンプト | `prompt-file`, `prompt-selection`, `dialog` | ユーザー入力ダイアログ |
 | 合成 | `workflow` | 別のワークフローをサブワークフローとして実行 |
 | RAG | `rag-sync` | ノートを RAG ストアに同期 |
-| 外部連携 | `mcp` | 外部 MCP サーバーツールを呼び出し |
+| 外部連携 | `mcp`, `obsidian-command` | 外部 MCP サーバーまたは Obsidian コマンドを呼び出し |
 
 ---
 
@@ -488,6 +488,59 @@ FileExplorerData を Vault 内にファイルとして保存。生成された�
 | `saveTo` | 結果を保存する変数名 |
 
 **使用例:** RAG クエリ、Web 検索、API 連携などのリモート MCP サーバー呼び出し。
+
+### obsidian-command
+
+コマンド ID を指定して Obsidian コマンドを実行します。他のプラグインのコマンドを含む、あらゆる Obsidian コマンドをワークフローからトリガーできます。
+
+```yaml
+- id: toggle-fold
+  type: obsidian-command
+  command: "editor:toggle-fold"
+  saveTo: result
+```
+
+| プロパティ | 説明 |
+|------------|------|
+| `command` | 実行するコマンド ID（必須、`{{変数}}` 対応） |
+| `saveTo` | 実行結果を保存する変数名（任意） |
+
+**コマンド ID の探し方:**
+1. Obsidian 設定 → ホットキー を開く
+2. 実行したいコマンドを検索
+3. コマンド ID が表示される（例：`editor:toggle-fold`、`app:reload`）
+
+**よく使うコマンド ID:**
+| コマンド ID | 説明 |
+|------------|------|
+| `editor:toggle-fold` | カーソル位置の折りたたみを切り替え |
+| `editor:fold-all` | すべての見出しを折りたたむ |
+| `editor:unfold-all` | すべての見出しを展開 |
+| `app:reload` | Obsidian を再読み込み |
+| `workspace:close` | 現在のペインを閉じる |
+| `file-explorer:reveal-active-file` | エクスプローラーでファイルを表示 |
+
+**例: プラグインコマンドを使ったワークフロー**
+```yaml
+name: 作業ログを書く
+nodes:
+  - id: get-content
+    type: dialog
+    inputTitle: "ログ内容を入力"
+    multiline: true
+    saveTo: logContent
+  - id: copy-to-clipboard
+    type: set
+    name: "_clipboard"
+    value: "{{logContent.input}}"
+  - id: write-to-log
+    type: obsidian-command
+    command: "work-log:write-from-clipboard"
+```
+
+**活用例:** ワークフローの一部として Obsidian コアコマンドや他のプラグインのコマンドをトリガー。
+
+---
 
 **例: ragujuary を使った RAG 検索**
 

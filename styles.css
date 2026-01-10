@@ -2523,6 +2523,25 @@
   padding: 6px 8px;
 }
 
+.workflow-sidebar-history-btn,
+.workflow-sidebar-save-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 8px;
+  font-size: 12px;
+  background: var(--background-modifier-border);
+  color: var(--text-normal);
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.workflow-sidebar-history-btn:hover,
+.workflow-sidebar-save-btn:hover {
+  background: var(--background-modifier-border-hover);
+}
+
 /* AI Workflow confirmation checkbox row */
 .ai-workflow-confirm-row {
   display: flex;
@@ -2922,4 +2941,257 @@
 
 .theme-dark .gemini-helper-diff-removed .gemini-helper-diff-gutter {
   background: rgba(255, 100, 100, 0.2);
+}
+
+/* ============================================ */
+/* Edit History Modal Styles                    */
+/* ============================================ */
+
+.gemini-helper-edit-history-modal {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  height: 100%;
+}
+
+.gemini-helper-edit-history-modal .modal-drag-handle {
+  flex-shrink: 0;
+  margin-top: 0;
+}
+
+.gemini-helper-edit-history-modal h2 {
+  margin: 0;
+}
+
+.gemini-helper-edit-history-scroll {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+  padding-right: 8px;
+}
+
+.gemini-helper-edit-history-timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.gemini-helper-edit-history-current,
+.gemini-helper-edit-history-original {
+  padding: 8px 12px;
+  border-radius: 4px;
+  background: var(--background-secondary);
+  font-weight: 500;
+}
+
+.gemini-helper-edit-history-marker {
+  color: var(--text-accent);
+  margin-right: 4px;
+}
+
+.gemini-helper-edit-history-entry {
+  position: relative;
+  padding-left: 20px;
+}
+
+.gemini-helper-edit-history-connector {
+  position: absolute;
+  left: 6px;
+  top: -8px;
+  bottom: -8px;
+  width: 2px;
+  background: var(--background-modifier-border);
+}
+
+.gemini-helper-edit-history-entry-content {
+  padding: 12px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 6px;
+  background: var(--background-primary);
+}
+
+.gemini-helper-edit-history-entry-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.gemini-helper-edit-history-time {
+  font-weight: 500;
+  color: var(--text-normal);
+}
+
+.gemini-helper-edit-history-source {
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.gemini-helper-edit-history-stats {
+  margin-bottom: 4px;
+  font-size: 12px;
+}
+
+.gemini-helper-edit-history-additions {
+  color: var(--color-green);
+}
+
+.gemini-helper-edit-history-deletions {
+  color: var(--color-red);
+}
+
+.gemini-helper-edit-history-model {
+  font-size: 11px;
+  color: var(--text-faint);
+  margin-bottom: 8px;
+}
+
+.gemini-helper-edit-history-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.gemini-helper-edit-history-btn {
+  padding: 4px 12px;
+  font-size: 12px;
+  border-radius: 4px;
+  border: 1px solid var(--background-modifier-border);
+  background: var(--background-secondary);
+  cursor: pointer;
+  color: var(--text-normal);
+}
+
+.gemini-helper-edit-history-btn:hover {
+  background: var(--background-modifier-hover);
+}
+
+.gemini-helper-edit-history-btns {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.gemini-helper-edit-history-btn-reset {
+  padding: 4px 12px;
+  font-size: 12px;
+  border-radius: 4px;
+  border: 1px solid var(--text-error);
+  background: transparent;
+  cursor: pointer;
+  color: var(--text-error);
+}
+
+.gemini-helper-edit-history-btn-reset:hover {
+  background: var(--text-error);
+  color: var(--text-on-accent);
+}
+
+.gemini-helper-edit-history-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 12px;
+  border-top: 1px solid var(--background-modifier-border);
+  color: var(--text-muted);
+  font-size: 12px;
+  flex-shrink: 0;
+}
+
+/* Diff Modal Styles */
+.gemini-helper-diff-modal {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.gemini-helper-diff-modal h2 {
+  margin: 0;
+}
+
+.gemini-helper-diff-stats {
+  margin-bottom: 12px;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.gemini-helper-diff-additions {
+  color: var(--color-green);
+  font-weight: 500;
+}
+
+.gemini-helper-diff-deletions {
+  color: var(--color-red);
+  font-weight: 500;
+}
+
+.gemini-helper-diff-content {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  margin-bottom: 16px;
+}
+
+.gemini-helper-diff-pre {
+  margin: 0;
+  padding: 12px;
+  background: var(--background-secondary);
+  border-radius: 6px;
+  font-family: var(--font-monospace);
+  font-size: 12px;
+  line-height: 1.5;
+  overflow-x: auto;
+}
+
+.gemini-helper-diff-line {
+  white-space: pre;
+}
+
+.gemini-helper-diff-hunk {
+  color: var(--text-accent);
+  background: var(--background-modifier-hover);
+  margin: 8px 0;
+  padding: 2px 4px;
+  border-radius: 2px;
+}
+
+.gemini-helper-diff-add {
+  background: rgba(0, 200, 83, 0.15);
+  color: var(--color-green);
+}
+
+.gemini-helper-diff-remove {
+  background: rgba(255, 100, 100, 0.15);
+  color: var(--color-red);
+}
+
+.gemini-helper-diff-context {
+  color: var(--text-muted);
+}
+
+.gemini-helper-diff-actions {
+  display: flex;
+  justify-content: flex-end;
+  flex-shrink: 0;
+}
+
+.gemini-helper-diff-actions .setting-item {
+  border: none;
+  padding: 0;
+}
+
+/* Dark theme adjustments for edit history */
+.theme-dark .gemini-helper-diff-add {
+  background: rgba(0, 200, 83, 0.12);
+}
+
+.theme-dark .gemini-helper-diff-remove {
+  background: rgba(255, 100, 100, 0.12);
+}
+
+/* Settings subheading */
+.gemini-helper-settings-subheading {
+  margin-top: 10px;
+  margin-bottom: 5px;
+  font-weight: 500;
 }

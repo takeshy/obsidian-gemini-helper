@@ -2,6 +2,7 @@ import { App, TFile, requestUrl } from "obsidian";
 import type { GeminiHelperPlugin } from "../plugin";
 import { getGeminiClient } from "../core/gemini";
 import { getFileSearchManager } from "../core/fileSearch";
+import { getEditHistoryManager } from "../core/editHistory";
 import { CliProviderManager } from "../core/cliProvider";
 import { isImageGenerationModel, type ModelType } from "../types";
 import { McpClient } from "../core/mcpClient";
@@ -322,10 +323,10 @@ function evaluateExpression(
 }
 
 // Handle set node (update existing variable)
-export function handleSetNode(
+export async function handleSetNode(
   node: WorkflowNode,
   context: ExecutionContext
-): void {
+): Promise<void> {
   const name = node.properties["name"];
   const expr = node.properties["value"] || "";
 
@@ -335,6 +336,15 @@ export function handleSetNode(
 
   const result = evaluateExpression(expr, context);
   context.variables.set(name, result);
+
+  // Special handling for _clipboard: copy to system clipboard
+  if (name === "_clipboard") {
+    try {
+      await navigator.clipboard.writeText(String(result));
+    } catch (error) {
+      console.error("Failed to write to clipboard:", error);
+    }
+  }
 }
 
 // Handle if node - returns condition result
@@ -1340,6 +1350,12 @@ export async function handleNoteNode(
   const path = replaceVariables(node.properties["path"] || "", context);
   const content = replaceVariables(node.properties["content"] || "", context);
   const mode = node.properties["mode"] || "overwrite"; // overwrite, append, create
+  // Check if history should be saved: use settings by default, allow workflow to override
+  const historyManager = getEditHistoryManager();
+  const historyEnabled = historyManager?.isEnabled() ?? false;
+  const saveHistory = node.properties["history"] === "false" ? false : historyEnabled;
+  const workflowName = context.variables.get("__workflowName__") as string | undefined;
+  const model = context.variables.get("__lastModel__") as string | undefined;
 
   if (!path) {
     throw new Error("Note node missing 'path' property");
@@ -1365,8 +1381,15 @@ export async function handleNoteNode(
   // Check if file exists
   const existingFile = app.vault.getAbstractFileByPath(notePath);
 
+  // Ensure snapshot exists before modification (for edit history)
+  if (saveHistory && existingFile && historyManager) {
+    await historyManager.ensureSnapshot(notePath);
+  }
+
   // Ensure parent folder exists for all modes when creating new file
   const folderPath = notePath.substring(0, notePath.lastIndexOf("/"));
+
+  let finalContent = content;
 
   if (mode === "create") {
     // Only create if file doesn't exist
@@ -1380,7 +1403,8 @@ export async function handleNoteNode(
     if (existingFile && existingFile instanceof TFile) {
       // Append to existing file
       const currentContent = await app.vault.read(existingFile);
-      await app.vault.modify(existingFile, currentContent + "\n" + content);
+      finalContent = currentContent + "\n" + content;
+      await app.vault.modify(existingFile, finalContent);
     } else {
       // Create new file with content
       await ensureFolderExists(app, folderPath);
@@ -1396,6 +1420,16 @@ export async function handleNoteNode(
     }
   }
 
+  // Save edit history if enabled
+  if (saveHistory && historyManager) {
+    await historyManager.saveEdit({
+      path: notePath,
+      modifiedContent: finalContent,
+      source: "workflow",
+      workflowName,
+      model,
+    });
+  }
 }
 
 // Handle note-read node - read note content from file

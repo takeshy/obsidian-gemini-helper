@@ -7,7 +7,8 @@ Asistente de IA **gratuito y de código abierto** para Obsidian con **Chat**, **
 ## Características Principales
 
 - **Chat con IA** - Respuestas en streaming, archivos adjuntos, operaciones en el vault, comandos slash
-- **Constructor de Flujos de Trabajo** - Automatiza tareas de múltiples pasos con editor visual de nodos y 21 tipos de nodos
+- **Constructor de Flujos de Trabajo** - Automatiza tareas de múltiples pasos con editor visual de nodos y 22 tipos de nodos
+- **Historial de Edición** - Rastrea y restaura cambios hechos por IA con vista de diferencias
 - **RAG** - Generación Aumentada por Recuperación para búsqueda inteligente en tu vault
 - **Búsqueda Web** - Accede a información actualizada a través de Google Search
 - **Generación de Imágenes** - Crea imágenes con los modelos de imagen de Gemini
@@ -103,6 +104,46 @@ Cuando la IA usa `propose_edit`:
 
 > Los cambios NO se escriben hasta que confirmes.
 
+## Historial de Edición
+
+Rastrea y restaura cambios hechos a tus notas:
+
+- **Seguimiento automático** - Todas las ediciones de IA (chat, flujo de trabajo) y cambios manuales se registran
+- **Ver historial** - Comando: "Show edit history" o usa la paleta de comandos
+- **Vista de diferencias** - Ve exactamente qué cambió con adiciones/eliminaciones codificadas por color
+- **Restaurar** - Revierte a cualquier versión anterior con un clic
+- **Modal redimensionable** - Arrastra para mover, redimensiona desde las esquinas
+
+**Visualización de diferencias:**
+- Las líneas `+` existían en la versión anterior
+- Las líneas `-` fueron añadidas en la versión más nueva
+
+**Cómo funciona:**
+
+El historial de edición usa un enfoque basado en instantáneas:
+
+1. **Creación de instantánea** - Cuando un archivo se abre por primera vez o es modificado por IA, se guarda una instantánea de su contenido
+2. **Registro de diferencias** - Cuando el archivo se modifica, la diferencia entre el nuevo contenido y la instantánea se registra como una entrada de historial
+3. **Actualización de instantánea** - La instantánea se actualiza al nuevo contenido después de cada modificación
+4. **Restaurar** - Para restaurar a una versión anterior, las diferencias se aplican en reversa desde la instantánea
+
+**Cuándo se registra el historial:**
+- Ediciones de chat IA (herramienta `propose_edit`)
+- Modificaciones de notas en flujos de trabajo (nodo `note`)
+- Guardados manuales vía comando
+- Auto-detección cuando el archivo difiere de la instantánea al abrir
+
+**Ubicación de almacenamiento:**
+- Archivos de historial: `{workspaceFolder}/history/{filename}.history.md`
+- Archivos de instantánea: `{workspaceFolder}/history/{filename}.snapshot.md`
+
+**Configuración:**
+- Habilitar/deshabilitar en configuración del plugin
+- Configurar líneas de contexto para diferencias
+- Establecer límites de retención (máximo de entradas por archivo, edad máxima)
+
+![Modal de Historial de Edición](edit_history.png)
+
 ## RAG
 
 Generación Aumentada por Recuperación para búsqueda inteligente en el vault:
@@ -114,7 +155,7 @@ Generación Aumentada por Recuperación para búsqueda inteligente en el vault:
 - **Carpetas objetivo** - Especifica carpetas a incluir
 - **Patrones de exclusión** - Patrones regex para excluir archivos
 
-![Configuración RAG](setting_semantic_search.png)
+![Configuración RAG](setting_rag.png)
 
 ---
 
@@ -172,7 +213,7 @@ Abre la pestaña **Workflow** en la barra lateral de Gemini para ejecutarlo.
 
 ## Tipos de Nodos Disponibles
 
-Hay 21 tipos de nodos disponibles para construir flujos de trabajo:
+Hay 22 tipos de nodos disponibles para construir flujos de trabajo:
 
 | Categoría | Nodos |
 |-----------|-------|
@@ -185,7 +226,7 @@ Hay 21 tipos de nodos disponibles para construir flujos de trabajo:
 | Prompts | `prompt-file`, `prompt-selection`, `dialog` |
 | Composición | `workflow` |
 | RAG | `rag-sync` |
-| Externos | `mcp` |
+| Externos | `mcp`, `obsidian-command` |
 
 > **Para especificaciones detalladas de nodos y ejemplos, consulta [WORKFLOW_NODES_es.md](WORKFLOW_NODES_es.md)**
 
@@ -319,9 +360,15 @@ npm run build
 - **Workspace Folder** - Ubicación del historial de chat y configuración
 - **System Prompt** - Instrucciones adicionales para la IA
 - **Tool Limits** - Controla los límites de llamadas a funciones
-- **Slash Commands** - Define plantillas de prompts personalizadas
+- **Edit History** - Rastrea y restaura cambios hechos por IA
 
-![Límite de Herramientas y Comandos Slash](setting_tool_limit_slash_command.png)
+![Límite de Herramientas e Historial de Edición](setting_tool_history.png)
+
+### Comandos Slash
+- Define plantillas de prompts personalizadas activadas por `/`
+- Modelo y búsqueda opcionales por comando
+
+![Comandos Slash](setting_slash_command.png)
 
 ## Uso
 

@@ -15,7 +15,7 @@
 | 提示 | `prompt-file`, `prompt-selection`, `dialog` | 用户输入对话框 |
 | 组合 | `workflow` | 将另一个工作流作为子工作流执行 |
 | RAG | `rag-sync` | 同步笔记到 RAG 存储 |
-| 外部 | `mcp` | 调用外部 MCP 服务器工具 |
+| 外部 | `mcp`, `obsidian-command` | 调用外部 MCP 服务器或 Obsidian 命令 |
 
 ---
 
@@ -488,6 +488,59 @@
 | `saveTo` | 用于存储结果的变量名 |
 
 **用例：** 调用远程 MCP 服务器进行 RAG 查询、网络搜索、API 集成等。
+
+### obsidian-command
+
+通过 ID 执行 Obsidian 命令。这允许工作流触发任何 Obsidian 命令，包括其他插件的命令。
+
+```yaml
+- id: toggle-fold
+  type: obsidian-command
+  command: "editor:toggle-fold"
+  saveTo: result
+```
+
+| 属性 | 描述 |
+|----------|-------------|
+| `command` | 要执行的命令 ID（必填，支持 `{{variables}}`） |
+| `saveTo` | 用于存储执行结果的变量（可选） |
+
+**查找命令 ID：**
+1. 打开 Obsidian 设置 → 快捷键
+2. 搜索所需的命令
+3. 命令 ID 会显示（例如 `editor:toggle-fold`、`app:reload`）
+
+**常用命令 ID：**
+| 命令 ID | 描述 |
+|------------|-------------|
+| `editor:toggle-fold` | 在光标处切换折叠 |
+| `editor:fold-all` | 折叠所有标题 |
+| `editor:unfold-all` | 展开所有标题 |
+| `app:reload` | 重新加载 Obsidian |
+| `workspace:close` | 关闭当前面板 |
+| `file-explorer:reveal-active-file` | 在资源管理器中显示文件 |
+
+**示例：使用插件命令的工作流**
+```yaml
+name: 写工作日志
+nodes:
+  - id: get-content
+    type: dialog
+    inputTitle: "输入日志内容"
+    multiline: true
+    saveTo: logContent
+  - id: copy-to-clipboard
+    type: set
+    name: "_clipboard"
+    value: "{{logContent.input}}"
+  - id: write-to-log
+    type: obsidian-command
+    command: "work-log:write-from-clipboard"
+```
+
+**用例：** 在工作流中触发 Obsidian 核心命令或其他插件的命令。
+
+---
 
 **示例：使用 ragujuary 进行 RAG 查询**
 

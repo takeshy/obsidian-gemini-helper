@@ -7,7 +7,8 @@
 ## Highlights
 
 - **AI Chat** - Streaming responses, file attachments, vault operations, slash commands
-- **Workflow Builder** - Automate multi-step tasks with visual node editor and 21 node types
+- **Workflow Builder** - Automate multi-step tasks with visual node editor and 22 node types
+- **Edit History** - Track and restore AI-made changes with diff view
 - **RAG** - Retrieval-Augmented Generation for intelligent search across your vault
 - **Web Search** - Access up-to-date information via Google Search
 - **Image Generation** - Create images with Gemini image models
@@ -103,6 +104,46 @@ When AI uses `propose_edit`:
 
 > Changes are NOT written until you confirm.
 
+## Edit History
+
+Track and restore changes made to your notes:
+
+- **Automatic tracking** - All AI edits (chat, workflow) and manual changes are recorded
+- **View history** - Command: "Show edit history" or use the command palette
+- **Diff view** - See exactly what changed with color-coded additions/deletions
+- **Restore** - Revert to any previous version with one click
+- **Resizable modal** - Drag to move, resize from corners
+
+**Diff display:**
+- `+` lines existed in the older version
+- `-` lines were added in the newer version
+
+**How it works:**
+
+Edit history uses a snapshot-based approach:
+
+1. **Snapshot creation** - When a file is first opened or modified by AI, a snapshot of its content is saved
+2. **Diff recording** - When the file is modified, the difference between the new content and the snapshot is recorded as a history entry
+3. **Snapshot update** - The snapshot is updated to the new content after each modification
+4. **Restore** - To restore to a previous version, diffs are applied in reverse from the snapshot
+
+**When history is recorded:**
+- AI chat edits (`propose_edit` tool)
+- Workflow note modifications (`note` node)
+- Manual saves via command
+- Auto-detection when file differs from snapshot on open
+
+**Storage location:**
+- History files: `{workspaceFolder}/history/{filename}.history.md`
+- Snapshot files: `{workspaceFolder}/history/{filename}.snapshot.md`
+
+**Settings:**
+- Enable/disable in plugin settings
+- Configure context lines for diffs
+- Set retention limits (max entries per file, max age)
+
+![Edit History Modal](edit_history.png)
+
 ## RAG
 
 Retrieval-Augmented Generation for intelligent vault search:
@@ -114,7 +155,7 @@ Retrieval-Augmented Generation for intelligent vault search:
 - **Target folders** - Specify folders to include
 - **Exclude patterns** - Regex patterns to exclude files
 
-![RAG Settings](setting_semantic_search.png)
+![RAG Settings](setting_rag.png)
 
 ---
 
@@ -172,7 +213,7 @@ Open the **Workflow** tab in the Gemini sidebar to run it.
 
 ## Available Node Types
 
-21 node types are available for building workflows:
+22 node types are available for building workflows:
 
 | Category | Nodes |
 |----------|-------|
@@ -185,7 +226,7 @@ Open the **Workflow** tab in the Gemini sidebar to run it.
 | Prompts | `prompt-file`, `prompt-selection`, `dialog` |
 | Composition | `workflow` |
 | RAG | `rag-sync` |
-| External | `mcp` |
+| External | `mcp`, `obsidian-command` |
 
 > **For detailed node specifications and examples, see [WORKFLOW_NODES.md](WORKFLOW_NODES.md)**
 
@@ -319,9 +360,15 @@ npm run build
 - **Workspace Folder** - Chat history and settings location
 - **System Prompt** - Additional AI instructions
 - **Tool Limits** - Control function call limits
-- **Slash Commands** - Define custom prompt templates
+- **Edit History** - Track and restore AI-made changes
 
-![Tool Limit & Slash Commands](setting_tool_limit_slash_command.png)
+![Tool Limits & Edit History](setting_tool_history.png)
+
+### Slash Commands
+- Define custom prompt templates triggered by `/`
+- Optional model and search override per command
+
+![Slash Commands](setting_slash_command.png)
 
 ## Usage
 

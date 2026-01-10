@@ -15,7 +15,7 @@ Dieses Dokument bietet detaillierte Spezifikationen fuer alle Workflow-Knotentyp
 | Eingaben | `prompt-file`, `prompt-selection`, `dialog` | Benutzereingabe-Dialoge |
 | Komposition | `workflow` | Einen anderen Workflow als Sub-Workflow ausfuehren |
 | RAG | `rag-sync` | Notizen mit RAG-Store synchronisieren |
-| Extern | `mcp` | Externe MCP-Server-Tools aufrufen |
+| Extern | `mcp`, `obsidian-command` | Externe MCP-Server oder Obsidian-Befehle aufrufen |
 
 ---
 
@@ -488,6 +488,59 @@ Ruft ein entferntes MCP (Model Context Protocol) Server-Tool ueber HTTP auf.
 | `saveTo` | Variablenname fuer das Ergebnis |
 
 **Anwendungsfall:** Ruft entfernte MCP-Server fuer RAG-Abfragen, Websuche, API-Integrationen usw. auf.
+
+### obsidian-command
+
+Fuehrt einen Obsidian-Befehl ueber seine ID aus. Dies ermoeglicht es Workflows, jeden Obsidian-Befehl auszuloesen, einschliesslich Befehle von anderen Plugins.
+
+```yaml
+- id: toggle-fold
+  type: obsidian-command
+  command: "editor:toggle-fold"
+  saveTo: result
+```
+
+| Eigenschaft | Beschreibung |
+|-------------|--------------|
+| `command` | Auszufuehrende Befehls-ID (erforderlich, unterstuetzt `{{variables}}`) |
+| `saveTo` | Variable zum Speichern des Ausfuehrungsergebnisses (optional) |
+
+**Befehls-IDs finden:**
+1. Obsidian-Einstellungen → Tastenkuerzel oeffnen
+2. Nach dem gewuenschten Befehl suchen
+3. Die Befehls-ID wird angezeigt (z.B. `editor:toggle-fold`, `app:reload`)
+
+**Haeufige Befehls-IDs:**
+| Befehls-ID | Beschreibung |
+|------------|--------------|
+| `editor:toggle-fold` | Faltung am Cursor umschalten |
+| `editor:fold-all` | Alle Ueberschriften falten |
+| `editor:unfold-all` | Alle Ueberschriften entfalten |
+| `app:reload` | Obsidian neu laden |
+| `workspace:close` | Aktuelles Panel schliessen |
+| `file-explorer:reveal-active-file` | Datei im Explorer anzeigen |
+
+**Beispiel: Workflow mit Plugin-Befehl**
+```yaml
+name: Arbeitsprotokoll Schreiben
+nodes:
+  - id: get-content
+    type: dialog
+    inputTitle: "Protokollinhalt eingeben"
+    multiline: true
+    saveTo: logContent
+  - id: copy-to-clipboard
+    type: set
+    name: "_clipboard"
+    value: "{{logContent.input}}"
+  - id: write-to-log
+    type: obsidian-command
+    command: "work-log:write-from-clipboard"
+```
+
+**Anwendungsfall:** Obsidian-Kernbefehle oder Befehle von anderen Plugins als Teil eines Workflows ausloesen.
+
+---
 
 **Beispiel: RAG-Abfrage mit ragujuary**
 

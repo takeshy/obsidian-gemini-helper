@@ -7,7 +7,8 @@
 ## Highlights
 
 - **KI-Chat** - Streaming-Antworten, Dateianhänge, Vault-Operationen, Slash-Befehle
-- **Workflow Builder** - Automatisieren Sie mehrstufige Aufgaben mit visuellem Node-Editor und 21 Node-Typen
+- **Workflow Builder** - Automatisieren Sie mehrstufige Aufgaben mit visuellem Node-Editor und 22 Node-Typen
+- **Bearbeitungsverlauf** - Verfolgen und Wiederherstellen von KI-Änderungen mit Diff-Ansicht
 - **RAG** - Retrieval-Augmented Generation für intelligente Suche in Ihrem Vault
 - **Websuche** - Zugriff auf aktuelle Informationen über Google Search
 - **Bilderzeugung** - Erstellen Sie Bilder mit Gemini-Bildmodellen
@@ -103,6 +104,46 @@ Wenn die KI `propose_edit` verwendet:
 
 > Änderungen werden NICHT geschrieben, bis Sie bestätigen.
 
+## Bearbeitungsverlauf
+
+Verfolgen und Wiederherstellen von Änderungen an Ihren Notizen:
+
+- **Automatische Verfolgung** - Alle KI-Bearbeitungen (Chat, Workflow) und manuelle Änderungen werden aufgezeichnet
+- **Verlauf anzeigen** - Befehl: "Show edit history" oder verwenden Sie die Befehlspalette
+- **Diff-Ansicht** - Sehen Sie genau, was sich geändert hat, mit farbcodierten Hinzufügungen/Löschungen
+- **Wiederherstellen** - Mit einem Klick zu jeder früheren Version zurückkehren
+- **Größenveränderbares Modal** - Ziehen zum Verschieben, Größe an den Ecken ändern
+
+**Diff-Anzeige:**
+- `+` Zeilen existierten in der älteren Version
+- `-` Zeilen wurden in der neueren Version hinzugefügt
+
+**So funktioniert es:**
+
+Der Bearbeitungsverlauf verwendet einen Snapshot-basierten Ansatz:
+
+1. **Snapshot-Erstellung** - Wenn eine Datei zum ersten Mal geöffnet oder von der KI geändert wird, wird ein Snapshot ihres Inhalts gespeichert
+2. **Diff-Aufzeichnung** - Wenn die Datei geändert wird, wird der Unterschied zwischen dem neuen Inhalt und dem Snapshot als Verlaufseintrag aufgezeichnet
+3. **Snapshot-Aktualisierung** - Der Snapshot wird nach jeder Änderung auf den neuen Inhalt aktualisiert
+4. **Wiederherstellen** - Um zu einer früheren Version zurückzukehren, werden Diffs vom Snapshot rückwärts angewendet
+
+**Wann wird der Verlauf aufgezeichnet:**
+- KI-Chat-Bearbeitungen (`propose_edit`-Tool)
+- Workflow-Notizänderungen (`note`-Node)
+- Manuelle Speicherungen über Befehl
+- Auto-Erkennung, wenn die Datei beim Öffnen vom Snapshot abweicht
+
+**Speicherort:**
+- Verlaufsdateien: `{workspaceFolder}/history/{filename}.history.md`
+- Snapshot-Dateien: `{workspaceFolder}/history/{filename}.snapshot.md`
+
+**Einstellungen:**
+- Aktivieren/Deaktivieren in den Plugin-Einstellungen
+- Kontextzeilen für Diffs konfigurieren
+- Aufbewahrungslimits festlegen (max. Einträge pro Datei, maximales Alter)
+
+![Bearbeitungsverlauf-Modal](edit_history.png)
+
 ## RAG
 
 Retrieval-Augmented Generation für intelligente Vault-Suche:
@@ -114,7 +155,7 @@ Retrieval-Augmented Generation für intelligente Vault-Suche:
 - **Zielordner** - Ordner zum Einschließen angeben
 - **Ausschlussmuster** - Regex-Muster zum Ausschließen von Dateien
 
-![RAG-Einstellungen](setting_semantic_search.png)
+![RAG-Einstellungen](setting_rag.png)
 
 ---
 
@@ -172,7 +213,7 @@ nodes:
 
 ## Verfügbare Node-Typen
 
-21 Node-Typen stehen für die Workflow-Erstellung zur Verfügung:
+22 Node-Typen stehen für die Workflow-Erstellung zur Verfügung:
 
 | Kategorie | Nodes |
 |-----------|-------|
@@ -185,7 +226,7 @@ nodes:
 | Eingaben | `prompt-file`, `prompt-selection`, `dialog` |
 | Komposition | `workflow` |
 | RAG | `rag-sync` |
-| Extern | `mcp` |
+| Extern | `mcp`, `obsidian-command` |
 
 > **Für detaillierte Node-Spezifikationen und Beispiele siehe [WORKFLOW_NODES_de.md](WORKFLOW_NODES_de.md)**
 
@@ -319,9 +360,15 @@ npm run build
 - **Workspace Folder** - Speicherort für Chat-Verlauf und Einstellungen
 - **System Prompt** - Zusätzliche KI-Anweisungen
 - **Tool Limits** - Steuerung der Function-Call-Limits
-- **Slash Commands** - Benutzerdefinierte Prompt-Vorlagen definieren
+- **Edit History** - Verfolgen und Wiederherstellen von KI-Änderungen
 
-![Tool-Limit & Slash-Befehle](setting_tool_limit_slash_command.png)
+![Tool-Limits & Bearbeitungsverlauf](setting_tool_history.png)
+
+### Slash-Befehle
+- Benutzerdefinierte Prompt-Vorlagen definieren, die mit `/` ausgelöst werden
+- Optionale Modell- und Suchüberschreibung pro Befehl
+
+![Slash-Befehle](setting_slash_command.png)
 
 ## Verwendung
 

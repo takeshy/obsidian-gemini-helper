@@ -15,7 +15,7 @@ Este documento proporciona especificaciones detalladas para todos los tipos de n
 | Prompts | `prompt-file`, `prompt-selection`, `dialog` | Dialogos de entrada de usuario |
 | Composicion | `workflow` | Ejecutar otro workflow como sub-workflow |
 | RAG | `rag-sync` | Sincronizar notas al almacen RAG |
-| Externo | `mcp` | Llamar herramientas de servidor MCP externo |
+| Externo | `mcp`, `obsidian-command` | Llamar servidores MCP externos o comandos de Obsidian |
 
 ---
 
@@ -488,6 +488,59 @@ Llama a una herramienta de servidor MCP (Model Context Protocol) remoto via HTTP
 | `saveTo` | Nombre de variable para el resultado |
 
 **Caso de uso:** Llamar servidores MCP remotos para consultas RAG, busqueda web, integraciones API, etc.
+
+### obsidian-command
+
+Ejecuta un comando de Obsidian por su ID. Esto permite que los workflows activen cualquier comando de Obsidian, incluyendo comandos de otros plugins.
+
+```yaml
+- id: toggle-fold
+  type: obsidian-command
+  command: "editor:toggle-fold"
+  saveTo: result
+```
+
+| Propiedad | Descripcion |
+|----------|-------------|
+| `command` | ID del comando a ejecutar (requerido, soporta `{{variables}}`) |
+| `saveTo` | Variable para almacenar el resultado de la ejecucion (opcional) |
+
+**Encontrar IDs de comandos:**
+1. Abrir Configuracion de Obsidian → Teclas de acceso rapido
+2. Buscar el comando deseado
+3. El ID del comando se muestra (ej., `editor:toggle-fold`, `app:reload`)
+
+**IDs de comandos comunes:**
+| ID del Comando | Descripcion |
+|----------------|-------------|
+| `editor:toggle-fold` | Alternar plegado en el cursor |
+| `editor:fold-all` | Plegar todos los encabezados |
+| `editor:unfold-all` | Desplegar todos los encabezados |
+| `app:reload` | Recargar Obsidian |
+| `workspace:close` | Cerrar panel actual |
+| `file-explorer:reveal-active-file` | Revelar archivo en el explorador |
+
+**Ejemplo: Workflow con comando de plugin**
+```yaml
+name: Escribir Registro de Trabajo
+nodes:
+  - id: get-content
+    type: dialog
+    inputTitle: "Ingrese contenido del registro"
+    multiline: true
+    saveTo: logContent
+  - id: copy-to-clipboard
+    type: set
+    name: "_clipboard"
+    value: "{{logContent.input}}"
+  - id: write-to-log
+    type: obsidian-command
+    command: "work-log:write-from-clipboard"
+```
+
+**Caso de uso:** Activar comandos principales de Obsidian o comandos de otros plugins como parte de un workflow.
+
+---
 
 **Ejemplo: Consulta RAG con ragujuary**
 

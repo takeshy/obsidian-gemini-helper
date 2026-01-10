@@ -16,6 +16,7 @@ import {
   DEFAULT_MODEL,
   DEFAULT_SETTINGS,
   DEFAULT_CLI_CONFIG,
+  DEFAULT_EDIT_HISTORY_SETTINGS,
   getAvailableModels,
   isModelAllowedForPlan,
   type ApiPlan,
@@ -23,6 +24,7 @@ import {
   type SlashCommand,
   type ModelType,
 } from "src/types";
+import { getEditHistoryManager } from "src/core/editHistory";
 import { Platform } from "obsidian";
 
 // Modal for creating/renaming RAG settings
@@ -558,6 +560,9 @@ export class SettingsTab extends PluginSettingTab {
           })
       );
 
+    // Edit history settings
+    this.displayEditHistorySettings(containerEl);
+
     // Slash commands settings
     new Setting(containerEl).setName(t("settings.slashCommands")).setHeading();
 
@@ -975,6 +980,169 @@ export class SettingsTab extends PluginSettingTab {
       statusEl.createEl("strong", { text: t("common.error") });
       statusEl.createSpan({ text: String(err) });
     }
+  }
+
+  private displayEditHistorySettings(containerEl: HTMLElement): void {
+    new Setting(containerEl).setName(t("settings.editHistory")).setHeading();
+
+    // Ensure editHistory settings exist
+    if (!this.plugin.settings.editHistory) {
+      this.plugin.settings.editHistory = { ...DEFAULT_EDIT_HISTORY_SETTINGS };
+    }
+
+    const editHistory = this.plugin.settings.editHistory;
+
+    // Enable/Disable toggle
+    new Setting(containerEl)
+      .setName(t("settings.editHistoryEnabled"))
+      .setDesc(t("settings.editHistoryEnabled.desc"))
+      .addToggle((toggle) =>
+        toggle
+          .setValue(editHistory.enabled)
+          .onChange((value) => {
+            void (async () => {
+              this.plugin.settings.editHistory.enabled = value;
+              await this.plugin.saveSettings();
+              this.display();
+            })();
+          })
+      );
+
+    if (!editHistory.enabled) {
+      return;
+    }
+
+    // Retention settings
+    const retentionDesc = containerEl.createDiv({ cls: "setting-item-description gemini-helper-settings-subheading" });
+    retentionDesc.textContent = t("settings.editHistoryRetention");
+
+    new Setting(containerEl)
+      .setName(t("settings.editHistoryMaxAge"))
+      .setDesc(t("settings.editHistoryMaxAge.desc"))
+      .addText((text) =>
+        text
+          .setValue(String(editHistory.retention.maxAgeInDays))
+          .onChange((value) => {
+            void (async () => {
+              const num = parseInt(value, 10);
+              if (!isNaN(num) && num >= 0) {
+                this.plugin.settings.editHistory.retention.maxAgeInDays = num;
+                await this.plugin.saveSettings();
+              }
+            })();
+          })
+      )
+      .addExtraButton((btn) =>
+        btn
+          .setIcon("reset")
+          .setTooltip(t("settings.resetToDefault", { value: String(DEFAULT_EDIT_HISTORY_SETTINGS.retention.maxAgeInDays) }))
+          .onClick(() => {
+            void (async () => {
+              this.plugin.settings.editHistory.retention.maxAgeInDays = DEFAULT_EDIT_HISTORY_SETTINGS.retention.maxAgeInDays;
+              await this.plugin.saveSettings();
+              this.display();
+            })();
+          })
+      );
+
+    new Setting(containerEl)
+      .setName(t("settings.editHistoryMaxEntries"))
+      .setDesc(t("settings.editHistoryMaxEntries.desc"))
+      .addText((text) =>
+        text
+          .setValue(String(editHistory.retention.maxEntriesPerFile))
+          .onChange((value) => {
+            void (async () => {
+              const num = parseInt(value, 10);
+              if (!isNaN(num) && num >= 0) {
+                this.plugin.settings.editHistory.retention.maxEntriesPerFile = num;
+                await this.plugin.saveSettings();
+              }
+            })();
+          })
+      )
+      .addExtraButton((btn) =>
+        btn
+          .setIcon("reset")
+          .setTooltip(t("settings.resetToDefault", { value: String(DEFAULT_EDIT_HISTORY_SETTINGS.retention.maxEntriesPerFile) }))
+          .onClick(() => {
+            void (async () => {
+              this.plugin.settings.editHistory.retention.maxEntriesPerFile = DEFAULT_EDIT_HISTORY_SETTINGS.retention.maxEntriesPerFile;
+              await this.plugin.saveSettings();
+              this.display();
+            })();
+          })
+      );
+
+    new Setting(containerEl)
+      .setName(t("settings.editHistoryContextLines"))
+      .setDesc(t("settings.editHistoryContextLines.desc"))
+      .addSlider((slider) =>
+        slider
+          .setLimits(0, 10, 1)
+          .setValue(editHistory.diff.contextLines)
+          .setDynamicTooltip()
+          .onChange((value) => {
+            void (async () => {
+              this.plugin.settings.editHistory.diff.contextLines = value;
+              await this.plugin.saveSettings();
+            })();
+          })
+      )
+      .addExtraButton((btn) =>
+        btn
+          .setIcon("reset")
+          .setTooltip(t("settings.resetToDefault", { value: String(DEFAULT_EDIT_HISTORY_SETTINGS.diff.contextLines) }))
+          .onClick(() => {
+            void (async () => {
+              this.plugin.settings.editHistory.diff.contextLines = DEFAULT_EDIT_HISTORY_SETTINGS.diff.contextLines;
+              await this.plugin.saveSettings();
+              this.display();
+            })();
+          })
+      );
+
+    // Prune and Stats buttons
+    new Setting(containerEl)
+      .addButton((btn) =>
+        btn
+          .setButtonText(t("settings.editHistoryPrune"))
+          .onClick(() => {
+            void (async () => {
+              const manager = getEditHistoryManager();
+              if (!manager) {
+                new Notice("Edit history manager not initialized");
+                return;
+              }
+              const result = await manager.prune();
+              new Notice(t("settings.editHistoryPruned", { count: String(result.deletedCount) }));
+            })();
+          })
+      )
+      .addButton((btn) =>
+        btn
+          .setButtonText(t("settings.editHistoryViewStats"))
+          .onClick(() => {
+            void (async () => {
+              const manager = getEditHistoryManager();
+              if (!manager) {
+                new Notice("Edit history manager not initialized");
+                return;
+              }
+              const stats = await manager.getStats();
+              const sizeStr = stats.totalSizeBytes < 1024
+                ? `${stats.totalSizeBytes}B`
+                : stats.totalSizeBytes < 1024 * 1024
+                  ? `${(stats.totalSizeBytes / 1024).toFixed(1)}KB`
+                  : `${(stats.totalSizeBytes / 1024 / 1024).toFixed(1)}MB`;
+              new Notice(t("settings.editHistoryStats", {
+                files: String(stats.totalFiles),
+                entries: String(stats.totalEntries),
+                size: sizeStr,
+              }));
+            })();
+          })
+      );
   }
 
   private displayRagSettings(containerEl: HTMLElement): void {

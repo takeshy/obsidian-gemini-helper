@@ -7,7 +7,8 @@ Assistente AI **gratuito e open-source** per Obsidian con **Chat**, **Automazion
 ## Caratteristiche Principali
 
 - **Chat AI** - Risposte in streaming, allegati, operazioni sul vault, comandi slash
-- **Workflow Builder** - Automatizza attività multi-step con editor visuale e 21 tipi di nodi
+- **Workflow Builder** - Automatizza attività multi-step con editor visuale e 22 tipi di nodi
+- **Cronologia Modifiche** - Traccia e ripristina le modifiche fatte dall'AI con vista diff
 - **RAG** - Retrieval-Augmented Generation per ricerca intelligente nel tuo vault
 - **Ricerca Web** - Accedi a informazioni aggiornate tramite Google Search
 - **Generazione di Immagini** - Crea immagini con i modelli Gemini
@@ -103,6 +104,46 @@ Quando l'AI usa `propose_edit`:
 
 > Le modifiche NON vengono scritte finché non confermi.
 
+## Cronologia Modifiche
+
+Traccia e ripristina le modifiche apportate alle tue note:
+
+- **Tracciamento automatico** - Tutte le modifiche AI (chat, workflow) e le modifiche manuali vengono registrate
+- **Visualizza cronologia** - Comando: "Show edit history" o usa la palette comandi
+- **Vista diff** - Vedi esattamente cosa è cambiato con aggiunte/eliminazioni colorate
+- **Ripristina** - Torna a qualsiasi versione precedente con un clic
+- **Modale ridimensionabile** - Trascina per spostare, ridimensiona dagli angoli
+
+**Visualizzazione diff:**
+- Le righe `+` esistevano nella versione precedente
+- Le righe `-` sono state aggiunte nella versione più recente
+
+**Come funziona:**
+
+La cronologia modifiche usa un approccio basato su snapshot:
+
+1. **Creazione snapshot** - Quando un file viene aperto per la prima volta o modificato dall'AI, viene salvato uno snapshot del suo contenuto
+2. **Registrazione diff** - Quando il file viene modificato, la differenza tra il nuovo contenuto e lo snapshot viene registrata come voce della cronologia
+3. **Aggiornamento snapshot** - Lo snapshot viene aggiornato al nuovo contenuto dopo ogni modifica
+4. **Ripristino** - Per ripristinare una versione precedente, i diff vengono applicati al contrario dallo snapshot
+
+**Quando viene registrata la cronologia:**
+- Modifiche chat AI (strumento `propose_edit`)
+- Modifiche note workflow (nodo `note`)
+- Salvataggi manuali tramite comando
+- Auto-rilevamento quando il file differisce dallo snapshot all'apertura
+
+**Posizione di archiviazione:**
+- File cronologia: `{workspaceFolder}/history/{filename}.history.md`
+- File snapshot: `{workspaceFolder}/history/{filename}.snapshot.md`
+
+**Impostazioni:**
+- Abilita/disabilita nelle impostazioni del plugin
+- Configura le righe di contesto per i diff
+- Imposta i limiti di conservazione (max voci per file, età massima)
+
+![Modale Cronologia Modifiche](edit_history.png)
+
 ## RAG
 
 Retrieval-Augmented Generation per ricerca intelligente nel vault:
@@ -114,7 +155,7 @@ Retrieval-Augmented Generation per ricerca intelligente nel vault:
 - **Cartelle target** - Specifica le cartelle da includere
 - **Pattern di esclusione** - Pattern regex per escludere file
 
-![Impostazioni RAG](setting_semantic_search.png)
+![Impostazioni RAG](setting_rag.png)
 
 ---
 
@@ -172,7 +213,7 @@ Apri la scheda **Workflow** nella sidebar di Gemini per eseguirlo.
 
 ## Tipi di Nodo Disponibili
 
-21 tipi di nodo sono disponibili per costruire workflow:
+22 tipi di nodo sono disponibili per costruire workflow:
 
 | Categoria | Nodi |
 |-----------|------|
@@ -185,7 +226,7 @@ Apri la scheda **Workflow** nella sidebar di Gemini per eseguirlo.
 | Prompt | `prompt-file`, `prompt-selection`, `dialog` |
 | Composizione | `workflow` |
 | RAG | `rag-sync` |
-| Esterni | `mcp` |
+| Esterni | `mcp`, `obsidian-command` |
 
 > **Per specifiche dettagliate sui nodi ed esempi, consulta [WORKFLOW_NODES.md](WORKFLOW_NODES_it.md)**
 
@@ -319,9 +360,15 @@ npm run build
 - **Workspace Folder** - Posizione della cronologia chat e impostazioni
 - **System Prompt** - Istruzioni aggiuntive per l'AI
 - **Tool Limits** - Controlla i limiti delle function call
-- **Slash Commands** - Definisci template di prompt personalizzati
+- **Edit History** - Traccia e ripristina le modifiche fatte dall'AI
 
-![Tool Limit & Slash Commands](setting_tool_limit_slash_command.png)
+![Limiti Strumenti e Cronologia Modifiche](setting_tool_history.png)
+
+### Comandi Slash
+- Definisci template di prompt personalizzati attivati con `/`
+- Override opzionale di modello e ricerca per comando
+
+![Comandi Slash](setting_slash_command.png)
 
 ## Utilizzo
 

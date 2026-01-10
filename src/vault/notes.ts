@@ -1,6 +1,7 @@
 import { TFile, TFolder, type App } from "obsidian";
 import { formatError } from "src/utils/error";
 import { DEFAULT_SETTINGS } from "src/types";
+import { getEditHistoryManager } from "src/core/editHistory";
 
 export interface NoteInfo {
   path: string;
@@ -317,6 +318,7 @@ export interface PendingEdit {
   originalContent: string;  // 元の内容（復元用）
   newContent: string;       // 提案された新しい内容
   createdAt: number;
+  model?: string;           // 使用したモデル（履歴用）
 }
 
 let pendingEdit: PendingEdit | null = null;
@@ -333,7 +335,8 @@ export async function proposeEdit(
   fileName?: string,
   activeNote?: boolean,
   newContent?: string,
-  mode: "replace" | "append" | "prepend" = "replace"
+  mode: "replace" | "append" | "prepend" = "replace",
+  model?: string
 ): Promise<{ success: boolean; originalPath?: string; error?: string; message?: string }> {
   let file: TFile | null = null;
 
@@ -386,6 +389,7 @@ export async function proposeEdit(
       originalContent,
       newContent: finalContent,
       createdAt: Date.now(),
+      model,
     };
 
     return {
@@ -422,6 +426,19 @@ export async function applyEdit(
         success: false,
         error: `File "${path}" no longer exists.`,
       };
+    }
+
+    // Save edit history before writing
+    const historyManager = getEditHistoryManager();
+    if (historyManager) {
+      // Ensure snapshot exists before modification
+      await historyManager.ensureSnapshot(pendingEdit.originalPath);
+      await historyManager.saveEdit({
+        path: pendingEdit.originalPath,
+        modifiedContent: pendingEdit.newContent,
+        source: "propose_edit",
+        model: pendingEdit.model,
+      });
     }
 
     // Write the new content to file
@@ -585,6 +602,7 @@ export interface BulkEditItem {
   originalContent: string;
   newContent: string;
   mode: "replace" | "append" | "prepend";
+  model?: string;
 }
 
 export interface PendingBulkEdit {
@@ -672,6 +690,7 @@ export async function applyBulkEdit(
 
   const applied: string[] = [];
   const failed: string[] = [];
+  const historyManager = getEditHistoryManager();
 
   for (const item of pendingBulkEdit.items) {
     if (!selectedPaths.includes(item.path)) {
@@ -681,6 +700,17 @@ export async function applyBulkEdit(
     try {
       const file = app.vault.getAbstractFileByPath(item.path);
       if (file instanceof TFile) {
+        // Save edit history before writing
+        if (historyManager) {
+          await historyManager.ensureSnapshot(item.path);
+          await historyManager.saveEdit({
+            path: item.path,
+            modifiedContent: item.newContent,
+            source: "propose_edit",
+            model: item.model,
+          });
+        }
+
         await app.vault.modify(file, item.newContent);
         applied.push(item.path);
       } else {

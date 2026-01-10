@@ -15,7 +15,7 @@
 | 프롬프트 | `prompt-file`, `prompt-selection`, `dialog` | 사용자 입력 다이얼로그 |
 | 구성 | `workflow` | 다른 워크플로우를 서브 워크플로우로 실행 |
 | RAG | `rag-sync` | 노트를 RAG 저장소에 동기화 |
-| 외부 | `mcp` | 외부 MCP 서버 도구 호출 |
+| 외부 | `mcp`, `obsidian-command` | 외부 MCP 서버 또는 Obsidian 명령 호출 |
 
 ---
 
@@ -488,6 +488,59 @@ HTTP를 통해 원격 MCP (Model Context Protocol) 서버 도구를 호출합니
 | `saveTo` | 결과를 저장할 변수 이름 |
 
 **사용 사례:** RAG 쿼리, 웹 검색, API 통합 등을 위한 원격 MCP 서버 호출.
+
+### obsidian-command
+
+ID로 Obsidian 명령을 실행합니다. 이를 통해 워크플로우가 다른 플러그인의 명령을 포함한 모든 Obsidian 명령을 트리거할 수 있습니다.
+
+```yaml
+- id: toggle-fold
+  type: obsidian-command
+  command: "editor:toggle-fold"
+  saveTo: result
+```
+
+| 속성 | 설명 |
+|----------|-------------|
+| `command` | 실행할 명령 ID (필수, `{{variables}}` 지원) |
+| `saveTo` | 실행 결과를 저장할 변수 (선택 사항) |
+
+**명령 ID 찾기:**
+1. Obsidian 설정 → 단축키 열기
+2. 원하는 명령 검색
+3. 명령 ID가 표시됨 (예: `editor:toggle-fold`, `app:reload`)
+
+**일반적인 명령 ID:**
+| 명령 ID | 설명 |
+|------------|-------------|
+| `editor:toggle-fold` | 커서 위치에서 접기 토글 |
+| `editor:fold-all` | 모든 제목 접기 |
+| `editor:unfold-all` | 모든 제목 펼치기 |
+| `app:reload` | Obsidian 다시 로드 |
+| `workspace:close` | 현재 패널 닫기 |
+| `file-explorer:reveal-active-file` | 탐색기에서 파일 표시 |
+
+**예시: 플러그인 명령을 사용한 워크플로우**
+```yaml
+name: 작업 로그 작성
+nodes:
+  - id: get-content
+    type: dialog
+    inputTitle: "로그 내용 입력"
+    multiline: true
+    saveTo: logContent
+  - id: copy-to-clipboard
+    type: set
+    name: "_clipboard"
+    value: "{{logContent.input}}"
+  - id: write-to-log
+    type: obsidian-command
+    command: "work-log:write-from-clipboard"
+```
+
+**사용 사례:** 워크플로우의 일부로 Obsidian 코어 명령 또는 다른 플러그인의 명령을 트리거.
+
+---
 
 **예시: ragujuary를 사용한 RAG 쿼리**
 

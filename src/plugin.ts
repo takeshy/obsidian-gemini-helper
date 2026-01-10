@@ -33,9 +33,15 @@ import {
   type SyncResult,
 } from "src/core/fileSearch";
 import { initCliProviderManager } from "src/core/cliProvider";
+import {
+  initEditHistoryManager,
+  resetEditHistoryManager,
+  getEditHistoryManager,
+} from "src/core/editHistory";
+import { EditHistoryModal } from "src/ui/components/EditHistoryModal";
 import { formatError } from "src/utils/error";
-import { DEFAULT_CLI_CONFIG, hasVerifiedCli } from "src/types";
-import { initLocale } from "src/i18n";
+import { DEFAULT_CLI_CONFIG, DEFAULT_EDIT_HISTORY_SETTINGS, hasVerifiedCli } from "src/types";
+import { initLocale, t } from "src/i18n";
 
 const WORKSPACE_STATE_FILENAME = "gemini-workspace.json";
 const OLD_WORKSPACE_STATE_FILENAME = ".gemini-workspace.json";
@@ -192,12 +198,105 @@ export class GeminiHelperPlugin extends Plugin {
         void this.syncVaultForRAG();
       },
     });
+
+    // Add command to show edit history
+    this.addCommand({
+      id: "show-edit-history",
+      name: t("command.showEditHistory"),
+      checkCallback: (checking: boolean) => {
+        const activeFile = this.app.workspace.getActiveFile();
+        if (activeFile) {
+          if (!checking) {
+            new EditHistoryModal(this.app, activeFile.path).open();
+          }
+          return true;
+        }
+        return false;
+      },
+    });
+
+    // Add command to restore previous version
+    this.addCommand({
+      id: "restore-previous-version",
+      name: t("command.restorePreviousVersion"),
+      checkCallback: (checking: boolean) => {
+        const activeFile = this.app.workspace.getActiveFile();
+        if (activeFile) {
+          if (!checking) {
+            void this.restorePreviousVersion(activeFile.path);
+          }
+          return true;
+        }
+        return false;
+      },
+    });
+
+    // Register file events for edit history
+    this.registerEvent(
+      this.app.vault.on("rename", (file, oldPath) => {
+        if (file instanceof TFile && file.extension === "md") {
+          const historyManager = getEditHistoryManager();
+          if (historyManager) {
+            void historyManager.handleFileRename(oldPath, file.path);
+          }
+        }
+      })
+    );
+
+    this.registerEvent(
+      this.app.vault.on("delete", (file) => {
+        if (file instanceof TFile && file.extension === "md") {
+          const historyManager = getEditHistoryManager();
+          if (historyManager) {
+            void historyManager.handleFileDelete(file.path);
+          }
+        }
+      })
+    );
+
+    // Initialize snapshot when a file is opened (for edit history)
+    this.registerEvent(
+      this.app.workspace.on("file-open", (file) => {
+        if (file instanceof TFile && file.extension === "md") {
+          const historyManager = getEditHistoryManager();
+          if (historyManager) {
+            void historyManager.initSnapshot(file.path);
+          }
+        }
+      })
+    );
+
+  }
+
+  private async restorePreviousVersion(filePath: string): Promise<void> {
+    const historyManager = getEditHistoryManager();
+    if (!historyManager) {
+      new Notice("Edit history manager not initialized");
+      return;
+    }
+
+    const history = await historyManager.getHistory(filePath);
+    if (history.length === 0) {
+      new Notice(t("editHistoryModal.noHistory"));
+      return;
+    }
+
+    // Get the most recent entry and restore to before that change
+    const lastEntry = history[history.length - 1];
+    const confirmed = confirm(t("editHistoryModal.confirmRestore"));
+    if (confirmed) {
+      await historyManager.restoreTo(filePath, lastEntry.id);
+      const date = new Date(lastEntry.timestamp);
+      const timeStr = date.toLocaleString();
+      new Notice(t("editHistoryModal.restored", { timestamp: timeStr }));
+    }
   }
 
   onunload(): void {
     this.clearSelectionHighlight();
     resetGeminiClient();
     resetFileSearchManager();
+    resetEditHistoryManager();
 
     // Clean up debounce timers
     for (const timer of this.modifyDebounceTimers.values()) {
@@ -217,6 +316,19 @@ export class GeminiHelperPlugin extends Plugin {
       slashCommands: loaded.slashCommands
         ? [...loaded.slashCommands]
         : [...DEFAULT_SETTINGS.slashCommands],
+      // Deep merge editHistory settings
+      editHistory: {
+        ...DEFAULT_EDIT_HISTORY_SETTINGS,
+        ...(loaded.editHistory ?? {}),
+        retention: {
+          ...DEFAULT_EDIT_HISTORY_SETTINGS.retention,
+          ...(loaded.editHistory?.retention ?? {}),
+        },
+        diff: {
+          ...DEFAULT_EDIT_HISTORY_SETTINGS.diff,
+          ...(loaded.editHistory?.diff ?? {}),
+        },
+      },
     };
   }
 
@@ -1159,6 +1271,10 @@ export class GeminiHelperPlugin extends Plugin {
 
     // Initialize CLI provider manager
     initCliProviderManager();
+
+    // Initialize edit history manager
+    const editHistorySettings = this.settings.editHistory || DEFAULT_EDIT_HISTORY_SETTINGS;
+    initEditHistoryManager(this.app, this.settings.workspaceFolder, editHistorySettings);
 
     // Sync FileSearchManager with selected RAG setting
     this.syncFileSearchManagerWithSelectedRag();

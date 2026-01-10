@@ -353,6 +353,64 @@ export const en = {
 
   // Dialog Prompt Modal (titles passed dynamically)
 
+  // Edit History
+  "settings.editHistory": "Edit history",
+  "settings.editHistoryEnabled": "Enable edit history",
+  "settings.editHistoryEnabled.desc": "Track changes made by AI to your notes (unified diff format)",
+  "settings.editHistoryRetention": "Retention",
+  "settings.editHistoryMaxAge": "Max age (days)",
+  "settings.editHistoryMaxAge.desc": "Delete entries older than this (0 = unlimited)",
+  "settings.editHistoryMaxEntries": "Max entries per file",
+  "settings.editHistoryMaxEntries.desc": "Limit entries per file (0 = unlimited)",
+  "settings.editHistoryContextLines": "Context lines",
+  "settings.editHistoryContextLines.desc": "Number of context lines in diff",
+  "settings.editHistoryPrune": "Prune old entries",
+  "settings.editHistoryViewStats": "View stats",
+  "settings.editHistoryPruned": "Pruned {{count}} old entries",
+  "settings.editHistoryStats": "{{files}} files, {{entries}} entries, {{size}}",
+
+  // Edit History Modal
+  "editHistoryModal.title": "Edit History: {{file}}",
+  "editHistoryModal.unsavedChanges": "Unsaved Changes",
+  "editHistoryModal.current": "Current",
+  "editHistoryModal.original": "(Original - no history)",
+  "editHistoryModal.workflow": "workflow",
+  "editHistoryModal.proposeEdit": "propose_edit",
+  "editHistoryModal.diff": "Diff",
+  "editHistoryModal.restore": "Restore",
+  "editHistoryModal.clearAll": "Clear History",
+  "editHistoryModal.entriesCount": "{{count}} entries",
+  "editHistoryModal.noHistory": "No edit history for this file",
+  "editHistoryModal.confirmClear": "Clear history?",
+  "editHistoryModal.confirmRestore": "Restore this version? Current content will be overwritten.",
+  "editHistoryModal.restored": "Restored to version from {{timestamp}}",
+  "editHistoryModal.cleared": "History cleared",
+  "editHistoryModal.revertToBase": "Revert to Base",
+  "editHistoryModal.confirmRevertToBase": "Revert to base snapshot? Unsaved changes will be discarded.",
+  "editHistoryModal.revertedToBase": "Reverted to base snapshot",
+  "editHistoryModal.close": "Close",
+
+  // Diff Modal
+  "diffModal.title": "Diff: {{timestamp}} - {{source}}",
+  "diffModal.restoreVersion": "Restore This Version",
+  "diffModal.close": "Close",
+  "diffModal.additions": "+{{count}}",
+  "diffModal.deletions": "-{{count}}",
+
+  // Edit History Buttons
+  "editHistory.showHistory": "Show edit history",
+  "editHistory.saveSnapshot": "Save snapshot",
+  "editHistory.noActiveFile": "No active file",
+  "editHistory.notInitialized": "Edit history not initialized",
+  "editHistory.saved": "Snapshot saved",
+  "editHistory.noChanges": "No changes to save",
+  "editHistoryModal.manual": "manual",
+  "editHistoryModal.auto": "auto",
+
+  // Commands
+  "command.showEditHistory": "Show Edit History",
+  "command.restorePreviousVersion": "Restore Previous Version",
+
   // Errors
   "error.failedToCreate": "Failed to create: {{error}}",
   "error.failedToRename": "Failed to rename: {{error}}",

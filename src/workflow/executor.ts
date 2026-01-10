@@ -181,7 +181,7 @@ export class WorkflowExecutor {
           }
 
           case "set": {
-            handleSetNode(node, context);
+            await handleSetNode(node, context);
             const setVarName = node.properties["name"];
             const setVarValue = context.variables.get(setVarName);
             log(

@@ -7,7 +7,8 @@ Assistente de IA **gratuito e open-source** para Obsidian com **Chat**, **Automa
 ## Destaques
 
 - **Chat com IA** - Respostas em streaming, anexos de arquivos, operações no vault, comandos de barra
-- **Construtor de Workflows** - Automatize tarefas de múltiplas etapas com editor visual de nós e 21 tipos de nós
+- **Construtor de Workflows** - Automatize tarefas de múltiplas etapas com editor visual de nós e 22 tipos de nós
+- **Histórico de Edições** - Rastreie e restaure alterações feitas pela IA com visualização de diff
 - **RAG** - Geração Aumentada por Recuperação para busca inteligente em seu vault
 - **Busca na Web** - Acesse informações atualizadas via Google Search
 - **Geração de Imagens** - Crie imagens com modelos de imagem do Gemini
@@ -103,6 +104,46 @@ Quando a IA usa `propose_edit`:
 
 > As alterações NÃO são gravadas até você confirmar.
 
+## Histórico de Edições
+
+Rastreie e restaure alterações feitas em suas notas:
+
+- **Rastreamento automático** - Todas as edições de IA (chat, workflow) e alterações manuais são registradas
+- **Ver histórico** - Comando: "Show edit history" ou use a paleta de comandos
+- **Visualização de diff** - Veja exatamente o que mudou com adições/exclusões coloridas
+- **Restaurar** - Reverta para qualquer versão anterior com um clique
+- **Modal redimensionável** - Arraste para mover, redimensione pelos cantos
+
+**Exibição de diff:**
+- Linhas `+` existiam na versão anterior
+- Linhas `-` foram adicionadas na versão mais nova
+
+**Como funciona:**
+
+O histórico de edições usa uma abordagem baseada em snapshots:
+
+1. **Criação do snapshot** - Quando um arquivo é aberto pela primeira vez ou modificado pela IA, um snapshot de seu conteúdo é salvo
+2. **Registro de diff** - Quando o arquivo é modificado, a diferença entre o novo conteúdo e o snapshot é registrada como uma entrada de histórico
+3. **Atualização do snapshot** - O snapshot é atualizado para o novo conteúdo após cada modificação
+4. **Restaurar** - Para restaurar para uma versão anterior, os diffs são aplicados em reverso a partir do snapshot
+
+**Quando o histórico é registrado:**
+- Edições de chat da IA (ferramenta `propose_edit`)
+- Modificações de notas de workflow (nó `note`)
+- Salvamentos manuais via comando
+- Auto-detecção quando o arquivo difere do snapshot ao abrir
+
+**Local de armazenamento:**
+- Arquivos de histórico: `{workspaceFolder}/history/{filename}.history.md`
+- Arquivos de snapshot: `{workspaceFolder}/history/{filename}.snapshot.md`
+
+**Configurações:**
+- Habilitar/desabilitar nas configurações do plugin
+- Configurar linhas de contexto para diffs
+- Definir limites de retenção (máximo de entradas por arquivo, idade máxima)
+
+![Modal de Histórico de Edições](edit_history.png)
+
 ## RAG
 
 Geração Aumentada por Recuperação para busca inteligente no vault:
@@ -114,7 +155,7 @@ Geração Aumentada por Recuperação para busca inteligente no vault:
 - **Pastas de destino** - Especificar pastas a incluir
 - **Padrões de exclusão** - Padrões regex para excluir arquivos
 
-![Configurações RAG](setting_semantic_search.png)
+![Configurações RAG](setting_rag.png)
 
 ---
 
@@ -172,7 +213,7 @@ Abra a aba **Workflow** na barra lateral do Gemini para executá-lo.
 
 ## Tipos de Nós Disponíveis
 
-21 tipos de nós estão disponíveis para construção de workflows:
+22 tipos de nós estão disponíveis para construção de workflows:
 
 | Categoria | Nós |
 |-----------|-----|
@@ -185,7 +226,7 @@ Abra a aba **Workflow** na barra lateral do Gemini para executá-lo.
 | Prompts | `prompt-file`, `prompt-selection`, `dialog` |
 | Composição | `workflow` |
 | RAG | `rag-sync` |
-| Externo | `mcp` |
+| Externo | `mcp`, `obsidian-command` |
 
 > **Para especificações detalhadas de nós e exemplos, veja [WORKFLOW_NODES_pt.md](WORKFLOW_NODES_pt.md)**
 
@@ -319,9 +360,15 @@ npm run build
 - **Workspace Folder** - Localização do histórico de chat e configurações
 - **System Prompt** - Instruções adicionais para a IA
 - **Tool Limits** - Controlar limites de chamadas de função
-- **Slash Commands** - Definir templates de prompt personalizados
+- **Edit History** - Rastrear e restaurar alterações feitas pela IA
 
-![Limite de Ferramentas e Comandos de Barra](setting_tool_limit_slash_command.png)
+![Limites de Ferramentas e Histórico de Edições](setting_tool_history.png)
+
+### Comandos de Barra
+- Definir templates de prompt personalizados acionados por `/`
+- Override opcional de modelo e busca por comando
+
+![Comandos de Barra](setting_slash_command.png)
 
 ## Uso
 

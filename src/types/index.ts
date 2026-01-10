@@ -74,7 +74,33 @@ export interface GeminiHelperSettings {
   functionCallWarningThreshold: number; // 残りこの回数で警告
   listNotesLimit: number;             // listNotesのデフォルト件数制限
   maxNoteChars: number;               // ノート読み込み時の最大文字数
+
+  // Edit history settings
+  editHistory: EditHistorySettings;
 }
+
+// Edit history settings
+export interface EditHistorySettings {
+  enabled: boolean;
+  retention: {
+    maxAgeInDays: number;
+    maxEntriesPerFile: number;
+  };
+  diff: {
+    contextLines: number;
+  };
+}
+
+export const DEFAULT_EDIT_HISTORY_SETTINGS: EditHistorySettings = {
+  enabled: true,
+  retention: {
+    maxAgeInDays: 30,
+    maxEntriesPerFile: 100,
+  },
+  diff: {
+    contextLines: 3,
+  },
+};
 
 // 個別のRAG設定
 export interface RagSetting {
@@ -451,4 +477,6 @@ export const DEFAULT_SETTINGS: GeminiHelperSettings = {
   functionCallWarningThreshold: 5,
   listNotesLimit: 50,
   maxNoteChars: 20000,
+  // Edit history
+  editHistory: DEFAULT_EDIT_HISTORY_SETTINGS,
 };

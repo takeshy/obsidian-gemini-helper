@@ -351,6 +351,64 @@ export const ja: Record<string, string> = {
   "valueModal.title": "値を入力",
   "valueModal.placeholder": "値を入力...",
 
+  // Edit History
+  "settings.editHistory": "編集履歴",
+  "settings.editHistoryEnabled": "編集履歴を有効化",
+  "settings.editHistoryEnabled.desc": "AIによるノートの変更を追跡します（unified diff形式）",
+  "settings.editHistoryRetention": "保持設定",
+  "settings.editHistoryMaxAge": "最大保持日数",
+  "settings.editHistoryMaxAge.desc": "この日数より古いエントリを削除（0 = 無制限）",
+  "settings.editHistoryMaxEntries": "ファイルごとの最大エントリ数",
+  "settings.editHistoryMaxEntries.desc": "ファイルごとのエントリ数を制限（0 = 無制限）",
+  "settings.editHistoryContextLines": "コンテキスト行数",
+  "settings.editHistoryContextLines.desc": "diffに含めるコンテキスト行数",
+  "settings.editHistoryPrune": "古いエントリを削除",
+  "settings.editHistoryViewStats": "統計を表示",
+  "settings.editHistoryPruned": "{{count}}件の古いエントリを削除しました",
+  "settings.editHistoryStats": "{{files}}ファイル、{{entries}}エントリ、{{size}}",
+
+  // Edit History Modal
+  "editHistoryModal.title": "編集履歴: {{file}}",
+  "editHistoryModal.unsavedChanges": "未保存の変更",
+  "editHistoryModal.current": "現在",
+  "editHistoryModal.original": "（オリジナル - 履歴なし）",
+  "editHistoryModal.workflow": "ワークフロー",
+  "editHistoryModal.proposeEdit": "提案編集",
+  "editHistoryModal.diff": "差分",
+  "editHistoryModal.restore": "復元",
+  "editHistoryModal.clearAll": "履歴をクリア",
+  "editHistoryModal.entriesCount": "{{count}}件",
+  "editHistoryModal.noHistory": "このファイルの編集履歴はありません",
+  "editHistoryModal.confirmClear": "履歴をクリアしますか？",
+  "editHistoryModal.confirmRestore": "このバージョンに復元しますか？現在の内容は上書きされます。",
+  "editHistoryModal.restored": "{{timestamp}}のバージョンに復元しました",
+  "editHistoryModal.cleared": "履歴をクリアしました",
+  "editHistoryModal.revertToBase": "ベースに戻す",
+  "editHistoryModal.confirmRevertToBase": "ベースのスナップショットに戻しますか？未保存の変更は破棄されます。",
+  "editHistoryModal.revertedToBase": "ベースのスナップショットに戻しました",
+  "editHistoryModal.close": "閉じる",
+
+  // Diff Modal
+  "diffModal.title": "差分: {{timestamp}} - {{source}}",
+  "diffModal.restoreVersion": "このバージョンに復元",
+  "diffModal.close": "閉じる",
+  "diffModal.additions": "+{{count}}",
+  "diffModal.deletions": "-{{count}}",
+
+  // Edit History Buttons
+  "editHistory.showHistory": "編集履歴を表示",
+  "editHistory.saveSnapshot": "スナップショットを保存",
+  "editHistory.noActiveFile": "アクティブなファイルがありません",
+  "editHistory.notInitialized": "編集履歴が初期化されていません",
+  "editHistory.saved": "スナップショットを保存しました",
+  "editHistory.noChanges": "保存する変更がありません",
+  "editHistoryModal.manual": "手動",
+  "editHistoryModal.auto": "自動",
+
+  // Commands
+  "command.showEditHistory": "編集履歴を表示",
+  "command.restorePreviousVersion": "前のバージョンに復元",
+
   // Errors
   "error.failedToCreate": "作成に失敗しました: {{error}}",
   "error.failedToRename": "名前の変更に失敗しました: {{error}}",

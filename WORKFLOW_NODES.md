@@ -15,7 +15,7 @@ This document provides detailed specifications for all workflow node types. For 
 | Prompts | `prompt-file`, `prompt-selection`, `dialog` | User input dialogs |
 | Composition | `workflow` | Execute another workflow as a sub-workflow |
 | RAG | `rag-sync` | Sync notes to RAG store |
-| External | `mcp` | Call external MCP server tools |
+| External | `mcp`, `obsidian-command` | Call external MCP servers or Obsidian commands |
 
 ---
 
@@ -488,6 +488,57 @@ Call a remote MCP (Model Context Protocol) server tool via HTTP.
 | `saveTo` | Variable name for the result |
 
 **Use case:** Call remote MCP servers for RAG queries, web search, API integrations, etc.
+
+### obsidian-command
+
+Execute an Obsidian command by its ID. This allows workflows to trigger any Obsidian command, including commands from other plugins.
+
+```yaml
+- id: toggle-fold
+  type: obsidian-command
+  command: "editor:toggle-fold"
+  saveTo: result
+```
+
+| Property | Description |
+|----------|-------------|
+| `command` | Command ID to execute (required, supports `{{variables}}`) |
+| `saveTo` | Variable to store execution result (optional) |
+
+**Finding command IDs:**
+1. Open Obsidian Settings → Hotkeys
+2. Search for the command you want
+3. The command ID is shown (e.g., `editor:toggle-fold`, `app:reload`)
+
+**Common command IDs:**
+| Command ID | Description |
+|------------|-------------|
+| `editor:toggle-fold` | Toggle fold at cursor |
+| `editor:fold-all` | Fold all headings |
+| `editor:unfold-all` | Unfold all headings |
+| `app:reload` | Reload Obsidian |
+| `workspace:close` | Close current pane |
+| `file-explorer:reveal-active-file` | Reveal file in explorer |
+
+**Example: Workflow with plugin command**
+```yaml
+name: Write Work Log
+nodes:
+  - id: get-content
+    type: dialog
+    inputTitle: "Enter log content"
+    multiline: true
+    saveTo: logContent
+  - id: copy-to-clipboard
+    type: set
+    name: "_clipboard"
+    value: "{{logContent.input}}"
+  - id: write-to-log
+    type: obsidian-command
+    command: "work-log:write-from-clipboard"
+```
+
+**Use case:** Trigger Obsidian core commands or commands from other plugins as part of a workflow.
 
 **Example: RAG query with ragujuary**
 

@@ -7,7 +7,8 @@ Assistant IA **gratuit et open-source** pour Obsidian avec **Chat**, **Automatis
 ## Points Forts
 
 - **Chat IA** - Réponses en streaming, pièces jointes, opérations sur le coffre, commandes slash
-- **Constructeur de Workflows** - Automatisez des tâches multi-étapes avec l'éditeur visuel de nœuds et 21 types de nœuds
+- **Constructeur de Workflows** - Automatisez des tâches multi-étapes avec l'éditeur visuel de nœuds et 22 types de nœuds
+- **Historique d'Édition** - Suivez et restaurez les modifications faites par l'IA avec vue des différences
 - **RAG** - Génération Augmentée par Récupération pour une recherche intelligente dans votre coffre
 - **Recherche Web** - Accédez à des informations actualisées via Google Search
 - **Génération d'Images** - Créez des images avec les modèles d'images Gemini
@@ -103,6 +104,46 @@ Quand l'IA utilise `propose_edit` :
 
 > Les modifications ne sont PAS écrites tant que vous ne confirmez pas.
 
+## Historique d'Édition
+
+Suivez et restaurez les modifications apportées à vos notes :
+
+- **Suivi automatique** - Toutes les modifications IA (chat, workflow) et manuelles sont enregistrées
+- **Voir l'historique** - Commande : "Show edit history" ou utilisez la palette de commandes
+- **Vue des différences** - Voyez exactement ce qui a changé avec ajouts/suppressions codés par couleur
+- **Restaurer** - Revenez à n'importe quelle version précédente en un clic
+- **Modal redimensionnable** - Glissez pour déplacer, redimensionnez depuis les coins
+
+**Affichage des différences :**
+- Les lignes `+` existaient dans la version précédente
+- Les lignes `-` ont été ajoutées dans la version plus récente
+
+**Comment ça fonctionne :**
+
+L'historique d'édition utilise une approche basée sur les instantanés :
+
+1. **Création d'instantané** - Quand un fichier est ouvert pour la première fois ou modifié par l'IA, un instantané de son contenu est sauvegardé
+2. **Enregistrement des différences** - Quand le fichier est modifié, la différence entre le nouveau contenu et l'instantané est enregistrée comme entrée d'historique
+3. **Mise à jour de l'instantané** - L'instantané est mis à jour avec le nouveau contenu après chaque modification
+4. **Restaurer** - Pour restaurer une version précédente, les différences sont appliquées en sens inverse depuis l'instantané
+
+**Quand l'historique est enregistré :**
+- Modifications chat IA (outil `propose_edit`)
+- Modifications de notes dans les workflows (nœud `note`)
+- Sauvegardes manuelles via commande
+- Auto-détection quand le fichier diffère de l'instantané à l'ouverture
+
+**Emplacement de stockage :**
+- Fichiers d'historique : `{workspaceFolder}/history/{filename}.history.md`
+- Fichiers d'instantané : `{workspaceFolder}/history/{filename}.snapshot.md`
+
+**Paramètres :**
+- Activer/désactiver dans les paramètres du plugin
+- Configurer les lignes de contexte pour les différences
+- Définir les limites de rétention (entrées max par fichier, âge max)
+
+![Modal Historique d'Édition](edit_history.png)
+
 ## RAG
 
 Génération Augmentée par Récupération pour une recherche intelligente dans le coffre :
@@ -114,7 +155,7 @@ Génération Augmentée par Récupération pour une recherche intelligente dans 
 - **Dossiers cibles** - Spécifier les dossiers à inclure
 - **Patterns d'exclusion** - Patterns regex pour exclure des fichiers
 
-![Paramètres RAG](setting_semantic_search.png)
+![Paramètres RAG](setting_rag.png)
 
 ---
 
@@ -172,7 +213,7 @@ Ouvrez l'onglet **Workflow** dans la barre latérale Gemini pour l'exécuter.
 
 ## Types de Nœuds Disponibles
 
-21 types de nœuds sont disponibles pour construire des workflows :
+22 types de nœuds sont disponibles pour construire des workflows :
 
 | Catégorie | Nœuds |
 |-----------|-------|
@@ -185,7 +226,7 @@ Ouvrez l'onglet **Workflow** dans la barre latérale Gemini pour l'exécuter.
 | Prompts | `prompt-file`, `prompt-selection`, `dialog` |
 | Composition | `workflow` |
 | RAG | `rag-sync` |
-| Externe | `mcp` |
+| Externe | `mcp`, `obsidian-command` |
 
 > **Pour les spécifications détaillées des nœuds et des exemples, voir [WORKFLOW_NODES_fr.md](WORKFLOW_NODES_fr.md)**
 
@@ -319,9 +360,15 @@ npm run build
 - **Dossier de l'Espace de Travail** - Emplacement de l'historique de chat et des paramètres
 - **Prompt Système** - Instructions additionnelles pour l'IA
 - **Limites d'Outils** - Contrôler les limites d'appels de fonctions
-- **Commandes Slash** - Définir des modèles de prompts personnalisés
+- **Historique d'Édition** - Suivez et restaurez les modifications faites par l'IA
 
-![Limite d'Outils & Commandes Slash](setting_tool_limit_slash_command.png)
+![Limite d'Outils & Historique d'Édition](setting_tool_history.png)
+
+### Commandes Slash
+- Définir des modèles de prompts personnalisés déclenchés par `/`
+- Modèle et recherche optionnels par commande
+
+![Commandes Slash](setting_slash_command.png)
 
 ## Utilisation
 

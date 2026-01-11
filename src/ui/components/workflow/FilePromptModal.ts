@@ -1,4 +1,5 @@
 import { App, Modal, TFile, FuzzySuggestModal, MarkdownRenderer, Component } from "obsidian";
+import { t } from "src/i18n";
 
 class FileSuggestModal extends FuzzySuggestModal<TFile> {
   private onSelect: (file: TFile | null) => void;
@@ -9,7 +10,7 @@ class FileSuggestModal extends FuzzySuggestModal<TFile> {
     super(app);
     this.onSelect = onSelect;
     this.files = this.app.vault.getMarkdownFiles();
-    this.setPlaceholder("Select a file...");
+    this.setPlaceholder(t("workflowModal.selectFilePlaceholder"));
   }
 
   getItems(): TFile[] {
@@ -57,18 +58,18 @@ export class FilePromptModal extends Modal {
     this.component.load();
 
     // Title
-    contentEl.createEl("h2", { text: this.title || "Select a file" });
+    contentEl.createEl("h2", { text: this.title || t("workflowModal.selectFile") });
 
     // File selector button
     const selectorContainer = contentEl.createDiv({ cls: "workflow-file-selector" });
 
     const selectBtn = selectorContainer.createEl("button", {
-      text: "Select file...",
+      text: t("workflowModal.selectFileBtn"),
       cls: "workflow-select-file-btn",
     });
 
     const selectedLabel = selectorContainer.createEl("span", {
-      text: "No file selected",
+      text: t("workflowModal.noFileSelected"),
       cls: "workflow-selected-file-label",
     });
 
@@ -84,21 +85,21 @@ export class FilePromptModal extends Modal {
 
     // Preview container
     const previewContainer = contentEl.createDiv({ cls: "workflow-file-preview-container" });
-    previewContainer.createEl("h4", { text: "Preview" });
+    previewContainer.createEl("h4", { text: t("workflowModal.preview") });
     this.previewEl = previewContainer.createDiv({ cls: "workflow-file-preview" });
-    this.previewEl.setText("Select a file to preview");
+    this.previewEl.setText(t("workflowModal.selectFileToPreview"));
 
     // Buttons
     const buttonContainer = contentEl.createDiv({ cls: "workflow-prompt-buttons" });
 
-    const cancelBtn = buttonContainer.createEl("button", { text: "Cancel" });
+    const cancelBtn = buttonContainer.createEl("button", { text: t("workflowModal.cancel") });
     cancelBtn.addEventListener("click", () => {
       this.resolve(null);
       this.close();
     });
 
     const confirmBtn = buttonContainer.createEl("button", {
-      text: "Confirm",
+      text: t("workflowModal.confirm"),
       cls: "mod-cta",
     });
     confirmBtn.addEventListener("click", () => {
@@ -118,13 +119,13 @@ export class FilePromptModal extends Modal {
       const content = await this.app.vault.read(file);
       await MarkdownRenderer.render(
         this.app,
-        content.substring(0, 3000) + (content.length > 3000 ? "\n\n...(truncated)" : ""),
+        content.substring(0, 3000) + (content.length > 3000 ? "\n\n" + t("workflowModal.truncated") : ""),
         this.previewEl,
         file.path,
         this.component
       );
     } catch {
-      this.previewEl.setText("Failed to load file preview");
+      this.previewEl.setText(t("workflowModal.failedToLoadPreview"));
     }
   }
 
@@ -158,7 +159,7 @@ class AnyFileSuggestModal extends FuzzySuggestModal<TFile> {
       if (!this.extensions || this.extensions.length === 0) return true;
       return this.extensions.includes(f.extension.toLowerCase());
     });
-    this.setPlaceholder("Select a file...");
+    this.setPlaceholder(t("workflowModal.selectFilePlaceholder"));
   }
 
   getItems(): TFile[] {
@@ -210,18 +211,18 @@ class AnyFilePromptModal extends Modal {
     this.component.load();
 
     // Title
-    contentEl.createEl("h2", { text: this.title || "Select a file" });
+    contentEl.createEl("h2", { text: this.title || t("workflowModal.selectFile") });
 
     // File selector button
     const selectorContainer = contentEl.createDiv({ cls: "workflow-file-selector" });
 
     const selectBtn = selectorContainer.createEl("button", {
-      text: "Select file...",
+      text: t("workflowModal.selectFileBtn"),
       cls: "workflow-select-file-btn",
     });
 
     const selectedLabel = selectorContainer.createEl("span", {
-      text: "No file selected",
+      text: t("workflowModal.noFileSelected"),
       cls: "workflow-selected-file-label",
     });
 
@@ -237,21 +238,21 @@ class AnyFilePromptModal extends Modal {
 
     // Preview container
     const previewContainer = contentEl.createDiv({ cls: "workflow-file-preview-container" });
-    previewContainer.createEl("h4", { text: "Preview" });
+    previewContainer.createEl("h4", { text: t("workflowModal.preview") });
     this.previewEl = previewContainer.createDiv({ cls: "workflow-file-preview" });
-    this.previewEl.setText("Select a file to preview");
+    this.previewEl.setText(t("workflowModal.selectFileToPreview"));
 
     // Buttons
     const buttonContainer = contentEl.createDiv({ cls: "workflow-prompt-buttons" });
 
-    const cancelBtn = buttonContainer.createEl("button", { text: "Cancel" });
+    const cancelBtn = buttonContainer.createEl("button", { text: t("workflowModal.cancel") });
     cancelBtn.addEventListener("click", () => {
       this.resolve(null);
       this.close();
     });
 
     const confirmBtn = buttonContainer.createEl("button", {
-      text: "Confirm",
+      text: t("workflowModal.confirm"),
       cls: "mod-cta",
     });
     confirmBtn.addEventListener("click", () => {
@@ -277,17 +278,17 @@ class AnyFilePromptModal extends Modal {
         if (ext === "md") {
           await MarkdownRenderer.render(
             this.app,
-            content.substring(0, 3000) + (content.length > 3000 ? "\n\n...(truncated)" : ""),
+            content.substring(0, 3000) + (content.length > 3000 ? "\n\n" + t("workflowModal.truncated") : ""),
             this.previewEl,
             file.path,
             this.component
           );
         } else {
           const pre = this.previewEl.createEl("pre");
-          pre.setText(content.substring(0, 3000) + (content.length > 3000 ? "\n\n...(truncated)" : ""));
+          pre.setText(content.substring(0, 3000) + (content.length > 3000 ? "\n\n" + t("workflowModal.truncated") : ""));
         }
       } catch {
-        this.previewEl.setText("Failed to load file preview");
+        this.previewEl.setText(t("workflowModal.failedToLoadPreview"));
       }
     } else if (["png", "jpg", "jpeg", "gif", "webp", "bmp", "svg"].includes(ext)) {
       // Image files: show thumbnail
@@ -330,7 +331,7 @@ export function promptForAnyFile(
   title?: string
 ): Promise<string | null> {
   return new Promise((resolve) => {
-    const modal = new AnyFilePromptModal(app, title || "Select a file", resolve, extensions);
+    const modal = new AnyFilePromptModal(app, title || t("workflowModal.selectFile"), resolve, extensions);
     modal.open();
   });
 }
@@ -362,21 +363,21 @@ class NewFilePathModal extends Modal {
     contentEl.addClass("workflow-file-prompt-modal");
 
     // Title
-    contentEl.createEl("h2", { text: this.title || "Enter file path" });
+    contentEl.createEl("h2", { text: this.title || t("workflowModal.enterFilePath") });
 
     // Input container
     const inputContainer = contentEl.createDiv({ cls: "workflow-file-path-input" });
 
     const input = inputContainer.createEl("input", {
       type: "text",
-      placeholder: "folder/filename.md",
+      placeholder: t("workflowModal.filePathPlaceholder"),
       value: this.defaultPath,
     });
 
     // Extension hint
     if (this.extensions && this.extensions.length > 0) {
       contentEl.createEl("div", {
-        text: `Allowed extensions: ${this.extensions.join(", ")}`,
+        text: t("workflowModal.allowedExtensions", { extensions: this.extensions.join(", ") }),
         cls: "workflow-file-path-hint",
       });
     }
@@ -384,14 +385,14 @@ class NewFilePathModal extends Modal {
     // Buttons
     const buttonContainer = contentEl.createDiv({ cls: "workflow-prompt-buttons" });
 
-    const cancelBtn = buttonContainer.createEl("button", { text: "Cancel" });
+    const cancelBtn = buttonContainer.createEl("button", { text: t("workflowModal.cancel") });
     cancelBtn.addEventListener("click", () => {
       this.resolve(null);
       this.close();
     });
 
     const confirmBtn = buttonContainer.createEl("button", {
-      text: "Confirm",
+      text: t("workflowModal.confirm"),
       cls: "mod-cta",
     });
     confirmBtn.addEventListener("click", () => {
@@ -418,7 +419,7 @@ export function promptForNewFilePath(
   defaultPath?: string
 ): Promise<string | null> {
   return new Promise((resolve) => {
-    const modal = new NewFilePathModal(app, "Enter file path", resolve, extensions, defaultPath);
+    const modal = new NewFilePathModal(app, t("workflowModal.enterFilePath"), resolve, extensions, defaultPath);
     modal.open();
   });
 }

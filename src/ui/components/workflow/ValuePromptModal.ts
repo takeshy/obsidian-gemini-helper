@@ -1,4 +1,5 @@
 import { App, Modal } from "obsidian";
+import { t } from "src/i18n";
 
 export class ValuePromptModal extends Modal {
   private title: string;
@@ -27,7 +28,7 @@ export class ValuePromptModal extends Modal {
     contentEl.addClass("workflow-value-prompt-modal");
 
     // Title
-    contentEl.createEl("h2", { text: this.title || "Enter value" });
+    contentEl.createEl("h2", { text: this.title || t("workflowModal.enterValue") });
 
     // Input field
     const inputContainer = contentEl.createDiv({ cls: "workflow-value-input-container" });
@@ -36,7 +37,7 @@ export class ValuePromptModal extends Modal {
       this.inputEl = inputContainer.createEl("textarea", {
         cls: "workflow-value-textarea",
         attr: {
-          placeholder: "Enter value...",
+          placeholder: t("workflowModal.enterValuePlaceholder"),
           rows: "8",
         },
       });
@@ -46,7 +47,7 @@ export class ValuePromptModal extends Modal {
         type: "text",
         cls: "workflow-value-input",
         attr: {
-          placeholder: "Enter value...",
+          placeholder: t("workflowModal.enterValuePlaceholder"),
         },
       });
       this.inputEl.value = this.defaultValue;
@@ -65,14 +66,14 @@ export class ValuePromptModal extends Modal {
     // Buttons
     const buttonContainer = contentEl.createDiv({ cls: "workflow-prompt-buttons" });
 
-    const cancelBtn = buttonContainer.createEl("button", { text: "Cancel" });
+    const cancelBtn = buttonContainer.createEl("button", { text: t("workflowModal.cancel") });
     cancelBtn.addEventListener("click", () => {
       this.resolve(null);
       this.close();
     });
 
     const confirmBtn = buttonContainer.createEl("button", {
-      text: "Confirm",
+      text: t("workflowModal.confirm"),
       cls: "mod-cta",
     });
     confirmBtn.addEventListener("click", () => {

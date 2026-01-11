@@ -1,4 +1,5 @@
 import { Modal, App, MarkdownRenderer, Component } from "obsidian";
+import { t } from "src/i18n";
 
 /**
  * Diff line types
@@ -128,7 +129,7 @@ export class EditConfirmationModal extends Modal {
     });
 
     const titleRow = header.createDiv({ cls: "gemini-helper-edit-confirm-title-row" });
-    titleRow.createEl("h3", { text: "Confirm file write" });
+    titleRow.createEl("h3", { text: t("workflowModal.confirmFileWrite") });
 
     const modeLabel = this.getModeLabel();
     titleRow.createEl("span", {
@@ -138,7 +139,7 @@ export class EditConfirmationModal extends Modal {
 
     // File path display
     const pathRow = header.createDiv({ cls: "gemini-helper-edit-confirm-path" });
-    pathRow.createEl("span", { text: "File: " });
+    pathRow.createEl("span", { text: t("workflowModal.file") });
     pathRow.createEl("strong", { text: this.filePath });
 
     // Content preview
@@ -149,7 +150,7 @@ export class EditConfirmationModal extends Modal {
     const previewLabel = previewContainer.createDiv({
       cls: "gemini-helper-edit-confirm-preview-label",
     });
-    previewLabel.createEl("span", { text: "Changes:" });
+    previewLabel.createEl("span", { text: t("workflowModal.changes") });
 
     const previewContent = previewContainer.createDiv({
       cls: "gemini-helper-edit-confirm-preview-content",
@@ -197,14 +198,14 @@ export class EditConfirmationModal extends Modal {
       cls: "gemini-helper-edit-confirm-actions",
     });
 
-    const cancelBtn = actions.createEl("button", { text: "Cancel" });
+    const cancelBtn = actions.createEl("button", { text: t("workflowModal.cancel") });
     cancelBtn.addEventListener("click", () => {
       this.resolvePromise?.(false);
       this.close();
     });
 
     const confirmBtn = actions.createEl("button", {
-      text: "Confirm",
+      text: t("workflowModal.confirm"),
       cls: "mod-cta",
     });
     confirmBtn.addEventListener("click", () => {
@@ -222,11 +223,11 @@ export class EditConfirmationModal extends Modal {
   private getModeLabel(): string {
     switch (this.mode) {
       case "create":
-        return "Create new file";
+        return t("workflowModal.createNewFile");
       case "append":
-        return "Append to file";
+        return t("workflowModal.appendToFile");
       case "overwrite":
-        return "Overwrite file";
+        return t("workflowModal.overwriteFile");
       default:
         return this.mode;
     }
@@ -445,18 +446,18 @@ export class DeleteConfirmationModal extends Modal {
     });
 
     const titleRow = header.createDiv({ cls: "gemini-helper-edit-confirm-title-row" });
-    titleRow.createEl("h3", { text: "Confirm file deletion" });
+    titleRow.createEl("h3", { text: t("workflowModal.confirmFileDeletion") });
 
     const warningLabel = titleRow.createEl("span", {
       cls: "gemini-helper-delete-confirm-warning-label",
     });
     warningLabel.createSpan({ text: "⚠️ " });
-    warningLabel.createSpan({ text: "Move to trash" });
+    warningLabel.createSpan({ text: t("workflowModal.moveToTrash") });
     warningLabel.setCssStyles({ color: "var(--text-error)" });
 
     // File path display
     const pathRow = header.createDiv({ cls: "gemini-helper-edit-confirm-path" });
-    pathRow.createEl("span", { text: "File: " });
+    pathRow.createEl("span", { text: t("workflowModal.file") });
     pathRow.createEl("strong", { text: this.filePath });
 
     // Content preview
@@ -467,7 +468,7 @@ export class DeleteConfirmationModal extends Modal {
     const previewLabel = previewContainer.createDiv({
       cls: "gemini-helper-edit-confirm-preview-label",
     });
-    previewLabel.createEl("span", { text: "Content to be deleted:" });
+    previewLabel.createEl("span", { text: t("workflowModal.contentToBeDeleted") });
 
     const previewContent = previewContainer.createDiv({
       cls: "gemini-helper-edit-confirm-preview-content",
@@ -488,14 +489,14 @@ export class DeleteConfirmationModal extends Modal {
       cls: "gemini-helper-edit-confirm-actions",
     });
 
-    const cancelBtn = actions.createEl("button", { text: "Cancel" });
+    const cancelBtn = actions.createEl("button", { text: t("workflowModal.cancel") });
     cancelBtn.addEventListener("click", () => {
       this.resolvePromise?.(false);
       this.close();
     });
 
     const deleteBtn = actions.createEl("button", {
-      text: "Delete",
+      text: t("workflowModal.delete"),
       cls: "mod-warning",
     });
     deleteBtn.addEventListener("click", () => {
@@ -728,18 +729,18 @@ export class BulkEditConfirmationModal extends Modal {
     });
 
     const titleRow = header.createDiv({ cls: "gemini-helper-edit-confirm-title-row" });
-    titleRow.createEl("h3", { text: `Confirm bulk edit (${this.items.length} files)` });
+    titleRow.createEl("h3", { text: t("workflowModal.confirmBulkEdit", { count: String(this.items.length) }) });
 
     // Selection controls
     const selectionControls = header.createDiv({ cls: "gemini-helper-bulk-selection-controls" });
 
-    const selectAllBtn = selectionControls.createEl("button", { text: "Select all" });
+    const selectAllBtn = selectionControls.createEl("button", { text: t("workflowModal.selectAll") });
     selectAllBtn.addEventListener("click", () => {
       this.items.forEach((item) => this.selectedPaths.add(item.path));
       this.updateCheckboxes();
     });
 
-    const deselectAllBtn = selectionControls.createEl("button", { text: "Deselect all" });
+    const deselectAllBtn = selectionControls.createEl("button", { text: t("workflowModal.deselectAll") });
     deselectAllBtn.addEventListener("click", () => {
       this.selectedPaths.clear();
       this.updateCheckboxes();
@@ -758,14 +759,14 @@ export class BulkEditConfirmationModal extends Modal {
       cls: "gemini-helper-edit-confirm-actions",
     });
 
-    const cancelBtn = actions.createEl("button", { text: "Cancel" });
+    const cancelBtn = actions.createEl("button", { text: t("workflowModal.cancel") });
     cancelBtn.addEventListener("click", () => {
       this.resolvePromise?.([]);
       this.close();
     });
 
     const confirmBtn = actions.createEl("button", {
-      text: `Apply (${this.selectedPaths.size})`,
+      text: t("workflowModal.apply", { count: String(this.selectedPaths.size) }),
       cls: "mod-cta",
     });
     confirmBtn.addEventListener("click", () => {
@@ -816,18 +817,18 @@ export class BulkEditConfirmationModal extends Modal {
 
       // Expand/collapse button
       const expandBtn = fileInfo.createEl("button", {
-        text: this.expandedPaths.has(item.path) ? "Hide" : "Preview",
+        text: this.expandedPaths.has(item.path) ? t("workflowModal.hide") : t("workflowModal.preview"),
         cls: "gemini-helper-bulk-expand-btn",
       });
       expandBtn.addEventListener("click", () => {
         if (this.expandedPaths.has(item.path)) {
           this.expandedPaths.delete(item.path);
-          expandBtn.textContent = "Preview";
+          expandBtn.textContent = t("workflowModal.preview");
           const preview = fileRow.querySelector(".gemini-helper-bulk-preview");
           preview?.remove();
         } else {
           this.expandedPaths.add(item.path);
-          expandBtn.textContent = "Hide";
+          expandBtn.textContent = t("workflowModal.hide");
           this.renderPreview(fileRow, item);
         }
       });
@@ -870,12 +871,12 @@ export class BulkEditConfirmationModal extends Modal {
   private getModeLabel(mode: string): string {
     switch (mode) {
       case "append":
-        return "Append";
+        return t("workflowModal.append");
       case "prepend":
-        return "Prepend";
+        return t("workflowModal.prepend");
       case "replace":
       default:
-        return "Replace";
+        return t("workflowModal.replace");
     }
   }
 
@@ -895,7 +896,7 @@ export class BulkEditConfirmationModal extends Modal {
   private updateApplyButton() {
     const confirmBtn = (this as { confirmBtn?: HTMLButtonElement }).confirmBtn;
     if (confirmBtn) {
-      confirmBtn.textContent = `Apply (${this.selectedPaths.size})`;
+      confirmBtn.textContent = t("workflowModal.apply", { count: String(this.selectedPaths.size) });
     }
   }
 
@@ -1108,25 +1109,25 @@ export class BulkDeleteConfirmationModal extends Modal {
     });
 
     const titleRow = header.createDiv({ cls: "gemini-helper-edit-confirm-title-row" });
-    titleRow.createEl("h3", { text: `Confirm bulk delete (${this.items.length} files)` });
+    titleRow.createEl("h3", { text: t("workflowModal.confirmBulkDelete", { count: String(this.items.length) }) });
 
     const warningLabel = titleRow.createEl("span", {
       cls: "gemini-helper-delete-confirm-warning-label",
     });
     warningLabel.createSpan({ text: "⚠️ " });
-    warningLabel.createSpan({ text: "Move to trash" });
+    warningLabel.createSpan({ text: t("workflowModal.moveToTrash") });
     warningLabel.setCssStyles({ color: "var(--text-error)" });
 
     // Selection controls
     const selectionControls = header.createDiv({ cls: "gemini-helper-bulk-selection-controls" });
 
-    const selectAllBtn = selectionControls.createEl("button", { text: "Select all" });
+    const selectAllBtn = selectionControls.createEl("button", { text: t("workflowModal.selectAll") });
     selectAllBtn.addEventListener("click", () => {
       this.items.forEach((item) => this.selectedPaths.add(item.path));
       this.updateCheckboxes();
     });
 
-    const deselectAllBtn = selectionControls.createEl("button", { text: "Deselect all" });
+    const deselectAllBtn = selectionControls.createEl("button", { text: t("workflowModal.deselectAll") });
     deselectAllBtn.addEventListener("click", () => {
       this.selectedPaths.clear();
       this.updateCheckboxes();
@@ -1145,14 +1146,14 @@ export class BulkDeleteConfirmationModal extends Modal {
       cls: "gemini-helper-edit-confirm-actions",
     });
 
-    const cancelBtn = actions.createEl("button", { text: "Cancel" });
+    const cancelBtn = actions.createEl("button", { text: t("workflowModal.cancel") });
     cancelBtn.addEventListener("click", () => {
       this.resolvePromise?.([]);
       this.close();
     });
 
     const deleteBtn = actions.createEl("button", {
-      text: `Delete (${this.selectedPaths.size})`,
+      text: t("workflowModal.deleteCount", { count: String(this.selectedPaths.size) }),
       cls: "mod-warning",
     });
     deleteBtn.addEventListener("click", () => {
@@ -1197,18 +1198,18 @@ export class BulkDeleteConfirmationModal extends Modal {
 
       // Expand/collapse button
       const expandBtn = fileInfo.createEl("button", {
-        text: this.expandedPaths.has(item.path) ? "Hide" : "Preview",
+        text: this.expandedPaths.has(item.path) ? t("workflowModal.hide") : t("workflowModal.preview"),
         cls: "gemini-helper-bulk-expand-btn",
       });
       expandBtn.addEventListener("click", () => {
         if (this.expandedPaths.has(item.path)) {
           this.expandedPaths.delete(item.path);
-          expandBtn.textContent = "Preview";
+          expandBtn.textContent = t("workflowModal.preview");
           const preview = fileRow.querySelector(".gemini-helper-bulk-preview");
           preview?.remove();
         } else {
           this.expandedPaths.add(item.path);
-          expandBtn.textContent = "Hide";
+          expandBtn.textContent = t("workflowModal.hide");
           this.renderPreview(fileRow, item);
         }
       });
@@ -1252,7 +1253,7 @@ export class BulkDeleteConfirmationModal extends Modal {
   private updateDeleteButton() {
     const deleteBtn = (this as { deleteBtn?: HTMLButtonElement }).deleteBtn;
     if (deleteBtn) {
-      deleteBtn.textContent = `Delete (${this.selectedPaths.size})`;
+      deleteBtn.textContent = t("workflowModal.deleteCount", { count: String(this.selectedPaths.size) });
     }
   }
 

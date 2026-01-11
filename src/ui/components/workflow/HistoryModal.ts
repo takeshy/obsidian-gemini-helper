@@ -2,6 +2,7 @@ import { App, Modal } from "obsidian";
 import { ExecutionRecord } from "src/workflow/types";
 import { ExecutionHistoryManager, formatDuration } from "src/workflow/history";
 import { openHistoryCanvas } from "src/workflow/historyCanvas";
+import { t } from "src/i18n";
 
 export class HistoryModal extends Modal {
   private workflowPath: string;
@@ -25,19 +26,19 @@ export class HistoryModal extends Modal {
 
     // Drag handle with title
     const dragHandle = contentEl.createDiv({ cls: "modal-drag-handle" });
-    dragHandle.createEl("h2", { text: "Execution history" });
+    dragHandle.createEl("h2", { text: t("workflowModal.executionHistory") });
     this.setupDragHandle(dragHandle, modalEl);
 
     const container = contentEl.createDiv({ cls: "workflow-history-container" });
 
     // List panel
     const listPanel = container.createDiv({ cls: "workflow-history-list-panel" });
-    listPanel.createEl("h3", { text: "Runs" });
+    listPanel.createEl("h3", { text: t("workflowModal.runs") });
     this.listEl = listPanel.createDiv({ cls: "workflow-history-list" });
 
     // Detail panel
     const detailPanel = container.createDiv({ cls: "workflow-history-detail-panel" });
-    detailPanel.createEl("h3", { text: "Details" });
+    detailPanel.createEl("h3", { text: t("workflowModal.details") });
     this.detailEl = detailPanel.createDiv({ cls: "workflow-history-detail" });
 
     await this.loadHistory();
@@ -57,7 +58,7 @@ export class HistoryModal extends Modal {
     if (this.records.length === 0) {
       this.listEl.createDiv({
         cls: "workflow-history-empty",
-        text: "No execution history",
+        text: t("workflowModal.noExecutionHistory"),
       });
       return;
     }
@@ -95,7 +96,7 @@ export class HistoryModal extends Modal {
     if (!this.selectedRecord) {
       this.detailEl.createDiv({
         cls: "workflow-history-empty",
-        text: "Select a run to view details",
+        text: t("workflowModal.selectRunToView"),
       });
       return;
     }
@@ -104,10 +105,10 @@ export class HistoryModal extends Modal {
 
     // Header info
     const header = this.detailEl.createDiv({ cls: "workflow-detail-header" });
-    header.createDiv({ cls: "workflow-detail-row", text: `Status: ${record.status}` });
-    header.createDiv({ cls: "workflow-detail-row", text: `Started: ${new Date(record.startTime).toLocaleString()}` });
+    header.createDiv({ cls: "workflow-detail-row", text: t("workflowModal.status", { status: record.status }) });
+    header.createDiv({ cls: "workflow-detail-row", text: t("workflowModal.started", { time: new Date(record.startTime).toLocaleString() }) });
     if (record.endTime) {
-      header.createDiv({ cls: "workflow-detail-row", text: `Duration: ${formatDuration(record.startTime, record.endTime)}` });
+      header.createDiv({ cls: "workflow-detail-row", text: t("workflowModal.duration", { duration: formatDuration(record.startTime, record.endTime) }) });
     }
 
     // Steps
@@ -131,28 +132,28 @@ export class HistoryModal extends Modal {
 
       if (step.input !== undefined) {
         const inputSection = stepEl.createDiv({ cls: "workflow-step-section" });
-        inputSection.createEl("strong", { text: "Input:" });
+        inputSection.createEl("strong", { text: t("workflowModal.input") });
         const inputPre = inputSection.createEl("pre");
         inputPre.textContent = this.formatValue(step.input);
       }
 
       if (step.output !== undefined) {
         const outputSection = stepEl.createDiv({ cls: "workflow-step-section" });
-        outputSection.createEl("strong", { text: "Output:" });
+        outputSection.createEl("strong", { text: t("workflowModal.output") });
         const outputPre = outputSection.createEl("pre");
         outputPre.textContent = this.formatValue(step.output);
       }
 
       if (step.error) {
         const errorEl = stepEl.createDiv({ cls: "workflow-step-error" });
-        errorEl.textContent = `Error: ${step.error}`;
+        errorEl.textContent = t("workflowModal.error", { error: step.error });
       }
     }
 
     // Actions
     const actions = this.detailEl.createDiv({ cls: "workflow-detail-actions" });
 
-    const canvasBtn = actions.createEl("button", { text: "Open canvas view" });
+    const canvasBtn = actions.createEl("button", { text: t("workflowModal.openCanvasView") });
     canvasBtn.addEventListener("click", () => {
       void (async () => {
         await openHistoryCanvas(this.app, record, this.workspaceFolder);
@@ -162,7 +163,7 @@ export class HistoryModal extends Modal {
 
     const deleteBtn = actions.createEl("button", {
       cls: "workflow-detail-delete-btn",
-      text: "Delete",
+      text: t("workflowModal.delete"),
     });
     deleteBtn.addEventListener("click", () => {
       void (async () => {
@@ -178,7 +179,7 @@ export class HistoryModal extends Modal {
 
   private formatValue(value: unknown): string {
     if (value === undefined || value === null) {
-      return "(empty)";
+      return t("workflowModal.empty");
     }
     if (typeof value === "string") {
       return value.length > 500 ? value.substring(0, 500) + "..." : value;
@@ -190,7 +191,7 @@ export class HistoryModal extends Modal {
       const str = JSON.stringify(value, null, 2);
       return str.length > 500 ? str.substring(0, 500) + "..." : str;
     } catch {
-      return "(circular reference)";
+      return t("workflowModal.circularReference");
     }
   }
 

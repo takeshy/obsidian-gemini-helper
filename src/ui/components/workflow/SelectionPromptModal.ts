@@ -1,5 +1,6 @@
 import { App, Modal, TFile, FuzzySuggestModal } from "obsidian";
 import { SelectionInfo, EditorPosition } from "src/workflow/types";
+import { t } from "src/i18n";
 
 class FileSuggestModal extends FuzzySuggestModal<TFile> {
   private onSelect: (file: TFile | null) => void;
@@ -10,7 +11,7 @@ class FileSuggestModal extends FuzzySuggestModal<TFile> {
     super(app);
     this.onSelect = onSelect;
     this.files = this.app.vault.getMarkdownFiles();
-    this.setPlaceholder("Select a file...");
+    this.setPlaceholder(t("workflowModal.selectFilePlaceholder"));
   }
 
   getItems(): TFile[] {
@@ -57,18 +58,18 @@ export class SelectionPromptModal extends Modal {
     contentEl.addClass("workflow-selection-prompt-modal");
 
     // Title
-    contentEl.createEl("h2", { text: this.title || "Select text" });
+    contentEl.createEl("h2", { text: this.title || t("workflowModal.selectText") });
 
     // File selector
     const selectorContainer = contentEl.createDiv({ cls: "workflow-file-selector" });
 
     const selectBtn = selectorContainer.createEl("button", {
-      text: "Select file...",
+      text: t("workflowModal.selectFileBtn"),
       cls: "workflow-select-file-btn",
     });
 
     const selectedLabel = selectorContainer.createEl("span", {
-      text: "No file selected",
+      text: t("workflowModal.noFileSelected"),
       cls: "workflow-selected-file-label",
     });
 
@@ -84,7 +85,7 @@ export class SelectionPromptModal extends Modal {
 
     // Instructions
     contentEl.createEl("p", {
-      text: "Select text in the textarea below:",
+      text: t("workflowModal.selectTextInstruction"),
       cls: "workflow-selection-instruction",
     });
 
@@ -94,13 +95,13 @@ export class SelectionPromptModal extends Modal {
       cls: "workflow-selection-textarea",
       attr: {
         readonly: "true",
-        placeholder: "Select a file to load content...",
+        placeholder: t("workflowModal.selectFileToLoad"),
       },
     });
 
     // Selection info
     this.selectionInfoEl = contentEl.createDiv({ cls: "workflow-selection-info" });
-    this.selectionInfoEl.setText("No text selected");
+    this.selectionInfoEl.setText(t("workflowModal.noTextSelected"));
 
     // Update selection info on text selection
     this.textareaEl.addEventListener("select", () => this.updateSelectionInfo());
@@ -110,14 +111,14 @@ export class SelectionPromptModal extends Modal {
     // Buttons
     const buttonContainer = contentEl.createDiv({ cls: "workflow-prompt-buttons" });
 
-    const cancelBtn = buttonContainer.createEl("button", { text: "Cancel" });
+    const cancelBtn = buttonContainer.createEl("button", { text: t("workflowModal.cancel") });
     cancelBtn.addEventListener("click", () => {
       this.resolve(null);
       this.close();
     });
 
     const confirmBtn = buttonContainer.createEl("button", {
-      text: "Confirm selection",
+      text: t("workflowModal.confirmSelection"),
       cls: "mod-cta",
     });
     confirmBtn.addEventListener("click", () => {
@@ -134,7 +135,7 @@ export class SelectionPromptModal extends Modal {
       this.textareaEl.setSelectionRange(0, 0);
       this.updateSelectionInfo();
     } catch {
-      this.textareaEl.value = "Failed to load file content";
+      this.textareaEl.value = t("workflowModal.failedToLoadContent");
       this.fileContent = "";
     }
   }
@@ -153,7 +154,7 @@ export class SelectionPromptModal extends Modal {
     const end = this.textareaEl.selectionEnd;
 
     if (start === end) {
-      this.selectionInfoEl.setText("No text selected");
+      this.selectionInfoEl.setText(t("workflowModal.noTextSelected"));
       return;
     }
 
@@ -165,7 +166,14 @@ export class SelectionPromptModal extends Modal {
     const lineCount = endPos.line - startPos.line + 1;
 
     this.selectionInfoEl.setText(
-      `Selected: ${charCount} characters, Line ${startPos.line + 1}:${startPos.ch} - Line ${endPos.line + 1}:${endPos.ch} (${lineCount} lines)`
+      t("workflowModal.selectedInfo", {
+        chars: String(charCount),
+        startLine: String(startPos.line + 1),
+        startCh: String(startPos.ch),
+        endLine: String(endPos.line + 1),
+        endCh: String(endPos.ch),
+        lines: String(lineCount),
+      })
     );
   }
 

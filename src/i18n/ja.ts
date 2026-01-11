@@ -50,6 +50,8 @@ export const ja: Record<string, string> = {
   "settings.workspaceFolder.willBeCreated": "{{folder}}（作成されます）",
   "settings.saveChatHistory": "チャット履歴を保存",
   "settings.saveChatHistory.desc": "チャットの会話をワークスペースフォルダにMarkdownファイルとして保存",
+  "settings.deleteChatHistoryConfirm": "既存のチャット履歴ファイルをすべて削除しますか？",
+  "settings.chatHistoryDeleted": "{{count}}件のチャット履歴ファイルを削除しました",
   "settings.systemPrompt": "システムプロンプト",
   "settings.systemPrompt.desc": "AIアシスタントへの追加指示",
   "settings.systemPrompt.placeholder": "質問と同じ言語で回答してください。",
@@ -121,6 +123,8 @@ export const ja: Record<string, string> = {
   "settings.storeMode.desc": "内部：Vaultファイルを同期。外部：既存のセマンティック検索ストアを使用。",
   "settings.storeModeInternal": "内部（Vault同期）",
   "settings.storeModeExternal": "外部（既存ストア）",
+  "settings.disableVaultSearch": "Vault検索ツールを無効化",
+  "settings.disableVaultSearch.desc": "有効にすると、このRAG設定でsearch_notesツールが無効になります。ローカル検索の代わりにセマンティック検索を使用します。",
   "settings.storeIds": "セマンティック検索ストアID",
   "settings.storeIds.desc": "外部セマンティック検索ストアID（1行に1つ）",
   "settings.storeIds.placeholder": "例：fileSearchStores/xxx",
@@ -366,6 +370,7 @@ export const ja: Record<string, string> = {
   "settings.editHistoryViewStats": "統計を表示",
   "settings.editHistoryPruned": "{{count}}件の古いエントリを削除しました",
   "settings.editHistoryStats": "{{files}}ファイル、{{entries}}エントリ、{{size}}",
+  "settings.editHistoryCleared": "{{count}}件の編集履歴ファイルを削除しました",
 
   // Edit History Modal
   "editHistoryModal.title": "編集履歴: {{file}}",

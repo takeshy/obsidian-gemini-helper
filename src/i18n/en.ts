@@ -50,6 +50,8 @@ export const en = {
   "settings.workspaceFolder.willBeCreated": "{{folder}} (will be created)",
   "settings.saveChatHistory": "Save chat history",
   "settings.saveChatHistory.desc": "Save chat conversations as Markdown files in the workspace folder",
+  "settings.deleteChatHistoryConfirm": "Do you want to delete all existing chat history files?",
+  "settings.chatHistoryDeleted": "{{count}} chat history file(s) deleted",
   "settings.systemPrompt": "System prompt",
   "settings.systemPrompt.desc": "Additional instructions for the AI assistant",
   "settings.systemPrompt.placeholder": "Respond in the same language as the question.",
@@ -121,6 +123,8 @@ export const en = {
   "settings.storeMode.desc": "Internal: sync your vault files. External: use an existing semantic search store.",
   "settings.storeModeInternal": "Internal (vault sync)",
   "settings.storeModeExternal": "External (existing store)",
+  "settings.disableVaultSearch": "Disable vault search tool",
+  "settings.disableVaultSearch.desc": "When enabled, the search_notes tool is disabled for this RAG setting. Use semantic search instead of local vault search.",
   "settings.storeIds": "Semantic search store ids",
   "settings.storeIds.desc": "External semantic search store ids (one per line)",
   "settings.storeIds.placeholder": "E.g., fileSearchStores/xxx",
@@ -368,6 +372,7 @@ export const en = {
   "settings.editHistoryViewStats": "View stats",
   "settings.editHistoryPruned": "Pruned {{count}} old entries",
   "settings.editHistoryStats": "{{files}} files, {{entries}} entries, {{size}}",
+  "settings.editHistoryCleared": "{{count}} edit history file(s) deleted",
 
   // Edit History Modal
   "editHistoryModal.title": "Edit History: {{file}}",

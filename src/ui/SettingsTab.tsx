@@ -4,6 +4,7 @@ import {
   Setting,
   DropdownComponent,
   TFolder,
+  TFile,
   Notice,
   Modal,
 } from "obsidian";
@@ -403,6 +404,20 @@ export class SettingsTab extends PluginSettingTab {
           .setValue(this.plugin.settings.saveChatHistory)
           .onChange((value) => {
             void (async () => {
+              if (!value) {
+                // Turning off - ask if user wants to delete existing history
+                const confirmed = await new ConfirmModal(
+                  this.app,
+                  t("settings.deleteChatHistoryConfirm"),
+                  t("common.delete"),
+                  t("common.cancel")
+                ).openAndWait();
+
+                if (confirmed) {
+                  // Delete all chat history files
+                  await this.deleteChatHistoryFiles();
+                }
+              }
               this.plugin.settings.saveChatHistory = value;
               await this.plugin.saveSettings();
             })();
@@ -1001,6 +1016,16 @@ export class SettingsTab extends PluginSettingTab {
           .setValue(editHistory.enabled)
           .onChange((value) => {
             void (async () => {
+              if (!value) {
+                // Turning off - delete all edit history
+                const manager = getEditHistoryManager();
+                if (manager) {
+                  const deletedCount = await manager.clearAllHistory();
+                  if (deletedCount > 0) {
+                    new Notice(t("settings.editHistoryCleared", { count: String(deletedCount) }));
+                  }
+                }
+              }
               this.plugin.settings.editHistory.enabled = value;
               await this.plugin.saveSettings();
               this.display();
@@ -1319,6 +1344,20 @@ export class SettingsTab extends PluginSettingTab {
           })
       );
 
+    // Disable Vault Search toggle
+    new Setting(containerEl)
+      .setName(t("settings.disableVaultSearch"))
+      .setDesc(t("settings.disableVaultSearch.desc"))
+      .addToggle((toggle) =>
+        toggle
+          .setValue(ragSetting.disableVaultSearch ?? true)
+          .onChange((value) => {
+            void (async () => {
+              await this.plugin.updateRagSetting(name, { disableVaultSearch: value });
+            })();
+          })
+      );
+
     if (ragSetting.isExternal) {
       // External store mode - show multiple Store IDs
       this.displayExternalStoreSettings(containerEl, name, ragSetting);
@@ -1591,6 +1630,35 @@ export class SettingsTab extends PluginSettingTab {
               })();
             })
         );
+    }
+  }
+
+  private async deleteChatHistoryFiles(): Promise<void> {
+    const workspaceFolder = this.plugin.settings.workspaceFolder || "GeminiHelper";
+    const folder = this.app.vault.getAbstractFileByPath(workspaceFolder);
+
+    if (!(folder instanceof TFolder)) {
+      return;
+    }
+
+    const chatFiles = folder.children.filter(
+      (file) => file instanceof TFile && file.name.startsWith("chat_") && file.name.endsWith(".md")
+    );
+
+    let deletedCount = 0;
+    for (const file of chatFiles) {
+      if (file instanceof TFile) {
+        try {
+          await this.app.vault.delete(file);
+          deletedCount++;
+        } catch {
+          // Ignore errors for individual files
+        }
+      }
+    }
+
+    if (deletedCount > 0) {
+      new Notice(t("settings.chatHistoryDeleted", { count: String(deletedCount) }));
     }
   }
 }

@@ -13,6 +13,8 @@
 - **Websuche** - Zugriff auf aktuelle Informationen über Google Search
 - **Bilderzeugung** - Erstellen Sie Bilder mit Gemini-Bildmodellen
 
+![Bilderzeugung im Chat](chat_image.png)
+
 ## API-Schlüssel / CLI-Optionen
 
 Dieses Plugin benötigt einen Google Gemini API-Schlüssel oder ein CLI-Tool. Sie können wählen zwischen:

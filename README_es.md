@@ -13,6 +13,8 @@ Asistente de IA **gratuito y de código abierto** para Obsidian con **Chat**, **
 - **Búsqueda Web** - Accede a información actualizada a través de Google Search
 - **Generación de Imágenes** - Crea imágenes con los modelos de imagen de Gemini
 
+![Generación de imágenes en el chat](chat_image.png)
+
 ## Opciones de Clave API / CLI
 
 Este plugin requiere una clave API de Google Gemini o una herramienta CLI. Puedes elegir entre:

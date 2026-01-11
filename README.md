@@ -13,6 +13,8 @@
 - **Web Search** - Access up-to-date information via Google Search
 - **Image Generation** - Create images with Gemini image models
 
+![Image Generation in Chat](chat_image.png)
+
 ## API Key / CLI Options
 
 This plugin requires a Google Gemini API key or a CLI tool. You can choose between:

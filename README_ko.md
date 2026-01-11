@@ -13,6 +13,8 @@ Google Gemini 기반의 **Chat**, **Workflow 자동화**, **RAG** 기능을 제�
 - **Web Search** - Google Search를 통한 최신 정보 접근
 - **Image Generation** - Gemini 이미지 모델로 이미지 생성
 
+![채팅에서 이미지 생성](chat_image.png)
+
 ## API 키 / CLI 옵션
 
 이 플러그인은 Google Gemini API 키 또는 CLI 도구가 필요합니다. 다음 중 선택할 수 있습니다:

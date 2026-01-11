@@ -13,6 +13,8 @@
 - **网页搜索** - 通过 Google 搜索获取最新信息
 - **图像生成** - 使用 Gemini 图像模型创建图像
 
+![聊天中的图像生成](chat_image.png)
+
 ## API 密钥 / CLI 选项
 
 本插件需要 Google Gemini API 密钥或 CLI 工具。您可以选择：

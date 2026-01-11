@@ -13,6 +13,8 @@
 - **Web 検索** - Google 検索で最新情報を取得
 - **画像生成** - Gemini 画像モデルで画像を作成
 
+![チャットでの画像生成](chat_image.png)
+
 ## API キー / CLI の選択肢
 
 このプラグインには Google Gemini API キーまたは CLI ツールが必要です。以下から選択できます：

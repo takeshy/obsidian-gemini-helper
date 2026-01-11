@@ -698,6 +698,39 @@ export class EditHistoryManager {
   }
 
   /**
+   * Clear all edit history (delete entire history folder)
+   */
+  async clearAllHistory(): Promise<number> {
+    const historyFolder = this.getHistoryFolderPath();
+
+    if (!(await this.app.vault.adapter.exists(historyFolder))) {
+      return 0;
+    }
+
+    const files = await this.app.vault.adapter.list(historyFolder);
+    let deletedCount = 0;
+
+    // Delete all files in the history folder
+    for (const filePath of files.files) {
+      try {
+        await this.app.vault.adapter.remove(filePath);
+        deletedCount++;
+      } catch {
+        // Ignore errors for individual files
+      }
+    }
+
+    // Try to remove the empty folder
+    try {
+      await this.app.vault.adapter.rmdir(historyFolder, false);
+    } catch {
+      // Folder might not be empty or other error
+    }
+
+    return deletedCount;
+  }
+
+  /**
    * Prune old history entries based on retention settings
    */
   async prune(options?: {

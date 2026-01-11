@@ -152,17 +152,45 @@ export default function MessageBubble({
   // Copy image to clipboard
   const handleCopyImage = async (mimeType: string, base64Data: string) => {
     try {
-      // Convert base64 to blob without using fetch
-      const byteCharacters = atob(base64Data);
-      const byteNumbers = new Array(byteCharacters.length);
-      for (let i = 0; i < byteCharacters.length; i++) {
-        byteNumbers[i] = byteCharacters.charCodeAt(i);
+      let pngBlob: Blob;
+
+      if (mimeType === "image/png") {
+        // Already PNG - convert base64 to blob directly
+        const byteCharacters = atob(base64Data);
+        const byteNumbers = new Array(byteCharacters.length);
+        for (let i = 0; i < byteCharacters.length; i++) {
+          byteNumbers[i] = byteCharacters.charCodeAt(i);
+        }
+        const byteArray = new Uint8Array(byteNumbers);
+        pngBlob = new Blob([byteArray], { type: "image/png" });
+      } else {
+        // Clipboard API typically only supports image/png
+        // Convert image to PNG using canvas
+        const img = new Image();
+        const loadPromise = new Promise<void>((resolve, reject) => {
+          img.onload = () => resolve();
+          img.onerror = () => reject(new Error("Failed to load image"));
+        });
+        img.src = `data:${mimeType};base64,${base64Data}`;
+        await loadPromise;
+
+        const canvas = document.createElement("canvas");
+        canvas.width = img.width;
+        canvas.height = img.height;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) throw new Error("Failed to get canvas context");
+        ctx.drawImage(img, 0, 0);
+
+        pngBlob = await new Promise<Blob>((resolve, reject) => {
+          canvas.toBlob((blob) => {
+            if (blob) resolve(blob);
+            else reject(new Error("Failed to convert to PNG"));
+          }, "image/png");
+        });
       }
-      const byteArray = new Uint8Array(byteNumbers);
-      const blob = new Blob([byteArray], { type: mimeType });
 
       await navigator.clipboard.write([
-        new ClipboardItem({ [blob.type]: blob })
+        new ClipboardItem({ "image/png": pngBlob })
       ]);
       new Notice(t("message.imageCopied"));
     } catch {

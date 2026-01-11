@@ -124,6 +124,10 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 	const [selectedRagSetting, setSelectedRagSetting] = useState<string | null>(
 		plugin.workspaceState.selectedRagSetting
 	);
+	// Vault tool mode: "all" = use all tools, "noSearch" = exclude search_notes/list_notes, "none" = no vault tools
+	const [vaultToolMode, setVaultToolMode] = useState<"all" | "noSearch" | "none">(
+		plugin.workspaceState.selectedRagSetting ? "noSearch" : "all"
+	);
 	const messagesContainerRef = useRef<HTMLDivElement>(null);
 	const abortControllerRef = useRef<AbortController | null>(null);
 	const inputAreaRef = useRef<InputAreaHandle>(null);
@@ -486,6 +490,15 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 	const handleRagSettingChange = (name: string | null) => {
 		setSelectedRagSetting(name);
 		void plugin.selectRagSetting(name);
+		// When RAG is selected (not web search), default to "noSearch" mode
+		if (name && name !== "__websearch__") {
+			setVaultToolMode("noSearch");
+		}
+	};
+
+	// Handle vault tool mode change from UI
+	const handleVaultToolModeChange = (mode: "all" | "noSearch" | "none") => {
+		setVaultToolMode(mode);
 	};
 
 	// Handle model change from UI
@@ -840,11 +853,28 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 			const runStreamOnce = async () => {
 				const { settings } = plugin;
 				const toolsEnabled = supportsFunctionCalling && !isImageGenerationModel(allowedModel);
-				const tools = toolsEnabled ? getEnabledTools({
+				const allTools = toolsEnabled ? getEnabledTools({
 					allowWrite: true,
 					allowDelete: true,
 					ragEnabled: allowRag,
 				}) : [];
+
+				// Filter tools based on vaultToolMode
+				const vaultToolNames = [
+					"read_note", "create_note", "propose_edit", "propose_delete",
+					"rename_note", "search_notes", "list_notes", "list_folders",
+					"create_folder", "get_active_note", "check_rag_sync"
+				];
+				const searchToolNames = ["search_notes", "list_notes"];
+				const tools = allTools.filter(tool => {
+					if (vaultToolMode === "none") {
+						return !vaultToolNames.includes(tool.name);
+					}
+					if (vaultToolMode === "noSearch") {
+						return !searchToolNames.includes(tool.name);
+					}
+					return true; // "all" mode - keep all tools
+				});
 
 				// Create context for RAG tools
 				const baseToolExecutor = toolsEnabled
@@ -1455,6 +1485,8 @@ Always be helpful and provide clear, concise responses. When working with notes,
 						ragSettings={allowRag ? ragSettingNames : []}
 						selectedRagSetting={selectedRagSetting}
 						onRagSettingChange={handleRagSettingChange}
+						vaultToolMode={vaultToolMode}
+						onVaultToolModeChange={handleVaultToolModeChange}
 						slashCommands={plugin.settings.slashCommands}
 						onSlashCommand={handleSlashCommand}
 						vaultFiles={vaultFiles}

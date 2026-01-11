@@ -4,6 +4,8 @@ import type { App } from "obsidian";
 import { isImageGenerationModel, type ModelInfo, type ModelType, type Attachment, type SlashCommand } from "src/types";
 import { t } from "src/i18n";
 
+type VaultToolMode = "all" | "noSearch" | "none";
+
 interface InputAreaProps {
   onSend: (content: string, attachments?: Attachment[]) => void | Promise<void>;
   onStop?: () => void;
@@ -16,6 +18,8 @@ interface InputAreaProps {
   ragSettings: string[];
   selectedRagSetting: string | null;
   onRagSettingChange: (setting: string | null) => void;
+  vaultToolMode: VaultToolMode;
+  onVaultToolModeChange: (mode: VaultToolMode) => void;
   slashCommands: SlashCommand[];
   onSlashCommand: (command: SlashCommand) => string;
   vaultFiles: string[];
@@ -55,6 +59,8 @@ const InputArea = forwardRef<InputAreaHandle, InputAreaProps>(function InputArea
   ragSettings,
   selectedRagSetting,
   onRagSettingChange,
+  vaultToolMode,
+  onVaultToolModeChange,
   slashCommands,
   onSlashCommand,
   vaultFiles,
@@ -498,6 +504,16 @@ const InputArea = forwardRef<InputAreaHandle, InputAreaProps>(function InputArea
               {t("input.rag", { name })}
             </option>
           ))}
+        </select>
+        <select
+          className="gemini-helper-model-select gemini-helper-vault-tool-select"
+          value={vaultToolMode}
+          onChange={(e) => onVaultToolModeChange(e.target.value as VaultToolMode)}
+          disabled={isLoading || isImageGenerationModel(model)}
+        >
+          <option value="all">{t("input.vaultToolAll")}</option>
+          <option value="noSearch">{t("input.vaultToolNoSearch")}</option>
+          <option value="none">{t("input.vaultToolNone")}</option>
         </select>
       </div>
     </div>

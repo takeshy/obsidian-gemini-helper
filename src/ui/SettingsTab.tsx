@@ -1344,20 +1344,6 @@ export class SettingsTab extends PluginSettingTab {
           })
       );
 
-    // Disable Vault Search toggle
-    new Setting(containerEl)
-      .setName(t("settings.disableVaultSearch"))
-      .setDesc(t("settings.disableVaultSearch.desc"))
-      .addToggle((toggle) =>
-        toggle
-          .setValue(ragSetting.disableVaultSearch ?? true)
-          .onChange((value) => {
-            void (async () => {
-              await this.plugin.updateRagSetting(name, { disableVaultSearch: value });
-            })();
-          })
-      );
-
     if (ragSetting.isExternal) {
       // External store mode - show multiple Store IDs
       this.displayExternalStoreSettings(containerEl, name, ragSetting);

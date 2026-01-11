@@ -95,6 +95,29 @@ AI が Vault を直接操作するツール：
 | `get_active_note_info` | アクティブノートの情報取得 |
 | `get_rag_sync_status` | RAG 同期状態を確認 |
 
+### Vault ツールモード
+
+添付ボタンの下にあるデータベースアイコン（📦）から、AI が使用できる Vault ツールを制御できます：
+
+| モード | 説明 | 使用可能なツール |
+|--------|------|------------------|
+| **Vault: 全て** | Vault への完全アクセス | すべてのツール |
+| **Vault: 検索なし** | 検索ツールを除外 | `search_notes`、`list_notes` 以外 |
+| **Vault: オフ** | Vault アクセスなし | なし |
+
+**自動モード選択：**
+
+| 条件 | デフォルトモード | 変更可能 |
+|------|------------------|----------|
+| CLI モデル（Gemini/Claude/Codex CLI） | Vault: オフ | 不可 |
+| Gemma モデル | Vault: オフ | 不可 |
+| Web Search 有効 | Vault: オフ | 不可 |
+| Flash Lite + RAG | Vault: オフ | 不可 |
+| RAG 有効 | Vault: 検索なし | 可 |
+| RAG なし | Vault: 全て | 可 |
+
+> **ヒント：** RAG 使用時は「Vault: 検索なし」が推奨です。RAG が既に Vault 全体のセマンティック検索を提供するため、重複検索を避けられます。
+
 ## 安全な編集
 
 AI が `propose_edit` を使用時：

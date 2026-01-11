@@ -95,6 +95,29 @@ Die KI kann mit Ihrem Vault über diese Tools interagieren:
 | `get_active_note_info` | Informationen über aktive Notiz abrufen |
 | `get_rag_sync_status` | RAG-Sync-Status prüfen |
 
+### Vault-Tool-Modus
+
+Steuern Sie, welche Vault-Tools die KI verwenden kann, über das Datenbank-Symbol (📦) unter dem Anhang-Button:
+
+| Modus | Beschreibung | Verfügbare Tools |
+|-------|--------------|------------------|
+| **Vault: Alle** | Voller Vault-Zugriff | Alle Tools |
+| **Vault: Ohne Suche** | Suchwerkzeuge ausschließen | Alle außer `search_notes`, `list_notes` |
+| **Vault: Aus** | Kein Vault-Zugriff | Keine |
+
+**Automatische Modusauswahl:**
+
+| Bedingung | Standardmodus | Änderbar |
+|-----------|---------------|----------|
+| CLI-Modelle (Gemini/Claude/Codex CLI) | Vault: Aus | Nein |
+| Gemma-Modelle | Vault: Aus | Nein |
+| Web Search aktiviert | Vault: Aus | Nein |
+| Flash Lite + RAG | Vault: Aus | Nein |
+| RAG aktiviert | Vault: Ohne Suche | Ja |
+| Kein RAG | Vault: Alle | Ja |
+
+> **Tipp:** Bei der Verwendung von RAG wird "Vault: Ohne Suche" empfohlen, um redundante Suchen zu vermeiden – RAG bietet bereits semantische Suche über Ihren Vault.
+
 ## Sicheres Bearbeiten
 
 Wenn die KI `propose_edit` verwendet:

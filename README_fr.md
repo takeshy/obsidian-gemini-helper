@@ -95,6 +95,29 @@ L'IA peut interagir avec votre coffre en utilisant ces outils :
 | `get_active_note_info` | Obtenir des infos sur la note active |
 | `get_rag_sync_status` | Vérifier le statut de synchronisation RAG |
 
+### Mode Outils du Coffre
+
+Contrôlez quels outils du coffre l'IA peut utiliser via l'icône de base de données (📦) sous le bouton de pièce jointe :
+
+| Mode | Description | Outils Disponibles |
+|------|-------------|-------------------|
+| **Vault: Tous** | Accès complet au coffre | Tous les outils |
+| **Vault: Sans recherche** | Exclure les outils de recherche | Tous sauf `search_notes`, `list_notes` |
+| **Vault: Désactivé** | Aucun accès au coffre | Aucun |
+
+**Sélection automatique du mode :**
+
+| Condition | Mode Par Défaut | Modifiable |
+|-----------|-----------------|------------|
+| Modèles CLI (Gemini/Claude/Codex CLI) | Vault: Désactivé | Non |
+| Modèles Gemma | Vault: Désactivé | Non |
+| Web Search activé | Vault: Désactivé | Non |
+| Flash Lite + RAG | Vault: Désactivé | Non |
+| RAG activé | Vault: Sans recherche | Oui |
+| Sans RAG | Vault: Tous | Oui |
+
+> **Conseil :** Lors de l'utilisation de RAG, "Vault: Sans recherche" est recommandé pour éviter les recherches redondantes – RAG fournit déjà une recherche sémantique sur tout le coffre.
+
 ## Édition Sécurisée
 
 Quand l'IA utilise `propose_edit` :

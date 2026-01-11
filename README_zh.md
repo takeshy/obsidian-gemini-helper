@@ -95,6 +95,29 @@ AI 可以使用以下工具与您的仓库交互：
 | `get_active_note_info` | 获取当前笔记的信息 |
 | `get_rag_sync_status` | 检查 RAG 同步状态 |
 
+### Vault 工具模式
+
+通过附件按钮下方的数据库图标（📦）控制 AI 可以使用哪些 Vault 工具：
+
+| 模式 | 描述 | 可用工具 |
+|------|------|----------|
+| **Vault: 全部** | 完全访问 Vault | 所有工具 |
+| **Vault: 无搜索** | 排除搜索工具 | 除 `search_notes`、`list_notes` 外的所有工具 |
+| **Vault: 关闭** | 无 Vault 访问 | 无 |
+
+**自动模式选择：**
+
+| 条件 | 默认模式 | 可更改 |
+|------|----------|--------|
+| CLI 模型（Gemini/Claude/Codex CLI） | Vault: 关闭 | 否 |
+| Gemma 模型 | Vault: 关闭 | 否 |
+| 启用 Web Search | Vault: 关闭 | 否 |
+| Flash Lite + RAG | Vault: 关闭 | 否 |
+| 启用 RAG | Vault: 无搜索 | 是 |
+| 无 RAG | Vault: 全部 | 是 |
+
+> **提示：** 使用 RAG 时，建议选择"Vault: 无搜索"以避免重复搜索——RAG 已经提供了整个仓库的语义搜索功能。
+
 ## 安全编辑
 
 当 AI 使用 `propose_edit` 时：

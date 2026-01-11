@@ -95,6 +95,29 @@ La IA puede interactuar con tu vault usando estas herramientas:
 | `get_active_note_info` | Obtener información sobre la nota activa |
 | `get_rag_sync_status` | Verificar estado de sincronización RAG |
 
+### Modo de Herramientas del Vault
+
+Controla qué herramientas del vault puede usar la IA mediante el icono de base de datos (📦) debajo del botón de adjuntos:
+
+| Modo | Descripción | Herramientas Disponibles |
+|------|-------------|--------------------------|
+| **Vault: Todo** | Acceso completo al vault | Todas las herramientas |
+| **Vault: Sin búsqueda** | Excluir herramientas de búsqueda | Todas excepto `search_notes`, `list_notes` |
+| **Vault: Desactivado** | Sin acceso al vault | Ninguna |
+
+**Selección automática de modo:**
+
+| Condición | Modo Predeterminado | Modificable |
+|-----------|---------------------|-------------|
+| Modelos CLI (Gemini/Claude/Codex CLI) | Vault: Desactivado | No |
+| Modelos Gemma | Vault: Desactivado | No |
+| Web Search habilitado | Vault: Desactivado | No |
+| Flash Lite + RAG | Vault: Desactivado | No |
+| RAG habilitado | Vault: Sin búsqueda | Sí |
+| Sin RAG | Vault: Todo | Sí |
+
+> **Consejo:** Al usar RAG, se recomienda "Vault: Sin búsqueda" para evitar búsquedas redundantes – RAG ya proporciona búsqueda semántica en todo el vault.
+
 ## Edición Segura
 
 Cuando la IA usa `propose_edit`:

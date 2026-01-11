@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, KeyboardEvent, ChangeEvent, forwardRef, useImperativeHandle } from "react";
-import { Send, Paperclip, StopCircle, Eye } from "lucide-react";
+import { Send, Paperclip, StopCircle, Eye, Database } from "lucide-react";
 import type { App } from "obsidian";
 import { isImageGenerationModel, type ModelInfo, type ModelType, type Attachment, type SlashCommand } from "src/types";
 import { t } from "src/i18n";
@@ -20,6 +20,7 @@ interface InputAreaProps {
   onRagSettingChange: (setting: string | null) => void;
   vaultToolMode: VaultToolMode;
   onVaultToolModeChange: (mode: VaultToolMode) => void;
+  vaultToolModeOnlyNone: boolean; // When true, only "none" option is available
   slashCommands: SlashCommand[];
   onSlashCommand: (command: SlashCommand) => string;
   vaultFiles: string[];
@@ -61,6 +62,7 @@ const InputArea = forwardRef<InputAreaHandle, InputAreaProps>(function InputArea
   onRagSettingChange,
   vaultToolMode,
   onVaultToolModeChange,
+  vaultToolModeOnlyNone,
   slashCommands,
   onSlashCommand,
   vaultFiles,
@@ -77,9 +79,11 @@ const InputArea = forwardRef<InputAreaHandle, InputAreaProps>(function InputArea
   const [mentionIndex, setMentionIndex] = useState(0);
   const [filteredMentions, setFilteredMentions] = useState<MentionItem[]>([]);
   const [mentionStartPos, setMentionStartPos] = useState(0);
+  const [showVaultToolMenu, setShowVaultToolMenu] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const mentionAutocompleteRef = useRef<HTMLDivElement>(null);
+  const vaultToolMenuRef = useRef<HTMLDivElement>(null);
 
   // Scroll to selected mention item
   useEffect(() => {
@@ -91,6 +95,18 @@ const InputArea = forwardRef<InputAreaHandle, InputAreaProps>(function InputArea
       }
     }
   }, [mentionIndex, showMentionAutocomplete]);
+
+  // Close vault tool menu when clicking outside
+  useEffect(() => {
+    if (!showVaultToolMenu) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (vaultToolMenuRef.current && !vaultToolMenuRef.current.contains(e.target as Node)) {
+        setShowVaultToolMenu(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [showVaultToolMenu]);
 
   // Expose methods via ref
   useImperativeHandle(ref, () => ({
@@ -429,15 +445,52 @@ const InputArea = forwardRef<InputAreaHandle, InputAreaProps>(function InputArea
           className="gemini-helper-hidden-input"
         />
 
-        {/* Attachment button */}
-        <button
-          className="gemini-helper-attachment-btn"
-          onClick={() => fileInputRef.current?.click()}
-          disabled={isLoading}
-          title={t("input.attach")}
-        >
-          <Paperclip size={18} />
-        </button>
+        {/* Left button column */}
+        <div className="gemini-helper-input-buttons">
+          {/* Attachment button */}
+          <button
+            className="gemini-helper-attachment-btn"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={isLoading}
+            title={t("input.attach")}
+          >
+            <Paperclip size={18} />
+          </button>
+
+          {/* Vault tool mode button */}
+          <div className="gemini-helper-vault-tool-container" ref={vaultToolMenuRef}>
+            <button
+              className={`gemini-helper-vault-tool-btn ${vaultToolMode !== "all" ? "active" : ""}`}
+              onClick={() => setShowVaultToolMenu(!showVaultToolMenu)}
+              disabled={isLoading || isImageGenerationModel(model)}
+              title={t("input.vaultToolTitle")}
+            >
+              <Database size={18} />
+            </button>
+            {showVaultToolMenu && (
+              <div className="gemini-helper-vault-tool-menu">
+                <div
+                  className={`gemini-helper-vault-tool-item ${vaultToolMode === "all" ? "selected" : ""} ${vaultToolModeOnlyNone ? "disabled" : ""}`}
+                  onClick={() => { if (!vaultToolModeOnlyNone) { onVaultToolModeChange("all"); setShowVaultToolMenu(false); } }}
+                >
+                  {t("input.vaultToolAll")}
+                </div>
+                <div
+                  className={`gemini-helper-vault-tool-item ${vaultToolMode === "noSearch" ? "selected" : ""} ${vaultToolModeOnlyNone ? "disabled" : ""}`}
+                  onClick={() => { if (!vaultToolModeOnlyNone) { onVaultToolModeChange("noSearch"); setShowVaultToolMenu(false); } }}
+                >
+                  {t("input.vaultToolNoSearch")}
+                </div>
+                <div
+                  className={`gemini-helper-vault-tool-item ${vaultToolMode === "none" ? "selected" : ""}`}
+                  onClick={() => { onVaultToolModeChange("none"); setShowVaultToolMenu(false); }}
+                >
+                  {t("input.vaultToolNone")}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
 
         <textarea
           ref={textareaRef}
@@ -504,16 +557,6 @@ const InputArea = forwardRef<InputAreaHandle, InputAreaProps>(function InputArea
               {t("input.rag", { name })}
             </option>
           ))}
-        </select>
-        <select
-          className="gemini-helper-model-select gemini-helper-vault-tool-select"
-          value={vaultToolMode}
-          onChange={(e) => onVaultToolModeChange(e.target.value as VaultToolMode)}
-          disabled={isLoading || isImageGenerationModel(model)}
-        >
-          <option value="all">{t("input.vaultToolAll")}</option>
-          <option value="noSearch">{t("input.vaultToolNoSearch")}</option>
-          <option value="none">{t("input.vaultToolNone")}</option>
         </select>
       </div>
     </div>

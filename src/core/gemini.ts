@@ -314,6 +314,7 @@ export class GeminiClient {
     while (continueLoop) {
       const functionCallsToProcess: Array<{ name: string; args: Record<string, unknown> }> = [];
       let groundingEmitted = false;
+      const accumulatedSources: string[] = [];
 
       for await (const chunk of response) {
         // Check for function calls
@@ -364,23 +365,16 @@ export class GeminiClient {
               yield { type: "web_search_used" };
               groundingEmitted = true;
             } else {
-              // RAG/File Search was used - only emit if actual sources were found
-              const sources: string[] = [];
+              // RAG/File Search was used - accumulate sources from all chunks
               // Extract source file names from grounding chunks
+              // Prefer title (actual file name) over uri (internal reference)
               if (groundingMetadata.groundingChunks) {
                 for (const gc of groundingMetadata.groundingChunks) {
-                  if (gc.retrievedContext?.uri) {
-                    sources.push(gc.retrievedContext.uri);
-                  } else if (gc.retrievedContext?.title) {
-                    sources.push(gc.retrievedContext.title);
+                  const source = gc.retrievedContext?.title || gc.retrievedContext?.uri;
+                  if (source && !accumulatedSources.includes(source)) {
+                    accumulatedSources.push(source);
                   }
                 }
-              }
-              // Only indicate RAG was used if we actually got sources
-              // This prevents false "semantic search used" when retrieval returned nothing
-              if (sources.length > 0) {
-                yield { type: "rag_used", ragSources: sources };
-                groundingEmitted = true;
               }
             }
           }
@@ -391,6 +385,12 @@ export class GeminiClient {
         if (text) {
           yield { type: "text", content: text };
         }
+      }
+
+      // Emit accumulated RAG sources after processing all chunks
+      if (accumulatedSources.length > 0 && !groundingEmitted) {
+        yield { type: "rag_used", ragSources: accumulatedSources };
+        groundingEmitted = true;
       }
 
       // Process function calls if any

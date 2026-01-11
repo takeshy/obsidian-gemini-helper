@@ -125,9 +125,28 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 		plugin.workspaceState.selectedRagSetting
 	);
 	// Vault tool mode: "all" = use all tools, "noSearch" = exclude search_notes/list_notes, "none" = no vault tools
-	const [vaultToolMode, setVaultToolMode] = useState<"all" | "noSearch" | "none">(
-		plugin.workspaceState.selectedRagSetting ? "noSearch" : "all"
-	);
+	const [vaultToolMode, setVaultToolMode] = useState<"all" | "noSearch" | "none">(() => {
+		const ragSetting = plugin.workspaceState.selectedRagSetting;
+		const initialModel = plugin.getSelectedModel();
+		const isInitialFlashLite = initialModel.toLowerCase().includes("flash-lite");
+		const isInitialCli = initialModel === "gemini-cli" || initialModel === "claude-cli" || initialModel === "codex-cli";
+		const isInitialGemma = initialModel.toLowerCase().includes("gemma");
+
+		// CLI and Gemma models: always "none"
+		if (isInitialCli || isInitialGemma) {
+			return "none";
+		}
+		if (ragSetting === "__websearch__") {
+			return "none";
+		}
+		if (ragSetting && isInitialFlashLite) {
+			return "none";
+		}
+		if (ragSetting) {
+			return "noSearch";
+		}
+		return "all";
+	});
 	const messagesContainerRef = useRef<HTMLDivElement>(null);
 	const abortControllerRef = useRef<AbortController | null>(null);
 	const inputAreaRef = useRef<InputAreaHandle>(null);
@@ -479,20 +498,37 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 
 	useEffect(() => {
 		// Skip plan check for CLI models
-		if (currentModel === "gemini-cli" || currentModel === "claude-cli") return;
+		if (currentModel === "gemini-cli" || currentModel === "claude-cli" || currentModel === "codex-cli") return;
 		if (!isModelAllowedForPlan(apiPlan, currentModel)) {
 			setCurrentModel(DEFAULT_MODEL);
 			void plugin.selectModel(DEFAULT_MODEL);
 		}
 	}, [apiPlan, currentModel, plugin]);
 
+	// Check if current model is Flash Lite or Gemma
+	const isFlashLiteModel = currentModel.toLowerCase().includes("flash-lite");
+	const isGemmaModel = currentModel.toLowerCase().includes("gemma");
+
 	// Handle RAG setting change from UI
 	const handleRagSettingChange = (name: string | null) => {
 		setSelectedRagSetting(name);
 		void plugin.selectRagSetting(name);
-		// When RAG is selected (not web search), default to "noSearch" mode
-		if (name && name !== "__websearch__") {
-			setVaultToolMode("noSearch");
+
+		if (name === "__websearch__") {
+			// Web Search: force to "none" (no vault tools)
+			setVaultToolMode("none");
+		} else if (name) {
+			// RAG is selected
+			if (isFlashLiteModel) {
+				// Flash Lite + RAG: force to "none"
+				setVaultToolMode("none");
+			} else {
+				// Other models + RAG: default to "noSearch"
+				setVaultToolMode("noSearch");
+			}
+		} else {
+			// No RAG selected: default to "all"
+			setVaultToolMode("all");
 		}
 	};
 
@@ -506,12 +542,24 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 		setCurrentModel(model);
 		void plugin.selectModel(model);
 
-		// Auto-adjust search setting for CLI mode and special models
-		if (model === "gemini-cli" || model === "claude-cli") {
-			// CLI mode: force Search to None
+		const isNewModelFlashLite = model.toLowerCase().includes("flash-lite");
+
+		const isNewModelCli = model === "gemini-cli" || model === "claude-cli" || model === "codex-cli";
+		const isNewModelGemma = model.toLowerCase().includes("gemma");
+
+		// Auto-adjust search setting and vault tool mode for CLI mode and special models
+		if (isNewModelCli) {
+			// CLI mode: force Search to None and Vault to Off
 			if (selectedRagSetting !== null) {
 				handleRagSettingChange(null);
 			}
+			setVaultToolMode("none");
+		} else if (isNewModelGemma) {
+			// Gemma: force Search to None and Vault to Off
+			if (selectedRagSetting !== null) {
+				handleRagSettingChange(null);
+			}
+			setVaultToolMode("none");
 		} else if (isImageGenerationModel(model)) {
 			// 2.5 Flash Image: no tools supported → force None
 			// 3 Pro Image: Web Search only → keep if Web Search, else None
@@ -525,9 +573,24 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 					handleRagSettingChange(null);
 				}
 			}
-		} else if (model.toLowerCase().includes("gemma")) {
-			if (selectedRagSetting !== null) {
-				handleRagSettingChange(null);
+			// Reset vault tool mode for image generation models
+			setVaultToolMode("all");
+		} else if (isNewModelFlashLite) {
+			if (selectedRagSetting && selectedRagSetting !== "__websearch__") {
+				// Flash Lite + RAG: force vault tool mode to "none"
+				setVaultToolMode("none");
+			} else {
+				// Flash Lite without RAG: reset to "all"
+				setVaultToolMode("all");
+			}
+		} else {
+			// Normal models: check current RAG setting and reset appropriately
+			if (selectedRagSetting === "__websearch__") {
+				setVaultToolMode("none");
+			} else if (selectedRagSetting) {
+				setVaultToolMode("noSearch");
+			} else {
+				setVaultToolMode("all");
 			}
 		}
 	};
@@ -1487,6 +1550,7 @@ Always be helpful and provide clear, concise responses. When working with notes,
 						onRagSettingChange={handleRagSettingChange}
 						vaultToolMode={vaultToolMode}
 						onVaultToolModeChange={handleVaultToolModeChange}
+						vaultToolModeOnlyNone={isCliMode || isGemmaModel || selectedRagSetting === "__websearch__" || (isFlashLiteModel && !!selectedRagSetting && selectedRagSetting !== "__websearch__")}
 						slashCommands={plugin.settings.slashCommands}
 						onSlashCommand={handleSlashCommand}
 						vaultFiles={vaultFiles}

@@ -3,10 +3,10 @@ import { TFile, Notice, Menu, MarkdownView, stringifyYaml } from "obsidian";
 import { FileText, Keyboard, KeyboardOff, LayoutGrid, Plus, Save, Sparkles, Zap, ZapOff } from "lucide-react";
 import { EventTriggerModal } from "./EventTriggerModal";
 import type { WorkflowEventTrigger } from "src/types";
-import { promptForAIWorkflow } from "./AIWorkflowModal";
+import { promptForAIWorkflow, ResolvedMention } from "./AIWorkflowModal";
 import type { GeminiHelperPlugin } from "src/plugin";
 import { SidebarNode, WorkflowNodeType, WorkflowInput, PromptCallbacks } from "src/workflow/types";
-import { loadFromCodeBlock, saveToCodeBlock, LoadResult } from "src/workflow/codeblockSync";
+import { loadFromCodeBlock, saveToCodeBlock } from "src/workflow/codeblockSync";
 import { listWorkflowOptions, parseWorkflowFromMarkdown, WorkflowOption } from "src/workflow/parser";
 import { WorkflowExecutor } from "src/workflow/executor";
 import { NodeEditorModal } from "./NodeEditorModal";
@@ -234,6 +234,26 @@ function getNodeSummary(node: SidebarNode): string {
   }
 }
 
+// Build history entry with optional collapsed file contents
+function buildHistoryEntry(
+  action: "Created" | "Modified",
+  description: string,
+  resolvedMentions?: ResolvedMention[]
+): string {
+  const timestamp = new Date().toLocaleString();
+  let entry = `> - ${timestamp}: ${action} - "${description}"`;
+
+  // Add collapsed sections for resolved file contents
+  if (resolvedMentions && resolvedMentions.length > 0) {
+    for (const mention of resolvedMentions) {
+      const escapedContent = mention.content.split('\n').join('\n>   > ');
+      entry += `\n>   > [!note]- ${mention.original}\n>   > \`\`\`\n>   > ${escapedContent}\n>   > \`\`\``;
+    }
+  }
+
+  return entry;
+}
+
 export default function WorkflowPanel({ plugin }: WorkflowPanelProps) {
   const [workflowFile, setWorkflowFile] = useState<TFile | null>(null);
   const [workflowName, setWorkflowName] = useState<string | null>(null);
@@ -346,8 +366,11 @@ export default function WorkflowPanel({ plugin }: WorkflowPanelProps) {
           }
         }
 
-        // Create the workflow content
-        const workflowContent = `\`\`\`workflow
+        // Create the workflow content with history
+        const historyLine = buildHistoryEntry("Created", result.description || "", result.resolvedMentions);
+        const historyEntry = `> [!info] AI Workflow History\n${historyLine}\n\n`;
+
+        const workflowCodeBlock = `\`\`\`workflow
 name: ${result.name}
 nodes:
 ${result.nodes.map(node => {
@@ -377,6 +400,8 @@ ${result.nodes.map(node => {
 }).join("\n")}
 \`\`\`
 `;
+
+        const workflowContent = historyEntry + workflowCodeBlock;
 
         // Check if file already exists
         const existingFile = plugin.app.vault.getAbstractFileByPath(filePath);
@@ -497,6 +522,36 @@ ${result.nodes.map(node => {
     if (result) {
       setNodes(result.nodes);
       setWorkflowName(result.name);
+
+      // Add modification history entry
+      if (result.description) {
+        const historyLine = buildHistoryEntry("Modified", result.description, result.resolvedMentions);
+
+        const content = await plugin.app.vault.read(workflowFile);
+        // Find existing history callout and append to it
+        const historyMatch = content.match(/(> \[!info\] AI Workflow History\n(?:>.*\n)*)/);
+        let newContent: string;
+
+        if (historyMatch) {
+          // Append to existing history
+          newContent = content.replace(
+            historyMatch[0],
+            historyMatch[0] + historyLine + "\n"
+          );
+        } else {
+          // Insert new history before the workflow code block
+          const workflowBlockMatch = content.match(/```workflow/);
+          if (workflowBlockMatch && workflowBlockMatch.index !== undefined) {
+            const historyEntry = `> [!info] AI Workflow History\n${historyLine}\n\n`;
+            newContent = content.slice(0, workflowBlockMatch.index) + historyEntry + content.slice(workflowBlockMatch.index);
+          } else {
+            newContent = content;
+          }
+        }
+
+        await plugin.app.vault.modify(workflowFile, newContent);
+      }
+
       await saveWorkflow(result.nodes);
       new Notice(t("workflow.modifiedSuccessfully"));
     }
@@ -514,7 +569,8 @@ ${result.nodes.map(node => {
         plugin.app,
         nodes,
         plugin.settings.workspaceFolder,
-        workflowName || undefined
+        workflowName || undefined,
+        workflowFile?.path
       );
       new Notice(t("workflow.exportedToCanvas"));
     } catch (error) {
@@ -738,7 +794,11 @@ ${result.nodes.map(node => {
           }
         }
 
-        const workflowContent = `\`\`\`workflow
+        // Create the workflow content with history
+        const historyLine = buildHistoryEntry("Created", result.description || "", result.resolvedMentions);
+        const historyEntry = `> [!info] AI Workflow History\n${historyLine}\n\n`;
+
+        const workflowCodeBlock = `\`\`\`workflow
 name: ${result.name}
 nodes:
 ${result.nodes.map(node => {
@@ -767,6 +827,8 @@ ${result.nodes.map(node => {
 }).join("\n")}
 \`\`\`
 `;
+
+        const workflowContent = historyEntry + workflowCodeBlock;
 
         const existingFile = plugin.app.vault.getAbstractFileByPath(filePath);
         let targetFile: TFile;

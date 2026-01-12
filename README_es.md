@@ -423,6 +423,7 @@ npm run build
 - Los nodos de decisión (`if`/`while`) muestran rutas Sí/No
 - Las flechas de retroceso se enrutan alrededor de los nodos para mayor claridad
 - Cada nodo muestra su configuración completa
+- Se incluye un enlace al archivo de workflow de origen para navegación rápida
 
 ![Workflow to Canvas](workflow_to_canvas.png)
 
@@ -440,6 +441,26 @@ Esto es especialmente útil para entender flujos de trabajo complejos con múlti
 3. Describe lo que el flujo de trabajo debe hacer en lenguaje natural
 4. Selecciona un modelo y haz clic en **Generate**
 5. El flujo de trabajo se crea y guarda automáticamente
+
+**Referencias de Archivos con @:**
+
+Escribe `@` en el campo de descripción para referenciar archivos:
+- `@{selection}` - Selección actual del editor
+- `@{content}` - Contenido de la nota activa
+- `@path/to/file.md` - Cualquier archivo del vault
+
+Cuando haces clic en Generate, el contenido del archivo se incrusta directamente en la solicitud de IA. El frontmatter YAML se elimina automáticamente.
+
+> **Consejo:** Esto es útil para crear flujos de trabajo basados en ejemplos o plantillas de workflow existentes en tu vault.
+
+**Historial de Solicitudes:**
+
+Cada flujo de trabajo generado por IA guarda una entrada de historial sobre el bloque de código del workflow, incluyendo:
+- Marca de tiempo y acción (Creado/Modificado)
+- Tu descripción de la solicitud
+- Contenidos de archivos referenciados (en secciones colapsables)
+
+![Historial de IA del Workflow](workflow_ai_history.png)
 
 **Modificar Flujo de Trabajo Existente con IA:**
 1. Carga un flujo de trabajo existente

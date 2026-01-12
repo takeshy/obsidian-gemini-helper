@@ -423,6 +423,7 @@ npm run build
 - Les nœuds de décision (`if`/`while`) affichent les chemins Oui/Non
 - Les flèches de retour sont acheminées autour des nœuds pour plus de clarté
 - Chaque nœud affiche sa configuration complète
+- Un lien vers le fichier workflow source est inclus pour une navigation rapide
 
 ![Workflow to Canvas](workflow_to_canvas.png)
 
@@ -440,6 +441,26 @@ C'est particulièrement utile pour comprendre les workflows complexes avec plusi
 3. Décrivez ce que le workflow doit faire en langage naturel
 4. Sélectionnez un modèle et cliquez sur **Générer**
 5. Le workflow est automatiquement créé et sauvegardé
+
+**Références de Fichiers avec @ :**
+
+Tapez `@` dans le champ de description pour référencer des fichiers :
+- `@{selection}` - Sélection actuelle de l'éditeur
+- `@{content}` - Contenu de la note active
+- `@path/to/file.md` - N'importe quel fichier du vault
+
+Lorsque vous cliquez sur Générer, le contenu du fichier est intégré directement dans la requête IA. Le frontmatter YAML est automatiquement supprimé.
+
+> **Conseil :** Ceci est utile pour créer des workflows basés sur des exemples ou modèles de workflow existants dans votre vault.
+
+**Historique des Requêtes :**
+
+Chaque workflow généré par IA enregistre une entrée d'historique au-dessus du bloc de code du workflow, incluant :
+- Horodatage et action (Créé/Modifié)
+- Votre description de la requête
+- Contenus des fichiers référencés (dans des sections repliables)
+
+![Historique IA du Workflow](workflow_ai_history.png)
 
 **Modifier un Workflow Existant avec l'IA :**
 1. Chargez un workflow existant

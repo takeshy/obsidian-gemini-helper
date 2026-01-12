@@ -1818,6 +1818,35 @@
   width: 100%;
 }
 
+/* Path suggestion dropdown for workflow node editor */
+.workflow-path-suggestions {
+  position: absolute;
+  z-index: 100;
+  margin-top: 4px;
+  max-height: 200px;
+  overflow-y: auto;
+  background: var(--background-secondary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.workflow-path-suggestion-item {
+  padding: 8px 12px;
+  cursor: pointer;
+  font-size: 13px;
+  border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.workflow-path-suggestion-item:last-child {
+  border-bottom: none;
+}
+
+.workflow-path-suggestion-item:hover,
+.workflow-path-suggestion-item.is-selected {
+  background: var(--background-modifier-hover);
+}
+
 .workflow-modal-buttons {
   display: flex;
   justify-content: flex-end;
@@ -2521,15 +2550,42 @@
   font-weight: 500;
 }
 
+/* AI Workflow textarea container for mention autocomplete */
+.ai-workflow-textarea-container {
+  position: relative;
+}
+
 .ai-workflow-textarea {
   width: 100%;
   min-height: 120px;
   resize: vertical;
-  margin-bottom: 16px;
+  margin-bottom: 8px;
   padding: 8px;
   border-radius: 4px;
   border: 1px solid var(--background-modifier-border);
   background: var(--background-primary);
+}
+
+.ai-workflow-hint {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 16px;
+}
+
+/* AI Workflow mention autocomplete - fixed position to avoid clipping */
+.ai-workflow-mention-autocomplete {
+  position: fixed;
+  max-height: 200px;
+  overflow-y: auto;
+  z-index: 10000;
+  background: var(--background-secondary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.ai-workflow-mention-autocomplete.is-hidden {
+  display: none;
 }
 
 .ai-workflow-existing {
@@ -3374,4 +3430,53 @@
 .is-mobile .gemini-helper-vault-tool-item {
   padding: 12px 16px;
   font-size: 14px;
+}
+
+/* ===============================================
+   Workflow Path Suggestions (@ autocomplete)
+   =============================================== */
+
+.workflow-path-suggestions {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  max-height: 200px;
+  overflow-y: auto;
+  background: var(--background-secondary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 1000;
+  margin-top: 4px;
+}
+
+.workflow-path-suggestion-item {
+  padding: 8px 12px;
+  font-size: 13px;
+  cursor: pointer;
+  color: var(--text-normal);
+  border-bottom: 1px solid var(--background-modifier-border);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: background 0.1s;
+}
+
+.workflow-path-suggestion-item:last-child {
+  border-bottom: none;
+}
+
+.workflow-path-suggestion-item:hover {
+  background: var(--background-modifier-hover);
+}
+
+.workflow-path-suggestion-item.is-selected {
+  background: var(--interactive-accent);
+  color: var(--text-on-accent);
+}
+
+/* Ensure Setting items have relative positioning for suggestions */
+.workflow-node-editor-modal .setting-item {
+  position: relative;
 }

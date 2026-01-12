@@ -418,7 +418,17 @@ npm run build
 
 ![Workflow History](workflow_history.png)
 
-**Export to Canvas:** View execution history as an Obsidian Canvas for visual analysis.
+**Visualize as Flowchart:** Click the **Canvas** button (grid icon) in the Workflow panel to export your workflow as an Obsidian Canvas. This creates a visual flowchart where:
+- Loops and branches are clearly displayed with proper routing
+- Decision nodes (`if`/`while`) show Yes/No paths
+- Loop-back arrows are routed around nodes for clarity
+- Each node shows its full configuration
+
+![Workflow to Canvas](workflow_to_canvas.png)
+
+This is especially helpful for understanding complex workflows with multiple branches and loops.
+
+**Export Execution History:** View execution history as an Obsidian Canvas for visual analysis.
 
 ![History Canvas View](history_canvas.png)
 

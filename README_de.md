@@ -418,7 +418,17 @@ npm run build
 
 ![Workflow-Verlauf](workflow_history.png)
 
-**Export in Canvas:** Zeigen Sie den Ausführungsverlauf als Obsidian Canvas zur visuellen Analyse an.
+**Als Flussdiagramm visualisieren:** Klicken Sie auf die **Canvas**-Schaltfläche (Gittersymbol) im Workflow-Panel, um Ihren Workflow als Obsidian Canvas zu exportieren. Dies erstellt ein visuelles Flussdiagramm, bei dem:
+- Schleifen und Verzweigungen mit korrekter Routenführung klar dargestellt werden
+- Entscheidungsknoten (`if`/`while`) Ja/Nein-Pfade anzeigen
+- Rückwärtspfeile für Schleifen um Knoten herum geleitet werden
+- Jeder Knoten seine vollständige Konfiguration anzeigt
+
+![Workflow to Canvas](workflow_to_canvas.png)
+
+Dies ist besonders hilfreich zum Verständnis komplexer Workflows mit mehreren Verzweigungen und Schleifen.
+
+**Ausführungsverlauf exportieren:** Zeigen Sie den Ausführungsverlauf als Obsidian Canvas zur visuellen Analyse an.
 
 ![Verlaufs-Canvas-Ansicht](history_canvas.png)
 

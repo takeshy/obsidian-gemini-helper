@@ -449,6 +449,8 @@ Ramificacion condicional y bucles.
 | `trueNext` | ID del nodo cuando la condicion es verdadera |
 | `falseNext` | ID del nodo cuando la condicion es falsa |
 
+> **Regla de referencia hacia atrás**: La propiedad `next` solo puede hacer referencia a nodos anteriores si el destino es un nodo `while`. Esto evita el código espagueti y garantiza una estructura de bucle adecuada.
+
 ### variable / set
 
 Declara y actualiza variables.

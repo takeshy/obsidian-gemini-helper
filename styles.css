@@ -1437,8 +1437,7 @@
   gap: 6px;
 }
 
-.workflow-sidebar-add-btn,
-.workflow-sidebar-ai-btn {
+.workflow-sidebar-add-btn {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1462,6 +1461,31 @@
 
 .workflow-sidebar-select {
   width: 100%;
+}
+
+/* Error Banner */
+.workflow-error-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 12px;
+  margin: 8px 12px;
+  background: rgba(var(--color-red-rgb), 0.15);
+  border: 1px solid var(--color-red);
+  border-radius: 6px;
+  color: var(--text-normal);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.workflow-error-icon {
+  flex-shrink: 0;
+  color: var(--color-red);
+  font-size: 14px;
+}
+
+.workflow-error-message {
+  word-break: break-word;
 }
 
 .workflow-sidebar-content {
@@ -2040,6 +2064,52 @@
   color: var(--text-error);
 }
 
+/* Mobile Styles for Workflow History Modal */
+.is-mobile .workflow-history-modal {
+  min-width: unset;
+  padding: 12px;
+}
+
+.is-mobile .workflow-history-container {
+  flex-direction: column;
+}
+
+.is-mobile .workflow-history-list-panel {
+  width: 100%;
+  max-height: 40vh;
+}
+
+.is-mobile .workflow-history-detail-panel {
+  min-height: 200px;
+}
+
+.is-mobile .workflow-history-list-panel h3,
+.is-mobile .workflow-history-detail-panel h3 {
+  font-size: 14px;
+  margin-bottom: 8px;
+}
+
+.is-mobile .workflow-history-item {
+  padding: 8px 10px;
+}
+
+.is-mobile .workflow-history-time {
+  font-size: 11px;
+}
+
+.is-mobile .workflow-history-duration,
+.is-mobile .workflow-history-status-text {
+  font-size: 10px;
+}
+
+.is-mobile .workflow-detail-row {
+  font-size: 12px;
+}
+
+.is-mobile .workflow-detail-actions {
+  flex-wrap: wrap;
+}
+
 /* Mobile Styles for Workflow */
 .is-mobile .gemini-helper-tab {
   padding: 12px 16px;
@@ -2507,6 +2577,9 @@
 
 /* Workflow panel AI button */
 .workflow-sidebar-ai-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   padding: 4px 8px;
   font-size: 12px;
   background: var(--interactive-accent);
@@ -2530,13 +2603,13 @@
   display: none;
 }
 
-.is-mobile .workflow-sidebar-add-btn,
-.is-mobile .workflow-sidebar-ai-btn {
+.is-mobile .workflow-sidebar-add-btn {
   padding: 6px 8px;
 }
 
 .workflow-sidebar-history-btn,
-.workflow-sidebar-save-btn {
+.workflow-sidebar-save-btn,
+.workflow-sidebar-canvas-btn {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2550,8 +2623,14 @@
 }
 
 .workflow-sidebar-history-btn:hover,
-.workflow-sidebar-save-btn:hover {
+.workflow-sidebar-save-btn:hover,
+.workflow-sidebar-canvas-btn:hover {
   background: var(--background-modifier-border-hover);
+}
+
+.workflow-sidebar-canvas-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 /* AI Workflow confirmation checkbox row */

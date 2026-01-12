@@ -418,7 +418,17 @@ npm run build
 
 ![工作流历史](workflow_history.png)
 
-**导出到 Canvas：** 将执行历史作为 Obsidian Canvas 查看，便于可视化分析。
+**可视化为流程图：** 点击 Workflow 面板中的 **Canvas** 按钮（网格图标），将工作流导出为 Obsidian Canvas。这会创建一个可视化流程图：
+- 循环和分支以适当的路由清晰显示
+- 条件节点（`if`/`while`）显示是/否路径
+- 循环返回箭头绕过节点以提高清晰度
+- 每个节点显示其完整配置
+
+![Workflow to Canvas](workflow_to_canvas.png)
+
+这对于理解具有多个分支和循环的复杂工作流特别有用。
+
+**导出执行历史：** 将执行历史作为 Obsidian Canvas 查看，便于可视化分析。
 
 ![历史 Canvas 视图](history_canvas.png)
 

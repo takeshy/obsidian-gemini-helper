@@ -418,7 +418,17 @@ npm run build
 
 ![ワークフロー履歴](workflow_history.png)
 
-**Canvas へエクスポート:** 実行履歴を Obsidian Canvas としてビジュアル化。
+**フローチャートとして可視化:** Workflow パネルの **Canvas** ボタン（グリッドアイコン）をクリックすると、ワークフローを Obsidian Canvas にエクスポートできます。以下の特徴があります：
+- ループや分岐が適切なルーティングで明確に表示
+- 条件分岐ノード（`if`/`while`）は Yes/No パスを表示
+- ループバック矢印はノードを迂回して配置され見やすい
+- 各ノードの設定内容をすべて表示
+
+![Workflow to Canvas](workflow_to_canvas.png)
+
+複数の分岐やループを含む複雑なワークフローを理解するのに特に便利です。
+
+**実行履歴をエクスポート:** 実行履歴を Obsidian Canvas としてビジュアル化。
 
 ![履歴キャンバスビュー](history_canvas.png)
 

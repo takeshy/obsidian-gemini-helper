@@ -232,12 +232,44 @@ export function parseWorkflowFromMarkdown(
 
   const nodeIds = new Set<string>(workflow.nodes.keys());
 
+  // Build node index map for back-reference validation
+  const nodeIndexMap = new Map<string, number>();
+  for (let i = 0; i < nodesList.length; i++) {
+    const rawNode = nodesList[i];
+    if (rawNode && typeof rawNode === "object") {
+      const id = normalizeValue(rawNode.id) || `node-${i + 1}`;
+      nodeIndexMap.set(id, i);
+    }
+  }
+
+  // Identify while nodes
+  const whileNodeIds = new Set<string>();
+  for (const [id, node] of workflow.nodes) {
+    if (node.type === "while") {
+      whileNodeIds.add(id);
+    }
+  }
+
   const addEdge = (from: string, to: string, label?: "true" | "false") => {
     if (!nodeIds.has(from) || !nodeIds.has(to)) {
       throw new Error(`Invalid edge reference: ${from} -> ${to}`);
     }
     const edge: WorkflowEdge = { from, to, label };
     workflow.edges.push(edge);
+  };
+
+  // Validate back-reference: only while nodes can be loop targets
+  const validateBackReference = (fromId: string, toId: string) => {
+    const fromIndex = nodeIndexMap.get(fromId);
+    const toIndex = nodeIndexMap.get(toId);
+    if (fromIndex !== undefined && toIndex !== undefined && toIndex <= fromIndex) {
+      // This is a back-reference (pointing to earlier node)
+      if (!whileNodeIds.has(toId)) {
+        throw new Error(
+          `Invalid back-reference: "${fromId}" -> "${toId}". Only while nodes can be loop targets. Use while node for loops.`
+        );
+      }
+    }
   };
 
   // Special value to explicitly terminate workflow (no edge added)
@@ -284,6 +316,8 @@ export function parseWorkflowFromMarkdown(
       if (next) {
         // "end" terminates the workflow (no edge)
         if (!isTerminator(next)) {
+          // Validate: back-references only allowed to while nodes
+          validateBackReference(id, next);
           addEdge(id, next);
         }
       } else if (i < nodesList.length - 1) {

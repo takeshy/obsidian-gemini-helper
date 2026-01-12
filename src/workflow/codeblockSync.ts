@@ -60,26 +60,31 @@ export interface WorkflowBlockData {
   nodes: SidebarNode[];
 }
 
+export interface LoadResult {
+  data: WorkflowBlockData | null;
+  error?: string;
+}
+
 export function loadFromCodeBlock(
   content: string,
   workflowName?: string,
   index?: number
-): WorkflowBlockData | null {
+): LoadResult {
   const blocks = findWorkflowBlocks(content);
   if (blocks.length === 0) {
-    return null;
+    return { data: null };
   }
 
   let block = blocks[0];
   if (workflowName) {
     const match = blocks.find((b) => b.name === workflowName);
     if (!match) {
-      return null;
+      return { data: null };
     }
     block = match;
   } else if (index !== undefined) {
     if (index < 0 || index >= blocks.length) {
-      return null;
+      return { data: null };
     }
     block = blocks[index];
   }
@@ -92,10 +97,14 @@ export function loadFromCodeBlock(
     name?: unknown;
   };
   if (!workflowData || !Array.isArray(workflowData.nodes)) {
-    return null;
+    return { data: null };
   }
 
   const nodes: SidebarNode[] = [];
+  const nodeIndexMap = new Map<string, number>();
+  const whileNodeIds = new Set<string>();
+
+  // First pass: collect node info
   for (let i = 0; i < workflowData.nodes.length; i++) {
     const rawNode = workflowData.nodes[i];
     if (!rawNode || typeof rawNode !== "object") {
@@ -108,6 +117,11 @@ export function loadFromCodeBlock(
     }
 
     const id = normalizeValue(rawNode.id) || `node-${i + 1}`;
+    nodeIndexMap.set(id, i);
+    if (typeRaw === "while") {
+      whileNodeIds.add(id);
+    }
+
     const properties: Record<string, string> = {};
     for (const [key, value] of Object.entries(rawNode)) {
       if (
@@ -135,6 +149,22 @@ export function loadFromCodeBlock(
     });
   }
 
+  // Validate back-references: only while nodes can be loop targets
+  for (const node of nodes) {
+    if (node.next) {
+      const fromIndex = nodeIndexMap.get(node.id);
+      const toIndex = nodeIndexMap.get(node.next);
+      if (fromIndex !== undefined && toIndex !== undefined && toIndex <= fromIndex) {
+        if (!whileNodeIds.has(node.next)) {
+          return {
+            data: null,
+            error: `Invalid back-reference: "${node.id}" -> "${node.next}". Only while nodes can be loop targets.`,
+          };
+        }
+      }
+    }
+  }
+
   const name =
     typeof workflowData.name === "string"
       ? workflowData.name
@@ -143,8 +173,10 @@ export function loadFromCodeBlock(
         : undefined;
 
   return {
-    name,
-    nodes,
+    data: {
+      name,
+      nodes,
+    },
   };
 }
 

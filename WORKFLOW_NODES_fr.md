@@ -449,6 +449,8 @@ Branchement conditionnel et boucles.
 | `trueNext` | ID du noeud quand la condition est vraie |
 | `falseNext` | ID du noeud quand la condition est fausse |
 
+> **Règle de référence arrière** : La propriété `next` ne peut référencer des noeuds antérieurs que si la cible est un noeud `while`. Cela évite le code spaghetti et garantit une structure de boucle appropriée.
+
 ### variable / set
 
 Declarer et mettre a jour des variables.

@@ -10,6 +10,7 @@ interface MessageListProps {
   onApplyEdit?: (messageIndex: number) => Promise<void>;
   onDiscardEdit?: (messageIndex: number) => void;
   app: App;
+  workspaceFolder: string;
 }
 
 // Extract source file name from user message (e.g., From "xxx.md":)
@@ -31,6 +32,7 @@ const MessageList = forwardRef<HTMLDivElement, MessageListProps>(({
   onApplyEdit,
   onDiscardEdit,
   app,
+  workspaceFolder,
 }, ref) => {
   // Get source file name for assistant message (from previous user message)
   const getSourceFileForIndex = (index: number): string | null => {
@@ -63,6 +65,7 @@ const MessageList = forwardRef<HTMLDivElement, MessageListProps>(({
           onApplyEdit={onApplyEdit ? () => onApplyEdit(index) : undefined}
           onDiscardEdit={onDiscardEdit ? () => onDiscardEdit(index) : undefined}
           app={app}
+          workspaceFolder={workspaceFolder}
         />
       ))}
 
@@ -75,6 +78,7 @@ const MessageList = forwardRef<HTMLDivElement, MessageListProps>(({
           }}
           isStreaming
           app={app}
+          workspaceFolder={workspaceFolder}
         />
       )}
 

@@ -449,6 +449,8 @@ Ramificazione condizionale e cicli.
 | `trueNext` | ID nodo quando la condizione è vera |
 | `falseNext` | ID nodo quando la condizione è falsa |
 
+> **Regola di riferimento all'indietro**: La proprietà `next` può fare riferimento a nodi precedenti solo se il target è un nodo `while`. Questo previene il codice spaghetti e garantisce una struttura di loop appropriata.
+
 ### variable / set
 
 Dichiarano e aggiornano variabili.

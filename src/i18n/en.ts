@@ -241,6 +241,11 @@ export const en = {
   "message.copyImage": "Copy image",
   "message.downloadImage": "Download image",
   "message.thinking": "Thinking",
+  "message.mermaidFlowchart": "Mermaid Flowchart",
+  "message.openAsCanvas": "Open as Canvas",
+  "message.openCanvas": "Canvas",
+  "message.canvasCreated": "Canvas created",
+  "message.canvasCreationFailed": "Failed to create canvas",
   "message.edited": "Edited",
   "message.apply": "Apply",
   "message.applyChanges": "Apply changes",
@@ -330,6 +335,10 @@ export const en = {
   "workflow.eventTriggersEnabled": "Event triggers enabled for \"{{name}}\"",
   "workflow.eventTriggersActive": "Event triggers: {{events}}",
   "workflow.configureEventTriggers": "Configure event triggers for this workflow",
+  "workflow.exportToCanvas": "Export workflow to Canvas",
+  "workflow.exportedToCanvas": "Workflow exported to Canvas",
+  "workflow.noWorkflowToExport": "No workflow to export",
+  "workflow.canvasExportFailed": "Canvas export failed: {{message}}",
 
   // Common - Edit
   "common.edit": "Edit",

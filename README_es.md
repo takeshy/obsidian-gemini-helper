@@ -418,7 +418,17 @@ npm run build
 
 ![Historial de Flujos de Trabajo](workflow_history.png)
 
-**Exportar a Canvas:** Visualiza el historial de ejecución como un Canvas de Obsidian para análisis visual.
+**Visualizar como Diagrama de Flujo:** Haz clic en el botón **Canvas** (icono de cuadrícula) en el panel de Workflow para exportar tu flujo de trabajo como un Canvas de Obsidian. Esto crea un diagrama de flujo visual donde:
+- Los bucles y las ramificaciones se muestran claramente con enrutamiento adecuado
+- Los nodos de decisión (`if`/`while`) muestran rutas Sí/No
+- Las flechas de retroceso se enrutan alrededor de los nodos para mayor claridad
+- Cada nodo muestra su configuración completa
+
+![Workflow to Canvas](workflow_to_canvas.png)
+
+Esto es especialmente útil para entender flujos de trabajo complejos con múltiples ramificaciones y bucles.
+
+**Exportar Historial de Ejecución:** Visualiza el historial de ejecución como un Canvas de Obsidian para análisis visual.
 
 ![Vista de Canvas del Historial](history_canvas.png)
 

@@ -449,6 +449,8 @@ FileExplorerData を Vault 内にファイルとして保存。生成された�
 | `trueNext` | 条件が true のときのノード ID |
 | `falseNext` | 条件が false のときのノード ID |
 
+> **後方参照ルール**: `next` プロパティは、対象が `while` ノードの場合のみ、前のノードを参照できます。これにより、スパゲッティコードを防ぎ、適切なループ構造を確保します。例えば、`next: loop` は `loop` が `while` ノードである場合のみ有効です。
+
 ### variable / set
 
 変数の宣言と更新。

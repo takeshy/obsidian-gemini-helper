@@ -1531,6 +1531,7 @@ Always be helpful and provide clear, concise responses. When working with notes,
 						onApplyEdit={handleApplyEdit}
 						onDiscardEdit={handleDiscardEdit}
 						app={plugin.app}
+						workspaceFolder={getChatHistoryFolder()}
 					/>
 
 					<InputArea

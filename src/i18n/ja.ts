@@ -241,6 +241,11 @@ export const ja: Record<string, string> = {
   "message.copyImage": "画像をコピー",
   "message.downloadImage": "画像をダウンロード",
   "message.thinking": "思考中",
+  "message.mermaidFlowchart": "Mermaidフローチャート",
+  "message.openAsCanvas": "Canvasで開く",
+  "message.openCanvas": "Canvas",
+  "message.canvasCreated": "Canvasを作成しました",
+  "message.canvasCreationFailed": "Canvasの作成に失敗しました",
   "message.edited": "編集しました",
   "message.apply": "適用",
   "message.applyChanges": "変更を適用",
@@ -330,6 +335,10 @@ export const ja: Record<string, string> = {
   "workflow.eventTriggersEnabled": "「{{name}}」のイベントトリガーを有効化しました",
   "workflow.eventTriggersActive": "イベントトリガー: {{events}}",
   "workflow.configureEventTriggers": "このワークフローのイベントトリガーを設定",
+  "workflow.exportToCanvas": "ワークフローをCanvasにエクスポート",
+  "workflow.exportedToCanvas": "ワークフローをCanvasにエクスポートしました",
+  "workflow.noWorkflowToExport": "エクスポートするワークフローがありません",
+  "workflow.canvasExportFailed": "Canvasエクスポートに失敗しました: {{message}}",
 
   // Common - Edit
   "common.edit": "編集",

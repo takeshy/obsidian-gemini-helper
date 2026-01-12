@@ -1,12 +1,12 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { TFile, Notice, Menu, MarkdownView, stringifyYaml } from "obsidian";
-import { FileText, Keyboard, KeyboardOff, Plus, Save, Sparkles, Zap, ZapOff } from "lucide-react";
+import { FileText, Keyboard, KeyboardOff, LayoutGrid, Plus, Save, Sparkles, Zap, ZapOff } from "lucide-react";
 import { EventTriggerModal } from "./EventTriggerModal";
 import type { WorkflowEventTrigger } from "src/types";
 import { promptForAIWorkflow } from "./AIWorkflowModal";
 import type { GeminiHelperPlugin } from "src/plugin";
 import { SidebarNode, WorkflowNodeType, WorkflowInput, PromptCallbacks } from "src/workflow/types";
-import { loadFromCodeBlock, saveToCodeBlock } from "src/workflow/codeblockSync";
+import { loadFromCodeBlock, saveToCodeBlock, LoadResult } from "src/workflow/codeblockSync";
 import { listWorkflowOptions, parseWorkflowFromMarkdown, WorkflowOption } from "src/workflow/parser";
 import { WorkflowExecutor } from "src/workflow/executor";
 import { NodeEditorModal } from "./NodeEditorModal";
@@ -19,6 +19,7 @@ import { promptForDialog } from "./DialogPromptModal";
 import { t } from "src/i18n";
 import { EditHistoryModal } from "../EditHistoryModal";
 import { getEditHistoryManager } from "src/core/editHistory";
+import { openWorkflowAsCanvas } from "src/utils/workflowToCanvas";
 
 interface WorkflowPanelProps {
   plugin: GeminiHelperPlugin;
@@ -240,6 +241,7 @@ export default function WorkflowPanel({ plugin }: WorkflowPanelProps) {
   const [currentWorkflowIndex, setCurrentWorkflowIndex] = useState<number>(0);
   const [nodes, setNodes] = useState<SidebarNode[]>([]);
   const [isRunning, setIsRunning] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [dropTarget, setDropTarget] = useState<{ index: number; position: "above" | "below" } | null>(null);
   const [enabledHotkeys, setEnabledHotkeys] = useState<string[]>(plugin.settings.enabledWorkflowHotkeys);
@@ -253,6 +255,7 @@ export default function WorkflowPanel({ plugin }: WorkflowPanelProps) {
       setWorkflowFile(null);
       setNodes([]);
       setWorkflowOptions([]);
+      setLoadError(null);
       return;
     }
 
@@ -263,6 +266,7 @@ export default function WorkflowPanel({ plugin }: WorkflowPanelProps) {
       setWorkflowFile(activeFile);
       setNodes([]);
       setWorkflowOptions([]);
+      setLoadError(null);
       return;
     }
 
@@ -270,10 +274,16 @@ export default function WorkflowPanel({ plugin }: WorkflowPanelProps) {
     setWorkflowOptions(options);
 
     const indexToLoad = currentWorkflowIndex < options.length ? currentWorkflowIndex : 0;
-    const data = loadFromCodeBlock(content, undefined, indexToLoad);
-    if (data) {
-      setNodes(data.nodes);
-      setWorkflowName(data.name || null);
+    const result = loadFromCodeBlock(content, undefined, indexToLoad);
+    if (result.error) {
+      setLoadError(result.error);
+      setNodes([]);
+      setWorkflowName(null);
+      setCurrentWorkflowIndex(indexToLoad);
+    } else if (result.data) {
+      setLoadError(null);
+      setNodes(result.data.nodes);
+      setWorkflowName(result.data.name || null);
       setCurrentWorkflowIndex(indexToLoad);
     }
   }, [plugin.app, currentWorkflowIndex]);
@@ -396,10 +406,15 @@ ${result.nodes.map(node => {
 
     setCurrentWorkflowIndex(index);
     const content = await plugin.app.vault.read(workflowFile);
-    const data = loadFromCodeBlock(content, undefined, index);
-    if (data) {
-      setNodes(data.nodes);
-      setWorkflowName(data.name || null);
+    const result = loadFromCodeBlock(content, undefined, index);
+    if (result.error) {
+      setLoadError(result.error);
+      setNodes([]);
+      setWorkflowName(null);
+    } else if (result.data) {
+      setLoadError(null);
+      setNodes(result.data.nodes);
+      setWorkflowName(result.data.name || null);
     }
 
     // Move cursor to the selected workflow's position
@@ -484,6 +499,27 @@ ${result.nodes.map(node => {
       setWorkflowName(result.name);
       await saveWorkflow(result.nodes);
       new Notice(t("workflow.modifiedSuccessfully"));
+    }
+  };
+
+  // Handle Canvas export
+  const handleExportToCanvas = async () => {
+    if (nodes.length === 0) {
+      new Notice(t("workflow.noWorkflowToExport"));
+      return;
+    }
+
+    try {
+      await openWorkflowAsCanvas(
+        plugin.app,
+        nodes,
+        plugin.settings.workspaceFolder,
+        workflowName || undefined
+      );
+      new Notice(t("workflow.exportedToCanvas"));
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      new Notice(t("workflow.canvasExportFailed", { message }));
     }
   };
 
@@ -809,7 +845,14 @@ ${result.nodes.map(node => {
             title={t("workflow.modifyWithAI")}
           >
             <Sparkles size={14} />
-            <span className="workflow-btn-label">{t("workflow.aiModify")}</span>
+          </button>
+          <button
+            className="workflow-sidebar-canvas-btn"
+            onClick={() => void handleExportToCanvas()}
+            disabled={nodes.length === 0}
+            title={t("workflow.exportToCanvas")}
+          >
+            <LayoutGrid size={14} />
           </button>
           <button
             className="workflow-sidebar-history-btn"
@@ -854,14 +897,22 @@ ${result.nodes.map(node => {
         </div>
       </div>
 
+      {/* Error display */}
+      {loadError && (
+        <div className="workflow-error-banner">
+          <span className="workflow-error-icon">⚠</span>
+          <span className="workflow-error-message">{loadError}</span>
+        </div>
+      )}
+
       {/* Content */}
       <div className="workflow-sidebar-content">
         <div className="workflow-node-list">
-          {nodes.length === 0 ? (
+          {nodes.length === 0 && !loadError ? (
             <div className="workflow-empty-state">
               {t("workflow.noNodes")}
             </div>
-          ) : (() => {
+          ) : nodes.length === 0 && loadError ? null : (() => {
             const NODE_TYPE_LABELS = getNodeTypeLabels();
             const incomingMap = buildIncomingMap(nodes);
             const outgoingMap = buildOutgoingMap(nodes);

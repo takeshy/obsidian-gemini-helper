@@ -449,6 +449,8 @@ Conditional branching and loops.
 | `trueNext` | Node ID when condition is true |
 | `falseNext` | Node ID when condition is false |
 
+> **Back-Reference Rule**: The `next` property can only reference earlier nodes if the target is a `while` node. This prevents spaghetti code and ensures proper loop structure. For example, `next: loop` is valid only if `loop` is a `while` node.
+
 ### variable / set
 
 Declare and update variables.

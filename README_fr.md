@@ -418,7 +418,17 @@ npm run build
 
 ![Historique des Workflows](workflow_history.png)
 
-**Exporter vers Canvas :** Visualisez l'historique d'exécution sous forme de Canvas Obsidian pour une analyse visuelle.
+**Visualiser comme Organigramme :** Cliquez sur le bouton **Canvas** (icône grille) dans le panneau Workflow pour exporter votre workflow sous forme de Canvas Obsidian. Cela crée un organigramme visuel où :
+- Les boucles et les branches sont clairement affichées avec un routage approprié
+- Les nœuds de décision (`if`/`while`) affichent les chemins Oui/Non
+- Les flèches de retour sont acheminées autour des nœuds pour plus de clarté
+- Chaque nœud affiche sa configuration complète
+
+![Workflow to Canvas](workflow_to_canvas.png)
+
+C'est particulièrement utile pour comprendre les workflows complexes avec plusieurs branches et boucles.
+
+**Exporter l'Historique d'Exécution :** Visualisez l'historique d'exécution sous forme de Canvas Obsidian pour une analyse visuelle.
 
 ![Vue Canvas de l'Historique](history_canvas.png)
 

@@ -353,6 +353,37 @@ By default, nodes execute in order. Use **next** to jump:
   next: step3
 \`\`\`
 
+### Back-Reference Rule
+**Important**: The \`next\` property can only reference earlier nodes if the target is a **while** node. This prevents spaghetti code and ensures proper loop structure.
+
+✅ Valid - looping back to while node:
+\`\`\`yaml
+- id: loop-start
+  type: while
+  condition: "{{index}} < 10"
+  trueNext: process
+  falseNext: done
+- id: process
+  type: command
+  prompt: "Process item"
+- id: increment
+  type: set
+  name: index
+  value: "{{index}} + 1"
+  next: loop-start   # OK: targets a while node
+\`\`\`
+
+❌ Invalid - looping back to non-while node:
+\`\`\`yaml
+- id: step1
+  type: command
+  prompt: "Do something"
+- id: step2
+  type: command
+  prompt: "Do more"
+  next: step1   # ERROR: step1 is not a while node
+\`\`\`
+
 ### Conditional Flow
 Use **trueNext** and **falseNext** for if/while:
 \`\`\`yaml
@@ -430,8 +461,8 @@ nodes:
     folder: "my-folder"
     recursive: "true"
     saveTo: "fileList"
-  - id: check-loop
-    type: if
+  - id: loop
+    type: while
     condition: "{{index}} < {{fileList.count}}"
     trueNext: read-note
     falseNext: finish
@@ -447,7 +478,7 @@ nodes:
     type: set
     name: "index"
     value: "{{index}} + 1"
-    next: check-loop
+    next: loop
   - id: finish
     type: dialog
     title: "Done"

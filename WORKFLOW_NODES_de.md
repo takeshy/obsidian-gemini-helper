@@ -449,6 +449,8 @@ Bedingte Verzweigungen und Schleifen.
 | `trueNext` | Knoten-ID wenn Bedingung wahr ist |
 | `falseNext` | Knoten-ID wenn Bedingung falsch ist |
 
+> **Rückwärtsreferenz-Regel**: Die `next`-Eigenschaft kann nur auf frühere Knoten verweisen, wenn das Ziel ein `while`-Knoten ist. Dies verhindert Spaghetti-Code und gewährleistet eine ordnungsgemäße Schleifenstruktur.
+
 ### variable / set
 
 Variablen deklarieren und aktualisieren.

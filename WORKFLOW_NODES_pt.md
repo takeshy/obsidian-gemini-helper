@@ -449,6 +449,8 @@ Ramificacao condicional e loops.
 | `trueNext` | ID do no quando condicao e verdadeira |
 | `falseNext` | ID do no quando condicao e falsa |
 
+> **Regra de referência retroativa**: A propriedade `next` só pode referenciar nós anteriores se o destino for um nó `while`. Isso evita código espaguete e garante uma estrutura de loop adequada.
+
 ### variable / set
 
 Declarar e atualizar variaveis.

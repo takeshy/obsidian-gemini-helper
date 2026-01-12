@@ -418,7 +418,17 @@ npm run build
 
 ![Cronologia Workflow](workflow_history.png)
 
-**Esporta in Canvas:** Visualizza la cronologia di esecuzione come Canvas Obsidian per analisi visuale.
+**Visualizza come Diagramma di Flusso:** Clicca il pulsante **Canvas** (icona griglia) nel pannello Workflow per esportare il tuo workflow come Canvas Obsidian. Questo crea un diagramma di flusso visivo dove:
+- Loop e ramificazioni sono mostrati chiaramente con routing appropriato
+- I nodi decisionali (`if`/`while`) mostrano i percorsi Sì/No
+- Le frecce di ritorno sono instradate attorno ai nodi per chiarezza
+- Ogni nodo mostra la sua configurazione completa
+
+![Workflow to Canvas](workflow_to_canvas.png)
+
+Questo è particolarmente utile per comprendere workflow complessi con più ramificazioni e loop.
+
+**Esporta Cronologia Esecuzione:** Visualizza la cronologia di esecuzione come Canvas Obsidian per analisi visuale.
 
 ![Vista Cronologia Canvas](history_canvas.png)
 

@@ -418,7 +418,17 @@ npm run build
 
 ![Workflow History](workflow_history.png)
 
-**Canvas로 내보내기:** 실행 기록을 Obsidian Canvas로 보고 시각적으로 분석할 수 있습니다.
+**플로우차트로 시각화:** Workflow 패널에서 **Canvas** 버튼(격자 아이콘)을 클릭하여 워크플로우를 Obsidian Canvas로 내보낼 수 있습니다. 다음과 같은 시각적 플로우차트가 생성됩니다:
+- 루프와 분기가 적절한 라우팅으로 명확하게 표시됨
+- 조건 노드(`if`/`while`)가 예/아니오 경로를 표시
+- 루프백 화살표가 노드를 우회하여 가독성 향상
+- 각 노드가 전체 구성을 표시
+
+![Workflow to Canvas](workflow_to_canvas.png)
+
+여러 분기와 루프가 있는 복잡한 워크플로우를 이해하는 데 특히 유용합니다.
+
+**실행 기록 내보내기:** 실행 기록을 Obsidian Canvas로 보고 시각적으로 분석할 수 있습니다.
 
 ![History Canvas View](history_canvas.png)
 

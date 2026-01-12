@@ -4,7 +4,7 @@ import { App } from "obsidian";
  * Mermaid flowchart to Obsidian Canvas converter
  */
 
-interface CanvasNode {
+interface CanvasTextNode {
   id: string;
   type: "text";
   x: number;
@@ -14,6 +14,18 @@ interface CanvasNode {
   text: string;
   color?: string;
 }
+
+interface CanvasFileNode {
+  id: string;
+  type: "file";
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  file: string;
+}
+
+type CanvasNode = CanvasTextNode | CanvasFileNode;
 
 interface CanvasEdge {
   id: string;
@@ -446,7 +458,7 @@ function layoutNodes(
 
     for (let i = 0; i < nodeIds.length; i++) {
       const nodeId = nodeIds[i];
-      const dims = nodeDimensions.get(nodeId) || { width: NODE_MIN_WIDTH, height: NODE_MIN_HEIGHT };
+      const _dims = nodeDimensions.get(nodeId) || { width: NODE_MIN_WIDTH, height: NODE_MIN_HEIGHT };
 
       // Center nodes within layer, using max width for spacing
       const offset = (i - (nodeIds.length - 1) / 2) * (NODE_MAX_WIDTH + NODE_SPACING_X);
@@ -642,7 +654,8 @@ export async function openMermaidAsCanvas(
   app: App,
   mermaidContent: string,
   workspaceFolder: string,
-  baseName?: string
+  baseName?: string,
+  sourceFilePath?: string
 ): Promise<void> {
   // Ensure folder exists
   const folderPath = `${workspaceFolder}/diagrams`;
@@ -653,6 +666,30 @@ export async function openMermaidAsCanvas(
 
   // Generate canvas data
   const canvasData = mermaidToCanvasData(mermaidContent);
+
+  // Add source file link node if provided
+  if (sourceFilePath) {
+    // Find the leftmost and topmost position to place the link node above the diagram
+    let minY = 0;
+    let centerX = 0;
+    if (canvasData.nodes.length > 0) {
+      minY = Math.min(...canvasData.nodes.map(n => n.y));
+      const minX = Math.min(...canvasData.nodes.map(n => n.x));
+      const maxX = Math.max(...canvasData.nodes.map(n => n.x + n.width));
+      centerX = (minX + maxX) / 2 - 150; // Center the link node
+    }
+
+    const sourceNode: CanvasFileNode = {
+      id: "source-file",
+      type: "file",
+      x: centerX,
+      y: minY - 100,
+      width: 300,
+      height: 60,
+      file: sourceFilePath,
+    };
+    canvasData.nodes.unshift(sourceNode);
+  }
 
   // Generate filename
   const timestamp = Date.now();

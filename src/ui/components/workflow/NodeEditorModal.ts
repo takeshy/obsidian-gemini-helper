@@ -1,6 +1,57 @@
-import { App, Modal, Setting } from "obsidian";
+import { App, Modal, Setting, TFile } from "obsidian";
 import { SidebarNode, WorkflowNodeType } from "src/workflow/types";
 import type { CliProviderConfig } from "src/types";
+
+// @ path autocomplete helper
+interface PathSuggestion {
+  path: string;
+  display: string;
+}
+
+function buildPathSuggestions(app: App, query: string): PathSuggestion[] {
+  const files = app.vault.getMarkdownFiles();
+  const lowerQuery = query.toLowerCase();
+
+  const suggestions = files
+    .filter(f => {
+      const path = f.path.toLowerCase();
+      const basename = f.basename.toLowerCase();
+      return !query || path.includes(lowerQuery) || basename.includes(lowerQuery);
+    })
+    .map(f => ({
+      path: f.path,
+      display: f.path,
+    }))
+    .slice(0, 15);
+
+  return suggestions;
+}
+
+// Expand @path references to file content
+async function expandPathReferences(app: App, text: string): Promise<string> {
+  // Match @path/to/file.md or @"path with spaces.md" pattern
+  const atPathPattern = /@"([^"]+)"|@(\S+\.md)/g;
+
+  const matches: Array<{ fullMatch: string; path: string }> = [];
+  let match;
+  while ((match = atPathPattern.exec(text)) !== null) {
+    const path = match[1] || match[2]; // quoted or unquoted path
+    matches.push({ fullMatch: match[0], path });
+  }
+
+  if (matches.length === 0) return text;
+
+  let result = text;
+  for (const { fullMatch, path } of matches) {
+    const file = app.vault.getAbstractFileByPath(path);
+    if (file instanceof TFile) {
+      const content = await app.vault.read(file);
+      result = result.replace(fullMatch, content);
+    }
+  }
+
+  return result;
+}
 
 const NODE_TYPE_LABELS: Record<WorkflowNodeType, string> = {
   variable: "Variable",
@@ -80,7 +131,7 @@ export class NodeEditorModal extends Modal {
       cls: "mod-cta",
       text: "Save",
     });
-    saveBtn.addEventListener("click", () => this.save());
+    saveBtn.addEventListener("click", () => void this.save());
 
     const cancelBtn = buttonContainer.createEl("button", {
       text: "Cancel",
@@ -94,7 +145,7 @@ export class NodeEditorModal extends Modal {
       case "variable":
       case "set":
         this.addTextField(container, "name", "Variable Name", "Enter variable name");
-        this.addTextArea(container, "value", "Value", "Enter value or expression (e.g., {{var}} + 1)");
+        this.addTextArea(container, "value", "Value", "Enter value or expression (e.g., {{var}} + 1, @file.md)", true);
         break;
 
       case "if":
@@ -108,7 +159,7 @@ export class NodeEditorModal extends Modal {
         break;
 
       case "command": {
-        this.addTextArea(container, "prompt", "Prompt", "Enter prompt template (supports {{variables}})");
+        this.addTextArea(container, "prompt", "Prompt", "Enter prompt template (supports {{variables}}, @file.md)", true);
 
         // Model dropdown with Search auto-reset for CLI models
         // Only show verified CLI models
@@ -210,7 +261,7 @@ export class NodeEditorModal extends Modal {
 
       case "note":
         this.addTextField(container, "path", "Note Path", "Path to the note file (e.g., output/result.md)");
-        this.addTextArea(container, "content", "Content", "Content to write (supports {{variables}})");
+        this.addTextArea(container, "content", "Content", "Content to write (supports {{variables}}, @file.md)", true);
         this.addDropdown(container, "mode", "Mode", ["overwrite", "append", "create"], "overwrite: replace file, append: add to end, create: only if not exists");
         this.addDropdown(container, "confirm", "Confirm before writing", ["true", "false"], "true: show confirmation dialog, false: write immediately");
         break;
@@ -251,7 +302,7 @@ export class NodeEditorModal extends Modal {
 
       case "dialog":
         this.addTextField(container, "title", "Title", "Dialog title");
-        this.addTextArea(container, "message", "Message", "Message to display");
+        this.addTextArea(container, "message", "Message", "Message to display (supports @file.md)", true);
         this.addDropdown(container, "markdown", "Render Markdown", ["false", "true"], "Render message as Markdown");
         this.addTextField(container, "options", "Options", "Comma-separated list of checkbox options (optional)");
         this.addDropdown(container, "multiSelect", "Selection Mode", ["false", "true"], "Single select / Multi select");
@@ -334,14 +385,19 @@ export class NodeEditorModal extends Modal {
     container: HTMLElement,
     key: string,
     name: string,
-    placeholder: string
+    placeholder: string,
+    enablePathCompletion = false
   ): void {
-    new Setting(container).setName(name).addText((text) => {
+    const setting = new Setting(container).setName(name).addText((text) => {
       text.setPlaceholder(placeholder);
       text.setValue(this.editedProperties[key] || "");
       text.onChange((value) => {
         this.editedProperties[key] = value;
       });
+
+      if (enablePathCompletion) {
+        this.setupPathCompletion(text.inputEl, setting.settingEl, key);
+      }
     });
   }
 
@@ -349,9 +405,10 @@ export class NodeEditorModal extends Modal {
     container: HTMLElement,
     key: string,
     name: string,
-    placeholder: string
+    placeholder: string,
+    enablePathCompletion = false
   ): void {
-    new Setting(container).setName(name).addTextArea((text) => {
+    const setting = new Setting(container).setName(name).addTextArea((text) => {
       text.setPlaceholder(placeholder);
       text.setValue(this.editedProperties[key] || "");
       text.onChange((value) => {
@@ -359,6 +416,10 @@ export class NodeEditorModal extends Modal {
       });
       text.inputEl.rows = 3;
       text.inputEl.addClass("workflow-node-editor-textarea");
+
+      if (enablePathCompletion) {
+        this.setupPathCompletion(text.inputEl, setting.settingEl, key);
+      }
     });
   }
 
@@ -430,10 +491,147 @@ export class NodeEditorModal extends Modal {
     });
   }
 
-  private save(): void {
+  private setupPathCompletion(
+    inputEl: HTMLInputElement | HTMLTextAreaElement,
+    containerEl: HTMLElement,
+    key: string
+  ): void {
+    let suggestionContainer: HTMLDivElement | null = null;
+    let selectedIndex = 0;
+    let currentSuggestions: PathSuggestion[] = [];
+    let atStartPos = -1;
+
+    const hideSuggestions = () => {
+      if (suggestionContainer) {
+        suggestionContainer.remove();
+        suggestionContainer = null;
+      }
+      currentSuggestions = [];
+      selectedIndex = 0;
+      atStartPos = -1;
+    };
+
+    const showSuggestions = (suggestions: PathSuggestion[]) => {
+      hideSuggestions();
+      if (suggestions.length === 0) return;
+
+      currentSuggestions = suggestions;
+      suggestionContainer = document.createElement("div");
+      suggestionContainer.addClass("workflow-path-suggestions");
+
+      suggestions.forEach((suggestion, index) => {
+        const item = document.createElement("div");
+        item.addClass("workflow-path-suggestion-item");
+        if (index === selectedIndex) {
+          item.addClass("is-selected");
+        }
+        item.textContent = suggestion.display;
+        item.addEventListener("click", () => {
+          selectSuggestion(index);
+        });
+        item.addEventListener("mouseenter", () => {
+          selectedIndex = index;
+          updateSelection();
+        });
+        suggestionContainer!.appendChild(item);
+      });
+
+      containerEl.appendChild(suggestionContainer);
+    };
+
+    const updateSelection = () => {
+      if (!suggestionContainer) return;
+      const items = suggestionContainer.querySelectorAll(".workflow-path-suggestion-item");
+      items.forEach((item, index) => {
+        if (index === selectedIndex) {
+          item.addClass("is-selected");
+        } else {
+          item.removeClass("is-selected");
+        }
+      });
+    };
+
+    const selectSuggestion = (index: number) => {
+      const suggestion = currentSuggestions[index];
+      if (!suggestion) return;
+
+      const value = inputEl.value;
+      // Format path with quotes if it contains spaces
+      const pathStr = suggestion.path.includes(" ")
+        ? `@"${suggestion.path}"`
+        : `@${suggestion.path}`;
+
+      // Replace @query with the selected path
+      const before = value.substring(0, atStartPos);
+      const cursorPos = inputEl.selectionStart || value.length;
+      const after = value.substring(cursorPos);
+
+      inputEl.value = before + pathStr + " " + after;
+      this.editedProperties[key] = inputEl.value;
+
+      // Set cursor position after the inserted path
+      const newPos = before.length + pathStr.length + 1;
+      inputEl.setSelectionRange(newPos, newPos);
+      inputEl.focus();
+
+      hideSuggestions();
+    };
+
+    inputEl.addEventListener("input", () => {
+      const value = inputEl.value;
+      const cursorPos = inputEl.selectionStart || 0;
+      const textBeforeCursor = value.substring(0, cursorPos);
+
+      // Check for @ trigger - match @query pattern (non-quoted) or @"query (partial quote)
+      const atMatch = textBeforeCursor.match(/@"([^"]*$)|@([^\s@"]*)$/);
+      if (atMatch) {
+        const query = atMatch[1] || atMatch[2] || "";
+        atStartPos = cursorPos - atMatch[0].length;
+        const suggestions = buildPathSuggestions(this.app, query);
+        showSuggestions(suggestions);
+      } else {
+        hideSuggestions();
+      }
+    });
+
+    inputEl.addEventListener("keydown", (evt) => {
+      if (!suggestionContainer || currentSuggestions.length === 0) return;
+
+      const e = evt as KeyboardEvent;
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        selectedIndex = Math.min(selectedIndex + 1, currentSuggestions.length - 1);
+        updateSelection();
+      } else if (e.key === "ArrowUp") {
+        e.preventDefault();
+        selectedIndex = Math.max(selectedIndex - 1, 0);
+        updateSelection();
+      } else if (e.key === "Tab" || e.key === "Enter") {
+        if (currentSuggestions.length > 0) {
+          e.preventDefault();
+          selectSuggestion(selectedIndex);
+        }
+      } else if (e.key === "Escape") {
+        hideSuggestions();
+      }
+    });
+
+    inputEl.addEventListener("blur", () => {
+      // Delay to allow click events on suggestions
+      setTimeout(() => hideSuggestions(), 200);
+    });
+  }
+
+  private async save(): Promise<void> {
+    // Expand @path references in all text properties
+    const expandedProperties: Record<string, string> = {};
+    for (const [key, value] of Object.entries(this.editedProperties)) {
+      expandedProperties[key] = await expandPathReferences(this.app, value);
+    }
+
     const updatedNode: SidebarNode = {
       ...this.node,
-      properties: this.editedProperties,
+      properties: expandedProperties,
       next: this.editedNext?.trim() || undefined,
       trueNext: this.editedTrueNext?.trim() || undefined,
       falseNext: this.editedFalseNext?.trim() || undefined,

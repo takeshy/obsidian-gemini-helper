@@ -423,6 +423,7 @@ npm run build
 - Decision nodes (`if`/`while`) show Yes/No paths
 - Loop-back arrows are routed around nodes for clarity
 - Each node shows its full configuration
+- A link to the source workflow file is included for quick navigation
 
 ![Workflow to Canvas](workflow_to_canvas.png)
 
@@ -440,6 +441,26 @@ This is especially helpful for understanding complex workflows with multiple bra
 3. Describe what the workflow should do in natural language
 4. Select a model and click **Generate**
 5. The workflow is automatically created and saved
+
+**@ File References:**
+
+Type `@` in the description field to reference files:
+- `@{selection}` - Current editor selection
+- `@{content}` - Active note content
+- `@path/to/file.md` - Any vault file
+
+When you click Generate, file content is embedded directly into the AI request. YAML frontmatter is automatically stripped.
+
+> **Tip:** This is useful for creating workflows based on existing workflow examples or templates in your vault.
+
+**Request History:**
+
+Each AI-generated workflow saves a history entry above the workflow code block, including:
+- Timestamp and action (Created/Modified)
+- Your request description
+- Referenced file contents (in collapsible sections)
+
+![Workflow AI History](workflow_ai_history.png)
 
 **Modify Existing Workflow with AI:**
 1. Load an existing workflow

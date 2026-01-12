@@ -80,7 +80,7 @@ function getNodeLabel(node: SidebarNode): string {
     case "obsidian-command":
       return `**${id}**\nCommand: ${node.properties.command}`;
     default:
-      return `**${id}**\n${node.type}`;
+      return `**${id}**\n${node.type as string}`;
   }
 }
 
@@ -280,11 +280,12 @@ export async function openWorkflowAsCanvas(
   app: App,
   nodes: SidebarNode[],
   workspaceFolder: string,
-  workflowName?: string
+  workflowName?: string,
+  sourceFilePath?: string
 ): Promise<void> {
   // Convert workflow to Mermaid
   const mermaid = workflowToMermaid(nodes);
 
-  // Use existing Mermaid to Canvas converter
-  await openMermaidAsCanvas(app, mermaid, workspaceFolder, workflowName);
+  // Use existing Mermaid to Canvas converter (with source file link)
+  await openMermaidAsCanvas(app, mermaid, workspaceFolder, workflowName, sourceFilePath);
 }

@@ -423,6 +423,7 @@ npm run build
 - Entscheidungsknoten (`if`/`while`) Ja/Nein-Pfade anzeigen
 - Rückwärtspfeile für Schleifen um Knoten herum geleitet werden
 - Jeder Knoten seine vollständige Konfiguration anzeigt
+- Ein Link zur Quell-Workflow-Datei für schnelle Navigation enthalten ist
 
 ![Workflow to Canvas](workflow_to_canvas.png)
 
@@ -440,6 +441,26 @@ Dies ist besonders hilfreich zum Verständnis komplexer Workflows mit mehreren V
 3. Beschreiben Sie in natürlicher Sprache, was der Workflow tun soll
 4. Wählen Sie ein Modell und klicken Sie auf **Generate**
 5. Der Workflow wird automatisch erstellt und gespeichert
+
+**@ Dateireferenzen:**
+
+Geben Sie `@` im Beschreibungsfeld ein, um Dateien zu referenzieren:
+- `@{selection}` - Aktuelle Editor-Auswahl
+- `@{content}` - Inhalt der aktiven Notiz
+- `@path/to/file.md` - Beliebige Vault-Datei
+
+Wenn Sie auf Generate klicken, wird der Dateiinhalt direkt in die KI-Anfrage eingebettet. YAML-Frontmatter wird automatisch entfernt.
+
+> **Tipp:** Dies ist nützlich, um Workflows basierend auf bestehenden Workflow-Beispielen oder Vorlagen in Ihrem Vault zu erstellen.
+
+**Anfrageverlauf:**
+
+Jeder KI-generierte Workflow speichert einen Verlaufseintrag über dem Workflow-Codeblock, einschließlich:
+- Zeitstempel und Aktion (Erstellt/Geändert)
+- Ihre Anfragebeschreibung
+- Referenzierte Dateiinhalte (in zusammenklappbaren Abschnitten)
+
+![Workflow AI-Verlauf](workflow_ai_history.png)
 
 **Bestehenden Workflow mit KI ändern:**
 1. Laden Sie einen bestehenden Workflow

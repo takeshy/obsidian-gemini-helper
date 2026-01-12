@@ -9,12 +9,20 @@ import { computeLineDiff } from "./EditConfirmationModal";
 
 export type AIWorkflowMode = "create" | "modify";
 
+export interface ResolvedMention {
+  original: string; // e.g., "@notes/file.md"
+  content: string;  // The file content
+}
+
 export interface AIWorkflowResult {
   yaml: string;
   nodes: SidebarNode[];
   name: string;
   outputPath?: string; // Only for create mode
   explanation?: string; // AI's explanation of changes
+  description?: string; // User's original request
+  mode?: AIWorkflowMode; // "create" or "modify"
+  resolvedMentions?: ResolvedMention[]; // File contents that were embedded
 }
 
 // Confirmation modal for reviewing changes
@@ -166,6 +174,12 @@ function showWorkflowConfirmation(
   });
 }
 
+// Mention item interface
+interface MentionItem {
+  value: string;
+  description: string;
+}
+
 export class AIWorkflowModal extends Modal {
   private plugin: GeminiHelperPlugin;
   private mode: AIWorkflowMode;
@@ -181,6 +195,14 @@ export class AIWorkflowModal extends Modal {
   private generateBtn: HTMLButtonElement | null = null;
   private statusEl: HTMLElement | null = null;
   private isGenerating = false;
+
+  // Mention autocomplete state
+  private mentionAutocompleteEl: HTMLElement | null = null;
+  private mentionItems: MentionItem[] = [];
+  private mentionIndex = 0;
+  private mentionStartPos = 0;
+  private showingMentionAutocomplete = false;
+  private clickOutsideHandler: ((e: MouseEvent) => void) | null = null;
 
   constructor(
     app: App,
@@ -247,8 +269,16 @@ export class AIWorkflowModal extends Modal {
       cls: "ai-workflow-label",
     });
 
+    // Description textarea container (for autocomplete positioning)
+    const textareaContainer = contentEl.createDiv({ cls: "ai-workflow-textarea-container" });
+
+    // Mention autocomplete dropdown
+    this.mentionAutocompleteEl = textareaContainer.createDiv({
+      cls: "gemini-helper-autocomplete ai-workflow-mention-autocomplete is-hidden",
+    });
+
     // Description textarea
-    this.descriptionEl = contentEl.createEl("textarea", {
+    this.descriptionEl = textareaContainer.createEl("textarea", {
       cls: "ai-workflow-textarea",
       attr: {
         placeholder:
@@ -257,6 +287,15 @@ export class AIWorkflowModal extends Modal {
             : "e.g., Add a confirmation dialog before writing the file",
         rows: "6",
       },
+    });
+
+    // Setup mention autocomplete handlers
+    this.setupMentionAutocomplete();
+
+    // Hint for @ mention
+    contentEl.createEl("div", {
+      cls: "ai-workflow-hint",
+      text: "Tip: type @ to insert file references. The file content will be embedded when generating.",
     });
 
     // Show current workflow for modify mode
@@ -387,15 +426,28 @@ export class AIWorkflowModal extends Modal {
     this.generateBtn!.textContent = "Generating...";
     this.statusEl!.textContent = "Generating workflow...";
 
+    // Disable textarea during generation
+    if (this.descriptionEl) {
+      this.descriptionEl.disabled = true;
+    }
+
     try {
       // Get name for create mode
       const workflowName = this.mode === "create"
         ? this.nameInputEl?.value?.trim() || "workflow"
         : undefined;
 
+      // Resolve @ mentions (embed file content, selection, etc.)
+      const { resolved: resolvedDescription, mentions: resolvedMentions } = await this.resolveMentions(description);
+
+      // Show expanded content in textarea
+      if (this.descriptionEl && resolvedMentions.length > 0) {
+        this.descriptionEl.value = resolvedDescription;
+      }
+
       // Build prompts
       const systemPrompt = this.buildSystemPrompt();
-      const userPrompt = this.buildUserPrompt(description, workflowName);
+      const userPrompt = this.buildUserPrompt(resolvedDescription, workflowName);
 
       let response = "";
       if (isCliModel) {
@@ -453,6 +505,11 @@ export class AIWorkflowModal extends Modal {
       const result = this.parseResponse(response);
 
       if (result) {
+        // Add description, mode, and resolved mentions to result
+        result.description = description;
+        result.mode = this.mode;
+        result.resolvedMentions = resolvedMentions.length > 0 ? resolvedMentions : undefined;
+
         // Override name with user input for create mode
         if (this.mode === "create" && workflowName) {
           result.name = workflowName;
@@ -487,6 +544,7 @@ export class AIWorkflowModal extends Modal {
             this.isGenerating = false;
             this.generateBtn!.disabled = false;
             this.generateBtn!.textContent = "Modify";
+            if (this.descriptionEl) this.descriptionEl.disabled = false;
           }
         } else {
           this.statusEl!.textContent = "Workflow generated successfully!";
@@ -500,6 +558,7 @@ export class AIWorkflowModal extends Modal {
         this.generateBtn!.disabled = false;
         this.generateBtn!.textContent =
           this.mode === "create" ? "Generate" : "Modify";
+        if (this.descriptionEl) this.descriptionEl.disabled = false;
       }
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
@@ -508,6 +567,7 @@ export class AIWorkflowModal extends Modal {
       this.generateBtn!.disabled = false;
       this.generateBtn!.textContent =
         this.mode === "create" ? "Generate" : "Modify";
+      if (this.descriptionEl) this.descriptionEl.disabled = false;
     }
   }
 
@@ -544,6 +604,67 @@ ${description}
 
 Output only the complete modified YAML, starting with "name:".`;
     }
+  }
+
+  /**
+   * Strip YAML frontmatter from file content
+   */
+  private stripFrontmatter(content: string): string {
+    // Match YAML frontmatter: starts with ---, ends with ---
+    const frontmatterRegex = /^---\r?\n[\s\S]*?\r?\n---\r?\n?/;
+    return content.replace(frontmatterRegex, "").trim();
+  }
+
+  private async resolveMentions(text: string): Promise<{ resolved: string; mentions: ResolvedMention[] }> {
+    let resolved = text;
+    const mentions: ResolvedMention[] = [];
+
+    // Find all @ mentions: @{selection}, @{content}, @filepath
+    const mentionRegex = /@(\{selection\}|\{content\}|[^\s@]+)/g;
+    const matches = [...text.matchAll(mentionRegex)];
+
+    for (const match of matches) {
+      const mention = match[1];
+      let replacement = match[0]; // Keep original if resolution fails
+      let content: string | null = null;
+
+      if (mention === "{selection}") {
+        // Get selected text from editor
+        const editor = this.app.workspace.activeEditor?.editor;
+        if (editor && editor.somethingSelected()) {
+          content = editor.getSelection();
+          replacement = `[Selected text]\n${content}\n[/Selected text]`;
+        }
+      } else if (mention === "{content}") {
+        // Get content of active note
+        const activeFile = this.app.workspace.getActiveFile();
+        if (activeFile) {
+          const rawContent = await this.app.vault.read(activeFile);
+          content = this.stripFrontmatter(rawContent);
+          replacement = `[Content of ${activeFile.path}]\n${content}\n[/Content]`;
+        }
+      } else {
+        // It's a file path - try to read the file
+        const file = this.app.vault.getAbstractFileByPath(mention);
+        if (file && "extension" in file) {
+          try {
+            const rawContent = await this.app.vault.read(file as import("obsidian").TFile);
+            content = this.stripFrontmatter(rawContent);
+            replacement = `[Content of ${mention}]\n${content}\n[/Content]`;
+          } catch {
+            // Keep original mention if file can't be read
+          }
+        }
+      }
+
+      if (content !== null) {
+        mentions.push({ original: match[0], content });
+      }
+
+      resolved = resolved.replace(match[0], replacement);
+    }
+
+    return { resolved, mentions };
   }
 
   private parseResponse(response: string): AIWorkflowResult | null {
@@ -664,7 +785,168 @@ Output only the complete modified YAML, starting with "name:".`;
     }
   }
 
+  private setupMentionAutocomplete(): void {
+    if (!this.descriptionEl || !this.mentionAutocompleteEl) return;
+
+    const textarea = this.descriptionEl;
+    const autocomplete = this.mentionAutocompleteEl;
+
+    // Input handler for @ detection
+    textarea.addEventListener("input", () => {
+      const value = textarea.value;
+      const cursorPos = textarea.selectionStart;
+      const textBeforeCursor = value.substring(0, cursorPos);
+      const atMatch = textBeforeCursor.match(/@([^\s@]*)$/);
+
+      if (atMatch) {
+        const query = atMatch[1];
+        this.mentionStartPos = cursorPos - atMatch[0].length;
+        this.mentionItems = this.buildMentionCandidates(query);
+        this.mentionIndex = 0;
+
+        if (this.mentionItems.length > 0) {
+          this.showingMentionAutocomplete = true;
+          this.renderMentionAutocomplete();
+          this.positionAutocomplete(textarea, autocomplete);
+          autocomplete.removeClass("is-hidden");
+        } else {
+          this.hideMentionAutocomplete();
+        }
+      } else {
+        this.hideMentionAutocomplete();
+      }
+    });
+
+    // Keyboard handler
+    textarea.addEventListener("keydown", (e) => {
+      if (!this.showingMentionAutocomplete) return;
+
+      if (e.key === "ArrowDown" || (e.key === "Tab" && !e.shiftKey)) {
+        e.preventDefault();
+        this.mentionIndex = Math.min(this.mentionIndex + 1, this.mentionItems.length - 1);
+        this.renderMentionAutocomplete();
+        return;
+      }
+      if (e.key === "ArrowUp" || (e.key === "Tab" && e.shiftKey)) {
+        e.preventDefault();
+        this.mentionIndex = Math.max(this.mentionIndex - 1, 0);
+        this.renderMentionAutocomplete();
+        return;
+      }
+      if (e.key === "Enter" && this.mentionItems.length > 0) {
+        e.preventDefault();
+        this.selectMention(this.mentionItems[this.mentionIndex]);
+        return;
+      }
+      if (e.key === "Escape") {
+        this.hideMentionAutocomplete();
+        return;
+      }
+    });
+
+    // Click outside to close (store handler for cleanup)
+    this.clickOutsideHandler = (e: MouseEvent) => {
+      if (this.showingMentionAutocomplete &&
+          !autocomplete.contains(e.target as Node) &&
+          e.target !== textarea) {
+        this.hideMentionAutocomplete();
+      }
+    };
+    document.addEventListener("click", this.clickOutsideHandler);
+  }
+
+  private buildMentionCandidates(query: string): MentionItem[] {
+    const hasActiveNote = !!this.app.workspace.getActiveFile();
+    const editor = this.app.workspace.activeEditor?.editor;
+    const hasSelection = editor ? editor.somethingSelected() : false;
+
+    const variables: MentionItem[] = [
+      ...(hasSelection ? [{ value: "{selection}", description: "Selected text in editor" }] : []),
+      ...(hasActiveNote ? [{ value: "{content}", description: "Content of active note" }] : []),
+    ];
+
+    // Get vault files
+    const files = this.app.vault.getMarkdownFiles().map((f) => ({
+      value: f.path,
+      description: "Vault file",
+    }));
+
+    const all = [...variables, ...files];
+    if (!query) return all.slice(0, 10);
+
+    const lowerQuery = query.toLowerCase();
+    return all.filter((item) => item.value.toLowerCase().includes(lowerQuery)).slice(0, 10);
+  }
+
+  private renderMentionAutocomplete(): void {
+    if (!this.mentionAutocompleteEl) return;
+
+    this.mentionAutocompleteEl.empty();
+    this.mentionItems.forEach((item, index) => {
+      const itemEl = this.mentionAutocompleteEl!.createDiv({
+        cls: `gemini-helper-autocomplete-item ${index === this.mentionIndex ? "active" : ""}`,
+      });
+      itemEl.createSpan({
+        cls: "gemini-helper-autocomplete-name",
+        text: item.value,
+      });
+      itemEl.createSpan({
+        cls: "gemini-helper-autocomplete-desc",
+        text: item.description,
+      });
+
+      itemEl.addEventListener("click", () => this.selectMention(item));
+      itemEl.addEventListener("mouseenter", () => {
+        this.mentionIndex = index;
+        this.renderMentionAutocomplete();
+      });
+    });
+  }
+
+  private selectMention(mention: MentionItem): void {
+    if (!this.descriptionEl) return;
+
+    const textarea = this.descriptionEl;
+    const cursorPos = textarea.selectionStart;
+    const before = textarea.value.substring(0, this.mentionStartPos);
+    const after = textarea.value.substring(cursorPos);
+    // Keep @ prefix for later processing (file content embedding)
+    const newValue = before + "@" + mention.value + " " + after;
+
+    textarea.value = newValue;
+    this.hideMentionAutocomplete();
+
+    // Set cursor position after inserted mention (includes @)
+    const newPos = this.mentionStartPos + 1 + mention.value.length + 1;
+    textarea.setSelectionRange(newPos, newPos);
+    textarea.focus();
+  }
+
+  private hideMentionAutocomplete(): void {
+    this.showingMentionAutocomplete = false;
+    if (this.mentionAutocompleteEl) {
+      this.mentionAutocompleteEl.addClass("is-hidden");
+    }
+  }
+
+  private positionAutocomplete(textarea: HTMLTextAreaElement, autocomplete: HTMLElement): void {
+    const rect = textarea.getBoundingClientRect();
+
+    // Position above the textarea using fixed positioning
+    autocomplete.setCssStyles({
+      left: `${rect.left}px`,
+      width: `${rect.width}px`,
+      bottom: `${window.innerHeight - rect.top + 4}px`,
+      top: "auto",
+    });
+  }
+
   onClose(): void {
+    // Clean up event listener
+    if (this.clickOutsideHandler) {
+      document.removeEventListener("click", this.clickOutsideHandler);
+      this.clickOutsideHandler = null;
+    }
     const { contentEl } = this;
     contentEl.empty();
   }

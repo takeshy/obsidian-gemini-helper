@@ -423,6 +423,7 @@ npm run build
 - Nós de decisão (`if`/`while`) mostram caminhos Sim/Não
 - Setas de retorno são roteadas ao redor dos nós para clareza
 - Cada nó mostra sua configuração completa
+- Um link para o arquivo de workflow de origem está incluído para navegação rápida
 
 ![Workflow to Canvas](workflow_to_canvas.png)
 
@@ -440,6 +441,26 @@ Isso é especialmente útil para entender workflows complexos com múltiplas ram
 3. Descreva o que o workflow deve fazer em linguagem natural
 4. Selecione um modelo e clique em **Generate**
 5. O workflow é automaticamente criado e salvo
+
+**Referências de Arquivos com @:**
+
+Digite `@` no campo de descrição para referenciar arquivos:
+- `@{selection}` - Seleção atual do editor
+- `@{content}` - Conteúdo da nota ativa
+- `@path/to/file.md` - Qualquer arquivo do vault
+
+Quando você clica em Generate, o conteúdo do arquivo é incorporado diretamente na solicitação da IA. O frontmatter YAML é automaticamente removido.
+
+> **Dica:** Isso é útil para criar workflows baseados em exemplos ou templates de workflow existentes em seu vault.
+
+**Histórico de Solicitações:**
+
+Cada workflow gerado por IA salva uma entrada de histórico acima do bloco de código do workflow, incluindo:
+- Timestamp e ação (Criado/Modificado)
+- Sua descrição da solicitação
+- Conteúdos de arquivos referenciados (em seções recolhíveis)
+
+![Histórico de IA do Workflow](workflow_ai_history.png)
 
 **Modificar Workflow Existente com IA:**
 1. Carregue um workflow existente

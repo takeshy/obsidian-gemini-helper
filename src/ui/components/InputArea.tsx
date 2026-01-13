@@ -498,6 +498,7 @@ const InputArea = forwardRef<InputAreaHandle, InputAreaProps>(function InputArea
           value={input}
           onChange={handleInputChange}
           onKeyDown={handleKeyDown}
+          onClick={() => textareaRef.current?.focus()}
           placeholder={t("input.placeholder")}
           rows={3}
         />

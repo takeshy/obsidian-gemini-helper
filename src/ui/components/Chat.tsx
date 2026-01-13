@@ -440,7 +440,10 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 			setTimeout(() => {
 				const selection = plugin.getLastSelection();
 				setHasSelection(!!selection);
-				inputAreaRef.current?.focus();
+				// Skip auto-focus on mobile - iOS doesn't allow programmatic focus without user interaction
+				if (!Platform.isMobile) {
+					inputAreaRef.current?.focus();
+				}
 			}, 50);
 		};
 
@@ -461,6 +464,43 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 		}, 150);
 		return () => clearTimeout(timer);
 	}, [messages, streamingContent]);
+
+	// Handle iOS keyboard visibility using focus events
+	const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
+	useEffect(() => {
+		if (!Platform.isMobile) return;
+
+		const handleFocusIn = (e: FocusEvent) => {
+			const target = e.target as HTMLElement;
+			// Only track focus on textarea within our chat input area
+			if (target.tagName === "TEXTAREA" && target.closest(".gemini-helper-input-container")) {
+				setIsKeyboardVisible(true);
+			}
+		};
+
+		const handleFocusOut = (e: FocusEvent) => {
+			const target = e.target as HTMLElement;
+			// Only track focusout from textarea within our chat input area
+			if (target.tagName === "TEXTAREA" && target.closest(".gemini-helper-input-container")) {
+				// Small delay to avoid flickering
+				setTimeout(() => {
+					const active = document.activeElement as HTMLElement | null;
+					const isStillInInput = active?.tagName === "TEXTAREA" && active?.closest(".gemini-helper-input-container");
+					if (!isStillInInput) {
+						setIsKeyboardVisible(false);
+					}
+				}, 100);
+			}
+		};
+
+		document.addEventListener("focusin", handleFocusIn);
+		document.addEventListener("focusout", handleFocusOut);
+
+		return () => {
+			document.removeEventListener("focusin", handleFocusIn);
+			document.removeEventListener("focusout", handleFocusOut);
+		};
+	}, []);
 
 	// Listen for workspace state changes
 	useEffect(() => {
@@ -1424,8 +1464,10 @@ Always be helpful and provide clear, concise responses. When working with notes,
 		}
 	};
 
+	const chatClassName = `gemini-helper-chat${isKeyboardVisible ? " keyboard-visible" : ""}`;
+
 	return (
-		<div className="gemini-helper-chat">
+		<div className={chatClassName}>
 			<div className="gemini-helper-chat-header">
 				<h3>{t("chat.title")}</h3>
 				<div className="gemini-helper-header-actions">

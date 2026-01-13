@@ -119,19 +119,41 @@ export class GeminiHelperPlugin extends Plugin {
     // Load settings and workspace state
     void this.loadSettings().then(async () => {
       // Migrate from old settings format first (one-time)
-      await this.migrateFromOldSettings();
-      await this.loadWorkspaceState();
+      try {
+        await this.migrateFromOldSettings();
+      } catch (e) {
+        console.error("Gemini Helper: Failed to migrate old settings:", e);
+      }
+      try {
+        await this.loadWorkspaceState();
+      } catch (e) {
+        console.error("Gemini Helper: Failed to load workspace state:", e);
+      }
       // Initialize clients if API key is set or any CLI is verified
-      const cliConfig = this.settings.cliConfig || DEFAULT_CLI_CONFIG;
-      if (this.settings.googleApiKey || hasVerifiedCli(cliConfig)) {
-        this.initializeClients();
+      try {
+        const cliConfig = this.settings.cliConfig || DEFAULT_CLI_CONFIG;
+        if (this.settings.googleApiKey || hasVerifiedCli(cliConfig)) {
+          this.initializeClients();
+        }
+      } catch (e) {
+        console.error("Gemini Helper: Failed to initialize clients:", e);
       }
       // Register workflows as Obsidian commands for hotkey support
-      this.registerWorkflowHotkeys();
+      try {
+        this.registerWorkflowHotkeys();
+      } catch (e) {
+        console.error("Gemini Helper: Failed to register workflow hotkeys:", e);
+      }
       // Register event listeners for workflow triggers
-      this.registerWorkflowEventListeners();
+      try {
+        this.registerWorkflowEventListeners();
+      } catch (e) {
+        console.error("Gemini Helper: Failed to register workflow event listeners:", e);
+      }
       // Emit event to refresh UI after workspace state is loaded
       this.settingsEmitter.emit("workspace-state-loaded", this.workspaceState);
+    }).catch((e) => {
+      console.error("Gemini Helper: Failed to load settings:", e);
     });
 
     // Add settings tab

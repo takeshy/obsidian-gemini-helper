@@ -193,12 +193,14 @@ function formatWindowsCodexCliError(message: string | undefined): string | undef
 export interface CliProviderInterface {
   name: ChatProvider;
   displayName: string;
+  supportsSessionResumption: boolean;  // Whether this provider supports session resumption
   isAvailable(): Promise<boolean>;
   chatStream(
     messages: Message[],
     systemPrompt: string,
     workingDirectory: string,
-    signal?: AbortSignal
+    signal?: AbortSignal,
+    sessionId?: string  // Optional session ID for resumption
   ): AsyncGenerator<StreamChunk>;
 }
 
@@ -234,6 +236,7 @@ function formatHistoryAsPrompt(messages: Message[], systemPrompt: string): strin
 abstract class BaseCliProvider implements CliProviderInterface {
   abstract name: ChatProvider;
   abstract displayName: string;
+  abstract supportsSessionResumption: boolean;
 
   /**
    * Resolve the CLI command for version check
@@ -284,17 +287,20 @@ abstract class BaseCliProvider implements CliProviderInterface {
     messages: Message[],
     systemPrompt: string,
     workingDirectory: string,
-    signal?: AbortSignal
+    signal?: AbortSignal,
+    sessionId?: string
   ): AsyncGenerator<StreamChunk>;
 }
 
 /**
  * Gemini CLI provider
  * Uses: gemini -p "prompt"
+ * Note: Gemini CLI does not support session resumption
  */
 export class GeminiCliProvider extends BaseCliProvider {
   name: ChatProvider = "gemini-cli";
   displayName = "Gemini CLI";
+  supportsSessionResumption = false;
 
   protected resolveVersionCommand(): { command: string; args: string[] } {
     return resolveGeminiCommand(["--version"]);
@@ -304,7 +310,8 @@ export class GeminiCliProvider extends BaseCliProvider {
     messages: Message[],
     systemPrompt: string,
     workingDirectory: string,
-    signal?: AbortSignal
+    signal?: AbortSignal,
+    _sessionId?: string  // Unused - Gemini CLI doesn't support session resumption
   ): AsyncGenerator<StreamChunk> {
     // Dynamically import child_process (not available on mobile)
     const { spawn } = getChildProcess();
@@ -370,10 +377,12 @@ export class GeminiCliProvider extends BaseCliProvider {
 /**
  * Claude CLI provider
  * Uses: claude -p "prompt" --output-format stream-json
+ * Supports session resumption with --resume sessionId
  */
 export class ClaudeCliProvider extends BaseCliProvider {
   name: ChatProvider = "claude-cli";
   displayName = "Claude CLI";
+  supportsSessionResumption = true;
 
   protected resolveVersionCommand(): { command: string; args: string[] } {
     return resolveClaudeCommand(["--version"]);
@@ -383,15 +392,38 @@ export class ClaudeCliProvider extends BaseCliProvider {
     messages: Message[],
     systemPrompt: string,
     workingDirectory: string,
-    signal?: AbortSignal
+    signal?: AbortSignal,
+    sessionId?: string  // When provided, resume this session instead of passing full history
   ): AsyncGenerator<StreamChunk> {
     // Dynamically import child_process (not available on mobile)
     const { spawn } = getChildProcess();
 
-    const prompt = formatHistoryAsPrompt(messages, systemPrompt);
+    // Build CLI arguments based on whether we have a session ID
+    let cliArgs: string[];
 
-    // Use -p for non-interactive prompt mode with stream-json output (requires --verbose)
-    const { command, args } = resolveClaudeCommand(["-p", prompt, "--output-format", "stream-json", "--verbose"]);
+    if (sessionId) {
+      // Resuming an existing session - only send the latest user message
+      const lastMessage = messages[messages.length - 1];
+      const prompt = lastMessage?.role === "user" ? lastMessage.content : "";
+
+      cliArgs = [
+        "--resume", sessionId,
+        "-p", prompt,
+        "--output-format", "stream-json",
+        "--verbose"
+      ];
+    } else {
+      // First message - send full history with system prompt
+      const prompt = formatHistoryAsPrompt(messages, systemPrompt);
+
+      cliArgs = [
+        "-p", prompt,
+        "--output-format", "stream-json",
+        "--verbose"
+      ];
+    }
+
+    const { command, args } = resolveClaudeCommand(cliArgs);
     const proc = spawn(command, args, {
       stdio: ["pipe", "pipe", "pipe"],
       shell: false,
@@ -417,6 +449,7 @@ export class ClaudeCliProvider extends BaseCliProvider {
     if (proc.stdout) {
       proc.stdout.setEncoding("utf8");
       let buffer = "";
+      const state = { sessionIdEmitted: false };
 
       for await (const chunk of proc.stdout) {
         buffer += chunk;
@@ -427,70 +460,89 @@ export class ClaudeCliProvider extends BaseCliProvider {
 
         for (const line of lines) {
           if (!line.trim()) continue;
-
-          try {
-            const parsed = JSON.parse(line) as Record<string, unknown>;
-
-            // Handle different message types from Claude CLI stream-json format
-            if (parsed.type === "assistant") {
-              // Assistant message with content
-              const message = parsed.message as Record<string, unknown> | undefined;
-              if (message && Array.isArray(message.content)) {
-                for (const block of message.content as Array<Record<string, unknown>>) {
-                  if (block.type === "text" && typeof block.text === "string") {
-                    yield { type: "text", content: block.text };
-                  }
-                }
-              }
-            } else if (parsed.type === "content_block_delta") {
-              // Streaming delta
-              const delta = parsed.delta as Record<string, unknown> | undefined;
-              if (delta && delta.type === "text_delta" && typeof delta.text === "string") {
-                yield { type: "text", content: delta.text };
-              }
-            } else if (parsed.type === "error") {
-              // Error message
-              const error = parsed.error as Record<string, unknown> | undefined;
-              const errorMessage = typeof error?.message === "string" ? error.message : (typeof parsed.message === "string" ? parsed.message : "Unknown error");
-              yield { type: "error", error: errorMessage };
-            }
-          } catch {
-            // Ignore JSON parse errors
-          }
+          yield* this.processJsonLine(line, state);
         }
       }
 
       // Process any remaining buffer
       if (buffer.trim()) {
-        try {
-          const parsed = JSON.parse(buffer) as Record<string, unknown>;
-          if (parsed.type === "assistant") {
-            const message = parsed.message as Record<string, unknown> | undefined;
-            if (message && Array.isArray(message.content)) {
-              for (const block of message.content as Array<Record<string, unknown>>) {
-                if (block.type === "text" && typeof block.text === "string") {
-                  yield { type: "text", content: block.text };
-                }
-              }
-            }
-          }
-        } catch {
-          // Ignore JSON parse errors
-        }
+        yield* this.processJsonLine(buffer, state);
       }
     }
 
     yield { type: "done" };
+  }
+
+  /**
+   * Process a single JSON line from Claude CLI stream-json output
+   */
+  private *processJsonLine(
+    line: string,
+    state: { sessionIdEmitted: boolean }
+  ): Generator<StreamChunk> {
+    try {
+      const parsed = JSON.parse(line) as Record<string, unknown>;
+
+      // Handle different message types from Claude CLI stream-json format
+      if (parsed.type === "assistant") {
+        // Assistant message with content
+        const message = parsed.message as Record<string, unknown> | undefined;
+        if (message && Array.isArray(message.content)) {
+          for (const block of message.content as Array<Record<string, unknown>>) {
+            if (block.type === "text" && typeof block.text === "string") {
+              yield { type: "text", content: block.text };
+            }
+          }
+        }
+      } else if (parsed.type === "content_block_delta") {
+        // Streaming delta
+        const delta = parsed.delta as Record<string, unknown> | undefined;
+        if (delta && delta.type === "text_delta" && typeof delta.text === "string") {
+          yield { type: "text", content: delta.text };
+        }
+      } else if (parsed.type === "error") {
+        // Error message
+        const error = parsed.error as Record<string, unknown> | undefined;
+        const errorMessage = typeof error?.message === "string" ? error.message : (typeof parsed.message === "string" ? parsed.message : "Unknown error");
+        yield { type: "error", error: errorMessage };
+      }
+
+      // Check for session_id (can appear in assistant or result messages)
+      if (!state.sessionIdEmitted) {
+        let sessionId: string | undefined;
+
+        // Check direct session_id field (assistant message)
+        if (typeof parsed.session_id === "string") {
+          sessionId = parsed.session_id;
+        }
+        // Check result.data.session_id (result message)
+        else if (parsed.type === "result") {
+          const data = parsed.data as Record<string, unknown> | undefined;
+          if (data && typeof data.session_id === "string") {
+            sessionId = data.session_id;
+          }
+        }
+
+        if (sessionId) {
+          yield { type: "session_id", sessionId };
+          state.sessionIdEmitted = true;
+        }
+      }
+    } catch {
+      // Ignore JSON parse errors
+    }
   }
 }
 
 /**
  * Codex CLI provider
  * Uses: codex exec "prompt" --json --skip-git-repo-check
+ * Supports session resumption with: codex exec resume <sessionId> "prompt"
  */
 export class CodexCliProvider extends BaseCliProvider {
   name: ChatProvider = "codex-cli";
   displayName = "Codex CLI";
+  supportsSessionResumption = true;
 
   protected resolveVersionCommand(): { command: string; args: string[] } {
     return resolveCodexCommand(["--version"]);
@@ -500,15 +552,30 @@ export class CodexCliProvider extends BaseCliProvider {
     messages: Message[],
     systemPrompt: string,
     workingDirectory: string,
-    signal?: AbortSignal
+    signal?: AbortSignal,
+    sessionId?: string  // When provided, resume this session
   ): AsyncGenerator<StreamChunk> {
     // Dynamically import child_process (not available on mobile)
     const { spawn } = getChildProcess();
 
-    const prompt = formatHistoryAsPrompt(messages, systemPrompt);
+    // Build CLI arguments based on whether we have a session ID
+    // Note: --json and --skip-git-repo-check are options for 'exec', must come before subcommands
+    let cliArgs: string[];
 
-    // Use exec for non-interactive mode with JSON output
-    const { command, args } = resolveCodexCommand(["exec", prompt, "--json", "--skip-git-repo-check"]);
+    if (sessionId) {
+      // Resuming an existing session - only send the latest user message
+      const lastMessage = messages[messages.length - 1];
+      const prompt = lastMessage?.role === "user" ? lastMessage.content : "";
+
+      cliArgs = ["exec", "--json", "--skip-git-repo-check", "resume", sessionId, prompt];
+    } else {
+      // First message - send full history with system prompt
+      const prompt = formatHistoryAsPrompt(messages, systemPrompt);
+
+      cliArgs = ["exec", "--json", "--skip-git-repo-check", prompt];
+    }
+
+    const { command, args } = resolveCodexCommand(cliArgs);
     const proc = spawn(command, args, {
       stdio: ["pipe", "pipe", "pipe"],
       shell: false,
@@ -534,6 +601,7 @@ export class CodexCliProvider extends BaseCliProvider {
     if (proc.stdout) {
       proc.stdout.setEncoding("utf8");
       let buffer = "";
+      const state = { sessionIdEmitted: false };
 
       for await (const chunk of proc.stdout) {
         buffer += chunk;
@@ -544,43 +612,49 @@ export class CodexCliProvider extends BaseCliProvider {
 
         for (const line of lines) {
           if (!line.trim()) continue;
-
-          try {
-            const parsed = JSON.parse(line) as Record<string, unknown>;
-
-            // Handle Codex CLI JSON format
-            if (parsed.type === "item.completed") {
-              const item = parsed.item as Record<string, unknown> | undefined;
-              if (item && item.type === "agent_message" && typeof item.text === "string") {
-                yield { type: "text", content: item.text };
-              }
-            } else if (parsed.type === "error") {
-              const errorMessage = typeof parsed.message === "string" ? parsed.message : (typeof parsed.error === "string" ? parsed.error : "Unknown error");
-              yield { type: "error", error: errorMessage };
-            }
-          } catch {
-            // Ignore JSON parse errors
-          }
+          yield* this.processJsonLine(line, state);
         }
       }
 
       // Process any remaining buffer
       if (buffer.trim()) {
-        try {
-          const parsed = JSON.parse(buffer) as Record<string, unknown>;
-          if (parsed.type === "item.completed") {
-            const item = parsed.item as Record<string, unknown> | undefined;
-            if (item && item.type === "agent_message" && typeof item.text === "string") {
-              yield { type: "text", content: item.text };
-            }
-          }
-        } catch {
-          // Ignore JSON parse errors
-        }
+        yield* this.processJsonLine(buffer, state);
       }
     }
 
     yield { type: "done" };
+  }
+
+  /**
+   * Process a single JSON line from Codex CLI output
+   */
+  private *processJsonLine(
+    line: string,
+    state: { sessionIdEmitted: boolean }
+  ): Generator<StreamChunk> {
+    try {
+      const parsed = JSON.parse(line) as Record<string, unknown>;
+
+      // Handle thread.started event - extract thread_id for session resumption
+      if (parsed.type === "thread.started" && typeof parsed.thread_id === "string") {
+        if (!state.sessionIdEmitted) {
+          yield { type: "session_id", sessionId: parsed.thread_id };
+          state.sessionIdEmitted = true;
+        }
+      }
+      // Handle Codex CLI JSON format
+      else if (parsed.type === "item.completed") {
+        const item = parsed.item as Record<string, unknown> | undefined;
+        if (item && item.type === "agent_message" && typeof item.text === "string") {
+          yield { type: "text", content: item.text };
+        }
+      } else if (parsed.type === "error") {
+        const errorMessage = typeof parsed.message === "string" ? parsed.message : (typeof parsed.error === "string" ? parsed.error : "Unknown error");
+        yield { type: "error", error: errorMessage };
+      }
+    } catch {
+      // Ignore JSON parse errors
+    }
   }
 }
 

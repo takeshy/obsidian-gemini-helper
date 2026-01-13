@@ -24,6 +24,7 @@ import {
 	type PendingDeleteInfo,
 	type SlashCommand,
 	type GeneratedImage,
+	type ChatProvider,
 	isImageGenerationModel,
 } from "src/types";
 import { getGeminiClient } from "src/core/gemini";
@@ -92,12 +93,26 @@ function buildErrorMessage(error: unknown, apiPlan: string): string {
 	return t("chat.errorOccurred", { message });
 }
 
+// CLI session info with provider tracking
+interface CliSessionInfo {
+	provider: ChatProvider;
+	sessionId: string;
+}
+
+// Valid CLI providers that support session resumption
+const VALID_CLI_PROVIDERS: ChatProvider[] = ["gemini-cli", "claude-cli", "codex-cli"];
+
+function isValidCliProvider(provider: string): provider is ChatProvider {
+	return VALID_CLI_PROVIDERS.includes(provider as ChatProvider);
+}
+
 interface ChatHistory {
 	id: string;
 	title: string;
 	messages: Message[];
 	createdAt: number;
 	updatedAt: number;
+	cliSession?: CliSessionInfo;  // CLI session for resumption (Claude CLI, etc.)
 }
 
 export interface ChatRef {
@@ -113,6 +128,7 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 	const [messages, setMessages] = useState<Message[]>([]);
 	const [activeChat, setActiveChat] = useState<TFile | null>(null);
 	const [currentChatId, setCurrentChatId] = useState<string | null>(null);
+	const [cliSession, setCliSession] = useState<CliSessionInfo | null>(null);  // CLI session for resumption
 	const [chatHistories, setChatHistories] = useState<ChatHistory[]>([]);
 	const [showHistory, setShowHistory] = useState(false);
 	const [isLoading, setIsLoading] = useState(false);
@@ -200,9 +216,14 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 	};
 
 	// Convert messages to Markdown format
-	const messagesToMarkdown = (msgs: Message[], title: string, createdAt: number): string => {
+	const messagesToMarkdown = (msgs: Message[], title: string, createdAt: number, session?: CliSessionInfo): string => {
 		const date = new Date(createdAt);
-		let md = `---\ntitle: "${title.replace(/"/g, '\\"')}"\ncreatedAt: ${createdAt}\nupdatedAt: ${Date.now()}\n---\n\n`;
+		let md = `---\ntitle: "${title.replace(/"/g, '\\"')}"\ncreatedAt: ${createdAt}\nupdatedAt: ${Date.now()}\n`;
+		if (session) {
+			md += `cliSessionProvider: "${session.provider}"\n`;
+			md += `cliSessionId: "${session.sessionId}"\n`;
+		}
+		md += `---\n\n`;
 		md += `# ${title}\n\n`;
 		md += `*Created: ${date.toLocaleString()}*\n\n---\n\n`;
 
@@ -229,16 +250,26 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 	};
 
 	// Parse Markdown back to messages
-	const parseMarkdownToMessages = (content: string): { messages: Message[]; createdAt: number } | null => {
+	const parseMarkdownToMessages = (content: string): { messages: Message[]; createdAt: number; cliSession?: CliSessionInfo } | null => {
 		try {
 			// Extract frontmatter
 			const frontmatterMatch = content.match(/^---\n([\s\S]*?)\n---/);
 			let createdAt = Date.now();
+			let cliSession: CliSessionInfo | undefined;
 
 			if (frontmatterMatch) {
 				const createdAtMatch = frontmatterMatch[1].match(/createdAt:\s*(\d+)/);
 				if (createdAtMatch) {
 					createdAt = parseInt(createdAtMatch[1]);
+				}
+				// Parse CLI session info (both provider and session ID required, provider must be valid)
+				const providerMatch = frontmatterMatch[1].match(/cliSessionProvider:\s*"([^"]+)"/);
+				const sessionIdMatch = frontmatterMatch[1].match(/cliSessionId:\s*"([^"]+)"/);
+				if (providerMatch && sessionIdMatch && isValidCliProvider(providerMatch[1])) {
+					cliSession = {
+						provider: providerMatch[1],
+						sessionId: sessionIdMatch[1],
+					};
 				}
 			}
 
@@ -282,7 +313,7 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 				}
 			}
 
-			return { messages, createdAt };
+			return { messages, createdAt, cliSession };
 		} catch {
 			return null;
 		}
@@ -331,6 +362,7 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 							messages: parsed?.messages || [],
 							createdAt,
 							updatedAt,
+							cliSession: parsed?.cliSession,
 						});
 					}
 				} catch {
@@ -345,7 +377,7 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 	}, [plugin]);
 
 	// Save current chat to Markdown file
-	const saveCurrentChat = useCallback(async (msgs: Message[]) => {
+	const saveCurrentChat = useCallback(async (msgs: Message[], session?: CliSessionInfo) => {
 		if (msgs.length === 0) return;
 		if (!plugin.settings.saveChatHistory) return;
 
@@ -365,8 +397,10 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 
 		const existingHistory = chatHistories.find(h => h.id === chatId);
 		const createdAt = existingHistory?.createdAt || Date.now();
+		// Use provided session, or fall back to existing history's session
+		const effectiveSession = session || existingHistory?.cliSession;
 
-		const markdown = messagesToMarkdown(msgs, title, createdAt);
+		const markdown = messagesToMarkdown(msgs, title, createdAt, effectiveSession);
 		const filePath = getChatFilePath(chatId);
 
 		try {
@@ -385,6 +419,7 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 				messages: msgs,
 				createdAt,
 				updatedAt: Date.now(),
+				cliSession: effectiveSession,
 			};
 
 			const existingIndex = chatHistories.findIndex(h => h.id === chatId);
@@ -766,6 +801,7 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 	const startNewChat = () => {
 		setMessages([]);
 		setCurrentChatId(null);
+		setCliSession(null);  // Clear CLI session
 		setStreamingContent("");
 		setShowHistory(false);
 	};
@@ -774,6 +810,7 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 	const loadChat = (history: ChatHistory) => {
 		setMessages(history.messages);
 		setCurrentChatId(history.id);
+		setCliSession(history.cliSession || null);  // Restore CLI session
 		setShowHistory(false);
 	};
 
@@ -845,15 +882,26 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 
 			let fullContent = "";
 			let stopped = false;
+			let receivedSessionId: string | null = null;
 
 			// Get vault base path for working directory
 			const vaultBasePath = (plugin.app.vault.adapter as unknown as { basePath?: string }).basePath || ".";
+
+			// Determine current provider name
+			const currentProvider: ChatProvider = isClaudeCli ? "claude-cli" : isCodexCli ? "codex-cli" : "gemini-cli";
+
+			// Pass session ID only if provider supports it AND matches the stored session's provider
+			const sessionIdToUse = provider.supportsSessionResumption &&
+				cliSession?.provider === currentProvider
+				? cliSession.sessionId
+				: undefined;
 
 			for await (const chunk of provider.chatStream(
 				allMessages,
 				systemPrompt,
 				vaultBasePath,
-				abortController.signal
+				abortController.signal,
+				sessionIdToUse
 			)) {
 				if (abortController.signal.aborted) {
 					stopped = true;
@@ -864,6 +912,13 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 					case "text":
 						fullContent += chunk.content || "";
 						setStreamingContent(fullContent);
+						break;
+
+					case "session_id":
+						// Capture session ID from CLI response
+						if (chunk.sessionId) {
+							receivedSessionId = chunk.sessionId;
+						}
 						break;
 
 					case "error":
@@ -878,19 +933,28 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 				fullContent += `\n\n${t("chat.generationStopped")}`;
 			}
 
+			// Update session if we received a new one, or clear if provider changed
+			const newSession: CliSessionInfo | null = receivedSessionId
+				? { provider: currentProvider, sessionId: receivedSessionId }
+				: (cliSession?.provider === currentProvider ? cliSession : null);
+
+			if (receivedSessionId || cliSession?.provider !== currentProvider) {
+				setCliSession(newSession);
+			}
+
 			// Add assistant message with CLI model info
 			const assistantMessage: Message = {
 				role: "assistant",
 				content: fullContent,
 				timestamp: Date.now(),
-				model: isClaudeCli ? "claude-cli" : "gemini-cli",
+				model: currentProvider,
 			};
 
 			const newMessages = [...messages, userMessage, assistantMessage];
 			setMessages(newMessages);
 
-			// Save chat history
-			await saveCurrentChat(newMessages);
+			// Save chat history (with session info)
+			await saveCurrentChat(newMessages, newSession || undefined);
 		} catch (error) {
 			const errorMessageText = error instanceof Error ? error.message : t("chat.unknownError");
 			const errorMessage: Message = {

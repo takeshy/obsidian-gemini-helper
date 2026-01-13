@@ -434,13 +434,14 @@ export interface SyncStatus {
 
 // Streaming chunk types
 export interface StreamChunk {
-  type: "text" | "thinking" | "tool_call" | "tool_result" | "error" | "done" | "rag_used" | "web_search_used" | "image_generated";
+  type: "text" | "thinking" | "tool_call" | "tool_result" | "error" | "done" | "rag_used" | "web_search_used" | "image_generated" | "session_id";
   content?: string;
   toolCall?: ToolCall;
   toolResult?: ToolResult;
   error?: string;
   ragSources?: string[];  // RAG検索で見つかったソースファイル
   generatedImage?: GeneratedImage;  // 生成された画像
+  sessionId?: string;  // CLI session ID for resumption
 }
 
 // Default model

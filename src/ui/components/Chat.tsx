@@ -24,6 +24,7 @@ import {
 	type PendingDeleteInfo,
 	type SlashCommand,
 	type GeneratedImage,
+	type ChatProvider,
 	isImageGenerationModel,
 } from "src/types";
 import { getGeminiClient } from "src/core/gemini";
@@ -92,13 +93,26 @@ function buildErrorMessage(error: unknown, apiPlan: string): string {
 	return t("chat.errorOccurred", { message });
 }
 
+// CLI session info with provider tracking
+interface CliSessionInfo {
+	provider: ChatProvider;
+	sessionId: string;
+}
+
+// Valid CLI providers that support session resumption
+const VALID_CLI_PROVIDERS: ChatProvider[] = ["gemini-cli", "claude-cli", "codex-cli"];
+
+function isValidCliProvider(provider: string): provider is ChatProvider {
+	return VALID_CLI_PROVIDERS.includes(provider as ChatProvider);
+}
+
 interface ChatHistory {
 	id: string;
 	title: string;
 	messages: Message[];
 	createdAt: number;
 	updatedAt: number;
-	cliSessionId?: string;  // CLI session ID for resumption (Claude CLI, etc.)
+	cliSession?: CliSessionInfo;  // CLI session for resumption (Claude CLI, etc.)
 }
 
 export interface ChatRef {
@@ -114,7 +128,7 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 	const [messages, setMessages] = useState<Message[]>([]);
 	const [activeChat, setActiveChat] = useState<TFile | null>(null);
 	const [currentChatId, setCurrentChatId] = useState<string | null>(null);
-	const [cliSessionId, setCliSessionId] = useState<string | null>(null);  // CLI session ID for resumption
+	const [cliSession, setCliSession] = useState<CliSessionInfo | null>(null);  // CLI session for resumption
 	const [chatHistories, setChatHistories] = useState<ChatHistory[]>([]);
 	const [showHistory, setShowHistory] = useState(false);
 	const [isLoading, setIsLoading] = useState(false);
@@ -202,11 +216,12 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 	};
 
 	// Convert messages to Markdown format
-	const messagesToMarkdown = (msgs: Message[], title: string, createdAt: number, sessionId?: string): string => {
+	const messagesToMarkdown = (msgs: Message[], title: string, createdAt: number, session?: CliSessionInfo): string => {
 		const date = new Date(createdAt);
 		let md = `---\ntitle: "${title.replace(/"/g, '\\"')}"\ncreatedAt: ${createdAt}\nupdatedAt: ${Date.now()}\n`;
-		if (sessionId) {
-			md += `cliSessionId: "${sessionId}"\n`;
+		if (session) {
+			md += `cliSessionProvider: "${session.provider}"\n`;
+			md += `cliSessionId: "${session.sessionId}"\n`;
 		}
 		md += `---\n\n`;
 		md += `# ${title}\n\n`;
@@ -235,21 +250,26 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 	};
 
 	// Parse Markdown back to messages
-	const parseMarkdownToMessages = (content: string): { messages: Message[]; createdAt: number; cliSessionId?: string } | null => {
+	const parseMarkdownToMessages = (content: string): { messages: Message[]; createdAt: number; cliSession?: CliSessionInfo } | null => {
 		try {
 			// Extract frontmatter
 			const frontmatterMatch = content.match(/^---\n([\s\S]*?)\n---/);
 			let createdAt = Date.now();
-			let cliSessionId: string | undefined;
+			let cliSession: CliSessionInfo | undefined;
 
 			if (frontmatterMatch) {
 				const createdAtMatch = frontmatterMatch[1].match(/createdAt:\s*(\d+)/);
 				if (createdAtMatch) {
 					createdAt = parseInt(createdAtMatch[1]);
 				}
+				// Parse CLI session info (both provider and session ID required, provider must be valid)
+				const providerMatch = frontmatterMatch[1].match(/cliSessionProvider:\s*"([^"]+)"/);
 				const sessionIdMatch = frontmatterMatch[1].match(/cliSessionId:\s*"([^"]+)"/);
-				if (sessionIdMatch) {
-					cliSessionId = sessionIdMatch[1];
+				if (providerMatch && sessionIdMatch && isValidCliProvider(providerMatch[1])) {
+					cliSession = {
+						provider: providerMatch[1],
+						sessionId: sessionIdMatch[1],
+					};
 				}
 			}
 
@@ -293,7 +313,7 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 				}
 			}
 
-			return { messages, createdAt, cliSessionId };
+			return { messages, createdAt, cliSession };
 		} catch {
 			return null;
 		}
@@ -342,7 +362,7 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 							messages: parsed?.messages || [],
 							createdAt,
 							updatedAt,
-							cliSessionId: parsed?.cliSessionId,
+							cliSession: parsed?.cliSession,
 						});
 					}
 				} catch {
@@ -357,7 +377,7 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 	}, [plugin]);
 
 	// Save current chat to Markdown file
-	const saveCurrentChat = useCallback(async (msgs: Message[], sessionId?: string) => {
+	const saveCurrentChat = useCallback(async (msgs: Message[], session?: CliSessionInfo) => {
 		if (msgs.length === 0) return;
 		if (!plugin.settings.saveChatHistory) return;
 
@@ -377,10 +397,10 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 
 		const existingHistory = chatHistories.find(h => h.id === chatId);
 		const createdAt = existingHistory?.createdAt || Date.now();
-		// Use provided sessionId, or fall back to existing history's sessionId
-		const effectiveSessionId = sessionId || existingHistory?.cliSessionId;
+		// Use provided session, or fall back to existing history's session
+		const effectiveSession = session || existingHistory?.cliSession;
 
-		const markdown = messagesToMarkdown(msgs, title, createdAt, effectiveSessionId);
+		const markdown = messagesToMarkdown(msgs, title, createdAt, effectiveSession);
 		const filePath = getChatFilePath(chatId);
 
 		try {
@@ -399,7 +419,7 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 				messages: msgs,
 				createdAt,
 				updatedAt: Date.now(),
-				cliSessionId: effectiveSessionId,
+				cliSession: effectiveSession,
 			};
 
 			const existingIndex = chatHistories.findIndex(h => h.id === chatId);
@@ -781,7 +801,7 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 	const startNewChat = () => {
 		setMessages([]);
 		setCurrentChatId(null);
-		setCliSessionId(null);  // Clear CLI session ID
+		setCliSession(null);  // Clear CLI session
 		setStreamingContent("");
 		setShowHistory(false);
 	};
@@ -790,7 +810,7 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 	const loadChat = (history: ChatHistory) => {
 		setMessages(history.messages);
 		setCurrentChatId(history.id);
-		setCliSessionId(history.cliSessionId || null);  // Restore CLI session ID
+		setCliSession(history.cliSession || null);  // Restore CLI session
 		setShowHistory(false);
 	};
 
@@ -867,8 +887,14 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 			// Get vault base path for working directory
 			const vaultBasePath = (plugin.app.vault.adapter as unknown as { basePath?: string }).basePath || ".";
 
-			// Pass session ID if available and provider supports it
-			const sessionIdToUse = provider.supportsSessionResumption ? (cliSessionId || undefined) : undefined;
+			// Determine current provider name
+			const currentProvider: ChatProvider = isClaudeCli ? "claude-cli" : isCodexCli ? "codex-cli" : "gemini-cli";
+
+			// Pass session ID only if provider supports it AND matches the stored session's provider
+			const sessionIdToUse = provider.supportsSessionResumption &&
+				cliSession?.provider === currentProvider
+				? cliSession.sessionId
+				: undefined;
 
 			for await (const chunk of provider.chatStream(
 				allMessages,
@@ -907,9 +933,13 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 				fullContent += `\n\n${t("chat.generationStopped")}`;
 			}
 
-			// Update session ID if we received a new one
-			if (receivedSessionId && !cliSessionId) {
-				setCliSessionId(receivedSessionId);
+			// Update session if we received a new one, or clear if provider changed
+			const newSession: CliSessionInfo | null = receivedSessionId
+				? { provider: currentProvider, sessionId: receivedSessionId }
+				: (cliSession?.provider === currentProvider ? cliSession : null);
+
+			if (receivedSessionId || cliSession?.provider !== currentProvider) {
+				setCliSession(newSession);
 			}
 
 			// Add assistant message with CLI model info
@@ -917,14 +947,14 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 				role: "assistant",
 				content: fullContent,
 				timestamp: Date.now(),
-				model: isClaudeCli ? "claude-cli" : isCodexCli ? "codex-cli" : "gemini-cli",
+				model: currentProvider,
 			};
 
 			const newMessages = [...messages, userMessage, assistantMessage];
 			setMessages(newMessages);
 
-			// Save chat history (with session ID)
-			await saveCurrentChat(newMessages, receivedSessionId || cliSessionId || undefined);
+			// Save chat history (with session info)
+			await saveCurrentChat(newMessages, newSession || undefined);
 		} catch (error) {
 			const errorMessageText = error instanceof Error ? error.message : t("chat.unknownError");
 			const errorMessage: Message = {

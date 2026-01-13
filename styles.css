@@ -20,8 +20,8 @@
 }
 
 /* Mobile: remove extra bottom padding */
-.is-mobile .gemini-helper-chat-container {
-  margin-bottom: -48px;
+.is-mobile .workspace-leaf-content:has(.gemini-helper-chat-container) {
+  padding-bottom: 0 !important;
 }
 
 /* Mobile: keyboard visible adjustments */

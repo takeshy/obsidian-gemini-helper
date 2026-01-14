@@ -430,6 +430,38 @@ export const ja: Record<string, string> = {
   "error.failedToRename": "名前の変更に失敗しました: {{error}}",
   "error.failedToDelete": "設定の削除に失敗しました: {{error}}",
 
+  // Encryption
+  "settings.encryption": "暗号化",
+  "settings.encryptionEnabled": "チャット履歴を暗号化",
+  "settings.encryptionEnabled.desc": "チャット履歴ファイルを暗号化します。内容を見るにはパスワードが必要です。",
+  "settings.encryptionSetup": "暗号化の設定",
+  "settings.encryptionSetup.desc": "暗号化鍵を生成します。暗号化はパスワード不要ですが、復号化にはパスワードが必要です。",
+  "settings.encryptionSetupBtn": "暗号化鍵を生成",
+  "settings.encryptionPassword": "暗号化パスワード",
+  "settings.encryptionPassword.desc": "秘密鍵を保護するパスワード。復号化に必要です。",
+  "settings.encryptionPassword.placeholder": "パスワードを入力",
+  "settings.encryptionConfirmPassword": "パスワードを確認",
+  "settings.encryptionConfirmPassword.placeholder": "パスワードを再入力",
+  "settings.encryptionPasswordMismatch": "パスワードが一致しません",
+  "settings.encryptionSetupSuccess": "暗号化鍵の生成に成功しました",
+  "settings.encryptionSetupFailed": "暗号化の設定に失敗しました: {{error}}",
+  "settings.encryptionConfigured": "暗号化が設定済み",
+  "settings.encryptionConfigured.desc": "チャット履歴は暗号化されます。復号化にはパスワードが必要です。",
+  "settings.encryptionResetKeys": "暗号化鍵をリセット",
+  "settings.encryptionResetKeys.desc": "新しい暗号化鍵を生成します。以前の暗号化されたチャットは読めなくなります。",
+  "settings.encryptionResetKeysConfirm": "暗号化鍵をリセットしますか？以前に暗号化されたチャット履歴は読めなくなります。",
+  "settings.encryptionKeysReset": "暗号化鍵がリセットされました",
+  "settings.encryptionDisableConfirm": "暗号化を無効にしますか？既に暗号化されたチャット履歴は暗号化されたままで、読むにはパスワードが必要です。",
+
+  // Decryption
+  "chat.encryptedChat": "暗号化されたチャット",
+  "chat.enterPasswordToDecrypt": "閲覧するにはパスワードを入力",
+  "chat.decryptPassword": "パスワード",
+  "chat.decryptPassword.placeholder": "復号化パスワードを入力",
+  "chat.decrypt": "復号化",
+  "chat.decryptFailed": "復号化に失敗しました。パスワードを確認してください。",
+  "chat.decrypted": "復号化に成功しました",
+
   // Workflow Modals
   "workflowModal.enterValue": "値を入力",
   "workflowModal.enterValuePlaceholder": "値を入力...",

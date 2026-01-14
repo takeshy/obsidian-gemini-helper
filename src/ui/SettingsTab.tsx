@@ -18,6 +18,7 @@ import {
   DEFAULT_SETTINGS,
   DEFAULT_CLI_CONFIG,
   DEFAULT_EDIT_HISTORY_SETTINGS,
+  DEFAULT_ENCRYPTION_SETTINGS,
   getAvailableModels,
   isModelAllowedForPlan,
   type ApiPlan,
@@ -27,6 +28,10 @@ import {
 } from "src/types";
 import { getEditHistoryManager } from "src/core/editHistory";
 import { Platform } from "obsidian";
+import {
+  generateKeyPair,
+  encryptPrivateKey,
+} from "src/core/crypto";
 
 // Modal for creating/renaming RAG settings
 class RagSettingNameModal extends Modal {
@@ -577,6 +582,9 @@ export class SettingsTab extends PluginSettingTab {
 
     // Edit history settings
     this.displayEditHistorySettings(containerEl);
+
+    // Encryption settings
+    this.displayEncryptionSettings(containerEl);
 
     // Slash commands settings
     new Setting(containerEl).setName(t("settings.slashCommands")).setHeading();
@@ -1168,6 +1176,152 @@ export class SettingsTab extends PluginSettingTab {
             })();
           })
       );
+  }
+
+  private displayEncryptionSettings(containerEl: HTMLElement): void {
+    new Setting(containerEl).setName(t("settings.encryption")).setHeading();
+
+    // Ensure encryption settings exist
+    if (!this.plugin.settings.encryption) {
+      this.plugin.settings.encryption = { ...DEFAULT_ENCRYPTION_SETTINGS };
+    }
+
+    const encryption = this.plugin.settings.encryption;
+    const hasKeys = !!encryption.publicKey && !!encryption.encryptedPrivateKey;
+
+    // Enable/Disable toggle (only if keys are set up)
+    if (hasKeys) {
+      new Setting(containerEl)
+        .setName(t("settings.encryptionEnabled"))
+        .setDesc(t("settings.encryptionEnabled.desc"))
+        .addToggle((toggle) =>
+          toggle
+            .setValue(encryption.enabled)
+            .onChange((value) => {
+              void (async () => {
+                if (!value) {
+                  // Turning off - confirm
+                  const confirmed = await new ConfirmModal(
+                    this.app,
+                    t("settings.encryptionDisableConfirm"),
+                    t("common.confirm"),
+                    t("common.cancel")
+                  ).openAndWait();
+                  if (!confirmed) {
+                    toggle.setValue(true);
+                    return;
+                  }
+                }
+                this.plugin.settings.encryption.enabled = value;
+                await this.plugin.saveSettings();
+              })();
+            })
+        );
+
+      // Show configured status
+      new Setting(containerEl)
+        .setName(t("settings.encryptionConfigured"))
+        .setDesc(t("settings.encryptionConfigured.desc"));
+
+      // Reset keys button
+      new Setting(containerEl)
+        .setName(t("settings.encryptionResetKeys"))
+        .setDesc(t("settings.encryptionResetKeys.desc"))
+        .addButton((btn) =>
+          btn
+            .setButtonText(t("settings.encryptionResetKeys"))
+            .setWarning()
+            .onClick(() => {
+              void (async () => {
+                const confirmed = await new ConfirmModal(
+                  this.app,
+                  t("settings.encryptionResetKeysConfirm"),
+                  t("common.confirm"),
+                  t("common.cancel")
+                ).openAndWait();
+                if (!confirmed) return;
+
+                // Reset encryption settings
+                this.plugin.settings.encryption = { ...DEFAULT_ENCRYPTION_SETTINGS };
+                await this.plugin.saveSettings();
+                this.display();
+                new Notice(t("settings.encryptionKeysReset"));
+              })();
+            })
+        );
+    } else {
+      // Setup encryption keys
+      new Setting(containerEl)
+        .setName(t("settings.encryptionSetup"))
+        .setDesc(t("settings.encryptionSetup.desc"));
+
+      // Password inputs
+      let password = "";
+      let confirmPassword = "";
+
+      new Setting(containerEl)
+        .setName(t("settings.encryptionPassword"))
+        .setDesc(t("settings.encryptionPassword.desc"))
+        .addText((text) => {
+          text
+            .setPlaceholder(t("settings.encryptionPassword.placeholder"))
+            .onChange((value) => {
+              password = value;
+            });
+          text.inputEl.type = "password";
+        });
+
+      new Setting(containerEl)
+        .setName(t("settings.encryptionConfirmPassword"))
+        .addText((text) => {
+          text
+            .setPlaceholder(t("settings.encryptionConfirmPassword.placeholder"))
+            .onChange((value) => {
+              confirmPassword = value;
+            });
+          text.inputEl.type = "password";
+        });
+
+      new Setting(containerEl)
+        .addButton((btn) =>
+          btn
+            .setButtonText(t("settings.encryptionSetupBtn"))
+            .setCta()
+            .onClick(() => {
+              void (async () => {
+                if (!password) {
+                  new Notice(t("settings.encryptionPassword.placeholder"));
+                  return;
+                }
+                if (password !== confirmPassword) {
+                  new Notice(t("settings.encryptionPasswordMismatch"));
+                  return;
+                }
+
+                try {
+                  // Generate key pair
+                  const { publicKey, privateKey } = await generateKeyPair();
+
+                  // Encrypt private key with password
+                  const { encryptedPrivateKey, salt } = await encryptPrivateKey(privateKey, password);
+
+                  // Save settings
+                  this.plugin.settings.encryption = {
+                    enabled: true,
+                    publicKey,
+                    encryptedPrivateKey,
+                    salt,
+                  };
+                  await this.plugin.saveSettings();
+                  this.display();
+                  new Notice(t("settings.encryptionSetupSuccess"));
+                } catch (error) {
+                  new Notice(t("settings.encryptionSetupFailed", { error: formatError(error) }));
+                }
+              })();
+            })
+        );
+    }
   }
 
   private displayRagSettings(containerEl: HTMLElement): void {

@@ -489,6 +489,38 @@ export const en = {
   "error.failedToCreate": "Failed to create: {{error}}",
   "error.failedToRename": "Failed to rename: {{error}}",
   "error.failedToDelete": "Failed to delete setting: {{error}}",
+
+  // Encryption
+  "settings.encryption": "Encryption",
+  "settings.encryptionEnabled": "Encrypt chat history",
+  "settings.encryptionEnabled.desc": "Encrypt chat history files. Requires password to view content.",
+  "settings.encryptionSetup": "Setup encryption",
+  "settings.encryptionSetup.desc": "Generate encryption keys. You can encrypt without password, but need password to decrypt.",
+  "settings.encryptionSetupBtn": "Setup encryption keys",
+  "settings.encryptionPassword": "Encryption password",
+  "settings.encryptionPassword.desc": "Password to protect private key. Required for decryption.",
+  "settings.encryptionPassword.placeholder": "Enter password",
+  "settings.encryptionConfirmPassword": "Confirm password",
+  "settings.encryptionConfirmPassword.placeholder": "Confirm password",
+  "settings.encryptionPasswordMismatch": "Passwords do not match",
+  "settings.encryptionSetupSuccess": "Encryption keys generated successfully",
+  "settings.encryptionSetupFailed": "Failed to setup encryption: {{error}}",
+  "settings.encryptionConfigured": "Encryption configured",
+  "settings.encryptionConfigured.desc": "Chat history will be encrypted. Password required to decrypt.",
+  "settings.encryptionResetKeys": "Reset encryption keys",
+  "settings.encryptionResetKeys.desc": "Generate new encryption keys. Previous encrypted chats will not be readable.",
+  "settings.encryptionResetKeysConfirm": "Reset encryption keys? All previously encrypted chat history will become unreadable.",
+  "settings.encryptionKeysReset": "Encryption keys have been reset",
+  "settings.encryptionDisableConfirm": "Disable encryption? Encrypted chat history will remain encrypted and require password to read.",
+
+  // Decryption
+  "chat.encryptedChat": "Encrypted chat",
+  "chat.enterPasswordToDecrypt": "Enter password to view",
+  "chat.decryptPassword": "Password",
+  "chat.decryptPassword.placeholder": "Enter decryption password",
+  "chat.decrypt": "Decrypt",
+  "chat.decryptFailed": "Decryption failed. Check your password.",
+  "chat.decrypted": "Decrypted successfully",
 };
 
 export type TranslationKey = keyof typeof en;

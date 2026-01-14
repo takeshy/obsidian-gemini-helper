@@ -49,8 +49,8 @@ export default function CryptEditor({
           setEditedContent(content);
         } catch (error) {
           console.error("Failed to decrypt with cached password:", error);
-          // Clear cache and ask for password
-          cryptoCache.clear();
+          // Don't clear cache - password might be correct for other files with same encryption settings
+          // Just ask for password for this file
           setNeedsPassword(true);
         } finally {
           setIsDecrypting(false);
@@ -91,7 +91,7 @@ export default function CryptEditor({
     }
   };
 
-  // Update preview when content changes
+  // Update preview when content changes or after decryption
   useEffect(() => {
     if (showPreview && previewRef.current && editedContent) {
       previewRef.current.empty();
@@ -118,7 +118,8 @@ export default function CryptEditor({
         previewComponent.current = null;
       }
     };
-  }, [showPreview, editedContent, plugin.app, filePath]);
+    // Include decryptedContent to trigger preview after successful decryption
+  }, [showPreview, editedContent, decryptedContent, plugin.app, filePath]);
 
   // Track changes
   useEffect(() => {

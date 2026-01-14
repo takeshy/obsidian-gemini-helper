@@ -76,6 +76,63 @@
 | `mode` | `overwrite`（デフォルト）、`append`、または `create`（存在時スキップ） |
 | `confirm` | `true`（デフォルト）で確認ダイアログ、`false` で即座に書き込み |
 
+### note-read
+
+ノートファイルから内容を読み取り。
+
+```yaml
+- id: read
+  type: note-read
+  path: "notes/config.md"
+  saveTo: content
+```
+
+| プロパティ | 説明 |
+|------------|------|
+| `path` | 読み取るファイルパス（必須） |
+| `saveTo` | ファイル内容を保存する変数名（必須） |
+
+**暗号化ファイルのサポート:**
+
+対象ファイルが（プラグインの暗号化機能で）暗号化されている場合、ワークフローは自動的に：
+1. 現在のセッションでパスワードがキャッシュされているか確認
+2. キャッシュがない場合、ユーザーにパスワード入力を促す
+3. ファイル内容を復号して変数に保存
+4. 以降の読み取りのためにパスワードをキャッシュ（同じ Obsidian セッション内）
+
+一度パスワードを入力すれば、Obsidian を再起動するまで他の暗号化ファイルを読み取る際に再入力は不要です。
+
+**例: 暗号化ファイルから API キーを読み取り、外部 API を呼び出す**
+
+このワークフローは、暗号化されたファイルに保存された API キーを読み取り、外部 API を呼び出し、結果を表示します：
+
+```yaml
+name: 暗号化キーで API を呼び出し
+nodes:
+  - id: read-key
+    type: note-read
+    path: "secrets/api-key.md"
+    saveTo: apiKey
+    next: call-api
+
+  - id: call-api
+    type: http
+    url: "https://api.example.com/data"
+    method: GET
+    headers: '{"Authorization": "Bearer {{apiKey}}"}'
+    saveTo: response
+    next: show-result
+
+  - id: show-result
+    type: dialog
+    title: API レスポンス
+    message: "{{response}}"
+    markdown: true
+    button1: OK
+```
+
+> **ヒント:** API キーなどの機密データは暗号化ファイルに保存しましょう。コマンドパレットの「ファイルを暗号化」コマンドを使用して、シークレットを含むファイルを暗号化できます。
+
 ### note-list
 
 フィルタリングとソート付きでノートを一覧表示。
@@ -201,7 +258,17 @@ HTTP リクエストを実行。
 | `defaults` | 初期値の JSON（`input` と `selected`） |
 | `button1` | プライマリボタンラベル（デフォルト: "OK"） |
 | `button2` | セカンダリボタンラベル（任意） |
-| `saveTo` | 結果を保存する変数: `{"button": "確認", "selected": [...], "input": "..."}` |
+| `saveTo` | 結果を保存する変数（以下参照） |
+
+**結果形式**（`saveTo` 変数）:
+- `button`: string - クリックされたボタンのテキスト（例: "確認", "キャンセル"）
+- `selected`: string[] - **常に配列**、単一選択でも（例: `["オプション A"]`）
+- `input`: string - テキスト入力値（`inputTitle` が設定されていた場合）
+
+> **重要:** `if` 条件で選択値をチェックする場合：
+> - 単一オプション: `{{dialogResult.selected[0]}} == オプション A`
+> - 配列に値が含まれるか（multiSelect）: `{{dialogResult.selected}} contains オプション A`
+> - 間違い: `{{dialogResult.selected}} == オプション A`（配列と文字列の比較、常に false）
 
 **シンプルなテキスト入力:**
 ```yaml
@@ -449,6 +516,10 @@ FileExplorerData を Vault 内にファイルとして保存。生成された�
 | `trueNext` | 条件が true のときのノード ID |
 | `falseNext` | 条件が false のときのノード ID |
 
+**`contains` 演算子**は文字列と配列の両方で動作します:
+- 文字列: `{{text}} contains error` - "error" が文字列に含まれているか
+- 配列: `{{dialogResult.selected}} contains オプション A` - "オプション A" が配列に含まれているか
+
 > **後方参照ルール**: `next` プロパティは、対象が `while` ノードの場合のみ、前のノードを参照できます。これにより、スパゲッティコードを防ぎ、適切なループ構造を確保します。例えば、`next: loop` は `loop` が `while` ノードである場合のみ有効です。
 
 ### variable / set
@@ -505,6 +576,7 @@ FileExplorerData を Vault 内にファイルとして保存。生成された�
 | プロパティ | 説明 |
 |------------|------|
 | `command` | 実行するコマンド ID（必須、`{{変数}}` 対応） |
+| `path` | コマンド実行前に開くファイル（任意、実行後タブは自動で閉じる） |
 | `saveTo` | 実行結果を保存する変数名（任意） |
 
 **コマンド ID の探し方:**
@@ -542,7 +614,43 @@ nodes:
 
 **活用例:** ワークフローの一部として Obsidian コアコマンドや他のプラグインのコマンドをトリガー。
 
----
+**例: ディレクトリ内の全ファイルを暗号化**
+
+このワークフローは、指定したフォルダ内のすべての Markdown ファイルを Gemini Helper の暗号化コマンドで暗号化します：
+
+```yaml
+name: フォルダ暗号化
+nodes:
+  - id: init-index
+    type: variable
+    name: index
+    value: "0"
+  - id: list-files
+    type: note-list
+    folder: "private"
+    recursive: "true"
+    saveTo: fileList
+  - id: loop
+    type: while
+    condition: "{{index}} < {{fileList.count}}"
+    trueNext: encrypt
+    falseNext: done
+  - id: encrypt
+    type: obsidian-command
+    command: "gemini-helper:encrypt-file"
+    path: "{{fileList.notes[index].path}}"
+  - id: increment
+    type: set
+    name: index
+    value: "{{index}} + 1"
+    next: loop
+  - id: done
+    type: dialog
+    title: "完了"
+    message: "{{index}} 件のファイルを暗号化しました"
+```
+
+> **Note:** `path` プロパティはファイルを開き、コマンドを実行し、タブを自動で閉じます。すでに開いているファイルはそのまま開いた状態が維持されます。
 
 **例: ragujuary を使った RAG 検索**
 

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { TFile, Notice, Menu, MarkdownView, stringifyYaml } from "obsidian";
+import { TFile, Notice, Menu, MarkdownView, stringifyYaml, Modal, App } from "obsidian";
 import { FileText, Keyboard, KeyboardOff, LayoutGrid, Plus, Save, Sparkles, Zap, ZapOff } from "lucide-react";
 import { EventTriggerModal } from "./EventTriggerModal";
 import type { WorkflowEventTrigger } from "src/types";
@@ -20,6 +20,61 @@ import { t } from "src/i18n";
 import { EditHistoryModal } from "../EditHistoryModal";
 import { getEditHistoryManager } from "src/core/editHistory";
 import { openWorkflowAsCanvas } from "src/utils/workflowToCanvas";
+import { cryptoCache } from "src/core/cryptoCache";
+
+// Password prompt modal for encrypted files
+function promptForPassword(app: App): Promise<string | null> {
+  return new Promise((resolve) => {
+    class PasswordModal extends Modal {
+      onOpen(): void {
+        const { contentEl } = this;
+        contentEl.empty();
+        contentEl.addClass("gemini-helper-password-modal");
+
+        contentEl.createEl("h3", { text: t("crypt.enterPassword") });
+        contentEl.createEl("p", { text: t("crypt.enterPasswordDesc") });
+
+        const inputEl = contentEl.createEl("input", {
+          type: "password",
+          placeholder: t("crypt.passwordPlaceholder"),
+          cls: "gemini-helper-password-input",
+        });
+
+        const buttonContainer = contentEl.createDiv({ cls: "gemini-helper-button-container" });
+
+        const cancelBtn = buttonContainer.createEl("button", { text: t("common.cancel") });
+        cancelBtn.addEventListener("click", () => {
+          resolve(null);
+          this.close();
+        });
+
+        const unlockBtn = buttonContainer.createEl("button", { text: t("crypt.unlock"), cls: "mod-cta" });
+        unlockBtn.addEventListener("click", () => {
+          const password = inputEl.value;
+          if (password) {
+            resolve(password);
+            this.close();
+          }
+        });
+
+        inputEl.addEventListener("keydown", (e) => {
+          if (e.key === "Enter" && inputEl.value) {
+            resolve(inputEl.value);
+            this.close();
+          }
+        });
+
+        setTimeout(() => inputEl.focus(), 50);
+      }
+
+      onClose(): void {
+        this.contentEl.empty();
+      }
+    }
+
+    new PasswordModal(app).open();
+  });
+}
 
 interface WorkflowPanelProps {
   plugin: GeminiHelperPlugin;
@@ -118,7 +173,7 @@ function getDefaultProperties(type: WorkflowNodeType): Record<string, string> {
     case "mcp":
       return { url: "", tool: "", args: "", headers: "", saveTo: "" };
     case "obsidian-command":
-      return { command: "", saveTo: "" };
+      return { command: "", path: "", saveTo: "" };
     default:
       return {};
   }
@@ -349,7 +404,9 @@ export default function WorkflowPanel({ plugin }: WorkflowPanelProps) {
       // Reset the select to previous value
       e.target.value = String(currentWorkflowIndex);
 
-      const result = await promptForAIWorkflow(plugin.app, plugin, "create");
+      // Use current file path as default output path (without .md extension)
+      const defaultOutputPath = workflowFile?.path?.replace(/\.md$/, "");
+      const result = await promptForAIWorkflow(plugin.app, plugin, "create", undefined, undefined, defaultOutputPath);
 
       if (result && result.outputPath) {
         // Ensure the path has .md extension
@@ -505,12 +562,24 @@ ${result.nodes.map(node => {
 
   // Handle AI modification
   const handleModifyWithAI = async () => {
-    if (!workflowFile || nodes.length === 0) {
+    if (!workflowFile) {
       new Notice(t("workflow.noWorkflowToModify"));
       return;
     }
 
-    const currentYaml = buildWorkflowYaml(nodes, workflowName);
+    // If nodes are empty (e.g., due to parse error), read YAML directly from file
+    let currentYaml: string;
+    if (nodes.length === 0) {
+      const content = await plugin.app.vault.read(workflowFile);
+      const match = content.match(/```workflow\n([\s\S]*?)\n```/);
+      if (!match) {
+        new Notice(t("workflow.noWorkflowToModify"));
+        return;
+      }
+      currentYaml = match[1];
+    } else {
+      currentYaml = buildWorkflowYaml(nodes, workflowName);
+    }
     const result = await promptForAIWorkflow(
       plugin.app,
       plugin,
@@ -726,6 +795,13 @@ ${result.nodes.map(node => {
             await plugin.app.workspace.getLeaf().openFile(noteFile);
           }
         },
+        promptForPassword: async () => {
+          // Try cached password first
+          const cached = cryptoCache.getPassword();
+          if (cached) return cached;
+          // Prompt for password
+          return promptForPassword(plugin.app);
+        },
       };
 
       await executor.execute(
@@ -756,29 +832,27 @@ ${result.nodes.map(node => {
       return;
     }
 
+    // Build encryption config from settings
+    const encryptionConfig = plugin.settings.encryption?.enabled
+      ? {
+          enabled: plugin.settings.encryption.enabled,
+          publicKey: plugin.settings.encryption.publicKey,
+          encryptedPrivateKey: plugin.settings.encryption.encryptedPrivateKey,
+          salt: plugin.settings.encryption.salt,
+        }
+      : undefined;
+
     const modal = new HistoryModal(
       plugin.app,
       workflowFile.path,
-      plugin.settings.workspaceFolder
+      plugin.settings.workspaceFolder,
+      encryptionConfig
     );
     modal.open();
   };
 
-  if (!workflowFile) {
-    return (
-      <div className="workflow-sidebar">
-        <div className="workflow-sidebar-content">
-          <div className="workflow-empty-state">
-            {t("workflow.openMarkdownFile")}
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // Workflowコードブロックがない場合はAI新規作成ボタンだけ表示
-  if (workflowOptions.length === 0) {
-    const handleCreateWithAI = async () => {
+  // AI新規作成ハンドラー（ファイルの有無に関わらず使用）
+  const handleCreateWithAI = async () => {
       const result = await promptForAIWorkflow(plugin.app, plugin, "create");
 
       if (result && result.outputPath) {
@@ -846,8 +920,31 @@ ${result.nodes.map(node => {
 
         await plugin.app.workspace.getLeaf().openFile(targetFile);
       }
-    };
+  };
 
+  // ファイルが選択されていない場合
+  if (!workflowFile) {
+    return (
+      <div className="workflow-sidebar">
+        <div className="workflow-sidebar-content">
+          <div className="workflow-empty-state">
+            <p>{t("workflow.openMarkdownFile")}</p>
+            <button
+              className="workflow-sidebar-ai-btn mod-cta"
+              onClick={() => void handleCreateWithAI()}
+              style={{ marginTop: "12px", display: "inline-flex", alignItems: "center" }}
+            >
+              <Sparkles size={14} />
+              <span style={{ marginLeft: "6px" }}>{t("workflow.createWithAI")}</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Workflowコードブロックがない場合
+  if (workflowOptions.length === 0) {
     return (
       <div className="workflow-sidebar">
         <div className="workflow-sidebar-content">
@@ -903,7 +1000,7 @@ ${result.nodes.map(node => {
           <button
             className="workflow-sidebar-ai-btn"
             onClick={() => void handleModifyWithAI()}
-            disabled={nodes.length === 0}
+            disabled={!workflowFile}
             title={t("workflow.modifyWithAI")}
           >
             <Sparkles size={14} />

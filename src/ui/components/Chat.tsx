@@ -7,7 +7,7 @@ import {
 	useCallback,
 } from "react";
 import { TFile, Notice, MarkdownView, Platform } from "obsidian";
-import { Plus, History, ChevronDown, FileText, Save } from "lucide-react";
+import { Plus, History, ChevronDown, FileText, Save, Lock } from "lucide-react";
 import type { GeminiHelperPlugin } from "src/plugin";
 import {
 	DEFAULT_MODEL,
@@ -55,6 +55,12 @@ import MessageList from "./MessageList";
 import InputArea, { type InputAreaHandle } from "./InputArea";
 import { EditHistoryModal } from "./EditHistoryModal";
 import { getEditHistoryManager } from "src/core/editHistory";
+import {
+	isEncryptedFile,
+	encryptFileContent,
+	decryptFileContent,
+} from "src/core/crypto";
+import { cryptoCache } from "src/core/cryptoCache";
 import { t } from "src/i18n";
 
 const PAID_RATE_LIMIT_RETRY_DELAYS_MS = [10000, 30000, 60000];
@@ -113,6 +119,7 @@ interface ChatHistory {
 	createdAt: number;
 	updatedAt: number;
 	cliSession?: CliSessionInfo;  // CLI session for resumption (Claude CLI, etc.)
+	isEncrypted?: boolean;  // Whether the chat is encrypted
 }
 
 export interface ChatRef {
@@ -171,6 +178,8 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 	const [hasSelection, setHasSelection] = useState(false);
 	const [cliConfig, setCliConfig] = useState(plugin.settings.cliConfig || DEFAULT_CLI_CONFIG);
 	const [hasApiKey, setHasApiKey] = useState(!!plugin.settings.googleApiKey);
+	const [decryptingChatId, setDecryptingChatId] = useState<string | null>(null);
+	const [decryptPassword, setDecryptPassword] = useState("");
 
 	// CLI provider state (CLI not available on mobile)
 	const geminiCliVerified = !Platform.isMobile && cliConfig.cliVerified === true;
@@ -216,7 +225,7 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 	};
 
 	// Convert messages to Markdown format
-	const messagesToMarkdown = (msgs: Message[], title: string, createdAt: number, session?: CliSessionInfo): string => {
+	const messagesToMarkdown = async (msgs: Message[], title: string, createdAt: number, session?: CliSessionInfo): Promise<string> => {
 		const date = new Date(createdAt);
 		let md = `---\ntitle: "${title.replace(/"/g, '\\"')}"\ncreatedAt: ${createdAt}\nupdatedAt: ${Date.now()}\n`;
 		if (session) {
@@ -246,12 +255,35 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 			md += `${msg.content}\n\n---\n\n`;
 		}
 
+		// Encrypt if encryption is enabled
+		const encryption = plugin.settings.encryption;
+		if (encryption?.enabled && encryption.publicKey && encryption.encryptedPrivateKey && encryption.salt) {
+			try {
+				// Use the new YAML frontmatter format which stores keys in the file itself
+				return await encryptFileContent(
+					md,
+					encryption.publicKey,
+					encryption.encryptedPrivateKey,
+					encryption.salt
+				);
+			} catch (error) {
+				console.error("Failed to encrypt chat:", error);
+				// Fall back to unencrypted
+			}
+		}
+
 		return md;
 	};
 
 	// Parse Markdown back to messages
-	const parseMarkdownToMessages = (content: string): { messages: Message[]; createdAt: number; cliSession?: CliSessionInfo } | null => {
+	const parseMarkdownToMessages = (content: string): { messages: Message[]; createdAt: number; cliSession?: CliSessionInfo; isEncrypted?: boolean } | null => {
 		try {
+			// Check if content is encrypted (YAML frontmatter format)
+			if (isEncryptedFile(content)) {
+				// Return minimal info for encrypted content
+				return { messages: [], createdAt: Date.now(), isEncrypted: true };
+			}
+
 			// Extract frontmatter
 			const frontmatterMatch = content.match(/^---\n([\s\S]*?)\n---/);
 			let createdAt = Date.now();
@@ -313,7 +345,7 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 				}
 			}
 
-			return { messages, createdAt, cliSession };
+			return { messages, createdAt, cliSession, isEncrypted: false };
 		} catch {
 			return null;
 		}
@@ -335,7 +367,12 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 				return;
 			}
 
-			const files = plugin.app.vault.getMarkdownFiles().filter(f => f.path.startsWith(folder + "/"));
+			const files = plugin.app.vault.getMarkdownFiles().filter(f => {
+				// Only include files directly in the folder (not in subdirectories)
+				if (!f.path.startsWith(folder + "/")) return false;
+				const relativePath = f.path.slice(folder.length + 1);
+				return !relativePath.includes("/");
+			});
 			const histories: ChatHistory[] = [];
 
 			for (const file of files) {
@@ -343,7 +380,18 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 					const content = await plugin.app.vault.read(file);
 					const frontmatterMatch = content.match(/^---\n([\s\S]*?)\n---/);
 
-					if (frontmatterMatch) {
+					// Check if content is encrypted (YAML frontmatter format)
+					if (isEncryptedFile(content)) {
+						const chatId = file.basename;
+						histories.push({
+							id: chatId,
+							title: t("chat.encryptedChat"),
+							messages: [],
+							createdAt: file.stat.ctime,
+							updatedAt: file.stat.mtime,
+							isEncrypted: true,
+						});
+					} else if (frontmatterMatch) {
 						const titleMatch = frontmatterMatch[1].match(/title:\s*"([^"]+)"/);
 						const createdAtMatch = frontmatterMatch[1].match(/createdAt:\s*(\d+)/);
 						const updatedAtMatch = frontmatterMatch[1].match(/updatedAt:\s*(\d+)/);
@@ -363,6 +411,7 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 							createdAt,
 							updatedAt,
 							cliSession: parsed?.cliSession,
+							isEncrypted: false,
 						});
 					}
 				} catch {
@@ -400,7 +449,7 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 		// Use provided session, or fall back to existing history's session
 		const effectiveSession = session || existingHistory?.cliSession;
 
-		const markdown = messagesToMarkdown(msgs, title, createdAt, effectiveSession);
+		const markdown = await messagesToMarkdown(msgs, title, createdAt, effectiveSession);
 		const filePath = getChatFilePath(chatId);
 
 		try {
@@ -806,8 +855,60 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 		setShowHistory(false);
 	};
 
+	// Decrypt and load encrypted chat
+	const decryptAndLoadChat = async (chatId: string, password: string) => {
+		try {
+			const filePath = getChatFilePath(chatId);
+			const file = plugin.app.vault.getAbstractFileByPath(filePath);
+			if (!(file instanceof TFile)) {
+				throw new Error("Chat file not found");
+			}
+
+			const content = await plugin.app.vault.read(file);
+
+			// Decrypt using YAML frontmatter format
+			if (!isEncryptedFile(content)) {
+				throw new Error("Invalid encrypted content");
+			}
+
+			const decryptedContent = await decryptFileContent(content, password);
+
+			// Cache the password for future decryptions in this session
+			cryptoCache.setPassword(password);
+
+			// Parse decrypted content
+			const parsed = parseMarkdownToMessages(decryptedContent);
+			if (!parsed) {
+				throw new Error("Failed to parse decrypted content");
+			}
+
+			setMessages(parsed.messages);
+			setCurrentChatId(chatId);
+			setCliSession(parsed.cliSession || null);
+			setDecryptingChatId(null);
+			setDecryptPassword("");
+			setShowHistory(false);
+			new Notice(t("chat.decrypted"));
+		} catch (error) {
+			console.error("Decryption failed:", error);
+			new Notice(t("chat.decryptFailed"));
+		}
+	};
+
 	// Load a chat from history
 	const loadChat = (history: ChatHistory) => {
+		if (history.isEncrypted) {
+			// If password is cached, try to decrypt automatically
+			const cachedPassword = cryptoCache.getPassword();
+			if (cachedPassword) {
+				void decryptAndLoadChat(history.id, cachedPassword);
+				return;
+			}
+			// Show decryption UI
+			setDecryptingChatId(history.id);
+			setDecryptPassword("");
+			return;
+		}
 		setMessages(history.messages);
 		setCurrentChatId(history.id);
 		setCliSession(history.cliSession || null);  // Restore CLI session
@@ -1596,26 +1697,62 @@ Always be helpful and provide clear, concise responses. When working with notes,
 			{showHistory && chatHistories.length > 0 && (
 				<div className="gemini-helper-history-dropdown">
 					{chatHistories.map((history) => (
-						<div
-							key={history.id}
-							className={`gemini-helper-history-item ${currentChatId === history.id ? "active" : ""}`}
-							onClick={() => loadChat(history)}
-						>
-							<div className="gemini-helper-history-title">{history.title}</div>
-							<div className="gemini-helper-history-meta">
-								<span className="gemini-helper-history-date">
-									{formatHistoryDate(history.updatedAt)}
-								</span>
-								<button
-									className="gemini-helper-history-delete"
-									onClick={(e) => {
-										void deleteChat(history.id, e);
-									}}
-									title={t("common.delete")}
-								>
-									×
-								</button>
+						<div key={history.id}>
+							<div
+								className={`gemini-helper-history-item ${currentChatId === history.id ? "active" : ""} ${history.isEncrypted ? "encrypted" : ""}`}
+								onClick={() => loadChat(history)}
+							>
+								<div className="gemini-helper-history-title">
+									{history.isEncrypted && <Lock size={14} className="gemini-helper-lock-icon" />}
+									{history.title}
+								</div>
+								<div className="gemini-helper-history-meta">
+									<span className="gemini-helper-history-date">
+										{formatHistoryDate(history.updatedAt)}
+									</span>
+									<button
+										className="gemini-helper-history-delete"
+										onClick={(e) => {
+											void deleteChat(history.id, e);
+										}}
+										title={t("common.delete")}
+									>
+										×
+									</button>
+								</div>
 							</div>
+							{decryptingChatId === history.id && (
+								<div className="gemini-helper-decrypt-form">
+									<input
+										type="password"
+										placeholder={t("chat.decryptPassword.placeholder")}
+										value={decryptPassword}
+										onChange={(e) => setDecryptPassword(e.target.value)}
+										onKeyDown={(e) => {
+											if (e.key === "Enter" && decryptPassword) {
+												void decryptAndLoadChat(history.id, decryptPassword);
+											}
+										}}
+									/>
+									<button
+										onClick={() => {
+											if (decryptPassword) {
+												void decryptAndLoadChat(history.id, decryptPassword);
+											}
+										}}
+									>
+										{t("chat.decrypt")}
+									</button>
+									<button
+										onClick={() => {
+											setDecryptingChatId(null);
+											setDecryptPassword("");
+										}}
+									>
+										{t("common.cancel")}
+									</button>
+								</div>
+							)}
 						</div>
 					))}
 				</div>

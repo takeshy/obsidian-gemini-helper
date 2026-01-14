@@ -12,6 +12,7 @@ Assistente de IA **gratuito e open-source** para Obsidian com **Chat**, **Automa
 - **RAG** - Geração Aumentada por Recuperação para busca inteligente em seu vault
 - **Busca na Web** - Acesse informações atualizadas via Google Search
 - **Geração de Imagens** - Crie imagens com modelos de imagem do Gemini
+- **Criptografia** - Proteja com senha o histórico de chat e logs de execução de workflows
 
 ![Geração de imagens no chat](chat_image.png)
 
@@ -389,6 +390,41 @@ npm run build
 
 ![Limites de Ferramentas e Histórico de Edições](setting_tool_history.png)
 
+### Criptografia
+
+Proteja seu histórico de chat e logs de execução de workflows com senha.
+
+> **Obrigatório:** Você deve primeiro definir uma senha nas configurações do plugin para habilitar a criptografia.
+
+![Configurações de Criptografia](setting_encryption.png)
+
+**Configuração:**
+1. Habilitar criptografia nas configurações do plugin
+2. Definir uma senha (armazenada com segurança usando criptografia de chave pública)
+3. Todos os novos arquivos de chat e histórico de workflow serão criptografados
+
+**Recursos:**
+- **Criptografia automática** - Novos chats e logs de workflow são criptografados ao salvar
+- **Cache de senha** - Digite a senha uma vez por sessão
+- **Visualizador dedicado** - Arquivos criptografados abrem em um editor seguro com pré-visualização
+- **Opção de descriptografia** - Remova a criptografia de arquivos individuais quando necessário
+
+**Como funciona:**
+- Usa RSA-OAEP para criptografia de chaves e AES-GCM para criptografia de conteúdo
+- A senha gera um par de chaves; a chave privada é criptografada com sua senha
+- Cada arquivo é criptografado com uma chave AES única, envolta com a chave pública
+
+> **Aviso:** Se você esquecer sua senha, arquivos criptografados não podem ser recuperados. Mantenha sua senha em segurança.
+
+> **Dica:** Para criptografar todos os arquivos em um diretório de uma vez, use um workflow. Veja o exemplo "Criptografar todos os arquivos em um diretório" em [WORKFLOW_NODES_pt.md](WORKFLOW_NODES_pt.md#obsidian-command).
+
+![Fluxo de Criptografia de Arquivos](enc.png)
+
+**Benefícios de segurança:**
+- **Protegido do chat com IA** - Arquivos criptografados não podem ser lidos pelas operações de IA no vault (ferramenta `read_note`). Isso mantém dados sensíveis como chaves de API seguros contra exposição acidental durante o chat.
+- **Acesso via workflow com senha** - Workflows podem ler arquivos criptografados usando o nó `note-read`. Quando acessado, um diálogo de senha aparece, e a senha é armazenada em cache para a sessão.
+- **Armazene segredos com segurança** - Em vez de escrever chaves de API diretamente nos workflows, armazene-as em arquivos criptografados. O workflow lê a chave em tempo de execução após a verificação da senha.
+
 ### Comandos de Barra
 - Definir templates de prompt personalizados acionados por `/`
 - Override opcional de modelo e busca por comando
@@ -429,7 +465,9 @@ npm run build
 
 Isso é especialmente útil para entender workflows complexos com múltiplas ramificações e loops.
 
-**Exportar Histórico de Execução:** Visualize o histórico de execução como um Canvas do Obsidian para análise visual.
+**Exportar histórico de execução:** Visualize o histórico de execução como um Canvas do Obsidian para análise visual. Clique em **Open Canvas view** no modal de Histórico para criar um arquivo Canvas.
+
+> **Nota:** Arquivos Canvas são criados dinamicamente na pasta do workspace. Exclua-os manualmente após revisão se não forem mais necessários.
 
 ![Visualização do Canvas de Histórico](history_canvas.png)
 
@@ -442,6 +480,12 @@ Isso é especialmente útil para entender workflows complexos com múltiplas ram
 4. Selecione um modelo e clique em **Generate**
 5. O workflow é automaticamente criado e salvo
 
+> **Dica:** Ao usar **+ New (AI)** no dropdown em um arquivo que já tem workflows, o caminho de saída é definido como o arquivo atual por padrão. O workflow gerado será adicionado a esse arquivo.
+
+**Criar workflow de qualquer arquivo:**
+
+Ao abrir a aba Workflow com um arquivo que não tem bloco de código workflow, um botão **"Create workflow with AI"** é exibido. Clique para gerar um novo workflow (saída padrão: `workflows/{{name}}.md`).
+
 **Referências de Arquivos com @:**
 
 Digite `@` no campo de descrição para referenciar arquivos:
@@ -452,6 +496,14 @@ Digite `@` no campo de descrição para referenciar arquivos:
 Quando você clica em Generate, o conteúdo do arquivo é incorporado diretamente na solicitação da IA. O frontmatter YAML é automaticamente removido.
 
 > **Dica:** Isso é útil para criar workflows baseados em exemplos ou templates de workflow existentes em seu vault.
+
+**Anexos de Arquivos:**
+
+Clique no botão de anexo para anexar arquivos (imagens, PDFs, arquivos de texto) à sua solicitação de geração de workflow. Isso é útil para fornecer contexto visual ou exemplos para a IA.
+
+**Controles do Modal:**
+
+O modal de workflow com IA suporta posicionamento por arrastar e soltar e redimensionamento pelos cantos para uma melhor experiência de edição.
 
 **Histórico de Solicitações:**
 
@@ -490,8 +542,9 @@ Edite workflows diretamente no editor visual de nós com interface drag-and-drop
 
 **Dados armazenados localmente:**
 - Chave de API (armazenada nas configurações do Obsidian)
-- Histórico de chat (como arquivos Markdown)
-- Histórico de execução de workflows
+- Histórico de chat (como arquivos Markdown, opcionalmente criptografados)
+- Histórico de execução de workflow (opcionalmente criptografado)
+- Chaves de criptografia (chave privada criptografada com sua senha)
 
 **Dados enviados ao Google:**
 - Todas as mensagens de chat e anexos de arquivos são enviados à API do Google Gemini para processamento

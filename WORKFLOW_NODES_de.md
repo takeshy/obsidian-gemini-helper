@@ -76,6 +76,63 @@ Schreibt Inhalt in eine Notizdatei.
 | `mode` | `overwrite` (Standard), `append` oder `create` (ueberspringen, falls vorhanden) |
 | `confirm` | `true` (Standard) zeigt Bestaetigungsdialog, `false` schreibt sofort |
 
+### note-read
+
+Liest Inhalt aus einer Notizdatei.
+
+```yaml
+- id: read
+  type: note-read
+  path: "notes/config.md"
+  saveTo: content
+```
+
+| Eigenschaft | Beschreibung |
+|-------------|--------------|
+| `path` | Zu lesender Dateipfad (erforderlich) |
+| `saveTo` | Variablenname zum Speichern des Dateiinhalts (erforderlich) |
+
+**Unterstuetzung verschluesselter Dateien:**
+
+Wenn die Zieldatei verschluesselt ist (ueber die Verschluesselungsfunktion des Plugins), wird der Workflow automatisch:
+1. Pruefen, ob das Passwort bereits in der aktuellen Sitzung zwischengespeichert ist
+2. Falls nicht zwischengespeichert, den Benutzer zur Passworteingabe auffordern
+3. Den Dateiinhalt entschluesseln und in der Variable speichern
+4. Das Passwort fuer nachfolgende Lesevorgaenge zwischenspeichern (innerhalb derselben Obsidian-Sitzung)
+
+Sobald Sie das Passwort einmal eingegeben haben, muessen Sie es nicht erneut eingeben, um andere verschluesselte Dateien zu lesen, bis Sie Obsidian neu starten.
+
+**Beispiel: API-Schluessel aus verschluesselter Datei lesen und externe API aufrufen**
+
+Dieser Workflow liest einen API-Schluessel aus einer verschluesselten Datei, ruft eine externe API auf und zeigt das Ergebnis an:
+
+```yaml
+name: API mit verschluesseltem Schluessel aufrufen
+nodes:
+  - id: read-key
+    type: note-read
+    path: "secrets/api-key.md"
+    saveTo: apiKey
+    next: call-api
+
+  - id: call-api
+    type: http
+    url: "https://api.example.com/data"
+    method: GET
+    headers: '{"Authorization": "Bearer {{apiKey}}"}'
+    saveTo: response
+    next: show-result
+
+  - id: show-result
+    type: dialog
+    title: API-Antwort
+    message: "{{response}}"
+    markdown: true
+    button1: OK
+```
+
+> **Tipp:** Speichern Sie sensible Daten wie API-Schluessel in verschluesselten Dateien. Verwenden Sie den Befehl "Datei verschluesseln" aus der Befehlspalette, um eine Datei mit Ihren Geheimnissen zu verschluesseln.
+
 ### note-list
 
 Listet Notizen mit Filter- und Sortieroptionen auf.
@@ -201,7 +258,17 @@ Zeigt einen Dialog mit Optionen, Schaltflaechen und/oder Texteingabe an.
 | `defaults` | JSON mit `input` und `selected` Initialwerten |
 | `button1` | Primaere Schaltflaechen-Beschriftung (Standard: "OK") |
 | `button2` | Sekundaere Schaltflaechen-Beschriftung (optional) |
-| `saveTo` | Variable fuer Ergebnis: `{"button": "Confirm", "selected": [...], "input": "..."}` |
+| `saveTo` | Variable fuer Ergebnis (siehe unten) |
+
+**Ergebnisformat** (`saveTo`-Variable):
+- `button`: string - Text der geklickten Schaltflaeche (z.B. "Bestaetigen", "Abbrechen")
+- `selected`: string[] - **immer ein Array**, auch bei Einzelauswahl (z.B. `["Option A"]`)
+- `input`: string - Texteingabewert (wenn `inputTitle` gesetzt war)
+
+> **Wichtig:** Beim Pruefen des ausgewaehlten Wertes in einer `if`-Bedingung:
+> - Fuer einzelne Option: `{{dialogResult.selected[0]}} == Option A`
+> - Zum Pruefen, ob Array einen Wert enthaelt (multiSelect): `{{dialogResult.selected}} contains Option A`
+> - Falsch: `{{dialogResult.selected}} == Option A` (vergleicht Array mit String, immer false)
 
 **Einfache Texteingabe:**
 ```yaml
@@ -449,6 +516,10 @@ Bedingte Verzweigungen und Schleifen.
 | `trueNext` | Knoten-ID wenn Bedingung wahr ist |
 | `falseNext` | Knoten-ID wenn Bedingung falsch ist |
 
+**Der `contains`-Operator** funktioniert sowohl mit Strings als auch mit Arrays:
+- String: `{{text}} contains error` - prueft, ob "error" im String enthalten ist
+- Array: `{{dialogResult.selected}} contains Option A` - prueft, ob "Option A" im Array enthalten ist
+
 > **Rückwärtsreferenz-Regel**: Die `next`-Eigenschaft kann nur auf frühere Knoten verweisen, wenn das Ziel ein `while`-Knoten ist. Dies verhindert Spaghetti-Code und gewährleistet eine ordnungsgemäße Schleifenstruktur.
 
 ### variable / set
@@ -505,6 +576,7 @@ Fuehrt einen Obsidian-Befehl ueber seine ID aus. Dies ermoeglicht es Workflows, 
 | Eigenschaft | Beschreibung |
 |-------------|--------------|
 | `command` | Auszufuehrende Befehls-ID (erforderlich, unterstuetzt `{{variables}}`) |
+| `path` | Datei, die vor der Befehlsausführung geöffnet wird (optional, Tab wird danach automatisch geschlossen) |
 | `saveTo` | Variable zum Speichern des Ausfuehrungsergebnisses (optional) |
 
 **Befehls-IDs finden:**
@@ -541,6 +613,44 @@ nodes:
 ```
 
 **Anwendungsfall:** Obsidian-Kernbefehle oder Befehle von anderen Plugins als Teil eines Workflows ausloesen.
+
+**Beispiel: Alle Dateien in einem Verzeichnis verschlüsseln**
+
+Dieser Workflow verschlüsselt alle Markdown-Dateien in einem angegebenen Ordner mit dem Verschlüsselungsbefehl von Gemini Helper:
+
+```yaml
+name: Ordner verschlüsseln
+nodes:
+  - id: init-index
+    type: variable
+    name: index
+    value: "0"
+  - id: list-files
+    type: note-list
+    folder: "private"
+    recursive: "true"
+    saveTo: fileList
+  - id: loop
+    type: while
+    condition: "{{index}} < {{fileList.count}}"
+    trueNext: encrypt
+    falseNext: done
+  - id: encrypt
+    type: obsidian-command
+    command: "gemini-helper:encrypt-file"
+    path: "{{fileList.notes[index].path}}"
+  - id: increment
+    type: set
+    name: index
+    value: "{{index}} + 1"
+    next: loop
+  - id: done
+    type: dialog
+    title: "Fertig"
+    message: "{{index}} Dateien wurden verschlüsselt"
+```
+
+> **Hinweis:** Die `path`-Eigenschaft öffnet die Datei, führt den Befehl aus und schließt dann automatisch den Tab. Bereits geöffnete Dateien bleiben geöffnet.
 
 ---
 

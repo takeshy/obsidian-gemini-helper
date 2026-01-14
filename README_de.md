@@ -12,6 +12,7 @@
 - **RAG** - Retrieval-Augmented Generation für intelligente Suche in Ihrem Vault
 - **Websuche** - Zugriff auf aktuelle Informationen über Google Search
 - **Bilderzeugung** - Erstellen Sie Bilder mit Gemini-Bildmodellen
+- **Verschlüsselung** - Passwortschutz für Chat-Verlauf und Workflow-Ausführungsprotokolle
 
 ![Bilderzeugung im Chat](chat_image.png)
 
@@ -389,6 +390,41 @@ npm run build
 
 ![Tool-Limits & Bearbeitungsverlauf](setting_tool_history.png)
 
+### Verschlüsselung
+
+Schützen Sie Ihren Chat-Verlauf und Workflow-Ausführungsprotokolle mit Passwort.
+
+> **Erforderlich:** Sie müssen zuerst ein Passwort in den Plugin-Einstellungen festlegen, um die Verschlüsselung zu aktivieren.
+
+![Verschlüsselungseinstellungen](setting_encryption.png)
+
+**Einrichtung:**
+1. Verschlüsselung in den Plugin-Einstellungen aktivieren
+2. Passwort festlegen (sicher gespeichert mittels Public-Key-Kryptographie)
+3. Alle neuen Chat-Dateien und Workflow-Protokolle werden verschlüsselt
+
+**Funktionen:**
+- **Automatische Verschlüsselung** - Neue Chats und Workflow-Protokolle werden beim Speichern verschlüsselt
+- **Passwort-Caching** - Passwort einmal pro Sitzung eingeben
+- **Dedizierter Viewer** - Verschlüsselte Dateien öffnen sich in einem sicheren Editor mit Vorschau
+- **Entschlüsselungsoption** - Verschlüsselung bei Bedarf von einzelnen Dateien entfernen
+
+**Funktionsweise:**
+- Verwendet RSA-OAEP für Schlüsselverschlüsselung und AES-GCM für Inhaltsverschlüsselung
+- Passwort generiert ein Schlüsselpaar; privater Schlüssel wird mit Ihrem Passwort verschlüsselt
+- Jede Datei wird mit einem einzigartigen AES-Schlüssel verschlüsselt, der mit dem öffentlichen Schlüssel umhüllt wird
+
+> **Warnung:** Wenn Sie Ihr Passwort vergessen, können verschlüsselte Dateien nicht wiederhergestellt werden. Bewahren Sie Ihr Passwort sicher auf.
+
+> **Tipp:** Um alle Dateien in einem Verzeichnis auf einmal zu verschlüsseln, verwenden Sie einen Workflow. Siehe das Beispiel "Alle Dateien in einem Verzeichnis verschlüsseln" in [WORKFLOW_NODES_de.md](WORKFLOW_NODES_de.md#obsidian-command).
+
+![Dateiverschlüsselungs-Workflow](enc.png)
+
+**Sicherheitsvorteile:**
+- **Geschützt vor AI-Chat** - Verschlüsselte Dateien können nicht von AI-Vault-Operationen (`read_note`-Tool) gelesen werden. Dies schützt sensible Daten wie API-Schlüssel vor versehentlicher Offenlegung während des Chats.
+- **Workflow-Zugriff mit Passwort** - Workflows können verschlüsselte Dateien mit dem `note-read`-Knoten lesen. Beim Zugriff erscheint ein Passwort-Dialog, und das Passwort wird für die Sitzung zwischengespeichert.
+- **Geheimnisse sicher speichern** - Anstatt API-Schlüssel direkt in Workflows zu schreiben, speichern Sie sie in verschlüsselten Dateien. Der Workflow liest den Schlüssel zur Laufzeit nach der Passwortverifizierung.
+
 ### Slash-Befehle
 - Benutzerdefinierte Prompt-Vorlagen definieren, die mit `/` ausgelöst werden
 - Optionale Modell- und Suchüberschreibung pro Befehl
@@ -429,7 +465,9 @@ npm run build
 
 Dies ist besonders hilfreich zum Verständnis komplexer Workflows mit mehreren Verzweigungen und Schleifen.
 
-**Ausführungsverlauf exportieren:** Zeigen Sie den Ausführungsverlauf als Obsidian Canvas zur visuellen Analyse an.
+**Ausführungsverlauf exportieren:** Zeigen Sie den Ausführungsverlauf als Obsidian Canvas zur visuellen Analyse an. Klicken Sie auf **Open Canvas view** im History-Modal, um eine Canvas-Datei zu erstellen.
+
+> **Hinweis:** Canvas-Dateien werden dynamisch im Workspace-Ordner erstellt. Löschen Sie sie nach der Überprüfung manuell, wenn sie nicht mehr benötigt werden.
 
 ![Verlaufs-Canvas-Ansicht](history_canvas.png)
 
@@ -442,6 +480,12 @@ Dies ist besonders hilfreich zum Verständnis komplexer Workflows mit mehreren V
 4. Wählen Sie ein Modell und klicken Sie auf **Generate**
 5. Der Workflow wird automatisch erstellt und gespeichert
 
+> **Tipp:** Wenn Sie **+ New (AI)** aus dem Dropdown bei einer Datei verwenden, die bereits Workflows enthält, wird der Ausgabepfad standardmäßig auf die aktuelle Datei gesetzt. Der generierte Workflow wird an diese Datei angehängt.
+
+**Workflow von beliebiger Datei erstellen:**
+
+Wenn Sie den Workflow-Tab mit einer Datei öffnen, die keinen Workflow-Codeblock hat, wird eine **"Create workflow with AI"**-Schaltfläche angezeigt. Klicken Sie darauf, um einen neuen Workflow zu generieren (Standard-Ausgabe: `workflows/{{name}}.md`).
+
 **@ Dateireferenzen:**
 
 Geben Sie `@` im Beschreibungsfeld ein, um Dateien zu referenzieren:
@@ -452,6 +496,14 @@ Geben Sie `@` im Beschreibungsfeld ein, um Dateien zu referenzieren:
 Wenn Sie auf Generate klicken, wird der Dateiinhalt direkt in die KI-Anfrage eingebettet. YAML-Frontmatter wird automatisch entfernt.
 
 > **Tipp:** Dies ist nützlich, um Workflows basierend auf bestehenden Workflow-Beispielen oder Vorlagen in Ihrem Vault zu erstellen.
+
+**Dateianhänge:**
+
+Klicken Sie auf die Anhang-Schaltfläche, um Dateien (Bilder, PDFs, Textdateien) an Ihre Workflow-Generierungsanfrage anzuhängen. Dies ist nützlich, um der KI visuellen Kontext oder Beispiele zu liefern.
+
+**Modal-Steuerung:**
+
+Das KI-Workflow-Modal unterstützt Drag-and-Drop-Positionierung und Größenänderung von den Ecken für eine bessere Bearbeitungserfahrung.
 
 **Anfrageverlauf:**
 
@@ -490,8 +542,9 @@ Bearbeiten Sie Workflows direkt im visuellen Node-Editor mit Drag-and-Drop-Oberf
 
 **Lokal gespeicherte Daten:**
 - API-Schlüssel (in Obsidian-Einstellungen gespeichert)
-- Chat-Verlauf (als Markdown-Dateien)
-- Workflow-Ausführungsverlauf
+- Chat-Verlauf (als Markdown-Dateien, optional verschlüsselt)
+- Workflow-Ausführungsverlauf (optional verschlüsselt)
+- Verschlüsselungsschlüssel (privater Schlüssel mit Ihrem Passwort verschlüsselt)
 
 **An Google gesendete Daten:**
 - Alle Chat-Nachrichten und Dateianhänge werden zur Verarbeitung an die Google Gemini API gesendet

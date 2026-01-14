@@ -440,6 +440,8 @@ export const ko: Record<string, string> = {
   "workflowModal.output": "출력:",
   "workflowModal.error": "오류: {{error}}",
   "workflowModal.openCanvasView": "캔버스 보기 열기",
+  "workflowModal.canvasNeedsDecrypt": "암호화된 기록을 보려면 비밀번호를 입력하세요",
+  "workflowModal.encryptedHistoryNeedsPassword": "실행 기록이 암호화되어 있습니다. 비밀번호를 입력하여 확인하세요.",
   "workflowModal.empty": "(비어 있음)",
   "workflowModal.circularReference": "(순환 참조)",
 };

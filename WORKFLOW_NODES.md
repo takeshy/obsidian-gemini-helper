@@ -76,6 +76,63 @@ Write content to a note file.
 | `mode` | `overwrite` (default), `append`, or `create` (skip if exists) |
 | `confirm` | `true` (default) shows confirmation dialog, `false` writes immediately |
 
+### note-read
+
+Read content from a note file.
+
+```yaml
+- id: read
+  type: note-read
+  path: "notes/config.md"
+  saveTo: content
+```
+
+| Property | Description |
+|----------|-------------|
+| `path` | File path to read (required) |
+| `saveTo` | Variable name to store the file content (required) |
+
+**Encrypted File Support:**
+
+If the target file is encrypted (via the plugin's encryption feature), the workflow will automatically:
+1. Check if the password is already cached in the current session
+2. If not cached, prompt the user to enter the password
+3. Decrypt the file content and store it in the variable
+4. Cache the password for subsequent reads (within the same Obsidian session)
+
+Once you enter the password once, you don't need to re-enter it for other encrypted file reads until you restart Obsidian.
+
+**Example: Read API key from encrypted file and call external API**
+
+This workflow reads an API key stored in an encrypted file, calls an external API, and displays the result:
+
+```yaml
+name: Call API with encrypted key
+nodes:
+  - id: read-key
+    type: note-read
+    path: "secrets/api-key.md"
+    saveTo: apiKey
+    next: call-api
+
+  - id: call-api
+    type: http
+    url: "https://api.example.com/data"
+    method: GET
+    headers: '{"Authorization": "Bearer {{apiKey}}"}'
+    saveTo: response
+    next: show-result
+
+  - id: show-result
+    type: dialog
+    title: API Response
+    message: "{{response}}"
+    markdown: true
+    button1: OK
+```
+
+> **Tip:** Store sensitive data like API keys in encrypted files. Use the "Encrypt file" command from the command palette to encrypt a file containing your secrets.
+
 ### note-list
 
 List notes with filtering and sorting.
@@ -201,7 +258,17 @@ Display a dialog with options, buttons, and/or text input.
 | `defaults` | JSON with `input` and `selected` initial values |
 | `button1` | Primary button label (default: "OK") |
 | `button2` | Secondary button label (optional) |
-| `saveTo` | Variable for result: `{"button": "Confirm", "selected": [...], "input": "..."}` |
+| `saveTo` | Variable for result (see below) |
+
+**Result format** (`saveTo` variable):
+- `button`: string - clicked button text (e.g., "Confirm", "Cancel")
+- `selected`: string[] - **always an array**, even for single select (e.g., `["Option A"]`)
+- `input`: string - text input value (if `inputTitle` was set)
+
+> **Important:** When checking selected value in an `if` condition:
+> - For single option: `{{dialogResult.selected[0]}} == Option A`
+> - For checking if array contains value (multiSelect): `{{dialogResult.selected}} contains Option A`
+> - Wrong: `{{dialogResult.selected}} == Option A` (compares array to string, always false)
 
 **Simple text input:**
 ```yaml
@@ -449,6 +516,10 @@ Conditional branching and loops.
 | `trueNext` | Node ID when condition is true |
 | `falseNext` | Node ID when condition is false |
 
+**The `contains` operator** works with both strings and arrays:
+- String: `{{text}} contains error` - checks if "error" is in the string
+- Array: `{{dialogResult.selected}} contains Option A` - checks if "Option A" is in the array
+
 > **Back-Reference Rule**: The `next` property can only reference earlier nodes if the target is a `while` node. This prevents spaghetti code and ensures proper loop structure. For example, `next: loop` is valid only if `loop` is a `while` node.
 
 ### variable / set
@@ -505,6 +576,7 @@ Execute an Obsidian command by its ID. This allows workflows to trigger any Obsi
 | Property | Description |
 |----------|-------------|
 | `command` | Command ID to execute (required, supports `{{variables}}`) |
+| `path` | File to open before executing command (optional, tab auto-closes after) |
 | `saveTo` | Variable to store execution result (optional) |
 
 **Finding command IDs:**
@@ -541,6 +613,44 @@ nodes:
 ```
 
 **Use case:** Trigger Obsidian core commands or commands from other plugins as part of a workflow.
+
+**Example: Encrypt all files in a directory**
+
+This workflow encrypts all markdown files in a specified folder using Gemini Helper's encryption command:
+
+```yaml
+name: encrypt-folder
+nodes:
+  - id: init-index
+    type: variable
+    name: index
+    value: "0"
+  - id: list-files
+    type: note-list
+    folder: "private"
+    recursive: "true"
+    saveTo: fileList
+  - id: loop
+    type: while
+    condition: "{{index}} < {{fileList.count}}"
+    trueNext: encrypt
+    falseNext: done
+  - id: encrypt
+    type: obsidian-command
+    command: "gemini-helper:encrypt-file"
+    path: "{{fileList.notes[index].path}}"
+  - id: increment
+    type: set
+    name: index
+    value: "{{index}} + 1"
+    next: loop
+  - id: done
+    type: dialog
+    title: "Done"
+    message: "Encrypted {{index}} files"
+```
+
+> **Note:** The `path` property opens the file, executes the command, then automatically closes the tab. Files already open remain open.
 
 **Example: RAG query with ragujuary**
 

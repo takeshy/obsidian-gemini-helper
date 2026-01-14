@@ -76,6 +76,63 @@ Escrever conteudo em um arquivo de nota.
 | `mode` | `overwrite` (padrao), `append`, ou `create` (pular se existir) |
 | `confirm` | `true` (padrao) mostra dialogo de confirmacao, `false` escreve imediatamente |
 
+### note-read
+
+Le conteudo de um arquivo de nota.
+
+```yaml
+- id: read
+  type: note-read
+  path: "notes/config.md"
+  saveTo: content
+```
+
+| Propriedade | Descricao |
+|-------------|-----------|
+| `path` | Caminho do arquivo para ler (obrigatorio) |
+| `saveTo` | Nome da variavel para armazenar o conteudo do arquivo (obrigatorio) |
+
+**Suporte a Arquivos Criptografados:**
+
+Se o arquivo alvo estiver criptografado (via recurso de criptografia do plugin), o workflow automaticamente:
+1. Verifica se a senha ja esta em cache na sessao atual
+2. Se nao estiver em cache, solicita ao usuario que digite a senha
+3. Descriptografa o conteudo do arquivo e armazena na variavel
+4. Armazena a senha em cache para leituras subsequentes (dentro da mesma sessao do Obsidian)
+
+Uma vez que voce digite a senha, nao precisara digita-la novamente para outras leituras de arquivos criptografados ate reiniciar o Obsidian.
+
+**Exemplo: Ler chave API de arquivo criptografado e chamar API externa**
+
+Este workflow le uma chave API armazenada em um arquivo criptografado, chama uma API externa e exibe o resultado:
+
+```yaml
+name: Chamar API com chave criptografada
+nodes:
+  - id: read-key
+    type: note-read
+    path: "secrets/api-key.md"
+    saveTo: apiKey
+    next: call-api
+
+  - id: call-api
+    type: http
+    url: "https://api.example.com/data"
+    method: GET
+    headers: '{"Authorization": "Bearer {{apiKey}}"}'
+    saveTo: response
+    next: show-result
+
+  - id: show-result
+    type: dialog
+    title: Resposta da API
+    message: "{{response}}"
+    markdown: true
+    button1: OK
+```
+
+> **Dica:** Armazene dados sensiveis como chaves API em arquivos criptografados. Use o comando "Criptografar arquivo" da paleta de comandos para criptografar um arquivo contendo seus segredos.
+
 ### note-list
 
 Listar notas com filtragem e ordenacao.
@@ -201,7 +258,17 @@ Exibir um dialogo com opcoes, botoes e/ou entrada de texto.
 | `defaults` | JSON com valores iniciais `input` e `selected` |
 | `button1` | Rotulo do botao primario (padrao: "OK") |
 | `button2` | Rotulo do botao secundario (opcional) |
-| `saveTo` | Variavel para resultado: `{"button": "Confirm", "selected": [...], "input": "..."}` |
+| `saveTo` | Variavel para o resultado (veja abaixo) |
+
+**Formato do resultado** (variavel `saveTo`):
+- `button`: string - texto do botao clicado (ex: "Confirmar", "Cancelar")
+- `selected`: string[] - **sempre um array**, mesmo para selecao unica (ex: `["Opcao A"]`)
+- `input`: string - valor da entrada de texto (se `inputTitle` foi definido)
+
+> **Importante:** Ao verificar o valor selecionado em uma condicao `if`:
+> - Para opcao unica: `{{dialogResult.selected[0]}} == Opcao A`
+> - Para verificar se o array contem valor (multiSelect): `{{dialogResult.selected}} contains Opcao A`
+> - Errado: `{{dialogResult.selected}} == Opcao A` (compara array com string, sempre false)
 
 **Entrada de texto simples:**
 ```yaml
@@ -449,6 +516,10 @@ Ramificacao condicional e loops.
 | `trueNext` | ID do no quando condicao e verdadeira |
 | `falseNext` | ID do no quando condicao e falsa |
 
+**O operador `contains`** funciona tanto com strings quanto com arrays:
+- String: `{{text}} contains error` - verifica se "error" esta na string
+- Array: `{{dialogResult.selected}} contains Opcao A` - verifica se "Opcao A" esta no array
+
 > **Regra de referência retroativa**: A propriedade `next` só pode referenciar nós anteriores se o destino for um nó `while`. Isso evita código espaguete e garante uma estrutura de loop adequada.
 
 ### variable / set
@@ -505,6 +576,7 @@ Executa um comando do Obsidian pelo seu ID. Isso permite que workflows acionem q
 | Propriedade | Descricao |
 |-------------|-----------|
 | `command` | ID do comando a executar (obrigatorio, suporta `{{variables}}`) |
+| `path` | Arquivo a abrir antes de executar o comando (opcional, a aba fecha automaticamente depois) |
 | `saveTo` | Variavel para armazenar o resultado da execucao (opcional) |
 
 **Encontrando IDs de comandos:**
@@ -541,6 +613,44 @@ nodes:
 ```
 
 **Caso de uso:** Acionar comandos principais do Obsidian ou comandos de outros plugins como parte de um workflow.
+
+**Exemplo: Criptografar todos os arquivos em um diretorio**
+
+Este workflow criptografa todos os arquivos Markdown em uma pasta especificada usando o comando de criptografia do Gemini Helper:
+
+```yaml
+name: criptografar-pasta
+nodes:
+  - id: init-index
+    type: variable
+    name: index
+    value: "0"
+  - id: list-files
+    type: note-list
+    folder: "private"
+    recursive: "true"
+    saveTo: fileList
+  - id: loop
+    type: while
+    condition: "{{index}} < {{fileList.count}}"
+    trueNext: encrypt
+    falseNext: done
+  - id: encrypt
+    type: obsidian-command
+    command: "gemini-helper:encrypt-file"
+    path: "{{fileList.notes[index].path}}"
+  - id: increment
+    type: set
+    name: index
+    value: "{{index}} + 1"
+    next: loop
+  - id: done
+    type: dialog
+    title: "Concluido"
+    message: "{{index}} arquivos criptografados"
+```
+
+> **Nota:** A propriedade `path` abre o arquivo, executa o comando e entao fecha automaticamente a aba. Arquivos ja abertos permanecem abertos.
 
 ---
 

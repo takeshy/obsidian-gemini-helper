@@ -424,6 +424,8 @@ export const ja: Record<string, string> = {
   // Commands
   "command.showEditHistory": "編集履歴を表示",
   "command.restorePreviousVersion": "前のバージョンに復元",
+  "command.encryptFile": "現在のファイルを暗号化",
+  "command.decryptFile": "現在のファイルの暗号化を解除",
 
   // Errors
   "error.failedToCreate": "作成に失敗しました: {{error}}",
@@ -461,6 +463,30 @@ export const ja: Record<string, string> = {
   "chat.decrypt": "復号化",
   "chat.decryptFailed": "復号化に失敗しました。パスワードを確認してください。",
   "chat.decrypted": "復号化に成功しました",
+
+  // CryptView - File Encryption
+  "crypt.encryptFile": "ファイルを暗号化",
+  "crypt.notConfigured": "暗号化が設定されていません。設定で暗号化を設定してください。",
+  "crypt.notEncrypted": "ファイルは暗号化されていません",
+  "crypt.alreadyEncrypted": "ファイルは既に暗号化されています",
+  "crypt.encryptSuccess": "ファイルを暗号化しました",
+  "crypt.encryptFailed": "ファイルの暗号化に失敗しました",
+  "crypt.decryptSuccess": "ファイルの暗号化を解除しました",
+  "crypt.decryptFailed": "暗号化の解除に失敗しました",
+  "crypt.wrongPassword": "パスワードが違います。再度入力してください。",
+  "crypt.confirmDecrypt": "暗号化を解除しますか？",
+  "crypt.confirmDecryptDesc": "ファイルの暗号化を解除し、プレーンテキストとして保存します。続行しますか？",
+  "crypt.removeEncryption": "暗号化を解除",
+  "crypt.enterPassword": "パスワードを入力",
+  "crypt.enterPasswordDesc": "この暗号化されたファイルを閲覧するにはパスワードを入力してください",
+  "crypt.passwordPlaceholder": "パスワード",
+  "crypt.decrypting": "復号化中...",
+  "crypt.unlock": "ロック解除",
+  "crypt.unsavedChanges": "未保存の変更があります",
+  "crypt.edit": "編集",
+  "crypt.preview": "プレビュー",
+  "crypt.save": "保存",
+  "crypt.editorPlaceholder": "内容を入力...",
 
   // Workflow Modals
   "workflowModal.enterValue": "値を入力",
@@ -517,6 +543,7 @@ export const ja: Record<string, string> = {
   "workflowModal.output": "出力:",
   "workflowModal.error": "エラー: {{error}}",
   "workflowModal.openCanvasView": "キャンバスビューを開く",
+  "workflowModal.canvasNeedsDecrypt": "暗号化履歴を表示するにはパスワードを入力してください",
   "workflowModal.empty": "（空）",
   "workflowModal.circularReference": "（循環参照）",
 };

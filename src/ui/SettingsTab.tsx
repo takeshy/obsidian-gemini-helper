@@ -1789,7 +1789,7 @@ export class SettingsTab extends PluginSettingTab {
     for (const file of chatFiles) {
       if (file instanceof TFile) {
         try {
-          await this.app.vault.delete(file);
+          await this.app.fileManager.trashFile(file);
           deletedCount++;
         } catch {
           // Ignore errors for individual files

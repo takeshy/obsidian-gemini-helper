@@ -756,29 +756,27 @@ ${result.nodes.map(node => {
       return;
     }
 
+    // Build encryption config from settings
+    const encryptionConfig = plugin.settings.encryption?.enabled
+      ? {
+          enabled: plugin.settings.encryption.enabled,
+          publicKey: plugin.settings.encryption.publicKey,
+          encryptedPrivateKey: plugin.settings.encryption.encryptedPrivateKey,
+          salt: plugin.settings.encryption.salt,
+        }
+      : undefined;
+
     const modal = new HistoryModal(
       plugin.app,
       workflowFile.path,
-      plugin.settings.workspaceFolder
+      plugin.settings.workspaceFolder,
+      encryptionConfig
     );
     modal.open();
   };
 
-  if (!workflowFile) {
-    return (
-      <div className="workflow-sidebar">
-        <div className="workflow-sidebar-content">
-          <div className="workflow-empty-state">
-            {t("workflow.openMarkdownFile")}
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // Workflowコードブロックがない場合はAI新規作成ボタンだけ表示
-  if (workflowOptions.length === 0) {
-    const handleCreateWithAI = async () => {
+  // AI新規作成ハンドラー（ファイルの有無に関わらず使用）
+  const handleCreateWithAI = async () => {
       const result = await promptForAIWorkflow(plugin.app, plugin, "create");
 
       if (result && result.outputPath) {
@@ -846,8 +844,31 @@ ${result.nodes.map(node => {
 
         await plugin.app.workspace.getLeaf().openFile(targetFile);
       }
-    };
+  };
 
+  // ファイルが選択されていない場合
+  if (!workflowFile) {
+    return (
+      <div className="workflow-sidebar">
+        <div className="workflow-sidebar-content">
+          <div className="workflow-empty-state">
+            <p>{t("workflow.openMarkdownFile")}</p>
+            <button
+              className="workflow-sidebar-ai-btn mod-cta"
+              onClick={() => void handleCreateWithAI()}
+              style={{ marginTop: "12px", display: "inline-flex", alignItems: "center" }}
+            >
+              <Sparkles size={14} />
+              <span style={{ marginLeft: "6px" }}>{t("workflow.createWithAI")}</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Workflowコードブロックがない場合
+  if (workflowOptions.length === 0) {
     return (
       <div className="workflow-sidebar">
         <div className="workflow-sidebar-content">

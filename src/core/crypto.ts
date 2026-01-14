@@ -52,7 +52,7 @@ async function deriveKeyFromPassword(password: string, salt: Uint8Array): Promis
   return crypto.subtle.deriveKey(
     {
       name: "PBKDF2",
-      salt,
+      salt: salt.buffer as ArrayBuffer,
       iterations: 100000,
       hash: "SHA-256",
     },
@@ -234,23 +234,57 @@ export async function verifyPassword(
   }
 }
 
-// Check if content is encrypted (starts with encryption marker)
-export function isEncryptedContent(content: string): boolean {
-  return content.startsWith("---ENCRYPTED---\n");
+// Check if file content is encrypted using YAML frontmatter
+export function isEncryptedFile(content: string): boolean {
+  const frontmatter = content.match(/^---\n([\s\S]*?)\n---/);
+  if (!frontmatter) return false;
+  return /encrypted:\s*true/.test(frontmatter[1]);
 }
 
-// Wrap encrypted data with marker
-export function wrapEncryptedContent(encryptedData: string): string {
-  return `---ENCRYPTED---\n${encryptedData}\n---END ENCRYPTED---`;
+// Wrap encrypted data with YAML frontmatter format
+export function wrapEncryptedFile(data: string, key: string, salt: string): string {
+  return `---\nencrypted: true\nkey: ${key}\nsalt: ${salt}\n---\n${data}`;
 }
 
-// Unwrap encrypted content
-export function unwrapEncryptedContent(content: string): string | null {
-  if (!isEncryptedContent(content)) {
-    return null;
+// Extract encryption info from YAML frontmatter format
+export function unwrapEncryptedFile(content: string): { data: string; key: string; salt: string } | null {
+  const frontmatter = content.match(/^---\n([\s\S]*?)\n---\n([\s\S]*)$/);
+  if (!frontmatter) return null;
+
+  const keyMatch = frontmatter[1].match(/key:\s*(.+)/);
+  const saltMatch = frontmatter[1].match(/salt:\s*(.+)/);
+  if (!keyMatch || !saltMatch) return null;
+
+  return {
+    key: keyMatch[1].trim(),
+    salt: saltMatch[1].trim(),
+    data: frontmatter[2].trim()
+  };
+}
+
+// Encrypt file content and wrap with YAML frontmatter
+export async function encryptFileContent(
+  content: string,
+  publicKey: string,
+  encryptedPrivateKey: string,
+  salt: string
+): Promise<string> {
+  const encryptedData = await encryptData(content, publicKey);
+  return wrapEncryptedFile(encryptedData, encryptedPrivateKey, salt);
+}
+
+// Decrypt file content from YAML frontmatter format
+export async function decryptFileContent(
+  fileContent: string,
+  password: string
+): Promise<string> {
+  const encrypted = unwrapEncryptedFile(fileContent);
+  if (!encrypted) {
+    throw new Error("Invalid encrypted file format");
   }
-  const match = content.match(/^---ENCRYPTED---\n([\s\S]+?)\n---END ENCRYPTED---/);
-  return match ? match[1] : null;
+
+  const privateKey = await decryptPrivateKey(encrypted.key, encrypted.salt, password);
+  return decryptData(encrypted.data, privateKey);
 }
 
 // Utility functions

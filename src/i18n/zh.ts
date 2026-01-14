@@ -440,6 +440,7 @@ export const zh: Record<string, string> = {
   "workflowModal.output": "输出：",
   "workflowModal.error": "错误：{{error}}",
   "workflowModal.openCanvasView": "打开画布视图",
+  "workflowModal.canvasNeedsDecrypt": "输入密码以查看加密历史记录",
   "workflowModal.empty": "（空）",
   "workflowModal.circularReference": "（循环引用）",
 };

@@ -440,6 +440,7 @@ export const fr: Record<string, string> = {
   "workflowModal.output": "Sortie :",
   "workflowModal.error": "Erreur : {{error}}",
   "workflowModal.openCanvasView": "Ouvrir la vue canvas",
+  "workflowModal.canvasNeedsDecrypt": "Entrez le mot de passe pour voir l'historique chiffré",
   "workflowModal.empty": "(vide)",
   "workflowModal.circularReference": "(référence circulaire)",
 };

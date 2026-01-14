@@ -1,4 +1,4 @@
-import { App, Modal, Notice, Platform, parseYaml } from "obsidian";
+import { App, Modal, Notice, Platform, parseYaml, TFile } from "obsidian";
 import type { GeminiHelperPlugin } from "src/plugin";
 import { GeminiCliProvider, ClaudeCliProvider, CodexCliProvider } from "src/core/cliProvider";
 import { GeminiClient } from "src/core/gemini";
@@ -646,9 +646,9 @@ Output only the complete modified YAML, starting with "name:".`;
       } else {
         // It's a file path - try to read the file
         const file = this.app.vault.getAbstractFileByPath(mention);
-        if (file && "extension" in file) {
+        if (file instanceof TFile) {
           try {
-            const rawContent = await this.app.vault.read(file as import("obsidian").TFile);
+            const rawContent = await this.app.vault.read(file);
             content = this.stripFrontmatter(rawContent);
             replacement = `[Content of ${mention}]\n${content}\n[/Content]`;
           } catch {

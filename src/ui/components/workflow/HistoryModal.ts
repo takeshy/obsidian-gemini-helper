@@ -1,21 +1,25 @@
 import { App, Modal } from "obsidian";
 import { ExecutionRecord } from "src/workflow/types";
-import { ExecutionHistoryManager, formatDuration } from "src/workflow/history";
+import { ExecutionHistoryManager, formatDuration, EncryptionConfig } from "src/workflow/history";
 import { openHistoryCanvas } from "src/workflow/historyCanvas";
+import { cryptoCache } from "src/core/cryptoCache";
 import { t } from "src/i18n";
 
 export class HistoryModal extends Modal {
   private workflowPath: string;
   private workspaceFolder: string;
+  private encryptionConfig: EncryptionConfig | undefined;
   private records: ExecutionRecord[] = [];
   private selectedRecord: ExecutionRecord | null = null;
+  private selectedRecordEncrypted: boolean = false;
   private listEl: HTMLElement | null = null;
   private detailEl: HTMLElement | null = null;
 
-  constructor(app: App, workflowPath: string, workspaceFolder: string) {
+  constructor(app: App, workflowPath: string, workspaceFolder: string, encryptionConfig?: EncryptionConfig) {
     super(app);
     this.workflowPath = workflowPath;
     this.workspaceFolder = workspaceFolder;
+    this.encryptionConfig = encryptionConfig;
   }
 
   async onOpen(): Promise<void> {
@@ -47,8 +51,12 @@ export class HistoryModal extends Modal {
   }
 
   private async loadHistory(): Promise<void> {
-    const historyManager = new ExecutionHistoryManager(this.app, this.workspaceFolder);
+    const historyManager = new ExecutionHistoryManager(this.app, this.workspaceFolder, this.encryptionConfig);
     this.records = await historyManager.loadRecords(this.workflowPath);
+  }
+
+  private getHistoryManager(): ExecutionHistoryManager {
+    return new ExecutionHistoryManager(this.app, this.workspaceFolder, this.encryptionConfig);
   }
 
   private renderList(): void {
@@ -83,8 +91,13 @@ export class HistoryModal extends Modal {
 
       item.addEventListener("click", () => {
         this.selectedRecord = record;
-        this.renderList();
-        this.renderDetail();
+        // Check if this record is encrypted
+        void (async () => {
+          const historyManager = this.getHistoryManager();
+          this.selectedRecordEncrypted = await historyManager.isRecordEncrypted(record.id);
+          this.renderList();
+          this.renderDetail();
+        })();
       });
     }
   }
@@ -133,14 +146,14 @@ export class HistoryModal extends Modal {
       if (step.input !== undefined) {
         const inputSection = stepEl.createDiv({ cls: "workflow-step-section" });
         inputSection.createEl("strong", { text: t("workflowModal.input") });
-        const inputPre = inputSection.createEl("pre");
+        const inputPre = inputSection.createEl("pre", { cls: "workflow-step-pre-scrollable" });
         inputPre.textContent = this.formatValue(step.input);
       }
 
       if (step.output !== undefined) {
         const outputSection = stepEl.createDiv({ cls: "workflow-step-section" });
         outputSection.createEl("strong", { text: t("workflowModal.output") });
-        const outputPre = outputSection.createEl("pre");
+        const outputPre = outputSection.createEl("pre", { cls: "workflow-step-pre-scrollable" });
         outputPre.textContent = this.formatValue(step.output);
       }
 
@@ -153,8 +166,18 @@ export class HistoryModal extends Modal {
     // Actions
     const actions = this.detailEl.createDiv({ cls: "workflow-detail-actions" });
 
+    // Canvas button - disabled if record is encrypted and not decrypted
+    const canDecrypt = cryptoCache.hasPassword();
+    const canOpenCanvas = !this.selectedRecordEncrypted || canDecrypt;
+
     const canvasBtn = actions.createEl("button", { text: t("workflowModal.openCanvasView") });
+    if (!canOpenCanvas) {
+      canvasBtn.addClass("workflow-btn-disabled");
+      canvasBtn.setAttribute("disabled", "true");
+      canvasBtn.setAttribute("title", t("workflowModal.canvasNeedsDecrypt"));
+    }
     canvasBtn.addEventListener("click", () => {
+      if (!canOpenCanvas) return;
       void (async () => {
         await openHistoryCanvas(this.app, record, this.workspaceFolder);
         this.close();
@@ -167,10 +190,11 @@ export class HistoryModal extends Modal {
     });
     deleteBtn.addEventListener("click", () => {
       void (async () => {
-        const historyManager = new ExecutionHistoryManager(this.app, this.workspaceFolder);
+        const historyManager = this.getHistoryManager();
         await historyManager.deleteRecord(record.id);
         this.records = this.records.filter((r) => r.id !== record.id);
         this.selectedRecord = null;
+        this.selectedRecordEncrypted = false;
         this.renderList();
         this.renderDetail();
       })();
@@ -182,14 +206,13 @@ export class HistoryModal extends Modal {
       return t("workflowModal.empty");
     }
     if (typeof value === "string") {
-      return value.length > 500 ? value.substring(0, 500) + "..." : value;
+      return value;
     }
     if (typeof value === "number" || typeof value === "boolean") {
       return String(value);
     }
     try {
-      const str = JSON.stringify(value, null, 2);
-      return str.length > 500 ? str.substring(0, 500) + "..." : str;
+      return JSON.stringify(value, null, 2);
     } catch {
       return t("workflowModal.circularReference");
     }

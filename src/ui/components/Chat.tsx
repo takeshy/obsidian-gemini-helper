@@ -56,13 +56,11 @@ import InputArea, { type InputAreaHandle } from "./InputArea";
 import { EditHistoryModal } from "./EditHistoryModal";
 import { getEditHistoryManager } from "src/core/editHistory";
 import {
-	encryptData,
-	decryptData,
-	decryptPrivateKey,
-	isEncryptedContent,
-	wrapEncryptedContent,
-	unwrapEncryptedContent,
+	isEncryptedFile,
+	encryptFileContent,
+	decryptFileContent,
 } from "src/core/crypto";
+import { cryptoCache } from "src/core/cryptoCache";
 import { t } from "src/i18n";
 
 const PAID_RATE_LIMIT_RETRY_DELAYS_MS = [10000, 30000, 60000];
@@ -259,10 +257,15 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 
 		// Encrypt if encryption is enabled
 		const encryption = plugin.settings.encryption;
-		if (encryption?.enabled && encryption.publicKey) {
+		if (encryption?.enabled && encryption.publicKey && encryption.encryptedPrivateKey && encryption.salt) {
 			try {
-				const encryptedData = await encryptData(md, encryption.publicKey);
-				return wrapEncryptedContent(encryptedData);
+				// Use the new YAML frontmatter format which stores keys in the file itself
+				return await encryptFileContent(
+					md,
+					encryption.publicKey,
+					encryption.encryptedPrivateKey,
+					encryption.salt
+				);
 			} catch (error) {
 				console.error("Failed to encrypt chat:", error);
 				// Fall back to unencrypted
@@ -275,8 +278,8 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 	// Parse Markdown back to messages
 	const parseMarkdownToMessages = (content: string): { messages: Message[]; createdAt: number; cliSession?: CliSessionInfo; isEncrypted?: boolean } | null => {
 		try {
-			// Check if content is encrypted
-			if (isEncryptedContent(content)) {
+			// Check if content is encrypted (YAML frontmatter format)
+			if (isEncryptedFile(content)) {
 				// Return minimal info for encrypted content
 				return { messages: [], createdAt: Date.now(), isEncrypted: true };
 			}
@@ -364,7 +367,12 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 				return;
 			}
 
-			const files = plugin.app.vault.getMarkdownFiles().filter(f => f.path.startsWith(folder + "/"));
+			const files = plugin.app.vault.getMarkdownFiles().filter(f => {
+				// Only include files directly in the folder (not in subdirectories)
+				if (!f.path.startsWith(folder + "/")) return false;
+				const relativePath = f.path.slice(folder.length + 1);
+				return !relativePath.includes("/");
+			});
 			const histories: ChatHistory[] = [];
 
 			for (const file of files) {
@@ -372,8 +380,8 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 					const content = await plugin.app.vault.read(file);
 					const frontmatterMatch = content.match(/^---\n([\s\S]*?)\n---/);
 
-					// Check if content is encrypted
-					if (isEncryptedContent(content)) {
+					// Check if content is encrypted (YAML frontmatter format)
+					if (isEncryptedFile(content)) {
 						const chatId = file.basename;
 						histories.push({
 							id: chatId,
@@ -857,25 +865,16 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 			}
 
 			const content = await plugin.app.vault.read(file);
-			const encryptedData = unwrapEncryptedContent(content);
-			if (!encryptedData) {
+
+			// Decrypt using YAML frontmatter format
+			if (!isEncryptedFile(content)) {
 				throw new Error("Invalid encrypted content");
 			}
 
-			const encryption = plugin.settings.encryption;
-			if (!encryption?.encryptedPrivateKey || !encryption?.salt) {
-				throw new Error("Encryption keys not found");
-			}
+			const decryptedContent = await decryptFileContent(content, password);
 
-			// Decrypt private key with password
-			const privateKey = await decryptPrivateKey(
-				encryption.encryptedPrivateKey,
-				encryption.salt,
-				password
-			);
-
-			// Decrypt chat content
-			const decryptedContent = await decryptData(encryptedData, privateKey);
+			// Cache the password for future decryptions in this session
+			cryptoCache.setPassword(password);
 
 			// Parse decrypted content
 			const parsed = parseMarkdownToMessages(decryptedContent);
@@ -899,6 +898,12 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 	// Load a chat from history
 	const loadChat = (history: ChatHistory) => {
 		if (history.isEncrypted) {
+			// If password is cached, try to decrypt automatically
+			const cachedPassword = cryptoCache.getPassword();
+			if (cachedPassword) {
+				void decryptAndLoadChat(history.id, cachedPassword);
+				return;
+			}
 			// Show decryption UI
 			setDecryptingChatId(history.id);
 			setDecryptPassword("");

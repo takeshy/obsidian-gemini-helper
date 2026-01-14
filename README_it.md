@@ -12,6 +12,7 @@ Assistente AI **gratuito e open-source** per Obsidian con **Chat**, **Automazion
 - **RAG** - Retrieval-Augmented Generation per ricerca intelligente nel tuo vault
 - **Ricerca Web** - Accedi a informazioni aggiornate tramite Google Search
 - **Generazione di Immagini** - Crea immagini con i modelli Gemini
+- **Crittografia** - Proteggi con password la cronologia chat e i log di esecuzione dei workflow
 
 ![Generazione di immagini nella chat](chat_image.png)
 
@@ -389,6 +390,41 @@ npm run build
 
 ![Limiti Strumenti e Cronologia Modifiche](setting_tool_history.png)
 
+### Crittografia
+
+Proteggi la cronologia chat e i log di esecuzione dei workflow con password.
+
+> **Richiesto:** Devi prima impostare una password nelle impostazioni del plugin per abilitare la crittografia.
+
+![Impostazioni Crittografia](setting_encryption.png)
+
+**Configurazione:**
+1. Abilitare la crittografia nelle impostazioni del plugin
+2. Impostare una password (memorizzata in modo sicuro usando crittografia a chiave pubblica)
+3. Tutti i nuovi file chat e cronologie workflow saranno crittografati
+
+**Funzionalità:**
+- **Crittografia automatica** - I nuovi chat e log workflow vengono crittografati al salvataggio
+- **Cache password** - Inserisci la password una volta per sessione
+- **Visualizzatore dedicato** - I file crittografati si aprono in un editor sicuro con anteprima
+- **Opzione decrittografia** - Rimuovi la crittografia da singoli file quando necessario
+
+**Come funziona:**
+- Usa RSA-OAEP per la crittografia delle chiavi e AES-GCM per la crittografia del contenuto
+- La password genera una coppia di chiavi; la chiave privata è crittografata con la tua password
+- Ogni file è crittografato con una chiave AES unica, avvolta con la chiave pubblica
+
+> **Avvertenza:** Se dimentichi la password, i file crittografati non possono essere recuperati. Conserva la password in modo sicuro.
+
+> **Suggerimento:** Per crittografare tutti i file in una directory contemporaneamente, usa un workflow. Vedi l'esempio "Crittografa tutti i file in una directory" in [WORKFLOW_NODES_it.md](WORKFLOW_NODES_it.md#obsidian-command).
+
+![Flusso di Crittografia File](enc.png)
+
+**Vantaggi di sicurezza:**
+- **Protetto dalla chat AI** - I file crittografati non possono essere letti dalle operazioni AI sul vault (strumento `read_note`). Questo mantiene i dati sensibili come le chiavi API al sicuro da esposizione accidentale durante la chat.
+- **Accesso workflow con password** - I workflow possono leggere file crittografati usando il nodo `note-read`. Quando si accede, appare una finestra di dialogo per la password, e la password viene memorizzata nella cache per la sessione.
+- **Archivia i segreti in sicurezza** - Invece di scrivere le chiavi API direttamente nei workflow, archiviale in file crittografati. Il workflow legge la chiave in fase di esecuzione dopo la verifica della password.
+
 ### Comandi Slash
 - Definisci template di prompt personalizzati attivati con `/`
 - Override opzionale di modello e ricerca per comando
@@ -429,7 +465,9 @@ npm run build
 
 Questo è particolarmente utile per comprendere workflow complessi con più ramificazioni e loop.
 
-**Esporta Cronologia Esecuzione:** Visualizza la cronologia di esecuzione come Canvas Obsidian per analisi visuale.
+**Esporta cronologia esecuzione:** Visualizza la cronologia di esecuzione come Canvas Obsidian per analisi visiva. Clicca su **Open Canvas view** nel modal Cronologia per creare un file Canvas.
+
+> **Nota:** I file Canvas vengono creati dinamicamente nella cartella workspace. Eliminali manualmente dopo la revisione se non sono più necessari.
 
 ![Vista Cronologia Canvas](history_canvas.png)
 
@@ -442,6 +480,12 @@ Questo è particolarmente utile per comprendere workflow complessi con più rami
 4. Seleziona un modello e clicca **Generate**
 5. Il workflow viene automaticamente creato e salvato
 
+> **Suggerimento:** Quando usi **+ New (AI)** dal menu a tendina su un file che ha già workflow, il percorso di output viene impostato sul file corrente per default. Il workflow generato verrà aggiunto a quel file.
+
+**Crea workflow da qualsiasi file:**
+
+Quando apri la scheda Workflow con un file che non ha un blocco di codice workflow, viene mostrato un pulsante **"Create workflow with AI"**. Cliccalo per generare un nuovo workflow (output predefinito: `workflows/{{name}}.md`).
+
 **Riferimenti File con @:**
 
 Digita `@` nel campo descrizione per riferire file:
@@ -452,6 +496,14 @@ Digita `@` nel campo descrizione per riferire file:
 Quando clicchi Generate, il contenuto del file viene incorporato direttamente nella richiesta AI. Il frontmatter YAML viene automaticamente rimosso.
 
 > **Suggerimento:** Questo è utile per creare workflow basati su esempi o template di workflow esistenti nel tuo vault.
+
+**Allegati File:**
+
+Clicca il pulsante allegati per allegare file (immagini, PDF, file di testo) alla tua richiesta di generazione workflow. Questo è utile per fornire contesto visivo o esempi all'AI.
+
+**Controlli del Modal:**
+
+Il modal del workflow AI supporta il posizionamento drag-and-drop e il ridimensionamento dagli angoli per una migliore esperienza di modifica.
 
 **Cronologia Richieste:**
 
@@ -488,10 +540,11 @@ Modifica i workflow direttamente nell'editor visuale dei nodi con interfaccia dr
 
 ## Privacy
 
-**Dati archiviati localmente:**
-- Chiave API (archiviata nelle impostazioni di Obsidian)
-- Cronologia chat (come file Markdown)
-- Cronologia esecuzione workflow
+**Dati memorizzati localmente:**
+- Chiave API (memorizzata nelle impostazioni Obsidian)
+- Cronologia chat (come file Markdown, opzionalmente crittografati)
+- Cronologia esecuzione workflow (opzionalmente crittografata)
+- Chiavi di crittografia (chiave privata crittografata con la tua password)
 
 **Dati inviati a Google:**
 - Tutti i messaggi della chat e gli allegati vengono inviati all'API Google Gemini per l'elaborazione

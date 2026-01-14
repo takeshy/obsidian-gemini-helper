@@ -183,4 +183,5 @@ export interface PromptCallbacks {
     workflowName: string | undefined,
     inputVariables: Map<string, string | number>
   ) => Promise<Map<string, string | number>>;
+  promptForPassword?: () => Promise<string | null>;
 }

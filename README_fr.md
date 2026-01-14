@@ -12,6 +12,7 @@ Assistant IA **gratuit et open-source** pour Obsidian avec **Chat**, **Automatis
 - **RAG** - Génération Augmentée par Récupération pour une recherche intelligente dans votre coffre
 - **Recherche Web** - Accédez à des informations actualisées via Google Search
 - **Génération d'Images** - Créez des images avec les modèles d'images Gemini
+- **Chiffrement** - Protection par mot de passe de l'historique de chat et des journaux d'exécution des workflows
 
 ![Génération d'images dans le chat](chat_image.png)
 
@@ -389,6 +390,41 @@ npm run build
 
 ![Limite d'Outils & Historique d'Édition](setting_tool_history.png)
 
+### Chiffrement
+
+Protégez votre historique de chat et vos journaux d'exécution de workflows par mot de passe.
+
+> **Requis :** Vous devez d'abord définir un mot de passe dans les paramètres du plugin pour activer le chiffrement.
+
+![Paramètres de chiffrement](setting_encryption.png)
+
+**Configuration :**
+1. Activer le chiffrement dans les paramètres du plugin
+2. Définir un mot de passe (stocké de manière sécurisée via cryptographie à clé publique)
+3. Tous les nouveaux fichiers de chat et historiques de workflow seront chiffrés
+
+**Fonctionnalités :**
+- **Chiffrement automatique** - Les nouveaux chats et journaux de workflow sont chiffrés lors de la sauvegarde
+- **Mise en cache du mot de passe** - Entrez le mot de passe une fois par session
+- **Visualiseur dédié** - Les fichiers chiffrés s'ouvrent dans un éditeur sécurisé avec aperçu
+- **Option de déchiffrement** - Supprimez le chiffrement de fichiers individuels si nécessaire
+
+**Fonctionnement :**
+- Utilise RSA-OAEP pour le chiffrement des clés et AES-GCM pour le chiffrement du contenu
+- Le mot de passe génère une paire de clés ; la clé privée est chiffrée avec votre mot de passe
+- Chaque fichier est chiffré avec une clé AES unique, enveloppée avec la clé publique
+
+> **Avertissement :** Si vous oubliez votre mot de passe, les fichiers chiffrés ne peuvent pas être récupérés. Conservez votre mot de passe en lieu sûr.
+
+> **Astuce :** Pour chiffrer tous les fichiers d'un répertoire en une fois, utilisez un workflow. Voir l'exemple "Chiffrer tous les fichiers d'un répertoire" dans [WORKFLOW_NODES_fr.md](WORKFLOW_NODES_fr.md#obsidian-command).
+
+![Processus de chiffrement des fichiers](enc.png)
+
+**Avantages de sécurité :**
+- **Protégé du chat IA** - Les fichiers chiffrés ne peuvent pas être lus par les opérations de coffre de l'IA (outil `read_note`). Cela protège les données sensibles comme les clés API d'une exposition accidentelle pendant le chat.
+- **Accès workflow avec mot de passe** - Les workflows peuvent lire les fichiers chiffrés en utilisant le nœud `note-read`. À l'accès, une boîte de dialogue de mot de passe apparaît, et le mot de passe est mis en cache pour la session.
+- **Stockez les secrets en sécurité** - Au lieu d'écrire les clés API directement dans les workflows, stockez-les dans des fichiers chiffrés. Le workflow lit la clé à l'exécution après vérification du mot de passe.
+
 ### Commandes Slash
 - Définir des modèles de prompts personnalisés déclenchés par `/`
 - Modèle et recherche optionnels par commande
@@ -429,7 +465,9 @@ npm run build
 
 C'est particulièrement utile pour comprendre les workflows complexes avec plusieurs branches et boucles.
 
-**Exporter l'Historique d'Exécution :** Visualisez l'historique d'exécution sous forme de Canvas Obsidian pour une analyse visuelle.
+**Exporter l'historique d'exécution :** Visualisez l'historique d'exécution sous forme de Canvas Obsidian pour une analyse visuelle. Cliquez sur **Open Canvas view** dans le modal Historique pour créer un fichier Canvas.
+
+> **Remarque :** Les fichiers Canvas sont créés dynamiquement dans le dossier workspace. Supprimez-les manuellement après examen s'ils ne sont plus nécessaires.
 
 ![Vue Canvas de l'Historique](history_canvas.png)
 
@@ -442,6 +480,12 @@ C'est particulièrement utile pour comprendre les workflows complexes avec plusi
 4. Sélectionnez un modèle et cliquez sur **Générer**
 5. Le workflow est automatiquement créé et sauvegardé
 
+> **Astuce :** Lors de l'utilisation de **+ Nouveau (IA)** depuis le menu déroulant sur un fichier qui contient déjà des workflows, le chemin de sortie est défini par défaut sur le fichier actuel. Le workflow généré sera ajouté à ce fichier.
+
+**Créer un workflow depuis n'importe quel fichier :**
+
+Lors de l'ouverture de l'onglet Workflow avec un fichier qui n'a pas de bloc de code workflow, un bouton **« Create workflow with AI »** est affiché. Cliquez dessus pour générer un nouveau workflow (sortie par défaut : `workflows/{{name}}.md`).
+
 **Références de Fichiers avec @ :**
 
 Tapez `@` dans le champ de description pour référencer des fichiers :
@@ -452,6 +496,14 @@ Tapez `@` dans le champ de description pour référencer des fichiers :
 Lorsque vous cliquez sur Générer, le contenu du fichier est intégré directement dans la requête IA. Le frontmatter YAML est automatiquement supprimé.
 
 > **Conseil :** Ceci est utile pour créer des workflows basés sur des exemples ou modèles de workflow existants dans votre vault.
+
+**Pièces Jointes :**
+
+Cliquez sur le bouton de pièce jointe pour joindre des fichiers (images, PDFs, fichiers texte) à votre demande de génération de workflow. Ceci est utile pour fournir un contexte visuel ou des exemples à l'IA.
+
+**Contrôles du Modal :**
+
+Le modal de workflow IA supporte le positionnement par glisser-déposer et le redimensionnement depuis les coins pour une meilleure expérience d'édition.
 
 **Historique des Requêtes :**
 
@@ -490,8 +542,9 @@ Chaque workflow généré par IA enregistre une entrée d'historique au-dessus d
 
 **Données stockées localement :**
 - Clé API (stockée dans les paramètres Obsidian)
-- Historique des chats (en fichiers Markdown)
-- Historique d'exécution des workflows
+- Historique des chats (fichiers Markdown, optionnellement chiffrés)
+- Historique d'exécution des workflows (optionnellement chiffré)
+- Clés de chiffrement (clé privée chiffrée avec votre mot de passe)
 
 **Données envoyées à Google :**
 - Tous les messages de chat et pièces jointes sont envoyés à l'API Google Gemini pour traitement

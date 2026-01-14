@@ -76,6 +76,63 @@
 | `mode` | `overwrite`（默认）、`append` 或 `create`（如果存在则跳过） |
 | `confirm` | `true`（默认）显示确认对话框，`false` 立即写入 |
 
+### note-read
+
+从笔记文件读取内容。
+
+```yaml
+- id: read
+  type: note-read
+  path: "notes/config.md"
+  saveTo: content
+```
+
+| 属性 | 描述 |
+|----------|-------------|
+| `path` | 要读取的文件路径（必填） |
+| `saveTo` | 用于存储文件内容的变量名（必填） |
+
+**加密文件支持：**
+
+如果目标文件已加密（通过插件的加密功能），工作流将自动：
+1. 检查当前会话中是否已缓存密码
+2. 如果未缓存，提示用户输入密码
+3. 解密文件内容并存储到变量中
+4. 缓存密码用于后续读取（在同一 Obsidian 会话内）
+
+输入一次密码后，在重启 Obsidian 之前，您无需再次输入密码即可读取其他加密文件。
+
+**示例：从加密文件读取 API 密钥并调用外部 API**
+
+此工作流从加密文件中读取 API 密钥，调用外部 API，并显示结果：
+
+```yaml
+name: 使用加密密钥调用 API
+nodes:
+  - id: read-key
+    type: note-read
+    path: "secrets/api-key.md"
+    saveTo: apiKey
+    next: call-api
+
+  - id: call-api
+    type: http
+    url: "https://api.example.com/data"
+    method: GET
+    headers: '{"Authorization": "Bearer {{apiKey}}"}'
+    saveTo: response
+    next: show-result
+
+  - id: show-result
+    type: dialog
+    title: API 响应
+    message: "{{response}}"
+    markdown: true
+    button1: OK
+```
+
+> **提示：** 将 API 密钥等敏感数据存储在加密文件中。使用命令面板中的「加密文件」命令来加密包含敏感信息的文件。
+
 ### note-list
 
 列出笔记，支持筛选和排序。
@@ -201,7 +258,17 @@
 | `defaults` | 包含 `input` 和 `selected` 初始值的 JSON |
 | `button1` | 主按钮标签（默认："OK"） |
 | `button2` | 次按钮标签（可选） |
-| `saveTo` | 用于存储结果的变量：`{"button": "Confirm", "selected": [...], "input": "..."}` |
+| `saveTo` | 用于存储结果的变量（见下文） |
+
+**结果格式**（`saveTo` 变量）：
+- `button`：string - 点击的按钮文本（例如："确认"、"取消"）
+- `selected`：string[] - **始终是数组**，即使是单选（例如：`["选项 A"]`）
+- `input`：string - 文本输入值（如果设置了 `inputTitle`）
+
+> **重要：** 在 `if` 条件中检查选中值时：
+> - 对于单个选项：`{{dialogResult.selected[0]}} == 选项 A`
+> - 检查数组是否包含值（multiSelect）：`{{dialogResult.selected}} contains 选项 A`
+> - 错误：`{{dialogResult.selected}} == 选项 A`（将数组与字符串比较，始终为 false）
 
 **简单文本输入：**
 ```yaml
@@ -449,6 +516,10 @@
 | `trueNext` | 条件为真时的节点 ID |
 | `falseNext` | 条件为假时的节点 ID |
 
+**`contains` 运算符**适用于字符串和数组：
+- 字符串：`{{text}} contains error` - 检查 "error" 是否在字符串中
+- 数组：`{{dialogResult.selected}} contains 选项 A` - 检查 "选项 A" 是否在数组中
+
 > **反向引用规则**：`next` 属性只能在目标是 `while` 节点时引用之前的节点。这可以防止意大利面条式代码，确保正确的循环结构。
 
 ### variable / set
@@ -505,6 +576,7 @@
 | 属性 | 描述 |
 |----------|-------------|
 | `command` | 要执行的命令 ID（必填，支持 `{{variables}}`） |
+| `path` | 执行命令前打开的文件（可选，执行后标签页自动关闭） |
 | `saveTo` | 用于存储执行结果的变量（可选） |
 
 **查找命令 ID：**
@@ -541,6 +613,44 @@ nodes:
 ```
 
 **用例：** 在工作流中触发 Obsidian 核心命令或其他插件的命令。
+
+**示例：加密目录中的所有文件**
+
+此工作流使用 Gemini Helper 的加密命令加密指定文件夹中的所有 Markdown 文件：
+
+```yaml
+name: 加密文件夹
+nodes:
+  - id: init-index
+    type: variable
+    name: index
+    value: "0"
+  - id: list-files
+    type: note-list
+    folder: "private"
+    recursive: "true"
+    saveTo: fileList
+  - id: loop
+    type: while
+    condition: "{{index}} < {{fileList.count}}"
+    trueNext: encrypt
+    falseNext: done
+  - id: encrypt
+    type: obsidian-command
+    command: "gemini-helper:encrypt-file"
+    path: "{{fileList.notes[index].path}}"
+  - id: increment
+    type: set
+    name: index
+    value: "{{index}} + 1"
+    next: loop
+  - id: done
+    type: dialog
+    title: "完成"
+    message: "已加密 {{index}} 个文件"
+```
+
+> **注意：** `path` 属性会打开文件、执行命令，然后自动关闭标签页。已打开的文件将保持打开状态。
 
 ---
 

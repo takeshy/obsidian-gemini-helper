@@ -440,6 +440,8 @@ export const de: Record<string, string> = {
   "workflowModal.output": "Ausgabe:",
   "workflowModal.error": "Fehler: {{error}}",
   "workflowModal.openCanvasView": "Canvas-Ansicht öffnen",
+  "workflowModal.canvasNeedsDecrypt": "Passwort eingeben, um verschlüsselten Verlauf anzuzeigen",
+  "workflowModal.encryptedHistoryNeedsPassword": "Ausführungsverlauf ist verschlüsselt. Geben Sie Ihr Passwort ein, um ihn anzuzeigen.",
   "workflowModal.empty": "(leer)",
   "workflowModal.circularReference": "(Zirkelverweis)",
 };

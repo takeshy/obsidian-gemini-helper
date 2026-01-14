@@ -182,7 +182,15 @@ Show dialog with options and optional text input. This node can replace prompt-v
 - **defaults** (optional): JSON for initial values, e.g., '{"input": "text", "selected": ["opt1", "opt2"]}'
 - **button1** (optional): Primary button text (default: "OK")
 - **button2** (optional): Secondary button text
-- **saveTo** (optional): Variable for result (JSON with button, selected, and input)
+- **saveTo** (optional): Variable for result JSON object with:
+  - **button**: string - the button that was clicked (e.g., "OK", "Cancel")
+  - **selected**: string[] - ALWAYS an array of selected options, even for single select (e.g., ["Option1"])
+  - **input**: string - text input value (if inputTitle was set)
+
+**IMPORTANT**: When checking dialog selection in an if condition:
+- For single option check: \`{{result.selected[0]}} == Option1\`
+- For checking if array contains a value (especially with multiSelect): \`{{result.selected}} contains Option1\`
+- Wrong: \`{{result.selected}} == Option1\` (this compares array to string, always false)
 
 ### 15. prompt-file
 Prompt user to select file and read its content.
@@ -331,6 +339,7 @@ Call a remote MCP (Model Context Protocol) server tool via HTTP.
 ### 22. obsidian-command
 Execute an Obsidian command by its ID.
 - **command** (required): Command ID (e.g., "editor:toggle-fold", "app:reload")
+- **path** (optional): File path to open before executing the command. The file is opened, the command is executed, and the tab is closed automatically. (supports {{variables}})
 - **saveTo** (optional): Variable name to store execution result
 
 **Example**:
@@ -340,7 +349,40 @@ Execute an Obsidian command by its ID.
   command: "editor:toggle-fold"
 \`\`\`
 
-**Use case**: Trigger any Obsidian command, including commands from other plugins.
+**Example** (encrypt all files in a directory):
+\`\`\`yaml
+name: encrypt-folder
+nodes:
+  - id: init-index
+    type: variable
+    name: index
+    value: "0"
+  - id: list-files
+    type: note-list
+    folder: "private"
+    recursive: "true"
+    saveTo: fileList
+  - id: loop
+    type: while
+    condition: "{{index}} < {{fileList.count}}"
+    trueNext: encrypt
+    falseNext: done
+  - id: encrypt
+    type: obsidian-command
+    command: "gemini-helper:encrypt-file"
+    path: "{{fileList.notes[index].path}}"
+  - id: increment
+    type: set
+    name: index
+    value: "{{index}} + 1"
+    next: loop
+  - id: done
+    type: dialog
+    title: "Done"
+    message: "Encrypted {{index}} files"
+\`\`\`
+
+**Use case**: Trigger any Obsidian command, including commands from other plugins. Use the \`path\` property to run commands that require an active file without leaving tabs open.
 
 ## Control Flow
 

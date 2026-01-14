@@ -368,9 +368,9 @@ export class NodeEditorModal extends Modal {
 
       case "obsidian-command":
         this.addTextField(container, "command", "Command ID", "Obsidian command ID (e.g., editor:toggle-fold, app:reload)");
+        this.addTextField(container, "path", "File Path", "File to open before command (optional, tab closes after)");
         this.addTextField(container, "saveTo", "Save To", "Variable name to store execution result (optional)");
         break;
-
     }
 
     if (isConditional) {

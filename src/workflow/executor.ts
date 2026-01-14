@@ -36,7 +36,7 @@ import {
   replaceVariables,
 } from "./nodeHandlers";
 import { parseWorkflowFromMarkdown } from "./parser";
-import { ExecutionHistoryManager } from "./history";
+import { ExecutionHistoryManager, EncryptionConfig } from "./history";
 
 const MAX_ITERATIONS = 1000; // Prevent infinite loops
 
@@ -59,9 +59,21 @@ export class WorkflowExecutor {
   constructor(app: App, plugin: GeminiHelperPlugin) {
     this.app = app;
     this.plugin = plugin;
+
+    // Build encryption config from settings
+    const encryptionConfig: EncryptionConfig | undefined = plugin.settings.encryption?.enabled
+      ? {
+          enabled: plugin.settings.encryption.enabled,
+          publicKey: plugin.settings.encryption.publicKey,
+          encryptedPrivateKey: plugin.settings.encryption.encryptedPrivateKey,
+          salt: plugin.settings.encryption.salt,
+        }
+      : undefined;
+
     this.historyManager = new ExecutionHistoryManager(
       app,
-      plugin.settings.workspaceFolder
+      plugin.settings.workspaceFolder,
+      encryptionConfig
     );
   }
 
@@ -979,6 +991,7 @@ export class WorkflowExecutor {
             }
             break;
           }
+
         }
       } catch (error) {
         const errorMessage =

@@ -440,6 +440,8 @@ export const it: Record<string, string> = {
   "workflowModal.output": "Output:",
   "workflowModal.error": "Errore: {{error}}",
   "workflowModal.openCanvasView": "Apri vista canvas",
+  "workflowModal.canvasNeedsDecrypt": "Inserisci la password per visualizzare la cronologia crittografata",
+  "workflowModal.encryptedHistoryNeedsPassword": "La cronologia di esecuzione è crittografata. Inserisci la password per visualizzarla.",
   "workflowModal.empty": "(vuoto)",
   "workflowModal.circularReference": "(riferimento circolare)",
 };

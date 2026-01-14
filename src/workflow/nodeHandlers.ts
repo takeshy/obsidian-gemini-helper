@@ -1,4 +1,4 @@
-import { App, TFile, requestUrl } from "obsidian";
+import { App, TFile, WorkspaceLeaf, requestUrl } from "obsidian";
 import type { GeminiHelperPlugin } from "../plugin";
 import { getGeminiClient } from "../core/gemini";
 import { getFileSearchManager } from "../core/fileSearch";
@@ -6,6 +6,8 @@ import { getEditHistoryManager } from "../core/editHistory";
 import { CliProviderManager } from "../core/cliProvider";
 import { isImageGenerationModel, type ModelType } from "../types";
 import { McpClient } from "../core/mcpClient";
+import { isEncryptedFile, decryptFileContent } from "../core/crypto";
+import { cryptoCache } from "../core/cryptoCache";
 import {
   WorkflowNode,
   ExecutionContext,
@@ -254,6 +256,16 @@ export function evaluateCondition(
     case ">=":
       return bothNumbers ? leftNum >= rightNum : left >= right;
     case "contains":
+      // Check if left is a JSON array and right is in it
+      try {
+        const leftParsed = JSON.parse(left);
+        if (Array.isArray(leftParsed)) {
+          return leftParsed.includes(right);
+        }
+      } catch {
+        // Not JSON, fall through to string check
+      }
+      // String contains check
       return left.includes(right);
     default:
       return false;
@@ -1438,7 +1450,7 @@ export async function handleNoteReadNode(
   node: WorkflowNode,
   context: ExecutionContext,
   app: App,
-  _promptCallbacks?: PromptCallbacks
+  promptCallbacks?: PromptCallbacks
 ): Promise<void> {
   const pathRaw = node.properties["path"] || "";
   const saveTo = node.properties["saveTo"];
@@ -1465,7 +1477,30 @@ export async function handleNoteReadNode(
     throw new Error(`Path is not a file: ${notePath}`);
   }
 
-  const content = await app.vault.read(file);
+  let content = await app.vault.read(file);
+
+  // Check if file is encrypted and decrypt if needed
+  if (isEncryptedFile(content)) {
+    // Try cached password first
+    let password = cryptoCache.getPassword();
+
+    if (!password && promptCallbacks?.promptForPassword) {
+      password = await promptCallbacks.promptForPassword();
+    }
+
+    if (!password) {
+      throw new Error(`Cannot read encrypted file without password: ${notePath}`);
+    }
+
+    try {
+      content = await decryptFileContent(content, password);
+      // Cache the password on success
+      cryptoCache.setPassword(password);
+    } catch {
+      throw new Error(`Failed to decrypt file (wrong password?): ${notePath}`);
+    }
+  }
+
   context.variables.set(saveTo, content);
 }
 
@@ -2138,6 +2173,7 @@ export async function handleObsidianCommandNode(
   app: App
 ): Promise<void> {
   const commandId = replaceVariables(node.properties["command"] || "", context);
+  const path = replaceVariables(node.properties["path"] || "", context);
 
   if (!commandId) {
     throw new Error("obsidian-command node missing 'command' property");
@@ -2149,14 +2185,51 @@ export async function handleObsidianCommandNode(
     throw new Error(`Command not found: ${commandId}`);
   }
 
+  let newlyOpenedLeaf: WorkspaceLeaf | null = null;
+
+  // If path is specified, open the file first
+  if (path) {
+    const filePath = path.endsWith(".md") ? path : `${path}.md`;
+    const file = app.vault.getAbstractFileByPath(filePath);
+    if (!file || !(file instanceof TFile)) {
+      throw new Error(`File not found: ${filePath}`);
+    }
+
+    // Check if file is already open in any leaf
+    let existingLeaf: WorkspaceLeaf | null = null;
+    app.workspace.iterateAllLeaves((leaf) => {
+      if (leaf.view?.getViewType() === "markdown") {
+        const viewFile = (leaf.view as unknown as { file?: TFile }).file;
+        if (viewFile?.path === file.path) {
+          existingLeaf = leaf;
+        }
+      }
+    });
+
+    if (existingLeaf) {
+      // File is already open, just activate it
+      app.workspace.setActiveLeaf(existingLeaf, { focus: true });
+    } else {
+      // Open in a new tab and track it for closing later
+      newlyOpenedLeaf = app.workspace.getLeaf("tab");
+      await newlyOpenedLeaf.openFile(file);
+    }
+  }
+
   // Execute the command
   await (app as unknown as { commands: { executeCommandById: (id: string) => Promise<void> } }).commands.executeCommandById(commandId);
+
+  // Close only the tab we newly opened
+  if (newlyOpenedLeaf) {
+    newlyOpenedLeaf.detach();
+  }
 
   // Save execution info to variable if specified
   const saveTo = node.properties["saveTo"];
   if (saveTo) {
     context.variables.set(saveTo, JSON.stringify({
       commandId,
+      path: path || undefined,
       executed: true,
       timestamp: Date.now(),
     }));
@@ -2225,3 +2298,4 @@ export async function handleMcpNode(
     await client.close();
   }
 }
+

@@ -77,6 +77,12 @@ export interface GeminiHelperSettings {
 
   // Edit history settings
   editHistory: EditHistorySettings;
+
+  // Encryption settings
+  encryption: EncryptionSettings;
+
+  // Last used model for AI workflow generation
+  lastAIWorkflowModel?: string;
 }
 
 // Edit history settings
@@ -91,6 +97,14 @@ export interface EditHistorySettings {
   };
 }
 
+// Encryption settings for chat history
+export interface EncryptionSettings {
+  enabled: boolean;
+  publicKey: string;  // Base64 encoded public key (for encryption without password)
+  encryptedPrivateKey: string;  // Base64 encoded encrypted private key
+  salt: string;  // Base64 encoded salt for password derivation
+}
+
 export const DEFAULT_EDIT_HISTORY_SETTINGS: EditHistorySettings = {
   enabled: true,
   retention: {
@@ -100,6 +114,13 @@ export const DEFAULT_EDIT_HISTORY_SETTINGS: EditHistorySettings = {
   diff: {
     contextLines: 3,
   },
+};
+
+export const DEFAULT_ENCRYPTION_SETTINGS: EncryptionSettings = {
+  enabled: false,
+  publicKey: "",
+  encryptedPrivateKey: "",
+  salt: "",
 };
 
 // 個別のRAG設定
@@ -480,4 +501,6 @@ export const DEFAULT_SETTINGS: GeminiHelperSettings = {
   maxNoteChars: 20000,
   // Edit history
   editHistory: DEFAULT_EDIT_HISTORY_SETTINGS,
+  // Encryption
+  encryption: DEFAULT_ENCRYPTION_SETTINGS,
 };

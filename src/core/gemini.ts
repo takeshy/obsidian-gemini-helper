@@ -44,10 +44,31 @@ export class GeminiClient {
 
   // Convert our Message format to Gemini Content format
   private messagesToContents(messages: Message[]): Content[] {
-    return messages.map((msg) => ({
-      role: msg.role === "user" ? "user" : "model",
-      parts: [{ text: msg.content }] as Part[],
-    }));
+    return messages.map((msg) => {
+      const parts: Part[] = [];
+
+      // Add attachments first if present
+      if (msg.attachments && msg.attachments.length > 0) {
+        for (const attachment of msg.attachments) {
+          parts.push({
+            inlineData: {
+              mimeType: attachment.mimeType,
+              data: attachment.data,
+            },
+          });
+        }
+      }
+
+      // Add text content
+      if (msg.content) {
+        parts.push({ text: msg.content });
+      }
+
+      return {
+        role: msg.role === "user" ? "user" : "model",
+        parts,
+      };
+    });
   }
 
   // Convert tool definitions to Gemini format

@@ -1,8 +1,9 @@
-import { Plugin, WorkspaceLeaf, Notice, MarkdownView, Platform, TFile } from "obsidian";
+import { Plugin, WorkspaceLeaf, Notice, MarkdownView, Platform, TFile, Modal, App } from "obsidian";
 import { StateField, StateEffect } from "@codemirror/state";
 import { Decoration, type DecorationSet, EditorView } from "@codemirror/view";
 import { EventEmitter } from "src/utils/EventEmitter";
 import { ChatView, VIEW_TYPE_GEMINI_CHAT } from "src/ui/ChatView";
+import { CryptView, CRYPT_VIEW_TYPE } from "src/ui/CryptView";
 import { SettingsTab } from "src/ui/SettingsTab";
 import {
   type GeminiHelperSettings,
@@ -42,6 +43,8 @@ import { EditHistoryModal } from "src/ui/components/EditHistoryModal";
 import { formatError } from "src/utils/error";
 import { DEFAULT_CLI_CONFIG, DEFAULT_EDIT_HISTORY_SETTINGS, hasVerifiedCli } from "src/types";
 import { initLocale, t } from "src/i18n";
+import { isEncryptedFile, encryptFileContent, decryptFileContent } from "src/core/crypto";
+import { cryptoCache } from "src/core/cryptoCache";
 
 const WORKSPACE_STATE_FILENAME = "gemini-workspace.json";
 const OLD_WORKSPACE_STATE_FILENAME = ".gemini-workspace.json";
@@ -165,6 +168,28 @@ export class GeminiHelperPlugin extends Plugin {
       (leaf) => new ChatView(leaf, this)
     );
 
+    // Register crypt view (for encrypted files)
+    this.registerView(
+      CRYPT_VIEW_TYPE,
+      (leaf) => new CryptView(leaf, this)
+    );
+
+    // Register file menu (right-click) for encryption
+    this.registerEvent(
+      this.app.workspace.on("file-menu", (menu, file) => {
+        if (file instanceof TFile && file.extension === "md") {
+          menu.addItem((item) => {
+            item
+              .setTitle(t("crypt.encryptFile"))
+              .setIcon("lock")
+              .onClick(async () => {
+                await this.encryptFile(file);
+              });
+          });
+        }
+      })
+    );
+
     // Ensure chat view exists on layout ready
     this.app.workspace.onLayoutReady(() => {
       void this.ensureChatViewExists();
@@ -253,6 +278,38 @@ export class GeminiHelperPlugin extends Plugin {
       },
     });
 
+    // Add command to encrypt current file
+    this.addCommand({
+      id: "encrypt-file",
+      name: t("command.encryptFile"),
+      checkCallback: (checking: boolean) => {
+        const activeFile = this.app.workspace.getActiveFile();
+        if (activeFile && activeFile.extension === "md") {
+          if (!checking) {
+            void this.encryptFile(activeFile);
+          }
+          return true;
+        }
+        return false;
+      },
+    });
+
+    // Add command to decrypt current file
+    this.addCommand({
+      id: "decrypt-file",
+      name: t("command.decryptFile"),
+      checkCallback: (checking: boolean) => {
+        const activeFile = this.app.workspace.getActiveFile();
+        if (activeFile && activeFile.extension === "md") {
+          if (!checking) {
+            void this.decryptCurrentFile(activeFile);
+          }
+          return true;
+        }
+        return false;
+      },
+    });
+
     // Register file events for edit history
     this.registerEvent(
       this.app.vault.on("rename", (file, oldPath) => {
@@ -277,6 +334,7 @@ export class GeminiHelperPlugin extends Plugin {
     );
 
     // Initialize snapshot when a file is opened (for edit history)
+    // Also check if file is encrypted and open in CryptView
     this.registerEvent(
       this.app.workspace.on("file-open", (file) => {
         if (file instanceof TFile && file.extension === "md") {
@@ -284,6 +342,9 @@ export class GeminiHelperPlugin extends Plugin {
           if (historyManager) {
             void historyManager.initSnapshot(file.path);
           }
+
+          // Check if file is encrypted and redirect to CryptView
+          void this.checkAndOpenEncryptedFile(file);
         }
       })
     );
@@ -556,8 +617,17 @@ export class GeminiHelperPlugin extends Plugin {
 
     // File opened
     this.registerEvent(
-      this.app.workspace.on("file-open", (file) => {
+      this.app.workspace.on("file-open", async (file) => {
         if (file instanceof TFile) {
+          // Skip encrypted files - they will be handled by CryptView
+          try {
+            const content = await this.app.vault.read(file);
+            if (isEncryptedFile(content)) {
+              return;
+            }
+          } catch {
+            // Ignore read errors
+          }
           void this.handleWorkflowEvent("file-open", file.path, { file });
         }
       })
@@ -1767,5 +1837,203 @@ export class GeminiHelperPlugin extends Plugin {
     const chatId = options?.chatId || `workflow-${Date.now()}`;
 
     return { response, chatId };
+  }
+
+  // ========================================
+  // Encryption Methods
+  // ========================================
+
+  /**
+   * Encrypt a file
+   */
+  async encryptFile(file: TFile): Promise<void> {
+    const encryption = this.settings.encryption;
+
+    // Check if encryption is configured
+    if (!encryption?.enabled || !encryption?.publicKey || !encryption?.encryptedPrivateKey || !encryption?.salt) {
+      new Notice(t("crypt.notConfigured"));
+      return;
+    }
+
+    try {
+      // Read current content
+      const content = await this.app.vault.read(file);
+
+      // Check if already encrypted
+      if (isEncryptedFile(content)) {
+        new Notice(t("crypt.alreadyEncrypted"));
+        return;
+      }
+
+      // Encrypt the content
+      const encryptedContent = await encryptFileContent(
+        content,
+        encryption.publicKey,
+        encryption.encryptedPrivateKey,
+        encryption.salt
+      );
+
+      // Save encrypted content
+      await this.app.vault.modify(file, encryptedContent);
+      new Notice(t("crypt.encryptSuccess"));
+
+      // Reopen the file in CryptView
+      await this.openCryptView(file);
+    } catch (error) {
+      console.error("Failed to encrypt file:", error);
+      new Notice(t("crypt.encryptFailed"));
+    }
+  }
+
+  /**
+   * Check if a file is encrypted and open it in CryptView
+   */
+  private async checkAndOpenEncryptedFile(file: TFile): Promise<void> {
+    try {
+      const content = await this.app.vault.read(file);
+      if (isEncryptedFile(content)) {
+        // Small delay to let the markdown view finish opening
+        setTimeout(() => {
+          void this.openCryptView(file);
+        }, 50);
+      }
+    } catch {
+      // Ignore read errors
+    }
+  }
+
+  /**
+   * Open a file in CryptView
+   */
+  async openCryptView(file: TFile): Promise<void> {
+    // Check if there's already a CryptView for this file
+    const cryptLeaves = this.app.workspace.getLeavesOfType(CRYPT_VIEW_TYPE);
+    for (const leaf of cryptLeaves) {
+      const view = leaf.view as unknown as CryptView;
+      if (view.filePath === file.path) {
+        this.app.workspace.setActiveLeaf(leaf, { focus: true });
+        return;
+      }
+    }
+
+    // Find and close any view that has this file open (markdown, etc.)
+    const allLeaves = this.app.workspace.getLeavesOfType("markdown");
+    for (const leaf of allLeaves) {
+      const view = leaf.view as MarkdownView;
+      if (view.file?.path === file.path) {
+        leaf.detach();
+        break;
+      }
+    }
+
+    // Create new CryptView in a new tab
+    const leaf = this.app.workspace.getLeaf("tab");
+    await leaf.setViewState({
+      type: CRYPT_VIEW_TYPE,
+      active: true,
+      state: { filePath: file.path },
+    });
+  }
+
+  /**
+   * Decrypt a file (remove encryption)
+   */
+  async decryptFile(file: TFile, decryptedContent: string): Promise<void> {
+    try {
+      await this.app.vault.modify(file, decryptedContent);
+      new Notice(t("crypt.decryptSuccess"));
+    } catch (error) {
+      console.error("Failed to decrypt file:", error);
+      new Notice(t("crypt.decryptFailed"));
+    }
+  }
+
+  // Decrypt current file (command handler)
+  async decryptCurrentFile(file: TFile): Promise<void> {
+    try {
+      const content = await this.app.vault.read(file);
+
+      // Check if file is encrypted
+      if (!isEncryptedFile(content)) {
+        new Notice(t("crypt.notEncrypted"));
+        return;
+      }
+
+      // Try cached password first
+      let password = cryptoCache.getPassword();
+
+      if (!password) {
+        // Prompt for password
+        password = await new Promise<string | null>((resolve) => {
+          class PasswordModal extends Modal {
+            result: string | null = null;
+
+            constructor(app: App) {
+              super(app);
+            }
+
+            onOpen() {
+              this.contentEl.createEl("h3", { text: t("crypt.enterPassword") });
+              this.contentEl.createEl("p", { text: t("crypt.enterPasswordDesc") });
+
+              const inputEl = this.contentEl.createEl("input", {
+                type: "password",
+                placeholder: t("crypt.passwordPlaceholder"),
+                cls: "gemini-helper-password-input",
+              });
+
+              inputEl.addEventListener("keydown", (e) => {
+                if (e.key === "Enter") {
+                  this.result = inputEl.value;
+                  this.close();
+                }
+              });
+
+              const buttonContainer = this.contentEl.createDiv({ cls: "modal-button-container" });
+
+              buttonContainer.createEl("button", {
+                text: t("common.cancel"),
+              }).onclick = () => {
+                this.close();
+              };
+
+              buttonContainer.createEl("button", {
+                text: t("crypt.unlock"),
+                cls: "mod-cta",
+              }).onclick = () => {
+                this.result = inputEl.value;
+                this.close();
+              };
+
+              // Focus input
+              setTimeout(() => inputEl.focus(), 10);
+            }
+
+            onClose() {
+              resolve(this.result);
+            }
+          }
+
+          new PasswordModal(this.app).open();
+        });
+
+        if (!password) {
+          return; // User cancelled
+        }
+      }
+
+      // Decrypt the file
+      const decryptedContent = await decryptFileContent(content, password);
+
+      // Cache the password
+      cryptoCache.setPassword(password);
+
+      // Write decrypted content back
+      await this.app.vault.modify(file, decryptedContent);
+      new Notice(t("crypt.decryptSuccess"));
+    } catch (error) {
+      console.error("Failed to decrypt file:", error);
+      new Notice(t("crypt.decryptFailed"));
+    }
   }
 }

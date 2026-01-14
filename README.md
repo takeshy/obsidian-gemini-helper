@@ -12,6 +12,7 @@
 - **RAG** - Retrieval-Augmented Generation for intelligent search across your vault
 - **Web Search** - Access up-to-date information via Google Search
 - **Image Generation** - Create images with Gemini image models
+- **Encryption** - Password-protect chat history and workflow execution logs
 
 ![Image Generation in Chat](chat_image.png)
 
@@ -389,6 +390,38 @@ npm run build
 
 ![Tool Limits & Edit History](setting_tool_history.png)
 
+### Encryption
+
+Password-protect your chat history and workflow execution logs:
+
+1. Enable encryption in plugin settings
+2. Set a password (stored securely using public-key cryptography)
+3. All new chat files and workflow history will be encrypted
+
+![File Encryption Workflow](enc.png)
+
+**Features:**
+- **Automatic encryption** - New chats and workflow logs are encrypted when saved
+- **Password caching** - Enter password once per session
+- **Dedicated viewer** - Encrypted files open in a secure editor with preview
+- **Decrypt option** - Remove encryption from individual files when needed
+
+**How it works:**
+- Uses RSA-OAEP for key encryption and AES-GCM for content encryption
+- Password generates a key pair; private key is encrypted with your password
+- Each file is encrypted with a unique AES key, wrapped with the public key
+
+**Security benefits:**
+- **Protected from AI chat** - Encrypted files cannot be read by AI vault operations (`read_note` tool). This keeps sensitive data like API keys safe from accidental exposure during chat.
+- **Workflow access with password** - Workflows can read encrypted files using the `note-read` node. When accessed, a password dialog appears, and the password is cached for the session.
+- **Store secrets safely** - Instead of writing API keys directly in workflows, store them in encrypted files. The workflow reads the key at runtime after password verification.
+
+> **Warning:** If you forget your password, encrypted files cannot be recovered. Keep your password safe.
+
+> **Tip:** To encrypt all files in a directory at once, use a workflow. See the "Encrypt all files in a directory" example in [WORKFLOW_NODES.md](WORKFLOW_NODES.md#obsidian-command).
+
+![Encryption Settings](setting_encryption.png)
+
 ### Slash Commands
 - Define custom prompt templates triggered by `/`
 - Optional model and search override per command
@@ -429,7 +462,9 @@ npm run build
 
 This is especially helpful for understanding complex workflows with multiple branches and loops.
 
-**Export Execution History:** View execution history as an Obsidian Canvas for visual analysis.
+**Export Execution History:** View execution history as an Obsidian Canvas for visual analysis. Click **Open Canvas view** in the History modal to create a Canvas file.
+
+> **Note:** Canvas files are dynamically created in the workspace folder. Delete them manually after review if no longer needed.
 
 ![History Canvas View](history_canvas.png)
 
@@ -442,6 +477,12 @@ This is especially helpful for understanding complex workflows with multiple bra
 4. Select a model and click **Generate**
 5. The workflow is automatically created and saved
 
+> **Tip:** When using **+ New (AI)** from the dropdown on a file that already has workflows, the output path defaults to the current file. The generated workflow will be appended to that file.
+
+**Create workflow from any file:**
+
+When opening the Workflow tab with a file that has no workflow code block, a **"Create workflow with AI"** button is displayed. Click it to generate a new workflow (default output: `workflows/{{name}}.md`).
+
 **@ File References:**
 
 Type `@` in the description field to reference files:
@@ -452,6 +493,14 @@ Type `@` in the description field to reference files:
 When you click Generate, file content is embedded directly into the AI request. YAML frontmatter is automatically stripped.
 
 > **Tip:** This is useful for creating workflows based on existing workflow examples or templates in your vault.
+
+**File Attachments:**
+
+Click the attachment button to attach files (images, PDFs, text files) to your workflow generation request. This is useful for providing visual context or examples to the AI.
+
+**Modal Controls:**
+
+The AI workflow modal supports drag-and-drop positioning and corner resizing for a better editing experience.
 
 **Request History:**
 
@@ -490,8 +539,9 @@ Edit workflows directly in the visual node editor with drag-and-drop interface.
 
 **Data stored locally:**
 - API key (stored in Obsidian settings)
-- Chat history (as Markdown files)
-- Workflow execution history
+- Chat history (as Markdown files, optionally encrypted)
+- Workflow execution history (optionally encrypted)
+- Encryption keys (private key encrypted with your password)
 
 **Data sent to Google:**
 - All chat messages and file attachments are sent to Google Gemini API for processing

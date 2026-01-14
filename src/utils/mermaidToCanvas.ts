@@ -259,7 +259,7 @@ function parseMermaidFlowchart(mermaidContent: string): { nodes: Map<string, Par
         if (!nodes.has(fromNode)) {
           // Check if there's a node definition inline (handling all bracket types)
           const shapePattern = `(\\(\\[.*?\\]\\)|\\[\\[.*?\\]\\]|\\[\\(.*?\\)\\]|\\{\\{.*?\\}\\}|\\(\\(.*?\\)\\)|\\[\\/.*?\\/\\]|\\[\\\\.*?\\/\\]|>.*?\\]|\\{.*?\\}|\\(.*?\\)|\\[.*?\\])`;
-          const nodeDefMatch = workingLine.match(new RegExp(`^${fromNode.replace(/-/g, '\\-')}${shapePattern}?`));
+          const nodeDefMatch = workingLine.match(new RegExp(`^${fromNode}${shapePattern}?`));
           if (nodeDefMatch && nodeDefMatch[1]) {
             const parsed = parseNodeDefinition(nodeDefMatch[0]);
             if (parsed) {

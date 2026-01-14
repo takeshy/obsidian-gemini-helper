@@ -1,11 +1,19 @@
-import { App, Modal, Notice, Platform, parseYaml } from "obsidian";
+import { App, Modal, Notice, Platform, parseYaml, TFile } from "obsidian";
 import type { GeminiHelperPlugin } from "src/plugin";
 import { GeminiCliProvider, ClaudeCliProvider, CodexCliProvider } from "src/core/cliProvider";
 import { GeminiClient } from "src/core/gemini";
-import { CLI_MODEL, CLAUDE_CLI_MODEL, CODEX_CLI_MODEL, DEFAULT_CLI_CONFIG, getAvailableModels, type ModelType } from "src/types";
+import { CLI_MODEL, CLAUDE_CLI_MODEL, CODEX_CLI_MODEL, DEFAULT_CLI_CONFIG, getAvailableModels, type ModelType, type Attachment } from "src/types";
 import { WORKFLOW_SPECIFICATION } from "src/workflow/workflowSpec";
 import type { SidebarNode, WorkflowNodeType } from "src/workflow/types";
 import { computeLineDiff } from "./EditConfirmationModal";
+import { t } from "src/i18n";
+
+// Supported file types for attachments
+const SUPPORTED_TYPES = {
+  image: ["image/png", "image/jpeg", "image/gif", "image/webp"],
+  pdf: ["application/pdf"],
+  text: ["text/plain", "text/markdown", "text/csv", "application/json"],
+};
 
 export type AIWorkflowMode = "create" | "modify";
 
@@ -204,13 +212,32 @@ export class AIWorkflowModal extends Modal {
   private showingMentionAutocomplete = false;
   private clickOutsideHandler: ((e: MouseEvent) => void) | null = null;
 
+  private defaultOutputPath?: string;
+
+  // Resize state
+  private isDragging = false;
+  private isResizing = false;
+  private resizeDirection = "";
+  private dragStartX = 0;
+  private dragStartY = 0;
+  private modalStartX = 0;
+  private modalStartY = 0;
+  private resizeStartWidth = 0;
+  private resizeStartHeight = 0;
+
+  // File attachment state
+  private pendingAttachments: Attachment[] = [];
+  private attachmentsContainerEl: HTMLElement | null = null;
+  private fileInputEl: HTMLInputElement | null = null;
+
   constructor(
     app: App,
     plugin: GeminiHelperPlugin,
     mode: AIWorkflowMode,
     resolvePromise: (result: AIWorkflowResult | null) => void,
     existingYaml?: string,
-    existingName?: string
+    existingName?: string,
+    defaultOutputPath?: string
   ) {
     super(app);
     this.plugin = plugin;
@@ -218,19 +245,26 @@ export class AIWorkflowModal extends Modal {
     this.existingYaml = existingYaml;
     this.existingName = existingName;
     this.resolvePromise = resolvePromise;
+    this.defaultOutputPath = defaultOutputPath;
   }
 
   onOpen(): void {
-    const { contentEl } = this;
+    const { contentEl, modalEl } = this;
     contentEl.empty();
     contentEl.addClass("ai-workflow-modal");
+    modalEl.addClass("gemini-helper-resizable-modal");
 
-    // Title
+    // Drag handle with title
+    const dragHandle = contentEl.createDiv({ cls: "modal-drag-handle" });
     const title =
       this.mode === "create"
         ? "Create Workflow with AI"
         : "Modify Workflow with AI";
-    contentEl.createEl("h2", { text: title });
+    dragHandle.createEl("h2", { text: title });
+    this.setupDrag(dragHandle, modalEl);
+
+    // Add resize handles
+    this.addResizeHandles(modalEl);
 
     // Name and output path (only for create mode)
     if (this.mode === "create") {
@@ -246,11 +280,12 @@ export class AIWorkflowModal extends Modal {
       // Output path input
       const pathContainer = contentEl.createDiv({ cls: "ai-workflow-input-row" });
       pathContainer.createEl("label", { text: "Output path:" });
+      const defaultPath = this.defaultOutputPath || "workflows/{{name}}";
       this.outputPathEl = pathContainer.createEl("input", {
         type: "text",
         cls: "ai-workflow-path-input",
-        value: "workflows/{{name}}/main",
-        attr: { placeholder: "workflows/{{name}}/main" },
+        value: defaultPath,
+        attr: { placeholder: "workflows/{{name}}" },
       });
       pathContainer.createEl("div", {
         cls: "ai-workflow-hint",
@@ -298,6 +333,36 @@ export class AIWorkflowModal extends Modal {
       text: "Tip: type @ to insert file references. The file content will be embedded when generating.",
     });
 
+    // File attachment section
+    const attachmentRow = contentEl.createDiv({ cls: "ai-workflow-attachment-row" });
+
+    // Hidden file input
+    this.fileInputEl = attachmentRow.createEl("input", {
+      type: "file",
+      attr: {
+        multiple: "true",
+        accept: this.getAllAcceptedTypes(),
+        style: "display: none",
+      },
+    });
+    this.fileInputEl.addEventListener("change", (e) => {
+      void this.handleFileSelect(e as Event);
+    });
+
+    // Attachment button
+    const attachBtn = attachmentRow.createEl("button", {
+      cls: "ai-workflow-attach-btn",
+      attr: { type: "button" },
+    });
+    attachBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>`;
+    attachBtn.createSpan({ text: " " + t("input.attach") });
+    attachBtn.addEventListener("click", () => {
+      this.fileInputEl?.click();
+    });
+
+    // Attachments container
+    this.attachmentsContainerEl = attachmentRow.createDiv({ cls: "ai-workflow-attachments" });
+
     // Show current workflow for modify mode
     if (this.mode === "modify" && this.existingYaml) {
       const details = contentEl.createEl("details", {
@@ -329,7 +394,11 @@ export class AIWorkflowModal extends Modal {
       ...(codexCliVerified ? [CODEX_CLI_MODEL] : []),
     ];
     const availableModels = [...cliModels, ...baseModels];
-    const currentModel = this.plugin.getSelectedModel();
+    // Use last used model for AI workflow, or fall back to selected model
+    const lastAIWorkflowModel = this.plugin.settings.lastAIWorkflowModel;
+    const defaultModel = lastAIWorkflowModel && availableModels.some(m => m.name === lastAIWorkflowModel && !m.isImageModel)
+      ? lastAIWorkflowModel
+      : this.plugin.getSelectedModel();
 
     for (const model of availableModels) {
       // Skip image models
@@ -339,7 +408,7 @@ export class AIWorkflowModal extends Modal {
         text: model.displayName,
         value: model.name,
       });
-      if (model.name === currentModel) {
+      if (model.name === defaultModel) {
         option.selected = true;
       }
     }
@@ -494,9 +563,14 @@ export class AIWorkflowModal extends Modal {
           selectedModel
         );
 
-        // Generate
+        // Generate (include attachments if any)
         response = await client.chat(
-          [{ role: "user", content: userPrompt, timestamp: Date.now() }],
+          [{
+            role: "user",
+            content: userPrompt,
+            timestamp: Date.now(),
+            attachments: this.pendingAttachments.length > 0 ? this.pendingAttachments : undefined,
+          }],
           systemPrompt
         );
       }
@@ -505,6 +579,10 @@ export class AIWorkflowModal extends Modal {
       const result = this.parseResponse(response);
 
       if (result) {
+        // Save the selected model for next time
+        this.plugin.settings.lastAIWorkflowModel = selectedModel;
+        void this.plugin.saveSettings();
+
         // Add description, mode, and resolved mentions to result
         result.description = description;
         result.mode = this.mode;
@@ -646,9 +724,9 @@ Output only the complete modified YAML, starting with "name:".`;
       } else {
         // It's a file path - try to read the file
         const file = this.app.vault.getAbstractFileByPath(mention);
-        if (file && "extension" in file) {
+        if (file instanceof TFile) {
           try {
-            const rawContent = await this.app.vault.read(file as import("obsidian").TFile);
+            const rawContent = await this.app.vault.read(file);
             content = this.stripFrontmatter(rawContent);
             replacement = `[Content of ${mention}]\n${content}\n[/Content]`;
           } catch {
@@ -783,6 +861,218 @@ Output only the complete modified YAML, starting with "name:".`;
       console.error("Failed to parse AI workflow response:", error, response);
       return null;
     }
+  }
+
+  private setupDrag(header: HTMLElement, modalEl: HTMLElement): void {
+    const onMouseDown = (e: MouseEvent) => {
+      if ((e.target as HTMLElement).tagName === "BUTTON") return;
+
+      this.isDragging = true;
+      this.dragStartX = e.clientX;
+      this.dragStartY = e.clientY;
+
+      const rect = modalEl.getBoundingClientRect();
+      this.modalStartX = rect.left;
+      this.modalStartY = rect.top;
+
+      modalEl.setCssStyles({
+        position: "fixed",
+        margin: "0",
+        transform: "none",
+        left: `${rect.left}px`,
+        top: `${rect.top}px`,
+      });
+
+      document.addEventListener("mousemove", onMouseMove);
+      document.addEventListener("mouseup", onMouseUp);
+      e.preventDefault();
+    };
+
+    const onMouseMove = (e: MouseEvent) => {
+      if (!this.isDragging) return;
+
+      const deltaX = e.clientX - this.dragStartX;
+      const deltaY = e.clientY - this.dragStartY;
+
+      modalEl.setCssStyles({
+        left: `${this.modalStartX + deltaX}px`,
+        top: `${this.modalStartY + deltaY}px`,
+      });
+    };
+
+    const onMouseUp = () => {
+      this.isDragging = false;
+      document.removeEventListener("mousemove", onMouseMove);
+      document.removeEventListener("mouseup", onMouseUp);
+    };
+
+    header.addEventListener("mousedown", onMouseDown);
+  }
+
+  private addResizeHandles(modalEl: HTMLElement): void {
+    const directions = ["n", "e", "s", "w", "ne", "nw", "se", "sw"];
+    for (const dir of directions) {
+      const handle = document.createElement("div");
+      handle.className = `gemini-helper-resize-handle gemini-helper-resize-${dir}`;
+      handle.dataset.direction = dir;
+      modalEl.appendChild(handle);
+      this.setupResize(handle, modalEl, dir);
+    }
+  }
+
+  private setupResize(handle: HTMLElement, modalEl: HTMLElement, direction: string): void {
+    const onMouseDown = (e: MouseEvent) => {
+      this.isResizing = true;
+      this.resizeDirection = direction;
+      this.dragStartX = e.clientX;
+      this.dragStartY = e.clientY;
+
+      const rect = modalEl.getBoundingClientRect();
+      this.resizeStartWidth = rect.width;
+      this.resizeStartHeight = rect.height;
+      this.modalStartX = rect.left;
+      this.modalStartY = rect.top;
+
+      modalEl.setCssStyles({
+        position: "fixed",
+        margin: "0",
+        transform: "none",
+        left: `${rect.left}px`,
+        top: `${rect.top}px`,
+        width: `${rect.width}px`,
+        height: `${rect.height}px`,
+      });
+
+      document.addEventListener("mousemove", onMouseMove);
+      document.addEventListener("mouseup", onMouseUp);
+      e.preventDefault();
+      e.stopPropagation();
+    };
+
+    const onMouseMove = (e: MouseEvent) => {
+      if (!this.isResizing) return;
+
+      const deltaX = e.clientX - this.dragStartX;
+      const deltaY = e.clientY - this.dragStartY;
+      const dir = this.resizeDirection;
+
+      let newWidth = this.resizeStartWidth;
+      let newHeight = this.resizeStartHeight;
+      let newLeft = this.modalStartX;
+      let newTop = this.modalStartY;
+
+      if (dir.includes("e")) {
+        newWidth = Math.max(400, this.resizeStartWidth + deltaX);
+      }
+      if (dir.includes("w")) {
+        newWidth = Math.max(400, this.resizeStartWidth - deltaX);
+        newLeft = this.modalStartX + (this.resizeStartWidth - newWidth);
+      }
+      if (dir.includes("s")) {
+        newHeight = Math.max(300, this.resizeStartHeight + deltaY);
+      }
+      if (dir.includes("n")) {
+        newHeight = Math.max(300, this.resizeStartHeight - deltaY);
+        newTop = this.modalStartY + (this.resizeStartHeight - newHeight);
+      }
+
+      modalEl.setCssStyles({
+        width: `${newWidth}px`,
+        height: `${newHeight}px`,
+        left: `${newLeft}px`,
+        top: `${newTop}px`,
+      });
+    };
+
+    const onMouseUp = () => {
+      this.isResizing = false;
+      document.removeEventListener("mousemove", onMouseMove);
+      document.removeEventListener("mouseup", onMouseUp);
+    };
+
+    handle.addEventListener("mousedown", onMouseDown);
+  }
+
+  // File attachment methods
+  private getAllAcceptedTypes(): string {
+    return [...SUPPORTED_TYPES.image, ...SUPPORTED_TYPES.pdf, ...SUPPORTED_TYPES.text, ".md", ".txt"].join(",");
+  }
+
+  private async handleFileSelect(e: Event): Promise<void> {
+    const input = e.target as HTMLInputElement;
+    const files = input.files;
+    if (!files) return;
+
+    for (const file of Array.from(files)) {
+      const attachment = await this.processFile(file);
+      if (attachment) {
+        this.pendingAttachments.push(attachment);
+        this.renderAttachments();
+      }
+    }
+    input.value = "";
+  }
+
+  private async processFile(file: File): Promise<Attachment | null> {
+    const mimeType = file.type;
+
+    // Images
+    if (SUPPORTED_TYPES.image.includes(mimeType)) {
+      const data = await this.fileToBase64(file);
+      return { name: file.name, type: "image", mimeType, data };
+    }
+
+    // PDF
+    if (SUPPORTED_TYPES.pdf.includes(mimeType)) {
+      const data = await this.fileToBase64(file);
+      return { name: file.name, type: "pdf", mimeType, data };
+    }
+
+    // Text
+    if (SUPPORTED_TYPES.text.includes(mimeType) || file.name.endsWith(".md") || file.name.endsWith(".txt")) {
+      const data = await this.fileToBase64(file);
+      return { name: file.name, type: "text", mimeType: mimeType || "text/plain", data };
+    }
+
+    return null;
+  }
+
+  private fileToBase64(file: File): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const result = reader.result as string;
+        const base64 = result.split(",")[1];
+        resolve(base64);
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  }
+
+  private renderAttachments(): void {
+    if (!this.attachmentsContainerEl) return;
+    this.attachmentsContainerEl.empty();
+
+    this.pendingAttachments.forEach((attachment, index) => {
+      const attachmentEl = this.attachmentsContainerEl!.createSpan({
+        cls: "ai-workflow-attachment",
+      });
+
+      // Icon based on type
+      const icon = attachment.type === "image" ? "🖼️" : attachment.type === "pdf" ? "📄" : "📃";
+      attachmentEl.createSpan({ text: `${icon} ${attachment.name}` });
+
+      // Remove button
+      const removeBtn = attachmentEl.createSpan({
+        cls: "ai-workflow-attachment-remove",
+        text: "×",
+      });
+      removeBtn.addEventListener("click", () => {
+        this.pendingAttachments.splice(index, 1);
+        this.renderAttachments();
+      });
+    });
   }
 
   private setupMentionAutocomplete(): void {
@@ -958,7 +1248,8 @@ export function promptForAIWorkflow(
   plugin: GeminiHelperPlugin,
   mode: AIWorkflowMode,
   existingYaml?: string,
-  existingName?: string
+  existingName?: string,
+  defaultOutputPath?: string
 ): Promise<AIWorkflowResult | null> {
   return new Promise((resolve) => {
     const modal = new AIWorkflowModal(
@@ -967,7 +1258,8 @@ export function promptForAIWorkflow(
       mode,
       resolve,
       existingYaml,
-      existingName
+      existingName,
+      defaultOutputPath
     );
     modal.open();
   });

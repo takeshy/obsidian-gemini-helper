@@ -76,6 +76,63 @@ Ecrire du contenu dans un fichier de note.
 | `mode` | `overwrite` (defaut), `append`, ou `create` (ignorer si existe) |
 | `confirm` | `true` (defaut) affiche une boite de dialogue de confirmation, `false` ecrit immediatement |
 
+### note-read
+
+Lire le contenu d'un fichier de note.
+
+```yaml
+- id: read
+  type: note-read
+  path: "notes/config.md"
+  saveTo: content
+```
+
+| Propriete | Description |
+|-----------|-------------|
+| `path` | Chemin du fichier a lire (requis) |
+| `saveTo` | Nom de la variable pour stocker le contenu du fichier (requis) |
+
+**Support des Fichiers Chiffres :**
+
+Si le fichier cible est chiffre (via la fonction de chiffrement du plugin), le workflow va automatiquement :
+1. Verifier si le mot de passe est deja en cache dans la session actuelle
+2. Si non, demander a l'utilisateur d'entrer le mot de passe
+3. Dechiffrer le contenu du fichier et le stocker dans la variable
+4. Mettre en cache le mot de passe pour les lectures suivantes (dans la meme session Obsidian)
+
+Une fois le mot de passe entre, vous n'avez pas besoin de le re-entrer pour d'autres lectures de fichiers chiffres jusqu'au redemarrage d'Obsidian.
+
+**Exemple : Lire une cle API depuis un fichier chiffre et appeler une API externe**
+
+Ce workflow lit une cle API stockee dans un fichier chiffre, appelle une API externe et affiche le resultat :
+
+```yaml
+name: Appeler API avec cle chiffree
+nodes:
+  - id: read-key
+    type: note-read
+    path: "secrets/api-key.md"
+    saveTo: apiKey
+    next: call-api
+
+  - id: call-api
+    type: http
+    url: "https://api.example.com/data"
+    method: GET
+    headers: '{"Authorization": "Bearer {{apiKey}}"}'
+    saveTo: response
+    next: show-result
+
+  - id: show-result
+    type: dialog
+    title: Reponse API
+    message: "{{response}}"
+    markdown: true
+    button1: OK
+```
+
+> **Conseil :** Stockez les donnees sensibles comme les cles API dans des fichiers chiffres. Utilisez la commande "Chiffrer le fichier" depuis la palette de commandes pour chiffrer un fichier contenant vos secrets.
+
 ### note-list
 
 Lister les notes avec filtrage et tri.
@@ -201,7 +258,17 @@ Afficher une boite de dialogue avec des options, des boutons et/ou une saisie de
 | `defaults` | JSON avec les valeurs initiales `input` et `selected` |
 | `button1` | Libelle du bouton principal (defaut : "OK") |
 | `button2` | Libelle du bouton secondaire (optionnel) |
-| `saveTo` | Variable pour le resultat : `{"button": "Confirm", "selected": [...], "input": "..."}` |
+| `saveTo` | Variable pour le resultat (voir ci-dessous) |
+
+**Format du resultat** (variable `saveTo`) :
+- `button` : string - texte du bouton clique (ex : "Confirmer", "Annuler")
+- `selected` : string[] - **toujours un tableau**, meme pour une selection unique (ex : `["Option A"]`)
+- `input` : string - valeur de la saisie texte (si `inputTitle` etait defini)
+
+> **Important :** Lors de la verification de la valeur selectionnee dans une condition `if` :
+> - Pour une option unique : `{{dialogResult.selected[0]}} == Option A`
+> - Pour verifier si le tableau contient une valeur (multiSelect) : `{{dialogResult.selected}} contains Option A`
+> - Incorrect : `{{dialogResult.selected}} == Option A` (compare un tableau a une chaine, toujours false)
 
 **Saisie de texte simple :**
 ```yaml
@@ -449,6 +516,10 @@ Branchement conditionnel et boucles.
 | `trueNext` | ID du noeud quand la condition est vraie |
 | `falseNext` | ID du noeud quand la condition est fausse |
 
+**L'operateur `contains`** fonctionne avec les chaines et les tableaux :
+- Chaine : `{{text}} contains error` - verifie si "error" est dans la chaine
+- Tableau : `{{dialogResult.selected}} contains Option A` - verifie si "Option A" est dans le tableau
+
 > **Règle de référence arrière** : La propriété `next` ne peut référencer des noeuds antérieurs que si la cible est un noeud `while`. Cela évite le code spaghetti et garantit une structure de boucle appropriée.
 
 ### variable / set
@@ -505,6 +576,7 @@ Execute une commande Obsidian par son ID. Cela permet aux workflows de declenche
 | Propriete | Description |
 |-----------|-------------|
 | `command` | ID de la commande a executer (requis, supporte `{{variables}}`) |
+| `path` | Fichier à ouvrir avant d'exécuter la commande (optionnel, l'onglet se ferme automatiquement après) |
 | `saveTo` | Variable pour stocker le resultat de l'execution (optionnel) |
 
 **Trouver les IDs de commandes :**
@@ -541,6 +613,44 @@ nodes:
 ```
 
 **Cas d'utilisation :** Declencher des commandes principales d'Obsidian ou des commandes d'autres plugins dans le cadre d'un workflow.
+
+**Exemple : Chiffrer tous les fichiers d'un répertoire**
+
+Ce workflow chiffre tous les fichiers Markdown dans un dossier spécifié en utilisant la commande de chiffrement de Gemini Helper :
+
+```yaml
+name: chiffrer-dossier
+nodes:
+  - id: init-index
+    type: variable
+    name: index
+    value: "0"
+  - id: list-files
+    type: note-list
+    folder: "private"
+    recursive: "true"
+    saveTo: fileList
+  - id: loop
+    type: while
+    condition: "{{index}} < {{fileList.count}}"
+    trueNext: encrypt
+    falseNext: done
+  - id: encrypt
+    type: obsidian-command
+    command: "gemini-helper:encrypt-file"
+    path: "{{fileList.notes[index].path}}"
+  - id: increment
+    type: set
+    name: index
+    value: "{{index}} + 1"
+    next: loop
+  - id: done
+    type: dialog
+    title: "Terminé"
+    message: "{{index}} fichiers chiffrés"
+```
+
+> **Remarque :** La propriété `path` ouvre le fichier, exécute la commande, puis ferme automatiquement l'onglet. Les fichiers déjà ouverts restent ouverts.
 
 ---
 

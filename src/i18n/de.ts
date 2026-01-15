@@ -178,7 +178,7 @@ export const de: Record<string, string> = {
   "modal.enterName": "Name eingeben",
 
   // Chat
-  "chat.title": "Gemini Chat",
+  "chat.title": "Chat",
   "chat.newChat": "Neuer Chat",
   "chat.chatHistory": "Chat-Verlauf",
   "chat.noChatHistory": "Noch kein Chat-Verlauf",
@@ -203,6 +203,7 @@ export const de: Record<string, string> = {
 
   // InputArea
   "input.placeholder": "Nachricht eingeben... (Enter zum Senden, Shift+Enter für neue Zeile)",
+  "input.placeholderMobile": "Nachricht eingeben...",
   "input.send": "Nachricht senden",
   "input.stop": "Generierung stoppen",
   "input.attach": "Datei anhängen (Bilder, PDF, Text)",

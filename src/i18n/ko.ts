@@ -178,7 +178,7 @@ export const ko: Record<string, string> = {
   "modal.enterName": "이름 입력",
 
   // Chat
-  "chat.title": "Gemini 채팅",
+  "chat.title": "Chat",
   "chat.newChat": "새 채팅",
   "chat.chatHistory": "채팅 기록",
   "chat.noChatHistory": "채팅 기록이 없습니다",
@@ -203,6 +203,7 @@ export const ko: Record<string, string> = {
 
   // InputArea
   "input.placeholder": "메시지를 입력하세요... (Enter로 전송, Shift+Enter로 줄바꿈)",
+  "input.placeholderMobile": "메시지를 입력하세요...",
   "input.send": "메시지 보내기",
   "input.stop": "생성 중지",
   "input.attach": "파일 첨부 (이미지, PDF, 텍스트)",

@@ -178,7 +178,7 @@ export const en = {
   "modal.enterName": "Enter name",
 
   // Chat
-  "chat.title": "Gemini chat",
+  "chat.title": "Chat",
   "chat.newChat": "New chat",
   "chat.chatHistory": "Chat history",
   "chat.noChatHistory": "No chat history yet",
@@ -203,6 +203,7 @@ export const en = {
 
   // InputArea
   "input.placeholder": "Type your message... (Enter to send, Shift+Enter for new line)",
+  "input.placeholderMobile": "Type your message...",
   "input.send": "Send message",
   "input.stop": "Stop generation",
   "input.attach": "Attach file (images, PDF, text)",

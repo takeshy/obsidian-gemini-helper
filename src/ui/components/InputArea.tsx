@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, KeyboardEvent, ChangeEvent, forwardRef, useImperativeHandle } from "react";
 import { Send, Paperclip, StopCircle, Eye, Database } from "lucide-react";
-import type { App } from "obsidian";
+import { Platform, type App } from "obsidian";
 import { isImageGenerationModel, type ModelInfo, type ModelType, type Attachment, type SlashCommand } from "src/types";
 import { t } from "src/i18n";
 
@@ -280,7 +280,8 @@ const InputArea = forwardRef<InputAreaHandle, InputAreaProps>(function InputArea
     }
 
     // IME変換中はEnterで送信しない
-    if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
+    // モバイルではEnterで送信しない（Shift+Enterが難しいため）
+    if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing && !Platform.isMobile) {
       e.preventDefault();
       handleSubmit();
     }
@@ -498,7 +499,7 @@ const InputArea = forwardRef<InputAreaHandle, InputAreaProps>(function InputArea
           value={input}
           onChange={handleInputChange}
           onKeyDown={handleKeyDown}
-          placeholder={t("input.placeholder")}
+          placeholder={Platform.isMobile ? t("input.placeholderMobile") : t("input.placeholder")}
           rows={3}
         />
         {isLoading ? (

@@ -178,7 +178,7 @@ export const ja: Record<string, string> = {
   "modal.enterName": "名前を入力",
 
   // Chat
-  "chat.title": "Gemini チャット",
+  "chat.title": "Chat",
   "chat.newChat": "新しいチャット",
   "chat.chatHistory": "チャット履歴",
   "chat.noChatHistory": "チャット履歴がありません",
@@ -203,6 +203,7 @@ export const ja: Record<string, string> = {
 
   // InputArea
   "input.placeholder": "メッセージを入力...（Enterで送信、Shift+Enterで改行）",
+  "input.placeholderMobile": "メッセージを入力...",
   "input.send": "メッセージを送信",
   "input.stop": "生成を停止",
   "input.attach": "ファイルを添付（画像、PDF、テキスト）",

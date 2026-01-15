@@ -178,7 +178,7 @@ export const zh: Record<string, string> = {
   "modal.enterName": "输入名称",
 
   // Chat
-  "chat.title": "Gemini 聊天",
+  "chat.title": "Chat",
   "chat.newChat": "新建聊天",
   "chat.chatHistory": "聊天记录",
   "chat.noChatHistory": "暂无聊天记录",
@@ -203,6 +203,7 @@ export const zh: Record<string, string> = {
 
   // InputArea
   "input.placeholder": "输入您的消息...（Enter 发送，Shift+Enter 换行）",
+  "input.placeholderMobile": "输入您的消息...",
   "input.send": "发送消息",
   "input.stop": "停止生成",
   "input.attach": "附加文件（图片、PDF、文本）",

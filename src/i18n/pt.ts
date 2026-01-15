@@ -178,7 +178,7 @@ export const pt: Record<string, string> = {
   "modal.enterName": "Digite o nome",
 
   // Chat
-  "chat.title": "Chat Gemini",
+  "chat.title": "Chat",
   "chat.newChat": "Novo chat",
   "chat.chatHistory": "Histórico de chat",
   "chat.noChatHistory": "Ainda não há histórico de chat",
@@ -203,6 +203,7 @@ export const pt: Record<string, string> = {
 
   // InputArea
   "input.placeholder": "Digite sua mensagem... (Enter para enviar, Shift+Enter para nova linha)",
+  "input.placeholderMobile": "Digite sua mensagem...",
   "input.send": "Enviar mensagem",
   "input.stop": "Parar geração",
   "input.attach": "Anexar arquivo (imagens, PDF, texto)",

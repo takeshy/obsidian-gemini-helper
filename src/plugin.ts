@@ -1916,17 +1916,22 @@ export class GeminiHelperPlugin extends Plugin {
       }
     }
 
-    // Find and close any view that has this file open (markdown, etc.)
+    // Find existing markdown view for this file and replace it with CryptView
     const allLeaves = this.app.workspace.getLeavesOfType("markdown");
     for (const leaf of allLeaves) {
       const view = leaf.view as MarkdownView;
       if (view.file?.path === file.path) {
-        leaf.detach();
-        break;
+        // Replace the view in the same leaf instead of detaching
+        await leaf.setViewState({
+          type: CRYPT_VIEW_TYPE,
+          active: true,
+          state: { filePath: file.path },
+        });
+        return;
       }
     }
 
-    // Create new CryptView in a new tab
+    // If no existing leaf found, create new CryptView in a new tab
     const leaf = this.app.workspace.getLeaf("tab");
     await leaf.setViewState({
       type: CRYPT_VIEW_TYPE,

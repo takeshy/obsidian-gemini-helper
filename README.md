@@ -412,16 +412,19 @@ Password-protect your chat history and workflow execution logs.
 **How it works:**
 
 ```
-[Encryption]
-Password → Generate key pair → Encrypt private key with password
-File content → Encrypt with AES key → Encrypt AES key with public key
-→ Save to file: encrypted data + encrypted private key + salt
+[Setup - once when setting password]
+Password → Generate key pair (RSA) → Encrypt private key → Store in settings
+
+[Encryption - for each file]
+File content → Encrypt with new AES key → Encrypt AES key with public key
+→ Save to file: encrypted data + encrypted private key (from settings) + salt
 
 [Decryption]
 Password + salt → Restore private key → Decrypt AES key → Decrypt file content
 ```
 
-- Each file stores: encrypted content + encrypted private key + salt
+- Key pair is generated once (RSA generation is slow), AES key is generated per file
+- Each file stores: encrypted content + encrypted private key (copied from settings) + salt
 - Files are self-contained — decryptable with just the password, no plugin dependency
 
 <details>

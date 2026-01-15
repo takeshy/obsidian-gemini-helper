@@ -3652,9 +3652,16 @@
 
 .gemini-helper-crypt-container {
   height: 100%;
+  width: 100%;
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  position: relative;
+}
+
+.is-mobile .gemini-helper-crypt-container {
+  height: 100%;
+  max-height: 100%;
 }
 
 /* Password Entry Screen */
@@ -3727,7 +3734,13 @@
   display: flex;
   flex-direction: column;
   height: 100%;
+  width: 100%;
   overflow: hidden;
+}
+
+.is-mobile .gemini-helper-crypt-editor {
+  height: 100%;
+  max-height: 100%;
 }
 
 /* Toolbar */
@@ -3857,4 +3870,57 @@
 .gemini-helper-password-input {
   width: 100%;
   margin-bottom: 1em;
+}
+
+/* Mobile Responsive - CryptView */
+.is-mobile .gemini-helper-crypt-toolbar {
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  padding: 0.5rem;
+}
+
+.is-mobile .gemini-helper-crypt-toolbar-left {
+  width: 100%;
+  justify-content: center;
+}
+
+.is-mobile .gemini-helper-crypt-toolbar-right {
+  width: 100%;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.is-mobile .gemini-helper-crypt-btn {
+  padding: 0.5rem 0.6rem;
+  font-size: 0.8rem;
+}
+
+.is-mobile .gemini-helper-crypt-content {
+  padding: 0.5rem;
+  min-height: 0;
+  flex: 1 1 auto;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.is-mobile .gemini-helper-crypt-preview {
+  padding: 0.5rem;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.is-mobile .gemini-helper-crypt-textarea {
+  min-height: 200px;
+}
+
+.is-mobile .gemini-helper-crypt-password-form {
+  flex-direction: column;
+}
+
+.is-mobile .gemini-helper-crypt-password-form input {
+  width: 100%;
+}
+
+.is-mobile .gemini-helper-crypt-password-form button {
+  width: 100%;
 }

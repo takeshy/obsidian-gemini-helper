@@ -412,16 +412,19 @@ Schützen Sie Ihren Chat-Verlauf und Workflow-Ausführungsprotokolle mit Passwor
 **Funktionsweise:**
 
 ```
-[Verschlüsselung]
-Passwort → Schlüsselpaar generieren → Privaten Schlüssel mit Passwort verschlüsseln
-Inhalt → Mit AES-Schlüssel verschlüsseln → AES-Schlüssel mit öffentlichem Schlüssel verschlüsseln
-→ In Datei speichern: verschlüsselte Daten + verschlüsselter privater Schlüssel + Salt
+[Setup - einmalig bei Passwortvergabe]
+Passwort → Schlüsselpaar generieren (RSA) → Privaten Schlüssel verschlüsseln → In Einstellungen speichern
+
+[Verschlüsselung - pro Datei]
+Inhalt → Mit neuem AES-Schlüssel verschlüsseln → AES-Schlüssel mit öffentlichem Schlüssel verschlüsseln
+→ In Datei speichern: verschlüsselte Daten + verschlüsselter privater Schlüssel (aus Einstellungen) + Salt
 
 [Entschlüsselung]
 Passwort + Salt → Privaten Schlüssel wiederherstellen → AES-Schlüssel entschlüsseln → Inhalt entschlüsseln
 ```
 
-- Jede Datei speichert: verschlüsselten Inhalt + verschlüsselten privaten Schlüssel + Salt
+- Schlüsselpaar wird einmalig generiert (RSA ist langsam), AES-Schlüssel pro Datei
+- Jede Datei speichert: verschlüsselten Inhalt + verschlüsselten privaten Schlüssel (aus Einstellungen kopiert) + Salt
 - Dateien sind eigenständig — nur mit Passwort entschlüsselbar, keine Plugin-Abhängigkeit
 
 <details>

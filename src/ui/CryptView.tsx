@@ -15,7 +15,7 @@ interface CryptViewState extends Record<string, unknown> {
 
 export class CryptView extends ItemView {
   plugin: GeminiHelperPlugin;
-  reactRoot!: Root;
+  reactRoot: Root | null = null;
   filePath: string = "";
   private file: TFile | null = null;
 
@@ -43,6 +43,9 @@ export class CryptView extends ItemView {
     await super.setState(state, result);
     // Only re-render if filePath actually changed (prevents losing edits on mobile)
     if (this.filePath && this.filePath !== oldFilePath) {
+      // Reset reactRoot to allow re-render for new file
+      this.reactRoot?.unmount();
+      this.reactRoot = null;
       await this.renderContent();
     }
   }
@@ -59,16 +62,20 @@ export class CryptView extends ItemView {
   async onOpen(): Promise<void> {
     await Promise.resolve();
     const container = this.containerEl.children[1];
-    container.empty();
     container.addClass("gemini-helper-crypt-container");
 
-    // Render will be triggered by setState
-    if (this.filePath) {
+    // Only render if not already rendered (prevents losing edits on mobile keyboard show)
+    if (this.filePath && !this.reactRoot) {
       await this.renderContent();
     }
   }
 
   private async renderContent(): Promise<void> {
+    // Skip if already rendered (prevents losing edits on mobile)
+    if (this.reactRoot) {
+      return;
+    }
+
     const container = this.containerEl.children[1];
     container.empty();
 
@@ -100,9 +107,6 @@ export class CryptView extends ItemView {
       });
       return;
     }
-
-    // Unmount previous React root if exists
-    this.reactRoot?.unmount();
 
     // Render React component
     const root = createRoot(container);

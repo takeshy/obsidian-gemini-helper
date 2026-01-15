@@ -458,7 +458,6 @@ function layoutNodes(
 
     for (let i = 0; i < nodeIds.length; i++) {
       const nodeId = nodeIds[i];
-      const _dims = nodeDimensions.get(nodeId) || { width: NODE_MIN_WIDTH, height: NODE_MIN_HEIGHT };
 
       // Center nodes within layer, using max width for spacing
       const offset = (i - (nodeIds.length - 1) / 2) * (NODE_MAX_WIDTH + NODE_SPACING_X);

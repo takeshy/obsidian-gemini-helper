@@ -1234,7 +1234,6 @@ export async function handleFileExplorerNode(
   promptCallbacks?: PromptCallbacks
 ): Promise<void> {
   const mode = node.properties["mode"] || "select";
-  const _title = node.properties["title"] || (mode === "create" ? "Enter file path" : "Select a file");
   const extensionsStr = node.properties["extensions"] || "";
   const defaultPath = replaceVariables(node.properties["default"] || "", context);
   const directPath = replaceVariables(node.properties["path"] || "", context);

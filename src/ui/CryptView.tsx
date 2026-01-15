@@ -38,10 +38,11 @@ export class CryptView extends ItemView {
   }
 
   async setState(state: CryptViewState, result: { history: boolean }): Promise<void> {
+    const oldFilePath = this.filePath;
     this.filePath = state.filePath || "";
     await super.setState(state, result);
-    // Re-render when state changes
-    if (this.filePath) {
+    // Only re-render if filePath actually changed (prevents losing edits on mobile)
+    if (this.filePath && this.filePath !== oldFilePath) {
       await this.renderContent();
     }
   }

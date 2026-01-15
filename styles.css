@@ -3913,6 +3913,10 @@
   min-height: 200px;
 }
 
+.is-mobile .gemini-helper-crypt-password {
+  padding-top: 4rem;
+}
+
 .is-mobile .gemini-helper-crypt-password-form {
   flex-direction: column;
 }

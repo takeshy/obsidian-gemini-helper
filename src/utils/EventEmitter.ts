@@ -4,6 +4,11 @@ export interface EventMap {
   "workspace-state-loaded": [state: unknown];
   "rag-setting-changed": [name: string | null];
   "chat-activated": [];
+  // Deep Research events (task is defined in deepResearch.ts)
+  "task-started": [task: unknown];
+  "task-progress": [task: unknown, summary: string];
+  "task-completed": [task: unknown];
+  "task-failed": [task: unknown];
 }
 
 type EventName = keyof EventMap;

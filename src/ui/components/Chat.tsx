@@ -61,6 +61,10 @@ import {
 	decryptFileContent,
 } from "src/core/crypto";
 import { cryptoCache } from "src/core/cryptoCache";
+import {
+	getDeepResearchManager,
+	type DeepResearchTask,
+} from "src/core/deepResearch";
 import { t } from "src/i18n";
 
 const PAID_RATE_LIMIT_RETRY_DELAYS_MS = [10000, 30000, 60000];
@@ -159,7 +163,7 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 		if (isInitialCli || isInitialGemma) {
 			return "none";
 		}
-		if (ragSetting === "__websearch__") {
+		if (ragSetting === "__websearch__" || ragSetting === "__deepresearch__") {
 			return "none";
 		}
 		if (ragSetting && isInitialFlashLite) {
@@ -638,8 +642,8 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 		setSelectedRagSetting(name);
 		void plugin.selectRagSetting(name);
 
-		if (name === "__websearch__") {
-			// Web Search: force to "none" (no vault tools)
+		if (name === "__websearch__" || name === "__deepresearch__") {
+			// Web Search / Deep Research: force to "none" (no vault tools)
 			setVaultToolMode("none");
 		} else if (name) {
 			// RAG is selected
@@ -709,7 +713,7 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 			}
 		} else {
 			// Normal models: check current RAG setting and reset appropriately
-			if (selectedRagSetting === "__websearch__") {
+			if (selectedRagSetting === "__websearch__" || selectedRagSetting === "__deepresearch__") {
 				setVaultToolMode("none");
 			} else if (selectedRagSetting) {
 				setVaultToolMode("noSearch");
@@ -1071,9 +1075,163 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 		}
 	};
 
+	// Send message via Deep Research
+	const sendMessageViaDeepResearch = async (content: string) => {
+		const deepResearchManager = getDeepResearchManager();
+		if (!deepResearchManager) {
+			new Notice(t("chat.clientNotInitialized"));
+			return;
+		}
+
+		// Resolve variables in the content
+		const resolvedContent = await resolveMessageVariables(content);
+
+		// Add user message
+		const userMessage: Message = {
+			role: "user",
+			content: resolvedContent.trim(),
+			timestamp: Date.now(),
+		};
+
+		// Add assistant message indicating Deep Research started
+		const assistantMessage: Message = {
+			role: "assistant",
+			content: `🔬 ${t("message.deepResearchStarted")}\n\n${t("message.deepResearchInProgress")}`,
+			timestamp: Date.now(),
+			model: currentModel,
+		};
+
+		const chatId = currentChatId || generateChatId();
+		setCurrentChatId(chatId);
+		const newMessages = [...messages, userMessage, assistantMessage];
+		setMessages(newMessages);
+
+		// Save initial state
+		await saveCurrentChat(newMessages);
+
+		try {
+			// Start the deep research task
+			const task = await deepResearchManager.startResearch(chatId, resolvedContent.trim());
+
+			// Subscribe to progress events
+			const onProgress = (progressTask: DeepResearchTask, _summary: string) => {
+				if (progressTask.id !== task.id) return;
+
+				// Update the assistant message with thinking progress
+				setMessages((prevMessages) => {
+					const newMsgs = [...prevMessages];
+					const lastIdx = newMsgs.length - 1;
+					if (lastIdx >= 0 && newMsgs[lastIdx].role === "assistant") {
+						let progressContent = `🔬 ${t("message.deepResearchStarted")}\n\n`;
+						progressContent += `${t("message.deepResearchInProgress")}\n\n`;
+						progressContent += `### ${t("message.deepResearchThinking")}\n\n`;
+						progressTask.thinkingSummaries.forEach((s, i) => {
+							progressContent += `**Step ${i + 1}:** ${s}\n\n`;
+						});
+						newMsgs[lastIdx] = {
+							...newMsgs[lastIdx],
+							content: progressContent,
+						};
+					}
+					return newMsgs;
+				});
+			};
+
+			const onCompleted = (completedTask: DeepResearchTask) => {
+				if (completedTask.id !== task.id) return;
+
+				// Update the assistant message with completion and link
+				setMessages((prevMessages) => {
+					const newMsgs = [...prevMessages];
+					const lastIdx = newMsgs.length - 1;
+					if (lastIdx >= 0 && newMsgs[lastIdx].role === "assistant") {
+						let completedContent = `🔬 ${t("message.deepResearchCompleted")}\n\n`;
+						if (completedTask.thinkingSummaries.length > 0) {
+							completedContent += `### ${t("message.deepResearchThinking")}\n\n`;
+							completedTask.thinkingSummaries.forEach((s, i) => {
+								completedContent += `**Step ${i + 1}:** ${s}\n\n`;
+							});
+							completedContent += `---\n\n`;
+						}
+						if (completedTask.resultNotePath) {
+							completedContent += `📄 [[${completedTask.resultNotePath}|${t("message.viewResult")}]]`;
+						}
+						newMsgs[lastIdx] = {
+							...newMsgs[lastIdx],
+							content: completedContent,
+						};
+					}
+					return newMsgs;
+				});
+
+				// Save final chat state asynchronously
+				const savedMessages = messages.concat([userMessage]);
+				const updatedAssistant: Message = {
+					role: "assistant",
+					content: `🔬 ${t("message.deepResearchCompleted")}\n\n${completedTask.resultNotePath ? `📄 [[${completedTask.resultNotePath}|${t("message.viewResult")}]]` : ""}`,
+					timestamp: Date.now(),
+					model: currentModel,
+				};
+				void saveCurrentChat([...savedMessages, updatedAssistant]);
+
+				// Clean up event listeners
+				deepResearchManager.events.off("task-progress", onProgress);
+				deepResearchManager.events.off("task-completed", onCompleted);
+				deepResearchManager.events.off("task-failed", onFailed);
+			};
+
+			const onFailed = (failedTask: DeepResearchTask) => {
+				if (failedTask.id !== task.id) return;
+
+				// Update the assistant message with error
+				setMessages((prevMessages) => {
+					const newMsgs = [...prevMessages];
+					const lastIdx = newMsgs.length - 1;
+					if (lastIdx >= 0 && newMsgs[lastIdx].role === "assistant") {
+						newMsgs[lastIdx] = {
+							...newMsgs[lastIdx],
+							content: `❌ ${t("message.deepResearchFailed")}: ${failedTask.error || "Unknown error"}`,
+						};
+					}
+					return newMsgs;
+				});
+
+				// Clean up event listeners
+				deepResearchManager.events.off("task-progress", onProgress);
+				deepResearchManager.events.off("task-completed", onCompleted);
+				deepResearchManager.events.off("task-failed", onFailed);
+			};
+
+			// Register event listeners (cast to unknown to work around type constraints)
+			deepResearchManager.events.on("task-progress", onProgress as unknown as () => void);
+			deepResearchManager.events.on("task-completed", onCompleted as unknown as () => void);
+			deepResearchManager.events.on("task-failed", onFailed as unknown as () => void);
+
+		} catch (error) {
+			const errorMessageText = error instanceof Error ? error.message : t("chat.unknownError");
+			setMessages((prevMessages) => {
+				const newMsgs = [...prevMessages];
+				const lastIdx = newMsgs.length - 1;
+				if (lastIdx >= 0 && newMsgs[lastIdx].role === "assistant") {
+					newMsgs[lastIdx] = {
+						...newMsgs[lastIdx],
+						content: `❌ ${t("message.deepResearchFailed")}: ${errorMessageText}`,
+					};
+				}
+				return newMsgs;
+			});
+		}
+	};
+
 	// Send message to Gemini
 	const sendMessage = async (content: string, attachments?: Attachment[]) => {
 		if ((!content.trim() && (!attachments || attachments.length === 0)) || isLoading) return;
+
+		// Use Deep Research if selected
+		if (selectedRagSetting === "__deepresearch__") {
+			await sendMessageViaDeepResearch(content);
+			return;
+		}
 
 		// Use CLI provider if in CLI mode
 		if (isCliMode) {
@@ -1794,7 +1952,7 @@ Always be helpful and provide clear, concise responses. When working with notes,
 						onRagSettingChange={handleRagSettingChange}
 						vaultToolMode={vaultToolMode}
 						onVaultToolModeChange={handleVaultToolModeChange}
-						vaultToolModeOnlyNone={isCliMode || isGemmaModel || selectedRagSetting === "__websearch__" || (isFlashLiteModel && !!selectedRagSetting && selectedRagSetting !== "__websearch__")}
+						vaultToolModeOnlyNone={isCliMode || isGemmaModel || selectedRagSetting === "__websearch__" || selectedRagSetting === "__deepresearch__" || (isFlashLiteModel && !!selectedRagSetting && selectedRagSetting !== "__websearch__" && selectedRagSetting !== "__deepresearch__")}
 						slashCommands={plugin.settings.slashCommands}
 						onSlashCommand={handleSlashCommand}
 						vaultFiles={vaultFiles}

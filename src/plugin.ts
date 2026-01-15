@@ -45,6 +45,10 @@ import { DEFAULT_CLI_CONFIG, DEFAULT_EDIT_HISTORY_SETTINGS, hasVerifiedCli } fro
 import { initLocale, t } from "src/i18n";
 import { isEncryptedFile, encryptFileContent, decryptFileContent } from "src/core/crypto";
 import { cryptoCache } from "src/core/cryptoCache";
+import {
+  initDeepResearchManager,
+  resetDeepResearchManager,
+} from "src/core/deepResearch";
 
 const WORKSPACE_STATE_FILENAME = "gemini-workspace.json";
 const OLD_WORKSPACE_STATE_FILENAME = ".gemini-workspace.json";
@@ -380,6 +384,7 @@ export class GeminiHelperPlugin extends Plugin {
     resetGeminiClient();
     resetFileSearchManager();
     resetEditHistoryManager();
+    resetDeepResearchManager();
 
     // Clean up debounce timers
     for (const timer of this.modifyDebounceTimers.values()) {
@@ -1367,6 +1372,11 @@ export class GeminiHelperPlugin extends Plugin {
     // Initialize edit history manager
     const editHistorySettings = this.settings.editHistory || DEFAULT_EDIT_HISTORY_SETTINGS;
     initEditHistoryManager(this.app, this.settings.workspaceFolder, editHistorySettings);
+
+    // Initialize Deep Research manager
+    if (this.settings.googleApiKey) {
+      initDeepResearchManager(this.settings.googleApiKey, this.app, this.settings.workspaceFolder);
+    }
 
     // Sync FileSearchManager with selected RAG setting
     this.syncFileSearchManagerWithSelectedRag();

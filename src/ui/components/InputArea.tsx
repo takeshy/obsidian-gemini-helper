@@ -548,6 +548,14 @@ const InputArea = forwardRef<InputAreaHandle, InputAreaProps>(function InputArea
               {t("input.webSearch")}
             </option>
           )}
+          {allowWebSearch && (
+            <option
+              value="__deepresearch__"
+              disabled={model === "gemini-2.5-flash-image"}
+            >
+              {t("input.deepResearch")}
+            </option>
+          )}
           {ragEnabled && ragSettings.map((name) => (
             <option
               key={name}

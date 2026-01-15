@@ -551,27 +551,49 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 
 	// Handle iOS keyboard visibility using focus events
 	const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
+	const [isDecryptInputFocused, setIsDecryptInputFocused] = useState(false);
 	useEffect(() => {
 		if (!Platform.isMobile) return;
 
 		const handleFocusIn = (e: FocusEvent) => {
 			const target = e.target as HTMLElement;
-			// Only track focus on textarea within our chat input area
+			// Track focus on textarea within our chat input area
 			if (target.tagName === "TEXTAREA" && target.closest(".gemini-helper-input-container")) {
 				setIsKeyboardVisible(true);
+				setIsDecryptInputFocused(false);
+			}
+			// Track focus on decrypt form password input
+			if (target.tagName === "INPUT" && target.closest(".gemini-helper-decrypt-form")) {
+				setIsKeyboardVisible(true);
+				setIsDecryptInputFocused(true);
 			}
 		};
 
 		const handleFocusOut = (e: FocusEvent) => {
 			const target = e.target as HTMLElement;
-			// Only track focusout from textarea within our chat input area
+			// Track focusout from textarea within our chat input area
 			if (target.tagName === "TEXTAREA" && target.closest(".gemini-helper-input-container")) {
 				// Small delay to avoid flickering
 				setTimeout(() => {
 					const active = document.activeElement as HTMLElement | null;
 					const isStillInInput = active?.tagName === "TEXTAREA" && active?.closest(".gemini-helper-input-container");
-					if (!isStillInInput) {
+					const isInDecryptForm = active?.tagName === "INPUT" && active?.closest(".gemini-helper-decrypt-form");
+					if (!isStillInInput && !isInDecryptForm) {
 						setIsKeyboardVisible(false);
+					}
+				}, 100);
+			}
+			// Track focusout from decrypt form password input
+			if (target.tagName === "INPUT" && target.closest(".gemini-helper-decrypt-form")) {
+				setTimeout(() => {
+					const active = document.activeElement as HTMLElement | null;
+					const isStillInDecrypt = active?.tagName === "INPUT" && active?.closest(".gemini-helper-decrypt-form");
+					const isInChatInput = active?.tagName === "TEXTAREA" && active?.closest(".gemini-helper-input-container");
+					if (!isStillInDecrypt && !isInChatInput) {
+						setIsKeyboardVisible(false);
+						setIsDecryptInputFocused(false);
+					} else if (isInChatInput) {
+						setIsDecryptInputFocused(false);
 					}
 				}, 100);
 			}
@@ -1629,7 +1651,7 @@ Always be helpful and provide clear, concise responses. When working with notes,
 		}
 	};
 
-	const chatClassName = `gemini-helper-chat${isKeyboardVisible ? " keyboard-visible" : ""}`;
+	const chatClassName = `gemini-helper-chat${isKeyboardVisible ? " keyboard-visible" : ""}${isDecryptInputFocused ? " decrypt-input-focused" : ""}`;
 
 	return (
 		<div className={chatClassName}>
@@ -1748,8 +1770,10 @@ Always be helpful and provide clear, concise responses. When working with notes,
 											setDecryptingChatId(null);
 											setDecryptPassword("");
 										}}
+										title={t("common.cancel")}
+										className="gemini-helper-decrypt-cancel"
 									>
-										{t("common.cancel")}
+										×
 									</button>
 								</div>
 							)}

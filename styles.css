@@ -38,6 +38,15 @@
   background: var(--background-primary);
 }
 
+/* Mobile: hide input container when decrypt form password input is focused */
+.is-mobile .gemini-helper-chat.decrypt-input-focused .gemini-helper-input-container {
+  display: none !important;
+}
+
+.is-mobile .gemini-helper-chat.decrypt-input-focused .gemini-helper-messages {
+  display: none !important;
+}
+
 .gemini-helper-chat {
   display: flex;
   flex-direction: column;
@@ -3644,6 +3653,13 @@
 
 .gemini-helper-decrypt-form button:first-of-type:hover {
   opacity: 0.9;
+}
+
+.gemini-helper-decrypt-cancel {
+  padding: 6px 10px !important;
+  min-width: auto !important;
+  font-size: 16px !important;
+  line-height: 1;
 }
 
 /* ===================================

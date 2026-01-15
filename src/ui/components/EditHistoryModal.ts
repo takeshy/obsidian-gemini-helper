@@ -3,6 +3,46 @@ import { t } from "src/i18n";
 import { getEditHistoryManager, type EditHistoryEntry } from "src/core/editHistory";
 
 /**
+ * Confirmation modal to replace native confirm()
+ */
+class ConfirmModal extends Modal {
+  private message: string;
+  private onConfirm: () => void | Promise<void>;
+
+  constructor(app: App, message: string, onConfirm: () => void | Promise<void>) {
+    super(app);
+    this.message = message;
+    this.onConfirm = onConfirm;
+  }
+
+  onOpen(): void {
+    const { contentEl } = this;
+    contentEl.createEl("p", { text: this.message });
+
+    const buttonContainer = contentEl.createDiv({ cls: "modal-button-container" });
+
+    buttonContainer.createEl("button", {
+      text: t("common.cancel"),
+    }).addEventListener("click", () => {
+      this.close();
+    });
+
+    const confirmBtn = buttonContainer.createEl("button", {
+      text: t("common.confirm"),
+      cls: "mod-warning",
+    });
+    confirmBtn.addEventListener("click", () => {
+      this.close();
+      void this.onConfirm();
+    });
+  }
+
+  onClose(): void {
+    this.contentEl.empty();
+  }
+}
+
+/**
  * Setup drag handle for modal movement
  */
 function setupDragHandle(dragHandle: HTMLElement, modalEl: HTMLElement): void {
@@ -129,13 +169,12 @@ export class EditHistoryModal extends Modal {
         text: t("editHistoryModal.revertToBase"),
       });
       resetBtn.addEventListener("click", () => {
-        const confirmed = confirm(t("editHistoryModal.confirmRevertToBase"));
-        if (confirmed) {
+        new ConfirmModal(this.app, t("editHistoryModal.confirmRevertToBase"), () => {
           void historyManager.revertToBase(this.filePath).then(() => {
             new Notice(t("editHistoryModal.revertedToBase"));
             this.close();
           });
-        }
+        }).open();
       });
     }
 
@@ -162,12 +201,11 @@ export class EditHistoryModal extends Modal {
         btn
           .setButtonText(t("editHistoryModal.clearAll"))
           .setWarning()
-          .onClick(async () => {
-            const confirmed = confirm(t("editHistoryModal.confirmClear"));
-            if (confirmed) {
+          .onClick(() => {
+            new ConfirmModal(this.app, t("editHistoryModal.confirmClear"), async () => {
               await historyManager.clearHistory(this.filePath);
               this.close();
-            }
+            }).open();
           })
       )
       .addButton((btn) =>
@@ -241,10 +279,9 @@ export class EditHistoryModal extends Modal {
       text: t("editHistoryModal.restore"),
     });
     restoreBtn.addEventListener("click", () => {
-      const confirmed = confirm(t("editHistoryModal.confirmRestore"));
-      if (confirmed) {
+      new ConfirmModal(this.app, t("editHistoryModal.confirmRestore"), () => {
         void this.handleRestore(entry.id, entry.timestamp);
-      }
+      }).open();
     });
   }
 
@@ -439,11 +476,10 @@ export class DiffModal extends Modal {
         btn
           .setButtonText(t("diffModal.restoreVersion"))
           .setCta()
-          .onClick(async () => {
-            const confirmed = confirm(t("editHistoryModal.confirmRestore"));
-            if (confirmed) {
+          .onClick(() => {
+            new ConfirmModal(this.app, t("editHistoryModal.confirmRestore"), async () => {
               await this.handleRestore();
-            }
+            }).open();
           })
       )
       .addButton((btn) =>

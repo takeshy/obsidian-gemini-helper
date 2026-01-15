@@ -1,4 +1,4 @@
-import { App, Modal, Notice, Platform, parseYaml, TFile } from "obsidian";
+import { App, Modal, Notice, Platform, parseYaml, TFile, setIcon } from "obsidian";
 import type { GeminiHelperPlugin } from "src/plugin";
 import { GeminiCliProvider, ClaudeCliProvider, CodexCliProvider } from "src/core/cliProvider";
 import { GeminiClient } from "src/core/gemini";
@@ -354,7 +354,8 @@ export class AIWorkflowModal extends Modal {
       cls: "ai-workflow-attach-btn",
       attr: { type: "button" },
     });
-    attachBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>`;
+    const iconSpan = attachBtn.createSpan();
+    setIcon(iconSpan, "paperclip");
     attachBtn.createSpan({ text: " " + t("input.attach") });
     attachBtn.addEventListener("click", () => {
       this.fileInputEl?.click();

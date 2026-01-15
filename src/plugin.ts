@@ -366,7 +366,23 @@ export class GeminiHelperPlugin extends Plugin {
 
     // Get the most recent entry and restore to before that change
     const lastEntry = history[history.length - 1];
-    const confirmed = confirm(t("editHistoryModal.confirmRestore"));
+
+    // Show confirmation modal
+    const confirmed = await new Promise<boolean>((resolve) => {
+      const modal = new Modal(this.app);
+      modal.contentEl.createEl("p", { text: t("editHistoryModal.confirmRestore") });
+      const buttonContainer = modal.contentEl.createDiv({ cls: "modal-button-container" });
+      buttonContainer.createEl("button", { text: t("common.cancel") }).addEventListener("click", () => {
+        modal.close();
+        resolve(false);
+      });
+      buttonContainer.createEl("button", { text: t("common.confirm"), cls: "mod-warning" }).addEventListener("click", () => {
+        modal.close();
+        resolve(true);
+      });
+      modal.open();
+    });
+
     if (confirmed) {
       await historyManager.restoreTo(filePath, lastEntry.id);
       const date = new Date(lastEntry.timestamp);

@@ -410,9 +410,78 @@ npm run build
 - **복호화 옵션** - 필요시 개별 파일에서 암호화 제거
 
 **작동 방식:**
-- RSA-OAEP로 키 암호화, AES-GCM으로 콘텐츠 암호화
-- 비밀번호로 키 쌍 생성; 개인 키는 비밀번호로 암호화
-- 각 파일은 고유한 AES 키로 암호화되고 공개 키로 래핑
+
+```
+[암호화]
+비밀번호 → 키 쌍 생성 → 비밀번호로 개인 키 암호화
+파일 내용 → AES 키로 암호화 → 공개 키로 AES 키 암호화
+→ 파일에 저장: 암호화된 데이터 + 암호화된 개인 키 + salt
+
+[복호화]
+비밀번호 + salt → 개인 키 복원 → AES 키 복호화 → 파일 내용 복호화
+```
+
+- 각 파일에 저장: 암호화된 콘텐츠 + 암호화된 개인 키 + salt
+- 파일은 자체 완결형 — 비밀번호만으로 복호화 가능, 플러그인 의존성 없음
+
+<details>
+<summary>Python 복호화 스크립트 (클릭하여 펼치기)</summary>
+
+```python
+#!/usr/bin/env python3
+"""플러그인 없이 Gemini Helper 암호화 파일 복호화"""
+import base64, sys, re, getpass
+from cryptography.hazmat.primitives import hashes, serialization
+from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
+from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+from cryptography.hazmat.primitives.asymmetric import padding
+
+def decrypt_file(filepath: str, password: str) -> str:
+    with open(filepath, 'r') as f:
+        content = f.read()
+
+    match = re.match(r'^---\n([\s\S]*?)\n---\n([\s\S]*)$', content)
+    if not match:
+        raise ValueError("잘못된 암호화 파일 형식")
+
+    frontmatter, encrypted_data = match.groups()
+    key_match = re.search(r'key:\s*(.+)', frontmatter)
+    salt_match = re.search(r'salt:\s*(.+)', frontmatter)
+    if not key_match or not salt_match:
+        raise ValueError("frontmatter에 key 또는 salt 없음")
+
+    enc_private_key = base64.b64decode(key_match.group(1).strip())
+    salt = base64.b64decode(salt_match.group(1).strip())
+    data = base64.b64decode(encrypted_data.strip())
+
+    kdf = PBKDF2HMAC(algorithm=hashes.SHA256(), length=32, salt=salt, iterations=100000)
+    derived_key = kdf.derive(password.encode())
+
+    iv, enc_priv = enc_private_key[:12], enc_private_key[12:]
+    private_key_pem = AESGCM(derived_key).decrypt(iv, enc_priv, None)
+    private_key = serialization.load_der_private_key(base64.b64decode(private_key_pem), None)
+
+    key_len = (data[0] << 8) | data[1]
+    enc_aes_key = data[2:2+key_len]
+    content_iv = data[2+key_len:2+key_len+12]
+    enc_content = data[2+key_len+12:]
+
+    aes_key = private_key.decrypt(enc_aes_key, padding.OAEP(
+        mgf=padding.MGF1(algorithm=hashes.SHA256()), algorithm=hashes.SHA256(), label=None))
+
+    return AESGCM(aes_key).decrypt(content_iv, enc_content, None).decode('utf-8')
+
+if __name__ == "__main__":
+    if len(sys.argv) != 2:
+        print(f"사용법: {sys.argv[0]} <암호화_파일>")
+        sys.exit(1)
+    password = getpass.getpass("비밀번호: ")
+    print(decrypt_file(sys.argv[1], password))
+```
+
+필요: `pip install cryptography`
+
+</details>
 
 > **경고:** 비밀번호를 잊으면 암호화된 파일을 복구할 수 없습니다. 비밀번호를 안전하게 보관하세요.
 

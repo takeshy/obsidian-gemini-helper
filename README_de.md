@@ -410,9 +410,78 @@ Schützen Sie Ihren Chat-Verlauf und Workflow-Ausführungsprotokolle mit Passwor
 - **Entschlüsselungsoption** - Verschlüsselung bei Bedarf von einzelnen Dateien entfernen
 
 **Funktionsweise:**
-- Verwendet RSA-OAEP für Schlüsselverschlüsselung und AES-GCM für Inhaltsverschlüsselung
-- Passwort generiert ein Schlüsselpaar; privater Schlüssel wird mit Ihrem Passwort verschlüsselt
-- Jede Datei wird mit einem einzigartigen AES-Schlüssel verschlüsselt, der mit dem öffentlichen Schlüssel umhüllt wird
+
+```
+[Verschlüsselung]
+Passwort → Schlüsselpaar generieren → Privaten Schlüssel mit Passwort verschlüsseln
+Inhalt → Mit AES-Schlüssel verschlüsseln → AES-Schlüssel mit öffentlichem Schlüssel verschlüsseln
+→ In Datei speichern: verschlüsselte Daten + verschlüsselter privater Schlüssel + Salt
+
+[Entschlüsselung]
+Passwort + Salt → Privaten Schlüssel wiederherstellen → AES-Schlüssel entschlüsseln → Inhalt entschlüsseln
+```
+
+- Jede Datei speichert: verschlüsselten Inhalt + verschlüsselten privaten Schlüssel + Salt
+- Dateien sind eigenständig — nur mit Passwort entschlüsselbar, keine Plugin-Abhängigkeit
+
+<details>
+<summary>Python-Entschlüsselungsskript (zum Erweitern klicken)</summary>
+
+```python
+#!/usr/bin/env python3
+"""Gemini Helper verschlüsselte Dateien ohne Plugin entschlüsseln."""
+import base64, sys, re, getpass
+from cryptography.hazmat.primitives import hashes, serialization
+from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
+from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+from cryptography.hazmat.primitives.asymmetric import padding
+
+def decrypt_file(filepath: str, password: str) -> str:
+    with open(filepath, 'r') as f:
+        content = f.read()
+
+    match = re.match(r'^---\n([\s\S]*?)\n---\n([\s\S]*)$', content)
+    if not match:
+        raise ValueError("Ungültiges verschlüsseltes Dateiformat")
+
+    frontmatter, encrypted_data = match.groups()
+    key_match = re.search(r'key:\s*(.+)', frontmatter)
+    salt_match = re.search(r'salt:\s*(.+)', frontmatter)
+    if not key_match or not salt_match:
+        raise ValueError("Key oder Salt fehlt im Frontmatter")
+
+    enc_private_key = base64.b64decode(key_match.group(1).strip())
+    salt = base64.b64decode(salt_match.group(1).strip())
+    data = base64.b64decode(encrypted_data.strip())
+
+    kdf = PBKDF2HMAC(algorithm=hashes.SHA256(), length=32, salt=salt, iterations=100000)
+    derived_key = kdf.derive(password.encode())
+
+    iv, enc_priv = enc_private_key[:12], enc_private_key[12:]
+    private_key_pem = AESGCM(derived_key).decrypt(iv, enc_priv, None)
+    private_key = serialization.load_der_private_key(base64.b64decode(private_key_pem), None)
+
+    key_len = (data[0] << 8) | data[1]
+    enc_aes_key = data[2:2+key_len]
+    content_iv = data[2+key_len:2+key_len+12]
+    enc_content = data[2+key_len+12:]
+
+    aes_key = private_key.decrypt(enc_aes_key, padding.OAEP(
+        mgf=padding.MGF1(algorithm=hashes.SHA256()), algorithm=hashes.SHA256(), label=None))
+
+    return AESGCM(aes_key).decrypt(content_iv, enc_content, None).decode('utf-8')
+
+if __name__ == "__main__":
+    if len(sys.argv) != 2:
+        print(f"Verwendung: {sys.argv[0]} <verschlüsselte_datei>")
+        sys.exit(1)
+    password = getpass.getpass("Passwort: ")
+    print(decrypt_file(sys.argv[1], password))
+```
+
+Benötigt: `pip install cryptography`
+
+</details>
 
 > **Warnung:** Wenn Sie Ihr Passwort vergessen, können verschlüsselte Dateien nicht wiederhergestellt werden. Bewahren Sie Ihr Passwort sicher auf.
 

@@ -410,9 +410,78 @@ npm run build
 - **解密选项** - 需要时可从单个文件移除加密
 
 **工作原理：**
-- 使用 RSA-OAEP 进行密钥加密，使用 AES-GCM 进行内容加密
-- 密码生成密钥对；私钥使用您的密码加密
-- 每个文件使用唯一的 AES 密钥加密，并用公钥包装
+
+```
+【加密】
+密码 → 生成密钥对 → 用密码加密私钥
+文件内容 → 用 AES 密钥加密 → 用公钥加密 AES 密钥
+→ 保存到文件：加密数据 + 加密私钥 + salt
+
+【解密】
+密码 + salt → 恢复私钥 → 解密 AES 密钥 → 解密文件内容
+```
+
+- 每个文件存储：加密内容 + 加密私钥 + salt
+- 文件是自包含的 — 仅需密码即可解密，无需插件依赖
+
+<details>
+<summary>Python 解密脚本（点击展开）</summary>
+
+```python
+#!/usr/bin/env python3
+"""无需插件解密 Gemini Helper 加密文件"""
+import base64, sys, re, getpass
+from cryptography.hazmat.primitives import hashes, serialization
+from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
+from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+from cryptography.hazmat.primitives.asymmetric import padding
+
+def decrypt_file(filepath: str, password: str) -> str:
+    with open(filepath, 'r') as f:
+        content = f.read()
+
+    match = re.match(r'^---\n([\s\S]*?)\n---\n([\s\S]*)$', content)
+    if not match:
+        raise ValueError("无效的加密文件格式")
+
+    frontmatter, encrypted_data = match.groups()
+    key_match = re.search(r'key:\s*(.+)', frontmatter)
+    salt_match = re.search(r'salt:\s*(.+)', frontmatter)
+    if not key_match or not salt_match:
+        raise ValueError("frontmatter 中缺少 key 或 salt")
+
+    enc_private_key = base64.b64decode(key_match.group(1).strip())
+    salt = base64.b64decode(salt_match.group(1).strip())
+    data = base64.b64decode(encrypted_data.strip())
+
+    kdf = PBKDF2HMAC(algorithm=hashes.SHA256(), length=32, salt=salt, iterations=100000)
+    derived_key = kdf.derive(password.encode())
+
+    iv, enc_priv = enc_private_key[:12], enc_private_key[12:]
+    private_key_pem = AESGCM(derived_key).decrypt(iv, enc_priv, None)
+    private_key = serialization.load_der_private_key(base64.b64decode(private_key_pem), None)
+
+    key_len = (data[0] << 8) | data[1]
+    enc_aes_key = data[2:2+key_len]
+    content_iv = data[2+key_len:2+key_len+12]
+    enc_content = data[2+key_len+12:]
+
+    aes_key = private_key.decrypt(enc_aes_key, padding.OAEP(
+        mgf=padding.MGF1(algorithm=hashes.SHA256()), algorithm=hashes.SHA256(), label=None))
+
+    return AESGCM(aes_key).decrypt(content_iv, enc_content, None).decode('utf-8')
+
+if __name__ == "__main__":
+    if len(sys.argv) != 2:
+        print(f"用法: {sys.argv[0]} <加密文件>")
+        sys.exit(1)
+    password = getpass.getpass("密码: ")
+    print(decrypt_file(sys.argv[1], password))
+```
+
+需要: `pip install cryptography`
+
+</details>
 
 > **警告：** 如果您忘记密码，加密文件将无法恢复。请妥善保管您的密码。
 

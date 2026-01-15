@@ -410,9 +410,84 @@ npm run build
 - **復号オプション** - 必要に応じて個別ファイルの暗号化を解除
 
 **仕組み:**
-- RSA-OAEP で鍵暗号化、AES-GCM でコンテンツ暗号化
-- パスワードから鍵ペアを生成。秘密鍵はパスワードで暗号化
-- 各ファイルは固有の AES 鍵で暗号化され、公開鍵でラップ
+
+```
+【暗号化】
+パスワード → 鍵ペア生成 → 秘密鍵をパスワードで暗号化
+ファイル内容 → AES鍵で暗号化 → AES鍵を公開鍵で暗号化
+→ ファイルに保存: 暗号化データ + 暗号化秘密鍵 + salt
+
+【復号】
+パスワード + salt → 秘密鍵を復元 → AES鍵を復号 → ファイル内容を復号
+```
+
+- 各ファイルに保存: 暗号化コンテンツ + 暗号化秘密鍵 + salt
+- ファイルは自己完結型 — パスワードだけで復号可能、プラグイン依存なし
+
+<details>
+<summary>Python復号スクリプト（クリックで展開）</summary>
+
+```python
+#!/usr/bin/env python3
+"""プラグインなしでGemini Helper暗号化ファイルを復号"""
+import base64, sys, re, getpass
+from cryptography.hazmat.primitives import hashes, serialization
+from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
+from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+from cryptography.hazmat.primitives.asymmetric import padding
+
+def decrypt_file(filepath: str, password: str) -> str:
+    with open(filepath, 'r') as f:
+        content = f.read()
+
+    # YAMLフロントマターを解析
+    match = re.match(r'^---\n([\s\S]*?)\n---\n([\s\S]*)$', content)
+    if not match:
+        raise ValueError("無効な暗号化ファイル形式")
+
+    frontmatter, encrypted_data = match.groups()
+    key_match = re.search(r'key:\s*(.+)', frontmatter)
+    salt_match = re.search(r'salt:\s*(.+)', frontmatter)
+    if not key_match or not salt_match:
+        raise ValueError("フロントマターにkeyまたはsaltがありません")
+
+    enc_private_key = base64.b64decode(key_match.group(1).strip())
+    salt = base64.b64decode(salt_match.group(1).strip())
+    data = base64.b64decode(encrypted_data.strip())
+
+    # パスワードから鍵を導出
+    kdf = PBKDF2HMAC(algorithm=hashes.SHA256(), length=32, salt=salt, iterations=100000)
+    derived_key = kdf.derive(password.encode())
+
+    # 秘密鍵を復号
+    iv, enc_priv = enc_private_key[:12], enc_private_key[12:]
+    private_key_pem = AESGCM(derived_key).decrypt(iv, enc_priv, None)
+    private_key = serialization.load_der_private_key(base64.b64decode(private_key_pem), None)
+
+    # 暗号化データを解析: key_length(2) + enc_aes_key + iv(12) + enc_content
+    key_len = (data[0] << 8) | data[1]
+    enc_aes_key = data[2:2+key_len]
+    content_iv = data[2+key_len:2+key_len+12]
+    enc_content = data[2+key_len+12:]
+
+    # RSA秘密鍵でAES鍵を復号
+    aes_key = private_key.decrypt(enc_aes_key, padding.OAEP(
+        mgf=padding.MGF1(algorithm=hashes.SHA256()), algorithm=hashes.SHA256(), label=None))
+
+    # コンテンツを復号
+    return AESGCM(aes_key).decrypt(content_iv, enc_content, None).decode('utf-8')
+
+if __name__ == "__main__":
+    if len(sys.argv) != 2:
+        print(f"使用法: {sys.argv[0]} <暗号化ファイル>")
+        sys.exit(1)
+    password = getpass.getpass("パスワード: ")
+    print(decrypt_file(sys.argv[1], password))
+```
+
+必要: `pip install cryptography`
+
+</details>
 
 > **警告:** パスワードを忘れると、暗号化ファイルは復元できません。パスワードは安全に保管してください。
 

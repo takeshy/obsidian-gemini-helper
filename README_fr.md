@@ -410,9 +410,78 @@ Protégez votre historique de chat et vos journaux d'exécution de workflows par
 - **Option de déchiffrement** - Supprimez le chiffrement de fichiers individuels si nécessaire
 
 **Fonctionnement :**
-- Utilise RSA-OAEP pour le chiffrement des clés et AES-GCM pour le chiffrement du contenu
-- Le mot de passe génère une paire de clés ; la clé privée est chiffrée avec votre mot de passe
-- Chaque fichier est chiffré avec une clé AES unique, enveloppée avec la clé publique
+
+```
+[Chiffrement]
+Mot de passe → Générer paire de clés → Chiffrer clé privée avec mot de passe
+Contenu → Chiffrer avec clé AES → Chiffrer clé AES avec clé publique
+→ Sauvegarder : données chiffrées + clé privée chiffrée + salt
+
+[Déchiffrement]
+Mot de passe + salt → Restaurer clé privée → Déchiffrer clé AES → Déchiffrer contenu
+```
+
+- Chaque fichier stocke : contenu chiffré + clé privée chiffrée + salt
+- Les fichiers sont autonomes — déchiffrables avec juste le mot de passe, sans dépendance au plugin
+
+<details>
+<summary>Script Python de déchiffrement (cliquez pour développer)</summary>
+
+```python
+#!/usr/bin/env python3
+"""Déchiffrer les fichiers Gemini Helper sans le plugin."""
+import base64, sys, re, getpass
+from cryptography.hazmat.primitives import hashes, serialization
+from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
+from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+from cryptography.hazmat.primitives.asymmetric import padding
+
+def decrypt_file(filepath: str, password: str) -> str:
+    with open(filepath, 'r') as f:
+        content = f.read()
+
+    match = re.match(r'^---\n([\s\S]*?)\n---\n([\s\S]*)$', content)
+    if not match:
+        raise ValueError("Format de fichier chiffré invalide")
+
+    frontmatter, encrypted_data = match.groups()
+    key_match = re.search(r'key:\s*(.+)', frontmatter)
+    salt_match = re.search(r'salt:\s*(.+)', frontmatter)
+    if not key_match or not salt_match:
+        raise ValueError("Clé ou salt manquant dans frontmatter")
+
+    enc_private_key = base64.b64decode(key_match.group(1).strip())
+    salt = base64.b64decode(salt_match.group(1).strip())
+    data = base64.b64decode(encrypted_data.strip())
+
+    kdf = PBKDF2HMAC(algorithm=hashes.SHA256(), length=32, salt=salt, iterations=100000)
+    derived_key = kdf.derive(password.encode())
+
+    iv, enc_priv = enc_private_key[:12], enc_private_key[12:]
+    private_key_pem = AESGCM(derived_key).decrypt(iv, enc_priv, None)
+    private_key = serialization.load_der_private_key(base64.b64decode(private_key_pem), None)
+
+    key_len = (data[0] << 8) | data[1]
+    enc_aes_key = data[2:2+key_len]
+    content_iv = data[2+key_len:2+key_len+12]
+    enc_content = data[2+key_len+12:]
+
+    aes_key = private_key.decrypt(enc_aes_key, padding.OAEP(
+        mgf=padding.MGF1(algorithm=hashes.SHA256()), algorithm=hashes.SHA256(), label=None))
+
+    return AESGCM(aes_key).decrypt(content_iv, enc_content, None).decode('utf-8')
+
+if __name__ == "__main__":
+    if len(sys.argv) != 2:
+        print(f"Usage : {sys.argv[0]} <fichier_chiffré>")
+        sys.exit(1)
+    password = getpass.getpass("Mot de passe : ")
+    print(decrypt_file(sys.argv[1], password))
+```
+
+Requis : `pip install cryptography`
+
+</details>
 
 > **Avertissement :** Si vous oubliez votre mot de passe, les fichiers chiffrés ne peuvent pas être récupérés. Conservez votre mot de passe en lieu sûr.
 

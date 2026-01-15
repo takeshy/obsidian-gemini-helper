@@ -410,9 +410,78 @@ Proteggi la cronologia chat e i log di esecuzione dei workflow con password.
 - **Opzione decrittografia** - Rimuovi la crittografia da singoli file quando necessario
 
 **Come funziona:**
-- Usa RSA-OAEP per la crittografia delle chiavi e AES-GCM per la crittografia del contenuto
-- La password genera una coppia di chiavi; la chiave privata è crittografata con la tua password
-- Ogni file è crittografato con una chiave AES unica, avvolta con la chiave pubblica
+
+```
+[Crittografia]
+Password → Genera coppia di chiavi → Crittografa chiave privata con password
+Contenuto → Crittografa con chiave AES → Crittografa chiave AES con chiave pubblica
+→ Salva nel file: dati crittografati + chiave privata crittografata + salt
+
+[Decrittografia]
+Password + salt → Ripristina chiave privata → Decrittografa chiave AES → Decrittografa contenuto
+```
+
+- Ogni file memorizza: contenuto crittografato + chiave privata crittografata + salt
+- I file sono autonomi — decrittografabili solo con la password, senza dipendenza dal plugin
+
+<details>
+<summary>Script Python di decrittografia (clicca per espandere)</summary>
+
+```python
+#!/usr/bin/env python3
+"""Decrittografare file Gemini Helper senza il plugin."""
+import base64, sys, re, getpass
+from cryptography.hazmat.primitives import hashes, serialization
+from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
+from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+from cryptography.hazmat.primitives.asymmetric import padding
+
+def decrypt_file(filepath: str, password: str) -> str:
+    with open(filepath, 'r') as f:
+        content = f.read()
+
+    match = re.match(r'^---\n([\s\S]*?)\n---\n([\s\S]*)$', content)
+    if not match:
+        raise ValueError("Formato file crittografato non valido")
+
+    frontmatter, encrypted_data = match.groups()
+    key_match = re.search(r'key:\s*(.+)', frontmatter)
+    salt_match = re.search(r'salt:\s*(.+)', frontmatter)
+    if not key_match or not salt_match:
+        raise ValueError("Key o salt mancante nel frontmatter")
+
+    enc_private_key = base64.b64decode(key_match.group(1).strip())
+    salt = base64.b64decode(salt_match.group(1).strip())
+    data = base64.b64decode(encrypted_data.strip())
+
+    kdf = PBKDF2HMAC(algorithm=hashes.SHA256(), length=32, salt=salt, iterations=100000)
+    derived_key = kdf.derive(password.encode())
+
+    iv, enc_priv = enc_private_key[:12], enc_private_key[12:]
+    private_key_pem = AESGCM(derived_key).decrypt(iv, enc_priv, None)
+    private_key = serialization.load_der_private_key(base64.b64decode(private_key_pem), None)
+
+    key_len = (data[0] << 8) | data[1]
+    enc_aes_key = data[2:2+key_len]
+    content_iv = data[2+key_len:2+key_len+12]
+    enc_content = data[2+key_len+12:]
+
+    aes_key = private_key.decrypt(enc_aes_key, padding.OAEP(
+        mgf=padding.MGF1(algorithm=hashes.SHA256()), algorithm=hashes.SHA256(), label=None))
+
+    return AESGCM(aes_key).decrypt(content_iv, enc_content, None).decode('utf-8')
+
+if __name__ == "__main__":
+    if len(sys.argv) != 2:
+        print(f"Uso: {sys.argv[0]} <file_crittografato>")
+        sys.exit(1)
+    password = getpass.getpass("Password: ")
+    print(decrypt_file(sys.argv[1], password))
+```
+
+Richiede: `pip install cryptography`
+
+</details>
 
 > **Avvertenza:** Se dimentichi la password, i file crittografati non possono essere recuperati. Conserva la password in modo sicuro.
 

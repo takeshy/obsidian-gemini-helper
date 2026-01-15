@@ -416,9 +416,78 @@ Protege tu historial de chat y registros de ejecución de workflows con contrase
 - **Opción de descifrado** - Elimina el cifrado de archivos individuales cuando sea necesario
 
 **Cómo funciona:**
-- Usa RSA-OAEP para cifrado de claves y AES-GCM para cifrado de contenido
-- La contraseña genera un par de claves; la clave privada se cifra con tu contraseña
-- Cada archivo se cifra con una clave AES única, envuelta con la clave pública
+
+```
+[Cifrado]
+Contraseña → Generar par de claves → Cifrar clave privada con contraseña
+Contenido → Cifrar con clave AES → Cifrar clave AES con clave pública
+→ Guardar en archivo: datos cifrados + clave privada cifrada + salt
+
+[Descifrado]
+Contraseña + salt → Restaurar clave privada → Descifrar clave AES → Descifrar contenido
+```
+
+- Cada archivo almacena: contenido cifrado + clave privada cifrada + salt
+- Los archivos son autocontenidos — descifrables solo con la contraseña, sin dependencia del plugin
+
+<details>
+<summary>Script Python de descifrado (clic para expandir)</summary>
+
+```python
+#!/usr/bin/env python3
+"""Descifrar archivos encriptados de Gemini Helper sin el plugin."""
+import base64, sys, re, getpass
+from cryptography.hazmat.primitives import hashes, serialization
+from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
+from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+from cryptography.hazmat.primitives.asymmetric import padding
+
+def decrypt_file(filepath: str, password: str) -> str:
+    with open(filepath, 'r') as f:
+        content = f.read()
+
+    match = re.match(r'^---\n([\s\S]*?)\n---\n([\s\S]*)$', content)
+    if not match:
+        raise ValueError("Formato de archivo encriptado inválido")
+
+    frontmatter, encrypted_data = match.groups()
+    key_match = re.search(r'key:\s*(.+)', frontmatter)
+    salt_match = re.search(r'salt:\s*(.+)', frontmatter)
+    if not key_match or not salt_match:
+        raise ValueError("Falta key o salt en frontmatter")
+
+    enc_private_key = base64.b64decode(key_match.group(1).strip())
+    salt = base64.b64decode(salt_match.group(1).strip())
+    data = base64.b64decode(encrypted_data.strip())
+
+    kdf = PBKDF2HMAC(algorithm=hashes.SHA256(), length=32, salt=salt, iterations=100000)
+    derived_key = kdf.derive(password.encode())
+
+    iv, enc_priv = enc_private_key[:12], enc_private_key[12:]
+    private_key_pem = AESGCM(derived_key).decrypt(iv, enc_priv, None)
+    private_key = serialization.load_der_private_key(base64.b64decode(private_key_pem), None)
+
+    key_len = (data[0] << 8) | data[1]
+    enc_aes_key = data[2:2+key_len]
+    content_iv = data[2+key_len:2+key_len+12]
+    enc_content = data[2+key_len+12:]
+
+    aes_key = private_key.decrypt(enc_aes_key, padding.OAEP(
+        mgf=padding.MGF1(algorithm=hashes.SHA256()), algorithm=hashes.SHA256(), label=None))
+
+    return AESGCM(aes_key).decrypt(content_iv, enc_content, None).decode('utf-8')
+
+if __name__ == "__main__":
+    if len(sys.argv) != 2:
+        print(f"Uso: {sys.argv[0]} <archivo_encriptado>")
+        sys.exit(1)
+    password = getpass.getpass("Contraseña: ")
+    print(decrypt_file(sys.argv[1], password))
+```
+
+Requiere: `pip install cryptography`
+
+</details>
 
 > **Advertencia:** Si olvidas tu contraseña, los archivos cifrados no se pueden recuperar. Guarda tu contraseña de forma segura.
 

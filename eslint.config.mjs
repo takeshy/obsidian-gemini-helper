@@ -52,16 +52,8 @@ export default tseslint.config(
       'obsidianmd/sample-names': 'error',
       'obsidianmd/validate-manifest': 'error',
       'obsidianmd/validate-license': 'error',
-      'obsidianmd/ui/sentence-case': ['error', {
-        enforceCamelCaseLower: true,
-        acronyms: ['API', 'RAG', 'CLI', 'MCP', 'AI', 'HTTP', 'JSON', 'YAML', 'URL', 'PDF', 'OK', 'ID', 'HTML'],
-        brands: ['Gemini', 'Google', 'Claude', 'Codex', 'Obsidian', 'GitHub', 'Markdown', 'Mermaid', 'Canvas'],
-      }],
-      'obsidianmd/ui/sentence-case-locale-module': ['error', {
-        enforceCamelCaseLower: true,
-        acronyms: ['API', 'RAG', 'CLI', 'MCP', 'AI', 'HTTP', 'JSON', 'YAML', 'URL', 'PDF', 'OK', 'ID', 'HTML'],
-        brands: ['Gemini', 'Google', 'Claude', 'Codex', 'Obsidian', 'GitHub', 'Markdown', 'Mermaid', 'Canvas'],
-      }],
+      'obsidianmd/ui/sentence-case': 'error',
+      'obsidianmd/ui/sentence-case-locale-module': 'error',
 
       // Additional strict rules
       'no-case-declarations': 'error',

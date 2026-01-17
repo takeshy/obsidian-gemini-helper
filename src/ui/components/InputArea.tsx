@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, KeyboardEvent, ChangeEvent, forwardRef, useImperativeHandle } from "react";
-import { Send, Paperclip, StopCircle, Eye, Database } from "lucide-react";
+import { Send, Paperclip, StopCircle, Eye, Database, ChevronUp, ChevronDown } from "lucide-react";
 import { Platform, type App } from "obsidian";
 import { isImageGenerationModel, type ModelInfo, type ModelType, type Attachment, type SlashCommand } from "src/types";
 import { t } from "src/i18n";
@@ -71,6 +71,7 @@ const InputArea = forwardRef<InputAreaHandle, InputAreaProps>(function InputArea
 }, ref) {
   const [input, setInput] = useState("");
   const [pendingAttachments, setPendingAttachments] = useState<Attachment[]>([]);
+  const [isCollapsed, setIsCollapsed] = useState(false);
   const [showAutocomplete, setShowAutocomplete] = useState(false);
   const [autocompleteIndex, setAutocompleteIndex] = useState(0);
   const [filteredCommands, setFilteredCommands] = useState<SlashCommand[]>([]);
@@ -352,9 +353,9 @@ const InputArea = forwardRef<InputAreaHandle, InputAreaProps>(function InputArea
   };
 
   return (
-    <div className="gemini-helper-input-container">
+    <div className={`gemini-helper-input-container ${isCollapsed ? "collapsed" : ""}`}>
       {/* Pending attachments display */}
-      {pendingAttachments.length > 0 && (
+      {!isCollapsed && pendingAttachments.length > 0 && (
         <div className="gemini-helper-pending-attachments">
           {pendingAttachments.map((attachment, index) => (
             <span key={index} className="gemini-helper-pending-attachment">
@@ -374,9 +375,10 @@ const InputArea = forwardRef<InputAreaHandle, InputAreaProps>(function InputArea
         </div>
       )}
 
-      <div className="gemini-helper-input-area">
-        {/* Slash command autocomplete */}
-        {showAutocomplete && (
+      {!isCollapsed && (
+        <div className="gemini-helper-input-area">
+          {/* Slash command autocomplete */}
+          {showAutocomplete && (
           <div className="gemini-helper-autocomplete">
             {filteredCommands.map((cmd, index) => (
               <div
@@ -502,64 +504,92 @@ const InputArea = forwardRef<InputAreaHandle, InputAreaProps>(function InputArea
           placeholder={Platform.isMobile ? t("input.placeholderMobile") : t("input.placeholder")}
           rows={3}
         />
-        {isLoading ? (
-          <button
-            className="gemini-helper-stop-btn"
-            onClick={onStop}
-            title={t("input.stop")}
-          >
-            <StopCircle size={18} />
-          </button>
-        ) : (
-          <button
-            className="gemini-helper-send-btn"
-            onClick={handleSubmit}
-            disabled={!input.trim() && pendingAttachments.length === 0}
-            title={t("input.send")}
-          >
-            <Send size={18} />
-          </button>
-        )}
-      </div>
-      <div className="gemini-helper-model-selector">
-        <select
-          className="gemini-helper-model-select"
-          value={model}
-          onChange={(e) => onModelChange(e.target.value as ModelType)}
-          disabled={isLoading}
-        >
-          {availableModels.map((m) => (
-            <option key={m.name} value={m.name}>
-              {m.displayName}
-            </option>
-          ))}
-        </select>
-        <select
-          className="gemini-helper-model-select gemini-helper-rag-select"
-          value={(allowWebSearch || ragEnabled) ? (selectedRagSetting || "") : ""}
-          onChange={(e) => onRagSettingChange(e.target.value || null)}
-          disabled={isLoading || (!allowWebSearch && !ragEnabled) || model.toLowerCase().includes("gemma")}
-        >
-          <option value="">{t("input.searchNone")}</option>
-          {allowWebSearch && (
-            <option
-              value="__websearch__"
-              disabled={model === "gemini-2.5-flash-image"}
+        <div className="gemini-helper-send-buttons">
+          {isLoading ? (
+            <button
+              className="gemini-helper-stop-btn"
+              onClick={onStop}
+              title={t("input.stop")}
             >
-              {t("input.webSearch")}
-            </option>
+              <StopCircle size={18} />
+            </button>
+          ) : (
+            <button
+              className="gemini-helper-send-btn"
+              onClick={handleSubmit}
+              disabled={!input.trim() && pendingAttachments.length === 0}
+              title={t("input.send")}
+            >
+              <Send size={18} />
+            </button>
           )}
-          {ragEnabled && ragSettings.map((name) => (
-            <option
-              key={name}
-              value={name}
-              disabled={isImageGenerationModel(model)}
+          {Platform.isMobile && (
+            <button
+              className="gemini-helper-collapse-btn"
+              onClick={() => setIsCollapsed(!isCollapsed)}
+              title={isCollapsed ? t("input.expand") : t("input.collapse")}
             >
-              {t("input.rag", { name })}
-            </option>
-          ))}
-        </select>
+              {isCollapsed ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+            </button>
+          )}
+        </div>
       </div>
+      )}
+
+      {/* Collapsed state: show only expand button */}
+      {isCollapsed && Platform.isMobile && (
+        <div className="gemini-helper-collapsed-bar">
+          <button
+            className="gemini-helper-expand-btn"
+            onClick={() => setIsCollapsed(false)}
+            title={t("input.expand")}
+          >
+            <ChevronUp size={18} />
+          </button>
+        </div>
+      )}
+
+      {!isCollapsed && (
+        <div className="gemini-helper-model-selector">
+          <select
+            className="gemini-helper-model-select"
+            value={model}
+            onChange={(e) => onModelChange(e.target.value as ModelType)}
+            disabled={isLoading}
+          >
+            {availableModels.map((m) => (
+              <option key={m.name} value={m.name}>
+                {m.displayName}
+              </option>
+            ))}
+          </select>
+          <select
+            className="gemini-helper-model-select gemini-helper-rag-select"
+            value={(allowWebSearch || ragEnabled) ? (selectedRagSetting || "") : ""}
+            onChange={(e) => onRagSettingChange(e.target.value || null)}
+            disabled={isLoading || (!allowWebSearch && !ragEnabled) || model.toLowerCase().includes("gemma")}
+          >
+            <option value="">{t("input.searchNone")}</option>
+            {allowWebSearch && (
+              <option
+                value="__websearch__"
+                disabled={model === "gemini-2.5-flash-image"}
+              >
+                {t("input.webSearch")}
+              </option>
+            )}
+            {ragEnabled && ragSettings.map((name) => (
+              <option
+                key={name}
+                value={name}
+                disabled={isImageGenerationModel(model)}
+              >
+                {t("input.rag", { name })}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
     </div>
   );
 });

@@ -219,6 +219,8 @@ export const zh: Record<string, string> = {
   "input.contentVariable": "活动笔记内容",
   "input.vaultFile": "库文件",
   "input.openFile": "打开文件（Ctrl+Shift+O）",
+  "input.collapse": "收起输入区域",
+  "input.expand": "展开输入区域",
 
   // MessageBubble
   "message.you": "你",

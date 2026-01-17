@@ -219,6 +219,8 @@ export const fr: Record<string, string> = {
   "input.contentVariable": "Contenu de la note active",
   "input.vaultFile": "Fichier du vault",
   "input.openFile": "Ouvrir le fichier (Ctrl+Maj+O)",
+  "input.collapse": "Réduire la zone de saisie",
+  "input.expand": "Agrandir la zone de saisie",
 
   // MessageBubble
   "message.you": "Vous",

@@ -219,6 +219,8 @@ export const ko: Record<string, string> = {
   "input.contentVariable": "활성 노트 내용",
   "input.vaultFile": "볼트 파일",
   "input.openFile": "파일 열기 (Ctrl+Shift+O)",
+  "input.collapse": "입력 영역 축소",
+  "input.expand": "입력 영역 확대",
 
   // MessageBubble
   "message.you": "나",

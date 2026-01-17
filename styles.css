@@ -428,6 +428,65 @@
   background: var(--background-primary);
 }
 
+/* Send buttons container (send + collapse) */
+.gemini-helper-send-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-self: flex-end;
+}
+
+/* Collapse button for mobile (same size as send button) */
+.gemini-helper-collapse-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  background: var(--background-secondary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 4px;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.gemini-helper-collapse-btn:hover {
+  background: var(--background-modifier-hover);
+  color: var(--text-normal);
+}
+
+/* Collapsed bar with expand button */
+.gemini-helper-collapsed-bar {
+  display: flex;
+  justify-content: center;
+  padding: 8px;
+  border-top: 1px solid var(--background-modifier-border);
+  background: var(--background-primary);
+}
+
+.gemini-helper-expand-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  background: var(--interactive-accent);
+  border: none;
+  border-radius: 4px;
+  color: var(--text-on-accent);
+  cursor: pointer;
+}
+
+.gemini-helper-expand-btn:hover {
+  background: var(--interactive-accent-hover);
+}
+
+.gemini-helper-input-container.collapsed {
+  border-top: none;
+}
+
 /* Input Area */
 .gemini-helper-input-area {
   position: relative;

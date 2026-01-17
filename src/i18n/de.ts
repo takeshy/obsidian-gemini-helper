@@ -219,6 +219,8 @@ export const de: Record<string, string> = {
   "input.contentVariable": "Inhalt der aktiven Notiz",
   "input.vaultFile": "Vault-Datei",
   "input.openFile": "Datei öffnen (Strg+Umschalt+O)",
+  "input.collapse": "Eingabebereich minimieren",
+  "input.expand": "Eingabebereich maximieren",
 
   // MessageBubble
   "message.you": "Sie",

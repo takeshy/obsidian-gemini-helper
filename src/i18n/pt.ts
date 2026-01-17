@@ -219,6 +219,8 @@ export const pt: Record<string, string> = {
   "input.contentVariable": "Conteúdo da nota ativa",
   "input.vaultFile": "Arquivo do vault",
   "input.openFile": "Abrir arquivo (Ctrl+Shift+O)",
+  "input.collapse": "Recolher área de entrada",
+  "input.expand": "Expandir área de entrada",
 
   // MessageBubble
   "message.you": "Você",

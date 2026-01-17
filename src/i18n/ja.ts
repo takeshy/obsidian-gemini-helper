@@ -219,6 +219,8 @@ export const ja: Record<string, string> = {
   "input.contentVariable": "アクティブノートの内容",
   "input.vaultFile": "Vaultファイル",
   "input.openFile": "ファイルを開く（Ctrl+Shift+O）",
+  "input.collapse": "入力欄を縮小",
+  "input.expand": "入力欄を拡大",
 
   // MessageBubble
   "message.you": "あなた",

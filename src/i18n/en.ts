@@ -219,6 +219,8 @@ export const en = {
   "input.contentVariable": "Active note content",
   "input.vaultFile": "Vault file",
   "input.openFile": "Open file (Ctrl+Shift+O)",
+  "input.collapse": "Collapse input area",
+  "input.expand": "Expand input area",
 
   // MessageBubble
   "message.you": "You",

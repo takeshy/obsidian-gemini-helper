@@ -283,6 +283,7 @@
 
 .gemini-helper-message-streaming {
   border: 1px solid var(--interactive-accent);
+  min-width: 60%;
 }
 
 .gemini-helper-message-header {
@@ -616,6 +617,9 @@
 
 /* Thinking Content (Collapsible) */
 .gemini-helper-thinking {
+  display: block;
+  box-sizing: border-box;
+  width: 100%;
   margin-bottom: 12px;
   border: 1px solid var(--background-modifier-border);
   border-radius: 6px;

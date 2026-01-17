@@ -140,6 +140,7 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 	const [showHistory, setShowHistory] = useState(false);
 	const [isLoading, setIsLoading] = useState(false);
 	const [streamingContent, setStreamingContent] = useState("");
+	const [streamingThinking, setStreamingThinking] = useState("");
 	const [currentModel, setCurrentModel] = useState<ModelType>(plugin.getSelectedModel());
 	const [apiPlan, setApiPlan] = useState(plugin.settings.apiPlan);
 	const [ragEnabledState, setRagEnabledState] = useState(plugin.settings.ragEnabled);
@@ -874,6 +875,7 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 		setCurrentChatId(null);
 		setCliSession(null);  // Clear CLI session
 		setStreamingContent("");
+		setStreamingThinking("");
 		setShowHistory(false);
 	};
 
@@ -985,6 +987,7 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 		setMessages((prev) => [...prev, userMessage]);
 		setIsLoading(true);
 		setStreamingContent("");
+		setStreamingThinking("");
 
 		// Create abort controller for this request
 		const abortController = new AbortController();
@@ -1089,6 +1092,7 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 		} finally {
 			setIsLoading(false);
 			setStreamingContent("");
+			setStreamingThinking("");
 			abortControllerRef.current = null;
 		}
 	};
@@ -1134,6 +1138,7 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 		setMessages((prev) => [...prev, userMessage]);
 		setIsLoading(true);
 		setStreamingContent("");
+		setStreamingThinking("");
 
 		// Create abort controller for this request
 		const abortController = new AbortController();
@@ -1438,8 +1443,8 @@ Always be helpful and provide clear, concise responses. When working with notes,
 
 						case "thinking":
 							thinkingContent += chunk.content || "";
-							// リアルタイムでthinkingを表示
-							setStreamingContent(`> *${thinkingContent}*\n\n${fullContent}`);
+							// thinkingは別stateで管理（折りたたみ表示用）
+							setStreamingThinking(thinkingContent);
 							break;
 
 						case "tool_call":
@@ -1533,12 +1538,14 @@ Always be helpful and provide clear, concise responses. When working with notes,
 				} catch (error) {
 					if (abortController.signal.aborted) {
 						setStreamingContent("");
+						setStreamingThinking("");
 						return;
 					}
 					if (apiPlan === "paid" && isRateLimitError(error) && retryCount < retryDelays.length) {
 						const delayMs = retryDelays[retryCount];
 						retryCount += 1;
 						setStreamingContent("");
+						setStreamingThinking("");
 						new Notice(
 							t("chat.rateLimitRetrying", {
 								seconds: String(Math.ceil(delayMs / 1000)),
@@ -1563,6 +1570,7 @@ Always be helpful and provide clear, concise responses. When working with notes,
 		} finally {
 			setIsLoading(false);
 			setStreamingContent("");
+			setStreamingThinking("");
 			abortControllerRef.current = null;
 		}
 	};
@@ -1794,6 +1802,7 @@ Always be helpful and provide clear, concise responses. When working with notes,
 						ref={messagesContainerRef}
 						messages={messages}
 						streamingContent={streamingContent}
+						streamingThinking={streamingThinking}
 						isLoading={isLoading}
 						onApplyEdit={handleApplyEdit}
 						onDiscardEdit={handleDiscardEdit}

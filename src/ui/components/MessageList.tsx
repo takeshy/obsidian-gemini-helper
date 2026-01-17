@@ -6,6 +6,7 @@ import MessageBubble from "./MessageBubble";
 interface MessageListProps {
   messages: Message[];
   streamingContent: string;
+  streamingThinking: string;
   isLoading: boolean;
   onApplyEdit?: (messageIndex: number) => Promise<void>;
   onDiscardEdit?: (messageIndex: number) => void;
@@ -28,6 +29,7 @@ function extractSourceFileName(content: string): string | null {
 const MessageList = forwardRef<HTMLDivElement, MessageListProps>(({
   messages,
   streamingContent,
+  streamingThinking,
   isLoading,
   onApplyEdit,
   onDiscardEdit,
@@ -69,12 +71,13 @@ const MessageList = forwardRef<HTMLDivElement, MessageListProps>(({
         />
       ))}
 
-      {streamingContent && (
+      {(streamingContent || streamingThinking) && (
         <MessageBubble
           message={{
             role: "assistant",
             content: streamingContent,
             timestamp: Date.now(),
+            thinking: streamingThinking || undefined,
           }}
           isStreaming
           app={app}
@@ -82,7 +85,7 @@ const MessageList = forwardRef<HTMLDivElement, MessageListProps>(({
         />
       )}
 
-      {isLoading && !streamingContent && (
+      {isLoading && !streamingContent && !streamingThinking && (
         <div className="gemini-helper-loading">
           <span className="gemini-helper-loading-dot" />
           <span className="gemini-helper-loading-dot" />

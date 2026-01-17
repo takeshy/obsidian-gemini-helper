@@ -253,7 +253,21 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 				md += `> Tools: ${msg.toolsUsed.join(", ")}\n\n`;
 			}
 
-			md += `${msg.content}\n\n---\n\n`;
+			md += `${msg.content}\n\n`;
+
+			// Save metadata as HTML comment (invisible in rendered markdown)
+			const metadata: Record<string, unknown> = {};
+			if (msg.thinking) metadata.thinking = msg.thinking;
+			if (msg.toolCalls) metadata.toolCalls = msg.toolCalls;
+			if (msg.toolResults) metadata.toolResults = msg.toolResults;
+			if (msg.ragUsed) metadata.ragUsed = msg.ragUsed;
+			if (msg.ragSources) metadata.ragSources = msg.ragSources;
+			if (msg.webSearchUsed) metadata.webSearchUsed = msg.webSearchUsed;
+			if (msg.imageGenerationUsed) metadata.imageGenerationUsed = msg.imageGenerationUsed;
+			if (msg.generatedImages) metadata.generatedImages = msg.generatedImages;
+			metadata.timestamp = msg.timestamp;
+
+			md += `<!-- msg-meta:${JSON.stringify(metadata)} -->\n\n---\n\n`;
 		}
 
 		// Encrypt if encryption is enabled
@@ -322,11 +336,19 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 					const contentLines: string[] = [];
 					let inContent = false;
 
+					// Check if block has metadata comment (new format)
+					const hasMetadata = block.includes("<!-- msg-meta:");
+
 					for (const line of lines) {
 						if (line.startsWith("> Attachments:") || line.startsWith("> Tools:")) {
 							continue;
 						}
-						if (line === "---") {
+						// Stop at metadata comment (new format)
+						if (line.startsWith("<!-- msg-meta:")) {
+							break;
+						}
+						// Stop at --- only if no metadata (old format, for backward compatibility)
+						if (!hasMetadata && line === "---") {
 							break;
 						}
 						if (line.trim() !== "" || inContent) {
@@ -337,12 +359,33 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 
 					const msgContent = contentLines.join("\n").trim();
 
-					messages.push({
+					const message: Message = {
 						role: isUser ? "user" : "assistant",
 						content: msgContent,
 						timestamp: createdAt + i * 1000, // Approximate timestamp
 						model: isUser ? undefined : (roleMatch[1].trim() as ModelType),
-					});
+					};
+
+					// Restore metadata from HTML comment
+					const metadataMatch = block.match(/<!-- msg-meta:(.+?) -->/);
+					if (metadataMatch) {
+						try {
+							const meta = JSON.parse(metadataMatch[1]) as Record<string, unknown>;
+							if (meta.thinking) message.thinking = meta.thinking as string;
+							if (meta.toolCalls) message.toolCalls = meta.toolCalls as Message["toolCalls"];
+							if (meta.toolResults) message.toolResults = meta.toolResults as Message["toolResults"];
+							if (meta.ragUsed) message.ragUsed = meta.ragUsed as boolean;
+							if (meta.ragSources) message.ragSources = meta.ragSources as string[];
+							if (meta.webSearchUsed) message.webSearchUsed = meta.webSearchUsed as boolean;
+							if (meta.imageGenerationUsed) message.imageGenerationUsed = meta.imageGenerationUsed as boolean;
+							if (meta.generatedImages) message.generatedImages = meta.generatedImages as Message["generatedImages"];
+							if (meta.timestamp) message.timestamp = meta.timestamp as number;
+						} catch {
+							// Ignore parse errors for backward compatibility
+						}
+					}
+
+					messages.push(message);
 				}
 			}
 

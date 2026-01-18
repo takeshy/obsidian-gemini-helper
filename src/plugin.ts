@@ -1951,8 +1951,8 @@ export class GeminiHelperPlugin extends Plugin {
   async encryptFile(file: TFile): Promise<void> {
     const encryption = this.settings.encryption;
 
-    // Check if encryption is configured
-    if (!encryption?.enabled || !encryption?.publicKey || !encryption?.encryptedPrivateKey || !encryption?.salt) {
+    // Check if encryption keys are configured (password has been set)
+    if (!encryption?.publicKey || !encryption?.encryptedPrivateKey || !encryption?.salt) {
       new Notice(t("crypt.notConfigured"));
       return;
     }

@@ -8,6 +8,7 @@ import {
   decryptPrivateKey,
 } from "src/core/crypto";
 import { cryptoCache } from "src/core/cryptoCache";
+import { formatError } from "src/utils/error";
 import { t } from "src/i18n";
 
 interface CryptEditorProps {
@@ -51,7 +52,7 @@ export default function CryptEditor({
           setDecryptedContent(content);
           setEditedContent(content);
         } catch (error) {
-          console.error("Failed to decrypt with cached password:", error);
+          console.error("Failed to decrypt with cached password:", formatError(error));
           // Don't clear cache - password might be correct for other files with same encryption settings
           // Just ask for password for this file
           setNeedsPassword(true);
@@ -87,7 +88,7 @@ export default function CryptEditor({
         cryptoCache.setPrivateKey(privateKey);
       }
     } catch (error) {
-      console.error("Failed to decrypt:", error);
+      console.error("Failed to decrypt:", formatError(error));
       new Notice(t("crypt.wrongPassword"));
     } finally {
       setIsDecrypting(false);

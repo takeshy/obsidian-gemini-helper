@@ -8,6 +8,7 @@ import { isImageGenerationModel, type ModelType } from "../types";
 import { McpClient } from "../core/mcpClient";
 import { isEncryptedFile, decryptFileContent } from "../core/crypto";
 import { cryptoCache } from "../core/cryptoCache";
+import { formatError } from "../utils/error";
 import {
   WorkflowNode,
   ExecutionContext,
@@ -354,7 +355,7 @@ export async function handleSetNode(
     try {
       await navigator.clipboard.writeText(String(result));
     } catch (error) {
-      console.error("Failed to write to clipboard:", error);
+      console.error("Failed to write to clipboard:", formatError(error));
     }
   }
 }

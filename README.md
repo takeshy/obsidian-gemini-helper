@@ -637,6 +637,11 @@ Edit workflows directly in the visual node editor with drag-and-drop interface.
 - This only occurs when explicitly configured and verified by the user
 - CLI mode is desktop-only (not available on mobile)
 
+**MCP servers (optional):**
+- MCP (Model Context Protocol) servers can be configured in plugin settings for workflow `mcp` nodes
+- MCP servers are external services that provide additional tools and capabilities
+- **Security warning:** Do not store sensitive credentials (API keys, tokens) in MCP server headers. If authentication is required, use environment variables or secure credential management instead.
+
 **Security notes:**
 - Review workflows before running - `http` nodes can transmit vault data to external endpoints
 - Workflow `note` nodes show a confirmation dialog before writing files (default behavior)

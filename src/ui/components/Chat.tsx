@@ -61,6 +61,7 @@ import {
 	decryptFileContent,
 } from "src/core/crypto";
 import { cryptoCache } from "src/core/cryptoCache";
+import { formatError } from "src/utils/error";
 import { t } from "src/i18n";
 
 const PAID_RATE_LIMIT_RETRY_DELAYS_MS = [10000, 30000, 60000];
@@ -282,7 +283,7 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 					encryption.salt
 				);
 			} catch (error) {
-				console.error("Failed to encrypt chat:", error);
+				console.error("Failed to encrypt chat:", formatError(error));
 				// Fall back to unencrypted
 			}
 		}
@@ -957,7 +958,7 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 			setShowHistory(false);
 			new Notice(t("chat.decrypted"));
 		} catch (error) {
-			console.error("Decryption failed:", error);
+			console.error("Decryption failed:", formatError(error));
 			new Notice(t("chat.decryptFailed"));
 		}
 	};

@@ -129,12 +129,12 @@ export class GeminiHelperPlugin extends Plugin {
       try {
         await this.migrateFromOldSettings();
       } catch (e) {
-        console.error("Gemini Helper: Failed to migrate old settings:", e);
+        console.error("Gemini Helper: Failed to migrate old settings:", formatError(e));
       }
       try {
         await this.loadWorkspaceState();
       } catch (e) {
-        console.error("Gemini Helper: Failed to load workspace state:", e);
+        console.error("Gemini Helper: Failed to load workspace state:", formatError(e));
       }
       // Initialize clients if API key is set or any CLI is verified
       try {
@@ -143,24 +143,24 @@ export class GeminiHelperPlugin extends Plugin {
           this.initializeClients();
         }
       } catch (e) {
-        console.error("Gemini Helper: Failed to initialize clients:", e);
+        console.error("Gemini Helper: Failed to initialize clients:", formatError(e));
       }
       // Register workflows as Obsidian commands for hotkey support
       try {
         this.registerWorkflowHotkeys();
       } catch (e) {
-        console.error("Gemini Helper: Failed to register workflow hotkeys:", e);
+        console.error("Gemini Helper: Failed to register workflow hotkeys:", formatError(e));
       }
       // Register event listeners for workflow triggers
       try {
         this.registerWorkflowEventListeners();
       } catch (e) {
-        console.error("Gemini Helper: Failed to register workflow event listeners:", e);
+        console.error("Gemini Helper: Failed to register workflow event listeners:", formatError(e));
       }
       // Emit event to refresh UI after workspace state is loaded
       this.settingsEmitter.emit("workspace-state-loaded", this.workspaceState);
     }).catch((e) => {
-      console.error("Gemini Helper: Failed to load settings:", e);
+      console.error("Gemini Helper: Failed to load settings:", formatError(e));
     });
 
     // Add settings tab
@@ -890,7 +890,7 @@ export class GeminiHelperPlugin extends Plugin {
         const workflowName = trigger.workflowId.split("#").pop() || trigger.workflowId;
         console.error(
           `Workflow (${workflowName}) triggered by ${eventType} failed:`,
-          result.reason
+          formatError(result.reason)
         );
       }
     });
@@ -1073,7 +1073,7 @@ export class GeminiHelperPlugin extends Plugin {
       }
     } catch (error) {
       // Log error for debugging
-      console.error("Gemini Helper: Failed to load workspace state:", error);
+      console.error("Gemini Helper: Failed to load workspace state:", formatError(error));
     }
   }
 
@@ -1123,7 +1123,7 @@ export class GeminiHelperPlugin extends Plugin {
       this.syncFileSearchManagerWithSelectedRag();
     } catch (error) {
       // Log error for debugging
-      console.error("Gemini Helper: Migration from old RAG state file failed:", error);
+      console.error("Gemini Helper: Migration from old RAG state file failed:", formatError(error));
     }
   }
 
@@ -1982,7 +1982,7 @@ export class GeminiHelperPlugin extends Plugin {
       // Reopen the file in CryptView
       await this.openCryptView(file);
     } catch (error) {
-      console.error("Failed to encrypt file:", error);
+      console.error("Failed to encrypt file:", formatError(error));
       new Notice(t("crypt.encryptFailed"));
     }
   }
@@ -2050,7 +2050,7 @@ export class GeminiHelperPlugin extends Plugin {
       await this.app.vault.modify(file, decryptedContent);
       new Notice(t("crypt.decryptSuccess"));
     } catch (error) {
-      console.error("Failed to decrypt file:", error);
+      console.error("Failed to decrypt file:", formatError(error));
       new Notice(t("crypt.decryptFailed"));
     }
   }
@@ -2139,7 +2139,7 @@ export class GeminiHelperPlugin extends Plugin {
       await this.app.vault.modify(file, decryptedContent);
       new Notice(t("crypt.decryptSuccess"));
     } catch (error) {
-      console.error("Failed to decrypt file:", error);
+      console.error("Failed to decrypt file:", formatError(error));
       new Notice(t("crypt.decryptFailed"));
     }
   }

@@ -6,6 +6,7 @@ import { CLI_MODEL, CLAUDE_CLI_MODEL, CODEX_CLI_MODEL, DEFAULT_CLI_CONFIG, getAv
 import { WORKFLOW_SPECIFICATION } from "src/workflow/workflowSpec";
 import type { SidebarNode, WorkflowNodeType } from "src/workflow/types";
 import { computeLineDiff } from "./EditConfirmationModal";
+import { formatError } from "src/utils/error";
 import { t } from "src/i18n";
 
 // Supported file types for attachments
@@ -859,7 +860,7 @@ Output only the complete modified YAML, starting with "name:".`;
         explanation: explanation || undefined,
       };
     } catch (error) {
-      console.error("Failed to parse AI workflow response:", error, response);
+      console.error("Failed to parse AI workflow response:", formatError(error), response);
       return null;
     }
   }

@@ -1,5 +1,6 @@
 import { App, Modal, Notice, Setting } from "obsidian";
 import { t } from "src/i18n";
+import { formatError } from "src/utils/error";
 import { getEditHistoryManager, type EditHistoryEntry } from "src/core/editHistory";
 
 /**
@@ -318,7 +319,7 @@ export class EditHistoryModal extends Modal {
       const timeStr = date.toLocaleString();
       new Notice(t("editHistoryModal.restored", { timestamp: timeStr }));
     } catch (e) {
-      console.error("Failed to restore:", e);
+      console.error("Failed to restore:", formatError(e));
       new Notice("Failed to restore");
     } finally {
       this.close();
@@ -543,7 +544,7 @@ export class DiffModal extends Modal {
       const timeStr = date.toLocaleString();
       new Notice(t("editHistoryModal.restored", { timestamp: timeStr }));
     } catch (e) {
-      console.error("Failed to restore:", e);
+      console.error("Failed to restore:", formatError(e));
       new Notice("Failed to restore");
     } finally {
       this.close();

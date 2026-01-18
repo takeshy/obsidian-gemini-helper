@@ -11,6 +11,7 @@ import {
   decryptFileContent,
 } from "../core/crypto";
 import { cryptoCache } from "../core/cryptoCache";
+import { formatError } from "../utils/error";
 
 export interface EncryptionConfig {
   enabled: boolean;
@@ -149,7 +150,7 @@ export class ExecutionHistoryManager {
         return JSON.parse(content) as ExecutionRecord;
       }
     } catch (e) {
-      console.error("Failed to parse content:", e);
+      console.error("Failed to parse content:", formatError(e));
       return null;
     }
   }
@@ -197,7 +198,7 @@ export class ExecutionHistoryManager {
         }
       }
     } catch (e) {
-      console.error("Failed to search history files:", e);
+      console.error("Failed to search history files:", formatError(e));
     }
 
     return false;
@@ -226,11 +227,11 @@ export class ExecutionHistoryManager {
             records.push(record);
           }
         } catch (e) {
-          console.error(`Failed to parse history file: ${file}`, e);
+          console.error(`Failed to parse history file: ${file}`, formatError(e));
         }
       }
     } catch (e) {
-      console.error("Failed to list history files:", e);
+      console.error("Failed to list history files:", formatError(e));
     }
 
     // Sort by start time descending
@@ -263,11 +264,11 @@ export class ExecutionHistoryManager {
             records.push(record);
           }
         } catch (e) {
-          console.error(`Failed to parse history file: ${file}`, e);
+          console.error(`Failed to parse history file: ${file}`, formatError(e));
         }
       }
     } catch (e) {
-      console.error("Failed to list history files:", e);
+      console.error("Failed to list history files:", formatError(e));
     }
 
     // Sort by start time descending
@@ -304,7 +305,7 @@ export class ExecutionHistoryManager {
         }
       }
     } catch (e) {
-      console.error("Failed to search history files:", e);
+      console.error("Failed to search history files:", formatError(e));
     }
 
     return null;
@@ -337,7 +338,7 @@ export class ExecutionHistoryManager {
         }
       }
     } catch (e) {
-      console.error("Failed to delete history file:", e);
+      console.error("Failed to delete history file:", formatError(e));
     }
 
     return false;
@@ -371,7 +372,7 @@ export class ExecutionHistoryManager {
         }
       }
     } catch (e) {
-      console.error("Failed to delete history files:", e);
+      console.error("Failed to delete history files:", formatError(e));
     }
 
     return deletedCount;
@@ -386,7 +387,7 @@ export class ExecutionHistoryManager {
         await this.app.vault.adapter.mkdir(folderPath);
       }
     } catch (e) {
-      console.error("Failed to create history folder:", e);
+      console.error("Failed to create history folder:", formatError(e));
     }
   }
 

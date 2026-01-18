@@ -6,6 +6,7 @@ import {
   isEncryptedFile,
   encryptFileContent,
 } from "src/core/crypto";
+import { formatError } from "src/utils/error";
 
 export const CRYPT_VIEW_TYPE = "gemini-helper-crypt-view";
 
@@ -151,7 +152,7 @@ export class CryptView extends ItemView {
       await this.plugin.app.vault.modify(this.file, encryptedContent);
       new Notice("File saved (encrypted)");
     } catch (error) {
-      console.error("Failed to save encrypted file:", error);
+      console.error("Failed to save encrypted file:", formatError(error));
       new Notice("Failed to save file");
     }
   }
@@ -167,7 +168,7 @@ export class CryptView extends ItemView {
       this.leaf.detach();
       await this.plugin.app.workspace.openLinkText(this.filePath, "", false);
     } catch (error) {
-      console.error("Failed to save decrypted file:", error);
+      console.error("Failed to save decrypted file:", formatError(error));
       new Notice("Failed to decrypt file");
     }
   }

@@ -394,16 +394,19 @@ npm run build
 
 Password-protect your chat history and workflow execution logs separately.
 
-> **Required:** You must first set a password in plugin settings to enable encryption.
+**Setup:**
+
+1. Set a password in plugin settings (stored securely using public-key cryptography)
+
+![Initial Encryption Setup](setting_initial_encryption.png)
+
+2. After setup, toggle encryption for each log type:
+   - **Encrypt AI chat history** - Encrypt chat conversation files
+   - **Encrypt workflow execution logs** - Encrypt workflow history files
 
 ![Encryption Settings](setting_encryption.png)
 
-**Setup:**
-1. Set a password in plugin settings (stored securely using public-key cryptography)
-2. Toggle encryption for each log type:
-   - **Encrypt AI chat history** - Encrypt chat conversation files
-   - **Encrypt workflow execution logs** - Encrypt workflow history files
-3. Each setting can be enabled/disabled independently
+Each setting can be enabled/disabled independently.
 
 **Features:**
 - **Separate controls** - Choose which logs to encrypt (chat, workflow, or both)

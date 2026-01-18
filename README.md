@@ -392,19 +392,22 @@ npm run build
 
 ### Encryption
 
-Password-protect your chat history and workflow execution logs.
+Password-protect your chat history and workflow execution logs separately.
 
 > **Required:** You must first set a password in plugin settings to enable encryption.
 
 ![Encryption Settings](setting_encryption.png)
 
 **Setup:**
-1. Enable encryption in plugin settings
-2. Set a password (stored securely using public-key cryptography)
-3. All new chat files and workflow history will be encrypted
+1. Set a password in plugin settings (stored securely using public-key cryptography)
+2. Toggle encryption for each log type:
+   - **Encrypt AI chat history** - Encrypt chat conversation files
+   - **Encrypt workflow execution logs** - Encrypt workflow history files
+3. Each setting can be enabled/disabled independently
 
 **Features:**
-- **Automatic encryption** - New chats and workflow logs are encrypted when saved
+- **Separate controls** - Choose which logs to encrypt (chat, workflow, or both)
+- **Automatic encryption** - New files are encrypted when saved based on settings
 - **Password caching** - Enter password once per session
 - **Dedicated viewer** - Encrypted files open in a secure editor with preview
 - **Decrypt option** - Remove encryption from individual files when needed
@@ -524,11 +527,26 @@ Requires: `pip install cryptography`
 - **History button** - Load previous chats
 
 ### Using Workflows
+
+**From Sidebar:**
 1. Open **Workflow** tab in sidebar
 2. Open a file with `workflow` code block
 3. Select workflow from dropdown
 4. Click **Run** to execute
 5. Click **History** to view past runs
+
+**From Command Palette (Run Workflow):**
+
+Use the command "Gemini Helper: Run Workflow" to browse and execute workflows from anywhere:
+
+1. Open command palette and search "Run Workflow"
+2. Browse all vault files with workflow code blocks (files in `workflows/` folder are shown first)
+3. Preview the workflow content and AI generation history
+4. Select a workflow and click **Run** to execute
+
+![Run Workflow Modal](workflow_list.png)
+
+This is useful for quickly running workflows without navigating to the workflow file first.
 
 ![Workflow History](workflow_history.png)
 

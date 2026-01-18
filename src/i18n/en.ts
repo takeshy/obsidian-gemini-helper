@@ -495,6 +495,7 @@ export const en = {
 
   // Workflow Selector Modal
   "workflowSelector.title": "Run workflow",
+  "workflowSelector.listButton": "Workflow list",
   "workflowSelector.searchPlaceholder": "Search files...",
   "workflowSelector.selectFileToPreview": "Select a file to preview",
   "workflowSelector.selectWorkflow": "Select workflow",

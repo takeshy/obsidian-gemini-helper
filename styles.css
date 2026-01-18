@@ -4301,3 +4301,32 @@
   font-size: 11px;
   padding: 4px;
 }
+
+/* Workflow Selector - Mobile layout */
+@media (max-width: 600px) {
+  .workflow-selector-modal-container {
+    width: 100vw;
+    height: 90vh;
+    max-width: 100vw;
+    max-height: 90vh;
+  }
+
+  .workflow-selector-main {
+    flex-direction: column;
+  }
+
+  .workflow-selector-left-pane {
+    width: 100%;
+    height: 150px;
+    flex-shrink: 0;
+  }
+
+  .workflow-selector-right-pane {
+    flex: 1;
+    min-height: 0;
+  }
+
+  .workflow-selector-preview {
+    max-height: none;
+  }
+}

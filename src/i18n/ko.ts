@@ -452,6 +452,7 @@ export const ko: Record<string, string> = {
   "command.runWorkflow": "워크플로우 실행",
 
   // Workflow Selector Modal
+  "workflowSelector.listButton": "Workflow list",
   "workflowSelector.title": "워크플로우 실행",
   "workflowSelector.searchPlaceholder": "파일 검색...",
   "workflowSelector.selectFileToPreview": "미리보기할 파일 선택",

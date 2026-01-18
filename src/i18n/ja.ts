@@ -433,6 +433,7 @@ export const ja: Record<string, string> = {
 
   // Workflow Selector Modal
   "workflowSelector.title": "ワークフローを実行",
+  "workflowSelector.listButton": "Workflow一覧",
   "workflowSelector.searchPlaceholder": "ファイルを検索...",
   "workflowSelector.selectFileToPreview": "プレビューするファイルを選択",
   "workflowSelector.selectWorkflow": "ワークフローを選択",

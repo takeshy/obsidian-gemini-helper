@@ -452,6 +452,7 @@ export const zh: Record<string, string> = {
   "command.runWorkflow": "运行工作流",
 
   // Workflow Selector Modal
+  "workflowSelector.listButton": "Workflow list",
   "workflowSelector.title": "运行工作流",
   "workflowSelector.searchPlaceholder": "搜索文件...",
   "workflowSelector.selectFileToPreview": "选择文件进行预览",

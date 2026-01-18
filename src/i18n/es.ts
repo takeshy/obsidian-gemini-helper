@@ -452,6 +452,7 @@ export const es: Record<string, string> = {
   "command.runWorkflow": "Ejecutar workflow",
 
   // Workflow Selector Modal
+  "workflowSelector.listButton": "Workflow list",
   "workflowSelector.title": "Ejecutar Workflow",
   "workflowSelector.searchPlaceholder": "Buscar archivos...",
   "workflowSelector.selectFileToPreview": "Selecciona un archivo para previsualizar",

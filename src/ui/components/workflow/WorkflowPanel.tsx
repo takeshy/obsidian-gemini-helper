@@ -942,7 +942,7 @@ ${result.nodes.map(node => {
               onClick={handleOpenWorkflowSelector}
             >
               <FolderOpen size={14} />
-              <span>{t("command.runWorkflow")}</span>
+              <span>{t("workflowSelector.listButton")}</span>
             </button>
             <button
               className="workflow-sidebar-ai-btn mod-cta"
@@ -969,7 +969,7 @@ ${result.nodes.map(node => {
               onClick={handleOpenWorkflowSelector}
             >
               <FolderOpen size={14} />
-              <span>{t("command.runWorkflow")}</span>
+              <span>{t("workflowSelector.listButton")}</span>
             </button>
             <button
               className="workflow-sidebar-ai-btn mod-cta"

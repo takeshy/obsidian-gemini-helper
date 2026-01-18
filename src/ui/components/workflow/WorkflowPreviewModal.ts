@@ -202,7 +202,10 @@ export class WorkflowPreviewModal extends Modal {
       } else {
         // Second click: submit with additional request
         const additionalRequest = this.additionalRequestEl?.value?.trim() || "";
-        this.resolvePromise({ result: "no", additionalRequest });
+        this.resolvePromise({
+          result: "no",
+          additionalRequest,
+        });
         this.close();
       }
     });

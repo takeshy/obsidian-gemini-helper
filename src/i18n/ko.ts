@@ -479,6 +479,18 @@ export const ko: Record<string, string> = {
   "workflow.preview.cancel": "취소",
   "workflow.preview.additionalRequest": "전체 요청 내용을 입력하세요:",
   "workflow.preview.additionalPlaceholder": "워크플로우가 수행할 작업을 완전히 설명하세요...",
+  "workflow.preview.referenceHistory": "실행 이력 참조",
+  "workflow.preview.stepsSelected": "{{count}}개 단계 선택됨",
+
+  // Execution History Select Modal
+  "workflow.historySelect.title": "실행 이력 선택",
+  "workflow.historySelect.recentExecutions": "최근 실행",
+  "workflow.historySelect.steps": "단계 (포함할 항목 선택)",
+  "workflow.historySelect.selectRunToView": "실행을 선택하여 단계 보기",
+  "workflow.historySelect.includeSelected": "선택 항목 포함",
+  "workflow.historySelect.includeAll": "전체 포함",
+  "workflow.historySelect.skipped": "건너뜀",
+  "workflow.historySelect.error": "오류:",
 
   // Workflow Execution Modal
   "workflow.execution.title": "워크플로우 실행",

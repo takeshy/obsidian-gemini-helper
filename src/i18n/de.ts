@@ -479,6 +479,18 @@ export const de: Record<string, string> = {
   "workflow.preview.cancel": "Abbrechen",
   "workflow.preview.additionalRequest": "Geben Sie Ihre vollständige Anfrage ein:",
   "workflow.preview.additionalPlaceholder": "Beschreiben Sie vollständig, was der Workflow tun soll...",
+  "workflow.preview.referenceHistory": "Ausführungsverlauf referenzieren",
+  "workflow.preview.stepsSelected": "{{count}} Schritt(e) ausgewählt",
+
+  // Execution History Select Modal
+  "workflow.historySelect.title": "Ausführungsverlauf auswählen",
+  "workflow.historySelect.recentExecutions": "Letzte Ausführungen",
+  "workflow.historySelect.steps": "Schritte (zum Einbeziehen auswählen)",
+  "workflow.historySelect.selectRunToView": "Ausführung auswählen, um Schritte anzuzeigen",
+  "workflow.historySelect.includeSelected": "Ausgewählte einbeziehen",
+  "workflow.historySelect.includeAll": "Alle einbeziehen",
+  "workflow.historySelect.skipped": "Übersprungen",
+  "workflow.historySelect.error": "Fehler:",
 
   // Workflow Execution Modal
   "workflow.execution.title": "Workflow-Ausführung",

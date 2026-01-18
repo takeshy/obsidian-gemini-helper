@@ -560,6 +560,18 @@ export const en = {
   "workflow.preview.cancel": "Cancel",
   "workflow.preview.additionalRequest": "Enter your full request:",
   "workflow.preview.additionalPlaceholder": "Enter the complete description of what you want the workflow to do...",
+  "workflow.preview.referenceHistory": "Reference execution history",
+  "workflow.preview.stepsSelected": "{{count}} step(s) selected",
+
+  // Execution History Select Modal
+  "workflow.historySelect.title": "Select execution history",
+  "workflow.historySelect.recentExecutions": "Recent executions",
+  "workflow.historySelect.steps": "Steps (select to include)",
+  "workflow.historySelect.selectRunToView": "Select a run to view steps",
+  "workflow.historySelect.includeSelected": "Include selected",
+  "workflow.historySelect.includeAll": "Include all",
+  "workflow.historySelect.skipped": "Skipped",
+  "workflow.historySelect.error": "Error:",
 
   // Workflow Execution Modal
   "workflow.execution.title": "Workflow execution",

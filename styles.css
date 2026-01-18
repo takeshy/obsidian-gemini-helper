@@ -2903,6 +2903,41 @@
   cursor: pointer;
 }
 
+/* AI Workflow execution history row */
+.ai-workflow-execution-history-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.ai-workflow-execution-history-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 12px;
+  background: var(--background-secondary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.ai-workflow-execution-history-btn:hover {
+  background: var(--background-modifier-hover);
+  border-color: var(--interactive-accent);
+}
+
+.ai-workflow-execution-history-info {
+  font-size: 13px;
+  color: var(--text-accent);
+  font-weight: 500;
+}
+
+.ai-workflow-execution-history-info.is-hidden {
+  display: none;
+}
+
 /* AI Workflow confirmation modal */
 .ai-workflow-confirm-modal {
   min-width: 700px;
@@ -4836,6 +4871,368 @@
 .is-mobile .workflow-preview-modal-content.textarea-focused .workflow-preview-buttons {
   flex-shrink: 0;
   margin-top: 8px;
+}
+
+/* Workflow Preview - Execution History Row */
+.workflow-preview-execution-history-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.workflow-preview-execution-history-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 12px;
+  background: var(--background-secondary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.workflow-preview-execution-history-btn:hover {
+  background: var(--background-modifier-hover);
+  border-color: var(--interactive-accent);
+}
+
+.workflow-preview-execution-history-info {
+  font-size: 13px;
+  color: var(--text-accent);
+  font-weight: 500;
+}
+
+.workflow-preview-execution-history-info.is-hidden {
+  display: none;
+}
+
+/* ===============================================
+   Execution History Select Modal Styles
+   =============================================== */
+
+.execution-history-select-modal {
+  min-width: 700px;
+  max-width: 900px;
+}
+
+.execution-history-select-modal .modal-drag-handle {
+  cursor: move;
+  padding: 8px 0;
+  margin: -16px -16px 16px -16px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.execution-history-select-modal .modal-drag-handle h2 {
+  margin: 0;
+}
+
+.execution-history-select-content {
+  display: flex;
+  gap: 16px;
+  min-height: 300px;
+  max-height: 50vh;
+}
+
+.execution-history-runs-column {
+  flex: 0 0 240px;
+  display: flex;
+  flex-direction: column;
+}
+
+.execution-history-runs-column h3 {
+  margin: 0 0 8px 0;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.execution-history-runs-list {
+  flex: 1;
+  overflow-y: auto;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 4px;
+}
+
+.execution-history-steps-column {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.execution-history-steps-column h3 {
+  margin: 0 0 8px 0;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.execution-history-steps-list {
+  flex: 1;
+  overflow-y: auto;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 4px;
+}
+
+.execution-history-empty {
+  padding: 16px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.execution-history-run-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  cursor: pointer;
+  border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.execution-history-run-item:last-child {
+  border-bottom: none;
+}
+
+.execution-history-run-item:hover {
+  background: var(--background-modifier-hover);
+}
+
+.execution-history-run-item.is-selected {
+  background: var(--interactive-accent);
+}
+
+.execution-history-run-item.is-selected .execution-history-run-time,
+.execution-history-run-item.is-selected .execution-history-run-status {
+  color: var(--text-on-accent);
+}
+
+.execution-history-status-indicator {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.execution-history-status-indicator.status-completed {
+  background: var(--color-green);
+}
+
+.execution-history-status-indicator.status-error {
+  background: var(--color-red);
+}
+
+.execution-history-status-indicator.status-running {
+  background: var(--color-yellow);
+}
+
+.execution-history-status-indicator.status-cancelled {
+  background: var(--text-muted);
+}
+
+.execution-history-run-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.execution-history-run-time {
+  font-size: 12px;
+  color: var(--text-normal);
+}
+
+.execution-history-run-status {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.execution-history-run-status.status-error {
+  color: var(--color-red);
+}
+
+.execution-history-step-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  cursor: pointer;
+  border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.execution-history-step-item:last-child {
+  border-bottom: none;
+}
+
+.execution-history-step-item:hover {
+  background: var(--background-modifier-hover);
+}
+
+.execution-history-step-item.is-selected {
+  background: var(--background-secondary-alt);
+}
+
+.execution-history-step-checkbox {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.execution-history-step-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.execution-history-step-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 4px;
+}
+
+.execution-history-step-type {
+  font-size: 11px;
+  padding: 2px 6px;
+  background: var(--interactive-accent);
+  color: var(--text-on-accent);
+  border-radius: 3px;
+}
+
+.execution-history-step-id {
+  font-size: 12px;
+  font-family: var(--font-monospace);
+  color: var(--text-muted);
+}
+
+.execution-history-step-status {
+  font-size: 11px;
+  padding: 1px 5px;
+  border-radius: 3px;
+  background: var(--background-modifier-hover);
+}
+
+.execution-history-step-status.status-success {
+  background: var(--color-green);
+  color: white;
+}
+
+.execution-history-step-status.status-error {
+  background: var(--color-red);
+  color: white;
+}
+
+.execution-history-step-status.status-skipped {
+  background: var(--text-muted);
+  color: white;
+}
+
+.execution-history-step-preview {
+  font-size: 12px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.execution-history-step-preview .label {
+  color: var(--text-faint);
+}
+
+.execution-history-step-preview.error {
+  color: var(--color-red);
+}
+
+.execution-history-select-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.execution-history-select-buttons button {
+  padding: 8px 16px;
+}
+
+/* Mobile styles for execution history select modal */
+.is-mobile .execution-history-select-modal {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  max-width: none !important;
+  max-height: none !important;
+  min-width: auto;
+  margin: 0 !important;
+  border-radius: 0 !important;
+  transform: none !important;
+}
+
+.is-mobile .execution-history-select-modal .modal-content {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 12px;
+  box-sizing: border-box;
+}
+
+.is-mobile .execution-history-select-modal .modal-drag-handle {
+  flex-shrink: 0;
+  cursor: default;
+  margin: -12px -12px 12px -12px;
+  padding: 12px;
+}
+
+.is-mobile .execution-history-select-content {
+  flex: 1;
+  flex-direction: column;
+  max-height: none;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.is-mobile .execution-history-runs-column {
+  flex: 0 0 auto;
+  max-height: 120px;
+  margin-bottom: 12px;
+}
+
+.is-mobile .execution-history-runs-column h3 {
+  font-size: 13px;
+  margin-bottom: 6px;
+}
+
+.is-mobile .execution-history-steps-column {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.is-mobile .execution-history-steps-column h3 {
+  font-size: 13px;
+  margin-bottom: 6px;
+  flex-shrink: 0;
+}
+
+.is-mobile .execution-history-steps-list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.is-mobile .execution-history-select-buttons {
+  flex-shrink: 0;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--background-modifier-border);
+}
+
+.is-mobile .execution-history-select-buttons button {
+  width: 100%;
+  padding: 12px;
 }
 
 /* ===============================================

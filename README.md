@@ -622,6 +622,21 @@ Each AI-generated workflow saves a history entry above the workflow code block, 
 
 ![AI Workflow Modification](modify_workflow_with_ai.png)
 
+**Execution History Reference:**
+
+When modifying a workflow with AI, you can reference previous execution results to help the AI understand issues:
+
+1. Click **Reference execution history** button
+2. Select an execution run from the list (error runs are highlighted)
+3. Choose which steps to include (error steps are pre-selected)
+4. The AI receives the step input/output data to understand what went wrong
+
+This is especially useful for debugging workflows - you can tell the AI "Fix the error in step 2" and it will see exactly what input caused the failure.
+
+**Request History:**
+
+When regenerating a workflow (clicking "No" on the preview), all previous requests in the session are passed to the AI. This helps the AI understand the full context of your modifications across multiple iterations.
+
 **Manual Workflow Editing:**
 
 Edit workflows directly in the visual node editor with drag-and-drop interface.

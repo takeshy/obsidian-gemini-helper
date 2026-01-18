@@ -616,6 +616,21 @@ Chaque workflow généré par IA enregistre une entrée d'historique au-dessus d
 
 ![Modification de Workflow par IA](modify_workflow_with_ai.png)
 
+**Référence à l'Historique d'Exécution :**
+
+Lors de la modification d'un workflow avec l'IA, vous pouvez faire référence aux résultats d'exécution précédents pour aider l'IA à comprendre les problèmes :
+
+1. Cliquez sur le bouton **Référencer l'historique d'exécution**
+2. Sélectionnez une exécution dans la liste (les exécutions en erreur sont surlignées)
+3. Choisissez les étapes à inclure (les étapes en erreur sont présélectionnées)
+4. L'IA reçoit les données d'entrée/sortie de l'étape pour comprendre ce qui a mal tourné
+
+C'est particulièrement utile pour déboguer les workflows - vous pouvez dire à l'IA "Corrige l'erreur à l'étape 2" et elle verra exactement quelle entrée a causé l'échec.
+
+**Historique des Requêtes :**
+
+Lors de la régénération d'un workflow (en cliquant sur "Non" dans l'aperçu), toutes les requêtes précédentes de la session sont transmises à l'IA. Cela aide l'IA à comprendre le contexte complet de vos modifications sur plusieurs itérations.
+
 **Édition Manuelle de Workflow :**
 
 Éditez les workflows directement dans l'éditeur visuel de nœuds avec interface glisser-déposer.

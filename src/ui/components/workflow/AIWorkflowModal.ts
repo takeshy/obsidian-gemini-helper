@@ -4,10 +4,12 @@ import { GeminiCliProvider, ClaudeCliProvider, CodexCliProvider } from "src/core
 import { GeminiClient } from "src/core/gemini";
 import { CLI_MODEL, CLAUDE_CLI_MODEL, CODEX_CLI_MODEL, DEFAULT_CLI_CONFIG, getAvailableModels, type ModelType, type Attachment } from "src/types";
 import { WORKFLOW_SPECIFICATION } from "src/workflow/workflowSpec";
-import type { SidebarNode, WorkflowNodeType } from "src/workflow/types";
+import type { SidebarNode, WorkflowNodeType, ExecutionStep } from "src/workflow/types";
+import { ExecutionHistoryManager } from "src/workflow/history";
 import { computeLineDiff } from "./EditConfirmationModal";
 import { WorkflowGenerationModal } from "./WorkflowGenerationModal";
 import { showWorkflowPreview } from "./WorkflowPreviewModal";
+import { showExecutionHistorySelect } from "./ExecutionHistorySelectModal";
 import { formatError } from "src/utils/error";
 import { t } from "src/i18n";
 
@@ -233,6 +235,10 @@ export class AIWorkflowModal extends Modal {
   private attachmentsContainerEl: HTMLElement | null = null;
   private fileInputEl: HTMLInputElement | null = null;
 
+  // Execution history state (for modify mode)
+  private selectedExecutionSteps: ExecutionStep[] = [];
+  private executionHistoryInfoEl: HTMLElement | null = null;
+
   constructor(
     app: App,
     plugin: GeminiHelperPlugin,
@@ -429,6 +435,24 @@ export class AIWorkflowModal extends Modal {
         text: "Confirm changes before applying",
         attr: { for: "ai-workflow-confirm-checkbox" },
       });
+
+      // Execution history reference row (only for modify mode)
+      const executionHistoryRow = contentEl.createDiv({ cls: "ai-workflow-execution-history-row" });
+
+      const executionHistoryBtn = executionHistoryRow.createEl("button", {
+        cls: "ai-workflow-execution-history-btn",
+      });
+      const historyIcon = executionHistoryBtn.createSpan();
+      setIcon(historyIcon, "history");
+      executionHistoryBtn.createSpan({ text: " " + t("workflow.preview.referenceHistory") });
+
+      this.executionHistoryInfoEl = executionHistoryRow.createDiv({
+        cls: "ai-workflow-execution-history-info"
+      });
+
+      executionHistoryBtn.addEventListener("click", () => {
+        void this.openExecutionHistorySelect();
+      });
     }
 
     // Status area
@@ -456,6 +480,65 @@ export class AIWorkflowModal extends Modal {
       setTimeout(() => this.nameInputEl?.focus(), 50);
     } else {
       setTimeout(() => this.descriptionEl?.focus(), 50);
+    }
+  }
+
+  /**
+   * Open execution history select modal (for modify mode)
+   */
+  private async openExecutionHistorySelect(): Promise<void> {
+    const activeFile = this.app.workspace.getActiveFile();
+    if (!activeFile) {
+      new Notice(t("workflowModal.noExecutionHistory"));
+      return;
+    }
+
+    try {
+      const encryption = this.plugin.settings.encryption;
+      const encryptionConfig = encryption?.enabled ? {
+        enabled: true,
+        encryptWorkflowHistory: encryption.encryptWorkflowHistory,
+        publicKey: encryption.publicKey || "",
+        encryptedPrivateKey: encryption.encryptedPrivateKey || "",
+        salt: encryption.salt || "",
+      } : undefined;
+      const historyManager = new ExecutionHistoryManager(
+        this.app,
+        this.plugin.settings.workspaceFolder,
+        encryptionConfig
+      );
+      const executionRecords = await historyManager.loadRecords(activeFile.path);
+
+      if (executionRecords.length === 0) {
+        new Notice(t("workflowModal.noExecutionHistory"));
+        return;
+      }
+
+      const result = await showExecutionHistorySelect(this.app, executionRecords);
+      if (result && result.selectedSteps.length > 0) {
+        this.selectedExecutionSteps = result.selectedSteps;
+        this.updateExecutionHistoryInfo();
+      }
+    } catch (e) {
+      console.error("Failed to load execution history:", formatError(e));
+      new Notice(t("workflowModal.noExecutionHistory"));
+    }
+  }
+
+  /**
+   * Update execution history info display
+   */
+  private updateExecutionHistoryInfo(): void {
+    if (!this.executionHistoryInfoEl) return;
+
+    if (this.selectedExecutionSteps.length > 0) {
+      this.executionHistoryInfoEl.textContent = t("workflow.preview.stepsSelected", {
+        count: String(this.selectedExecutionSteps.length),
+      });
+      this.executionHistoryInfoEl.removeClass("is-hidden");
+    } else {
+      this.executionHistoryInfoEl.textContent = "";
+      this.executionHistoryInfoEl.addClass("is-hidden");
     }
   }
 
@@ -510,15 +593,25 @@ export class AIWorkflowModal extends Modal {
     // Close input modal and start generation flow
     this.close();
 
+    // Determine the workflow path for loading execution history
+    // For modify mode, use the active file path; for create mode, we'll construct it later
+    const activeFile = this.app.workspace.getActiveFile();
+    const workflowPath = this.mode === "modify" && activeFile ? activeFile.path : undefined;
+
     // Start the generation with preview loop
     // Use resolved description (with @mentions expanded) as the request
+    // Pass selected execution steps if any (for modify mode)
     await this.runGenerationLoop(
       resolvedDescription,
       workflowName,
       outputPathTemplate,
       selectedModel,
       isCliModel,
-      resolvedMentions
+      resolvedMentions,
+      workflowPath,
+      undefined,  // previousYaml
+      [],         // requestHistory
+      this.selectedExecutionSteps.length > 0 ? this.selectedExecutionSteps : undefined
     );
   }
 
@@ -532,8 +625,10 @@ export class AIWorkflowModal extends Modal {
     selectedModel: ModelType,
     isCliModel: boolean,
     resolvedMentions: ResolvedMention[],
-    previousRequest?: string,
-    previousYaml?: string
+    workflowPath: string | undefined,
+    previousYaml?: string,
+    requestHistory: string[] = [],
+    selectedExecutionSteps?: import("src/workflow/types").ExecutionStep[]
   ): Promise<void> {
 
     // Create AbortController for cancellation
@@ -552,7 +647,7 @@ export class AIWorkflowModal extends Modal {
     try {
       // Build prompts
       const systemPrompt = this.buildSystemPrompt();
-      const userPrompt = this.buildUserPrompt(currentRequest, workflowName, previousRequest, previousYaml);
+      const userPrompt = this.buildUserPrompt(currentRequest, workflowName, previousYaml, requestHistory, selectedExecutionSteps);
 
       let response = "";
 
@@ -705,7 +800,8 @@ export class AIWorkflowModal extends Modal {
         // User approved - return the result
         this.resolvePromise(result);
       } else if (previewResult.result === "no") {
-        // User wants modifications - pass current request and YAML as reference for next iteration
+        // User wants modifications - accumulate request history
+        const updatedHistory = [...requestHistory, currentRequest];
         await this.runGenerationLoop(
           previewResult.additionalRequest || "",  // New request from user
           workflowName,
@@ -713,8 +809,10 @@ export class AIWorkflowModal extends Modal {
           selectedModel,
           isCliModel,
           resolvedMentions,
-          currentRequest,  // Previous request for reference
-          result.yaml      // Previous YAML for reference
+          workflowPath,     // Workflow path for execution history
+          result.yaml,      // Previous YAML for reference
+          updatedHistory,   // Accumulated request history
+          selectedExecutionSteps  // Keep original execution steps for context
         );
       } else {
         // User cancelled
@@ -746,19 +844,30 @@ IMPORTANT RULES:
   private buildUserPrompt(
     currentRequest: string,
     workflowName?: string,
-    previousRequest?: string,
-    previousYaml?: string
+    previousYaml?: string,
+    requestHistory: string[] = [],
+    selectedExecutionSteps?: import("src/workflow/types").ExecutionStep[]
   ): string {
     if (this.mode === "create") {
       // If we have previous request/YAML from regeneration, include as reference
-      if (previousRequest && previousYaml) {
+      if (requestHistory.length > 0 && previousYaml) {
+        // Build numbered history of all requests
+        const historySection = requestHistory.map((req, idx) => `${idx + 1}. ${req}`).join("\n");
+
+        // Build execution history section if steps are selected
+        let executionSection = "";
+        if (selectedExecutionSteps && selectedExecutionSteps.length > 0) {
+          executionSection = this.formatExecutionSteps(selectedExecutionSteps);
+        }
+
         return `Create or modify a workflow based on the following request.
 
-REFERENCE (previous attempt):
-- Previous request: ${previousRequest}
-- Previous output:
-${previousYaml}
+REFERENCE (previous attempts):
+${historySection}
 
+Previous output:
+${previousYaml}
+${executionSection}
 NEW REQUEST:
 ${currentRequest}
 
@@ -780,6 +889,45 @@ ${currentRequest}
 
 Output only the complete modified YAML, starting with "name:".`;
     }
+  }
+
+  /**
+   * Format execution steps for LLM context
+   */
+  private formatExecutionSteps(steps: import("src/workflow/types").ExecutionStep[]): string {
+    if (steps.length === 0) return "";
+
+    const formattedSteps = steps.map((step, idx) => {
+      const lines: string[] = [];
+      lines.push(`Step ${idx + 1} [${step.nodeType}] ${step.nodeId}:`);
+
+      if (step.input && Object.keys(step.input).length > 0) {
+        const inputStr = JSON.stringify(step.input, null, 2)
+          .split("\n")
+          .map(line => "  " + line)
+          .join("\n");
+        lines.push(`  Input: ${inputStr}`);
+      }
+
+      if (step.status === "error" && step.error) {
+        lines.push(`  Error: ${step.error}`);
+      } else if (step.output !== undefined) {
+        const outputStr = typeof step.output === "string"
+          ? step.output.substring(0, 500) + (step.output.length > 500 ? "..." : "")
+          : JSON.stringify(step.output, null, 2).substring(0, 500);
+        lines.push(`  Output: ${outputStr}`);
+      }
+
+      lines.push(`  Status: ${step.status}`);
+
+      return lines.join("\n");
+    }).join("\n\n");
+
+    return `
+EXECUTION HISTORY (selected steps):
+${formattedSteps}
+
+`;
   }
 
   /**

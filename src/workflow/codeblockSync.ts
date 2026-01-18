@@ -5,6 +5,7 @@ import {
   replaceWorkflowBlock,
   serializeWorkflowBlock,
 } from "./parser";
+import { getEditHistoryManager } from "../core/editHistory";
 
 interface WorkflowBlockNode {
   id?: unknown;
@@ -189,6 +190,12 @@ export async function saveToCodeBlock(
   const content = await app.vault.read(file);
   const blocks = findWorkflowBlocks(content);
 
+  // Ensure snapshot exists before modification (for edit history)
+  const historyManager = getEditHistoryManager();
+  if (historyManager) {
+    await historyManager.ensureSnapshot(file.path);
+  }
+
   const serializedNodes = data.nodes.map((node, index) => {
     const entry: Record<string, unknown> = {
       id: node.id,
@@ -222,6 +229,7 @@ export async function saveToCodeBlock(
     nodes: serializedNodes,
   };
 
+  let newContent: string;
   if (blocks.length > 0) {
     const indexToUse =
       targetIndex !== undefined &&
@@ -229,14 +237,22 @@ export async function saveToCodeBlock(
       targetIndex < blocks.length
         ? targetIndex
         : 0;
-    const updated = replaceWorkflowBlock(content, blocks[indexToUse], blockData);
-    await app.vault.modify(file, updated);
-    return;
+    newContent = replaceWorkflowBlock(content, blocks[indexToUse], blockData);
+  } else {
+    const block = serializeWorkflowBlock(blockData);
+    newContent = content.trimEnd()
+      ? `${content.trimEnd()}\n\n${block}\n`
+      : `${block}\n`;
   }
 
-  const block = serializeWorkflowBlock(blockData);
-  const nextContent = content.trimEnd()
-    ? `${content.trimEnd()}\n\n${block}\n`
-    : `${block}\n`;
-  await app.vault.modify(file, nextContent);
+  await app.vault.modify(file, newContent);
+
+  // Record edit history
+  if (historyManager) {
+    await historyManager.saveEdit({
+      path: file.path,
+      modifiedContent: newContent,
+      source: "workflow",
+    });
+  }
 }

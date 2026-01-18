@@ -479,6 +479,18 @@ export const fr: Record<string, string> = {
   "workflow.preview.cancel": "Annuler",
   "workflow.preview.additionalRequest": "Entrez votre demande complète :",
   "workflow.preview.additionalPlaceholder": "Décrivez complètement ce que vous voulez que le workflow fasse...",
+  "workflow.preview.referenceHistory": "Référencer l'historique d'exécution",
+  "workflow.preview.stepsSelected": "{{count}} étape(s) sélectionnée(s)",
+
+  // Execution History Select Modal
+  "workflow.historySelect.title": "Sélectionner l'historique d'exécution",
+  "workflow.historySelect.recentExecutions": "Exécutions récentes",
+  "workflow.historySelect.steps": "Étapes (sélectionner pour inclure)",
+  "workflow.historySelect.selectRunToView": "Sélectionnez une exécution pour voir les étapes",
+  "workflow.historySelect.includeSelected": "Inclure la sélection",
+  "workflow.historySelect.includeAll": "Inclure tout",
+  "workflow.historySelect.skipped": "Ignoré",
+  "workflow.historySelect.error": "Erreur :",
 
   // Workflow Execution Modal
   "workflow.execution.title": "Exécution du workflow",

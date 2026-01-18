@@ -616,6 +616,21 @@ Jeder KI-generierte Workflow speichert einen Verlaufseintrag über dem Workflow-
 
 ![KI-Workflow-Änderung](modify_workflow_with_ai.png)
 
+**Ausführungsverlauf-Referenz:**
+
+Beim Ändern eines Workflows mit KI können Sie auf vorherige Ausführungsergebnisse verweisen, um der KI Probleme zu erklären:
+
+1. Klicken Sie auf die Schaltfläche **Ausführungsverlauf referenzieren**
+2. Wählen Sie einen Ausführungslauf aus der Liste (Fehlerläufe sind hervorgehoben)
+3. Wählen Sie die einzuschließenden Schritte (Fehlerschritte sind vorausgewählt)
+4. Die KI erhält die Schritt-Input/Output-Daten, um zu verstehen, was schief gelaufen ist
+
+Dies ist besonders nützlich zum Debuggen von Workflows - Sie können der KI sagen "Behebe den Fehler in Schritt 2" und sie sieht genau, welche Eingabe den Fehler verursacht hat.
+
+**Anfrageverlauf:**
+
+Beim Regenerieren eines Workflows (Klicken auf "Nein" in der Vorschau) werden alle vorherigen Anfragen der Sitzung an die KI übergeben. Dies hilft der KI, den vollständigen Kontext Ihrer Änderungen über mehrere Iterationen hinweg zu verstehen.
+
 **Manuelle Workflow-Bearbeitung:**
 
 Bearbeiten Sie Workflows direkt im visuellen Node-Editor mit Drag-and-Drop-Oberfläche.

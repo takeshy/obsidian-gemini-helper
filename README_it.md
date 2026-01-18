@@ -616,6 +616,21 @@ Ogni workflow generato da AI salva una voce di cronologia sopra il blocco di cod
 
 ![Modifica Workflow con AI](modify_workflow_with_ai.png)
 
+**Riferimento alla Cronologia di Esecuzione:**
+
+Quando modifichi un workflow con AI, puoi fare riferimento ai risultati delle esecuzioni precedenti per aiutare l'AI a capire i problemi:
+
+1. Clicca il pulsante **Riferimento cronologia esecuzione**
+2. Seleziona un'esecuzione dalla lista (le esecuzioni con errori sono evidenziate)
+3. Scegli quali passaggi includere (i passaggi con errori sono preselezionati)
+4. L'AI riceve i dati di input/output del passaggio per capire cosa è andato storto
+
+Questo è particolarmente utile per il debug dei workflow - puoi dire all'AI "Correggi l'errore nel passaggio 2" e vedrà esattamente quale input ha causato l'errore.
+
+**Cronologia Richieste:**
+
+Quando rigeneri un workflow (cliccando "No" nell'anteprima), tutte le richieste precedenti della sessione vengono passate all'AI. Questo aiuta l'AI a capire il contesto completo delle tue modifiche attraverso più iterazioni.
+
 **Modifica Manuale dei Workflow:**
 
 Modifica i workflow direttamente nell'editor visuale dei nodi con interfaccia drag-and-drop.

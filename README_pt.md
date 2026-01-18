@@ -616,6 +616,21 @@ Cada workflow gerado por IA salva uma entrada de histórico acima do bloco de c�
 
 ![Modificação de Workflow com IA](modify_workflow_with_ai.png)
 
+**Referência ao Histórico de Execução:**
+
+Ao modificar um workflow com IA, você pode referenciar resultados de execuções anteriores para ajudar a IA a entender problemas:
+
+1. Clique no botão **Referenciar histórico de execução**
+2. Selecione uma execução da lista (execuções com erros são destacadas)
+3. Escolha quais passos incluir (passos com erros são pré-selecionados)
+4. A IA recebe os dados de entrada/saída do passo para entender o que deu errado
+
+Isso é especialmente útil para depurar workflows - você pode dizer à IA "Corrija o erro no passo 2" e ela verá exatamente qual entrada causou a falha.
+
+**Histórico de Solicitações:**
+
+Ao regenerar um workflow (clicando em "Não" na prévia), todas as solicitações anteriores da sessão são passadas para a IA. Isso ajuda a IA a entender o contexto completo das suas modificações ao longo de múltiplas iterações.
+
 **Edição Manual de Workflow:**
 
 Edite workflows diretamente no editor visual de nós com interface drag-and-drop.

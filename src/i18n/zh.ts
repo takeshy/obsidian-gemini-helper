@@ -479,6 +479,18 @@ export const zh: Record<string, string> = {
   "workflow.preview.cancel": "取消",
   "workflow.preview.additionalRequest": "请输入完整的请求内容：",
   "workflow.preview.additionalPlaceholder": "完整描述您希望工作流执行的操作...",
+  "workflow.preview.referenceHistory": "参考执行历史",
+  "workflow.preview.stepsSelected": "已选择{{count}}个步骤",
+
+  // Execution History Select Modal
+  "workflow.historySelect.title": "选择执行历史",
+  "workflow.historySelect.recentExecutions": "最近执行",
+  "workflow.historySelect.steps": "步骤（选择要包含的）",
+  "workflow.historySelect.selectRunToView": "选择一次执行以查看步骤",
+  "workflow.historySelect.includeSelected": "包含所选",
+  "workflow.historySelect.includeAll": "包含全部",
+  "workflow.historySelect.skipped": "已跳过",
+  "workflow.historySelect.error": "错误：",
 
   // Workflow Execution Modal
   "workflow.execution.title": "工作流执行",

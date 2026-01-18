@@ -616,6 +616,21 @@ Cada flujo de trabajo generado por IA guarda una entrada de historial sobre el b
 
 ![Modificación de Flujo de Trabajo con IA](modify_workflow_with_ai.png)
 
+**Referencia del Historial de Ejecución:**
+
+Al modificar un flujo de trabajo con IA, puedes hacer referencia a resultados de ejecuciones anteriores para ayudar a la IA a entender los problemas:
+
+1. Haz clic en el botón **Referenciar historial de ejecución**
+2. Selecciona una ejecución de la lista (las ejecuciones con errores están resaltadas)
+3. Elige qué pasos incluir (los pasos con errores están preseleccionados)
+4. La IA recibe los datos de entrada/salida del paso para entender qué salió mal
+
+Esto es especialmente útil para depurar flujos de trabajo - puedes decirle a la IA "Corrige el error en el paso 2" y verá exactamente qué entrada causó la falla.
+
+**Historial de Solicitudes:**
+
+Al regenerar un flujo de trabajo (haciendo clic en "No" en la vista previa), todas las solicitudes anteriores de la sesión se pasan a la IA. Esto ayuda a la IA a entender el contexto completo de tus modificaciones a través de múltiples iteraciones.
+
 **Edición Manual de Flujos de Trabajo:**
 
 Edita flujos de trabajo directamente en el editor visual de nodos con interfaz de arrastrar y soltar.

@@ -498,6 +498,18 @@ export const ja: Record<string, string> = {
   "workflow.preview.cancel": "キャンセル",
   "workflow.preview.additionalRequest": "依頼内容を全文入力してください:",
   "workflow.preview.additionalPlaceholder": "ワークフローに求める内容を全て記述してください...",
+  "workflow.preview.referenceHistory": "実行履歴を参照",
+  "workflow.preview.stepsSelected": "{{count}}ステップ選択中",
+
+  // Execution History Select Modal
+  "workflow.historySelect.title": "実行履歴を選択",
+  "workflow.historySelect.recentExecutions": "最近の実行",
+  "workflow.historySelect.steps": "ステップ（含めるものを選択）",
+  "workflow.historySelect.selectRunToView": "実行を選択してステップを表示",
+  "workflow.historySelect.includeSelected": "選択を含める",
+  "workflow.historySelect.includeAll": "すべて含める",
+  "workflow.historySelect.skipped": "スキップ",
+  "workflow.historySelect.error": "エラー:",
 
   // Workflow Execution Modal
   "workflow.execution.title": "ワークフロー実行中",

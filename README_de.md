@@ -392,19 +392,25 @@ npm run build
 
 ### Verschlüsselung
 
-Schützen Sie Ihren Chat-Verlauf und Workflow-Ausführungsprotokolle mit Passwort.
+Schützen Sie Ihren Chat-Verlauf und Workflow-Ausführungsprotokolle separat mit Passwort.
 
-> **Erforderlich:** Sie müssen zuerst ein Passwort in den Plugin-Einstellungen festlegen, um die Verschlüsselung zu aktivieren.
+**Einrichtung:**
+
+1. Legen Sie ein Passwort in den Plugin-Einstellungen fest (sicher gespeichert mittels Public-Key-Kryptographie)
+
+![Initiale Verschlüsselungseinrichtung](setting_initial_encryption.png)
+
+2. Nach der Einrichtung aktivieren Sie die Verschlüsselung für jeden Protokolltyp:
+   - **AI-Chat-Verlauf verschlüsseln** - Verschlüsselt Chat-Konversationsdateien
+   - **Workflow-Ausführungsprotokolle verschlüsseln** - Verschlüsselt Workflow-Verlaufsdateien
 
 ![Verschlüsselungseinstellungen](setting_encryption.png)
 
-**Einrichtung:**
-1. Verschlüsselung in den Plugin-Einstellungen aktivieren
-2. Passwort festlegen (sicher gespeichert mittels Public-Key-Kryptographie)
-3. Alle neuen Chat-Dateien und Workflow-Protokolle werden verschlüsselt
+Jede Einstellung kann unabhängig aktiviert/deaktiviert werden.
 
 **Funktionen:**
-- **Automatische Verschlüsselung** - Neue Chats und Workflow-Protokolle werden beim Speichern verschlüsselt
+- **Separate Steuerung** - Wählen Sie, welche Protokolle verschlüsselt werden sollen (Chat, Workflow oder beide)
+- **Automatische Verschlüsselung** - Neue Dateien werden beim Speichern basierend auf den Einstellungen verschlüsselt
 - **Passwort-Caching** - Passwort einmal pro Sitzung eingeben
 - **Dedizierter Viewer** - Verschlüsselte Dateien öffnen sich in einem sicheren Editor mit Vorschau
 - **Entschlüsselungsoption** - Verschlüsselung bei Bedarf von einzelnen Dateien entfernen
@@ -416,14 +422,14 @@ Schützen Sie Ihren Chat-Verlauf und Workflow-Ausführungsprotokolle mit Passwor
 Passwort → Schlüsselpaar generieren (RSA) → Privaten Schlüssel verschlüsseln → In Einstellungen speichern
 
 [Verschlüsselung - pro Datei]
-Inhalt → Mit neuem AES-Schlüssel verschlüsseln → AES-Schlüssel mit öffentlichem Schlüssel verschlüsseln
+Dateiinhalt → Mit neuem AES-Schlüssel verschlüsseln → AES-Schlüssel mit öffentlichem Schlüssel verschlüsseln
 → In Datei speichern: verschlüsselte Daten + verschlüsselter privater Schlüssel (aus Einstellungen) + Salt
 
 [Entschlüsselung]
 Passwort + Salt → Privaten Schlüssel wiederherstellen → AES-Schlüssel entschlüsseln → Inhalt entschlüsseln
 ```
 
-- Schlüsselpaar wird einmalig generiert (RSA ist langsam), AES-Schlüssel pro Datei
+- Schlüsselpaar wird einmalig generiert (RSA-Generierung ist langsam), AES-Schlüssel wird pro Datei generiert
 - Jede Datei speichert: verschlüsselten Inhalt + verschlüsselten privaten Schlüssel (aus Einstellungen kopiert) + Salt
 - Dateien sind eigenständig — nur mit Passwort entschlüsselbar, keine Plugin-Abhängigkeit
 
@@ -518,11 +524,26 @@ Benötigt: `pip install cryptography`
 - **Verlauf-Schaltfläche** - Frühere Chats laden
 
 ### Workflows verwenden
+
+**Von der Seitenleiste:**
 1. Öffnen Sie den **Workflow**-Tab in der Seitenleiste
 2. Öffnen Sie eine Datei mit `workflow`-Codeblock
 3. Wählen Sie einen Workflow aus dem Dropdown
 4. Klicken Sie auf **Run**, um auszuführen
 5. Klicken Sie auf **History**, um vergangene Durchläufe anzuzeigen
+
+**Von der Befehlspalette (Run Workflow):**
+
+Verwenden Sie den Befehl "Gemini Helper: Run Workflow", um Workflows von überall zu durchsuchen und auszuführen:
+
+1. Öffnen Sie die Befehlspalette und suchen Sie nach "Run Workflow"
+2. Durchsuchen Sie alle Vault-Dateien mit Workflow-Codeblöcken (Dateien im `workflows/`-Ordner werden zuerst angezeigt)
+3. Zeigen Sie den Workflow-Inhalt und die AI-Generierungshistorie in der Vorschau an
+4. Wählen Sie einen Workflow und klicken Sie auf **Run**, um auszuführen
+
+![Workflow-Ausführen-Modal](workflow_list.png)
+
+Dies ist nützlich, um Workflows schnell auszuführen, ohne zuerst zur Workflow-Datei navigieren zu müssen.
 
 ![Workflow-Verlauf](workflow_history.png)
 
@@ -630,6 +651,11 @@ Bearbeiten Sie Workflows direkt im visuellen Node-Editor mit Drag-and-Drop-Oberf
 - Bei aktiviertem CLI-Modus werden externe CLI-Tools (gemini, claude, codex) über child_process ausgeführt
 - Dies geschieht nur, wenn es vom Benutzer explizit konfiguriert und verifiziert wurde
 - Der CLI-Modus ist nur für Desktop verfügbar (nicht auf Mobilgeräten)
+
+**MCP-Server (optional):**
+- MCP-Server (Model Context Protocol) können in den Plugin-Einstellungen für Workflow-`mcp`-Nodes konfiguriert werden
+- MCP-Server sind externe Dienste, die zusätzliche Tools und Funktionen bereitstellen
+- **Sicherheitswarnung:** Speichern Sie keine sensiblen Anmeldedaten (API-Schlüssel, Tokens) in MCP-Server-Headern. Wenn Authentifizierung erforderlich ist, verwenden Sie Umgebungsvariablen oder sichere Anmeldedatenverwaltung.
 
 **Sicherheitshinweise:**
 - Überprüfen Sie Workflows vor der Ausführung - `http`-Nodes können Vault-Daten an externe Endpunkte übertragen

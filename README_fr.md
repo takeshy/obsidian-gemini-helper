@@ -392,19 +392,25 @@ npm run build
 
 ### Chiffrement
 
-Protégez votre historique de chat et vos journaux d'exécution de workflows par mot de passe.
+Protégez votre historique de chat et vos journaux d'exécution de workflows par mot de passe séparément.
 
-> **Requis :** Vous devez d'abord définir un mot de passe dans les paramètres du plugin pour activer le chiffrement.
+**Configuration :**
+
+1. Définissez un mot de passe dans les paramètres du plugin (stocké de manière sécurisée via cryptographie à clé publique)
+
+![Configuration initiale du chiffrement](setting_initial_encryption.png)
+
+2. Après la configuration, activez le chiffrement pour chaque type de journal :
+   - **Chiffrer l'historique de chat IA** - Chiffre les fichiers de conversation de chat
+   - **Chiffrer les journaux d'exécution de workflows** - Chiffre les fichiers d'historique de workflows
 
 ![Paramètres de chiffrement](setting_encryption.png)
 
-**Configuration :**
-1. Activer le chiffrement dans les paramètres du plugin
-2. Définir un mot de passe (stocké de manière sécurisée via cryptographie à clé publique)
-3. Tous les nouveaux fichiers de chat et historiques de workflow seront chiffrés
+Chaque paramètre peut être activé/désactivé indépendamment.
 
 **Fonctionnalités :**
-- **Chiffrement automatique** - Les nouveaux chats et journaux de workflow sont chiffrés lors de la sauvegarde
+- **Contrôles séparés** - Choisissez quels journaux chiffrer (chat, workflow, ou les deux)
+- **Chiffrement automatique** - Les nouveaux fichiers sont chiffrés lors de la sauvegarde selon les paramètres
 - **Mise en cache du mot de passe** - Entrez le mot de passe une fois par session
 - **Visualiseur dédié** - Les fichiers chiffrés s'ouvrent dans un éditeur sécurisé avec aperçu
 - **Option de déchiffrement** - Supprimez le chiffrement de fichiers individuels si nécessaire
@@ -412,16 +418,19 @@ Protégez votre historique de chat et vos journaux d'exécution de workflows par
 **Fonctionnement :**
 
 ```
-[Chiffrement]
-Mot de passe → Générer paire de clés → Chiffrer clé privée avec mot de passe
-Contenu → Chiffrer avec clé AES → Chiffrer clé AES avec clé publique
-→ Sauvegarder : données chiffrées + clé privée chiffrée + salt
+[Configuration - une fois lors de la définition du mot de passe]
+Mot de passe → Générer paire de clés (RSA) → Chiffrer clé privée → Stocker dans les paramètres
+
+[Chiffrement - pour chaque fichier]
+Contenu du fichier → Chiffrer avec nouvelle clé AES → Chiffrer clé AES avec clé publique
+→ Sauvegarder : données chiffrées + clé privée chiffrée (depuis les paramètres) + salt
 
 [Déchiffrement]
 Mot de passe + salt → Restaurer clé privée → Déchiffrer clé AES → Déchiffrer contenu
 ```
 
-- Chaque fichier stocke : contenu chiffré + clé privée chiffrée + salt
+- La paire de clés est générée une fois (la génération RSA est lente), la clé AES est générée par fichier
+- Chaque fichier stocke : contenu chiffré + clé privée chiffrée (copiée des paramètres) + salt
 - Les fichiers sont autonomes — déchiffrables avec juste le mot de passe, sans dépendance au plugin
 
 <details>
@@ -515,11 +524,26 @@ Requis : `pip install cryptography`
 - **Bouton Historique** - Charger les chats précédents
 
 ### Utilisation des Workflows
+
+**Depuis la Barre Latérale :**
 1. Ouvrez l'onglet **Workflow** dans la barre latérale
 2. Ouvrez un fichier avec un bloc de code `workflow`
 3. Sélectionnez le workflow dans le menu déroulant
 4. Cliquez sur **Exécuter** pour lancer
 5. Cliquez sur **Historique** pour voir les exécutions passées
+
+**Depuis la Palette de Commandes (Run Workflow) :**
+
+Utilisez la commande "Gemini Helper: Run Workflow" pour parcourir et exécuter des workflows depuis n'importe où :
+
+1. Ouvrez la palette de commandes et recherchez "Run Workflow"
+2. Parcourez tous les fichiers du vault contenant des blocs de code workflow (les fichiers du dossier `workflows/` sont affichés en premier)
+3. Prévisualisez le contenu du workflow et l'historique de génération par IA
+4. Sélectionnez un workflow et cliquez sur **Run** pour exécuter
+
+![Modal Exécuter Workflow](workflow_list.png)
+
+Ceci est utile pour exécuter rapidement des workflows sans naviguer d'abord vers le fichier du workflow.
 
 ![Historique des Workflows](workflow_history.png)
 
@@ -627,6 +651,11 @@ Chaque workflow généré par IA enregistre une entrée d'historique au-dessus d
 - Quand le mode CLI est activé, les outils CLI externes (gemini, claude, codex) sont exécutés via child_process
 - Cela se produit uniquement quand explicitement configuré et vérifié par l'utilisateur
 - Le mode CLI est uniquement disponible sur desktop (non disponible sur mobile)
+
+**Serveurs MCP (optionnel) :**
+- Les serveurs MCP (Model Context Protocol) peuvent être configurés dans les paramètres du plugin pour les nœuds `mcp` des workflows
+- Les serveurs MCP sont des services externes qui fournissent des outils et capacités supplémentaires
+- **Avertissement de sécurité :** Ne stockez pas d'informations d'identification sensibles (clés API, tokens) dans les en-têtes des serveurs MCP. Si une authentification est requise, utilisez des variables d'environnement ou une gestion sécurisée des informations d'identification.
 
 **Notes de sécurité :**
 - Vérifiez les workflows avant de les exécuter - les nœuds `http` peuvent transmettre des données du coffre à des endpoints externes

@@ -398,19 +398,25 @@ npm run build
 
 ### Cifrado
 
-Protege tu historial de chat y registros de ejecución de workflows con contraseña.
+Protege tu historial de chat y registros de ejecución de workflows con contraseña por separado.
 
-> **Requerido:** Primero debes establecer una contraseña en la configuración del plugin para habilitar el cifrado.
+**Configuración:**
+
+1. Establece una contraseña en la configuración del plugin (almacenada de forma segura usando criptografía de clave pública)
+
+![Configuración Inicial de Cifrado](setting_initial_encryption.png)
+
+2. Después de la configuración, activa el cifrado para cada tipo de registro:
+   - **Cifrar historial de chat de IA** - Cifra los archivos de conversación de chat
+   - **Cifrar registros de ejecución de workflows** - Cifra los archivos de historial de workflows
 
 ![Configuración de Cifrado](setting_encryption.png)
 
-**Configuración:**
-1. Habilitar cifrado en la configuración del plugin
-2. Establecer una contraseña (almacenada de forma segura usando criptografía de clave pública)
-3. Todos los nuevos archivos de chat e historial de workflow serán cifrados
+Cada configuración puede habilitarse/deshabilitarse de forma independiente.
 
 **Características:**
-- **Cifrado automático** - Los nuevos chats y registros de workflow se cifran al guardar
+- **Controles separados** - Elige qué registros cifrar (chat, workflow, o ambos)
+- **Cifrado automático** - Los nuevos archivos se cifran al guardar según la configuración
 - **Caché de contraseña** - Ingresa la contraseña una vez por sesión
 - **Visor dedicado** - Los archivos cifrados se abren en un editor seguro con vista previa
 - **Opción de descifrado** - Elimina el cifrado de archivos individuales cuando sea necesario
@@ -418,16 +424,19 @@ Protege tu historial de chat y registros de ejecución de workflows con contrase
 **Cómo funciona:**
 
 ```
-[Cifrado]
-Contraseña → Generar par de claves → Cifrar clave privada con contraseña
-Contenido → Cifrar con clave AES → Cifrar clave AES con clave pública
-→ Guardar en archivo: datos cifrados + clave privada cifrada + salt
+[Configuración - una vez al establecer la contraseña]
+Contraseña → Generar par de claves (RSA) → Cifrar clave privada → Guardar en configuración
+
+[Cifrado - para cada archivo]
+Contenido del archivo → Cifrar con nueva clave AES → Cifrar clave AES con clave pública
+→ Guardar en archivo: datos cifrados + clave privada cifrada (de configuración) + salt
 
 [Descifrado]
 Contraseña + salt → Restaurar clave privada → Descifrar clave AES → Descifrar contenido
 ```
 
-- Cada archivo almacena: contenido cifrado + clave privada cifrada + salt
+- El par de claves se genera una vez (la generación RSA es lenta), la clave AES se genera por archivo
+- Cada archivo almacena: contenido cifrado + clave privada cifrada (copiada de la configuración) + salt
 - Los archivos son autocontenidos — descifrables solo con la contraseña, sin dependencia del plugin
 
 <details>
@@ -515,11 +524,26 @@ Requiere: `pip install cryptography`
 - **Botón History** - Cargar chats anteriores
 
 ### Usando Flujos de Trabajo
+
+**Desde la Barra Lateral:**
 1. Abre la pestaña **Workflow** en la barra lateral
 2. Abre un archivo con bloque de código `workflow`
 3. Selecciona el flujo de trabajo del menú desplegable
 4. Haz clic en **Run** para ejecutar
 5. Haz clic en **History** para ver ejecuciones anteriores
+
+**Desde la Paleta de Comandos (Run Workflow):**
+
+Usa el comando "Gemini Helper: Run Workflow" para navegar y ejecutar flujos de trabajo desde cualquier lugar:
+
+1. Abre la paleta de comandos y busca "Run Workflow"
+2. Navega por todos los archivos del vault con bloques de código workflow (los archivos en la carpeta `workflows/` se muestran primero)
+3. Previsualiza el contenido del workflow y el historial de generación con IA
+4. Selecciona un workflow y haz clic en **Run** para ejecutar
+
+![Modal de Ejecutar Workflow](workflow_list.png)
+
+Esto es útil para ejecutar rápidamente flujos de trabajo sin tener que navegar primero al archivo del workflow.
 
 ![Historial de Flujos de Trabajo](workflow_history.png)
 
@@ -627,6 +651,11 @@ Edita flujos de trabajo directamente en el editor visual de nodos con interfaz d
 - Cuando el modo CLI está habilitado, se ejecutan herramientas CLI externas (gemini, claude, codex) a través de child_process
 - Esto solo ocurre cuando está explícitamente configurado y verificado por el usuario
 - El modo CLI es solo para escritorio (no disponible en móvil)
+
+**Servidores MCP (opcional):**
+- Los servidores MCP (Model Context Protocol) pueden configurarse en los ajustes del plugin para nodos `mcp` de workflows
+- Los servidores MCP son servicios externos que proporcionan herramientas y capacidades adicionales
+- **Advertencia de seguridad:** No almacenes credenciales sensibles (claves API, tokens) en los encabezados de servidores MCP. Si se requiere autenticación, usa variables de entorno o gestión segura de credenciales.
 
 **Notas de seguridad:**
 - Revisa los flujos de trabajo antes de ejecutarlos - los nodos `http` pueden transmitir datos del vault a endpoints externos

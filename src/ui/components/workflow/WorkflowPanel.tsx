@@ -4,6 +4,7 @@ import { FileText, FolderOpen, Keyboard, KeyboardOff, LayoutGrid, Plus, Save, Sp
 import { EventTriggerModal } from "./EventTriggerModal";
 import type { WorkflowEventTrigger } from "src/types";
 import { promptForAIWorkflow, ResolvedMention } from "./AIWorkflowModal";
+import { WorkflowExecutionModal } from "./WorkflowExecutionModal";
 import type { GeminiHelperPlugin } from "src/plugin";
 import { SidebarNode, WorkflowNodeType, WorkflowInput, PromptCallbacks } from "src/workflow/types";
 import { loadFromCodeBlock, saveToCodeBlock } from "src/workflow/codeblockSync";
@@ -751,6 +752,10 @@ ${result.nodes.map(node => {
 
     setIsRunning(true);
 
+    // Create abort controller for stopping workflow
+    const abortController = new AbortController();
+    let executionModal: WorkflowExecutionModal | null = null;
+
     try {
       const content = await plugin.app.vault.read(workflowFile);
       const workflow = parseWorkflowFromMarkdown(content, workflowName || undefined, currentWorkflowIndex);
@@ -775,6 +780,19 @@ ${result.nodes.map(node => {
 
       // Note: "file" variable is set by prompt-file node, not automatically
       // In panel mode, users must use prompt-file to select a file
+
+      // Create execution modal to show progress
+      executionModal = new WorkflowExecutionModal(
+        plugin.app,
+        workflow,
+        workflowName || workflowFile.basename,
+        abortController,
+        () => {
+          // onAbort callback
+          setIsRunning(false);
+        }
+      );
+      executionModal.open();
 
       // Create prompt callbacks
       const promptCallbacks: PromptCallbacks = {
@@ -808,19 +826,30 @@ ${result.nodes.map(node => {
       await executor.execute(
         workflow,
         input,
-        () => {}, // Log callback - could show in UI
+        (log) => {
+          // Update execution modal with progress
+          executionModal?.updateFromLog(log);
+        },
         {
           workflowPath: workflowFile.path,
           workflowName: workflowName || undefined,
           recordHistory: true,
+          abortSignal: abortController.signal,
         },
         promptCallbacks
       );
 
+      // Mark execution as complete
+      executionModal?.setComplete(true);
       new Notice(t("workflow.completedSuccessfully"));
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      new Notice(t("workflow.failed", { message }));
+      // Always mark modal as complete (failed state)
+      executionModal?.setComplete(false);
+      // Don't show error notice if it was just stopped
+      if (message !== "Workflow execution was stopped") {
+        new Notice(t("workflow.failed", { message }));
+      }
     } finally {
       setIsRunning(false);
     }

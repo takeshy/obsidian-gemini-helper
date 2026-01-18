@@ -55,6 +55,8 @@ export interface ExecutionLog {
   message: string;
   timestamp: Date;
   status: "info" | "success" | "error";
+  input?: Record<string, unknown>;
+  output?: unknown;
 }
 
 // Editor position for selection

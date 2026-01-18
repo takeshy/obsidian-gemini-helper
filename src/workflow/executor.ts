@@ -44,6 +44,7 @@ export interface ExecuteOptions {
   workflowPath?: string;
   workflowName?: string;
   recordHistory?: boolean;
+  abortSignal?: AbortSignal;
 }
 
 export interface ExecuteResult {
@@ -108,7 +109,9 @@ export class WorkflowExecutor {
       nodeId: string,
       nodeType: WorkflowNode["type"],
       message: string,
-      status: ExecutionLog["status"] = "info"
+      status: ExecutionLog["status"] = "info",
+      input?: Record<string, unknown>,
+      output?: unknown
     ) => {
       const logEntry: ExecutionLog = {
         nodeId,
@@ -116,6 +119,8 @@ export class WorkflowExecutor {
         message,
         timestamp: new Date(),
         status,
+        input,
+        output,
       };
       context.logs.push(logEntry);
       onLog?.(logEntry);
@@ -185,6 +190,16 @@ export class WorkflowExecutor {
     let totalIterations = 0;
 
     while (stack.length > 0 && totalIterations < MAX_ITERATIONS) {
+      // Check for abort signal
+      if (options?.abortSignal?.aborted) {
+        const abortMsg = "Workflow execution was stopped";
+        if (historyRecord) {
+          this.historyManager.completeRecord(historyRecord, "error");
+          await this.historyManager.saveRecord(historyRecord);
+        }
+        throw new Error(abortMsg);
+      }
+
       totalIterations++;
       const current = stack.pop()!;
       const node = workflow.nodes.get(current.nodeId);
@@ -204,16 +219,19 @@ export class WorkflowExecutor {
             handleVariableNode(node, context);
             const varName = node.properties["name"];
             const varValue = context.variables.get(varName);
+            const varInput = { name: varName, value: node.properties["value"] };
             log(
               node.id,
               node.type,
               `Set variable ${varName} = ${varValue}`,
-              "success"
+              "success",
+              varInput,
+              varValue
             );
             addHistoryStep(
               node.id,
               node.type,
-              { name: varName, value: node.properties["value"] },
+              varInput,
               varValue,
               "success"
             );
@@ -229,16 +247,19 @@ export class WorkflowExecutor {
             await handleSetNode(node, context);
             const setVarName = node.properties["name"];
             const setVarValue = context.variables.get(setVarName);
+            const setInput = { name: setVarName, expression: node.properties["value"] };
             log(
               node.id,
               node.type,
               `Updated variable ${setVarName} = ${setVarValue}`,
-              "success"
+              "success",
+              setInput,
+              setVarValue
             );
             addHistoryStep(
               node.id,
               node.type,
-              { name: setVarName, expression: node.properties["value"] },
+              setInput,
               setVarValue,
               "success"
             );
@@ -252,16 +273,19 @@ export class WorkflowExecutor {
 
           case "if": {
             const ifResult = handleIfNode(node, context);
+            const ifInput = { condition: node.properties["condition"] };
             log(
               node.id,
               node.type,
               `Condition evaluated to: ${ifResult}`,
-              "success"
+              "success",
+              ifInput,
+              ifResult
             );
             addHistoryStep(
               node.id,
               node.type,
-              { condition: node.properties["condition"] },
+              ifInput,
               ifResult,
               "success"
             );
@@ -289,19 +313,22 @@ export class WorkflowExecutor {
               }
               whileLoopStates.set(node.id, whileState);
 
+              const whileTrueInput = {
+                condition: node.properties["condition"],
+                iteration: whileState.iterationCount,
+              };
               log(
                 node.id,
                 node.type,
                 `Loop iteration ${whileState.iterationCount}, condition: true`,
-                "info"
+                "info",
+                whileTrueInput,
+                whileResult
               );
               addHistoryStep(
                 node.id,
                 node.type,
-                {
-                  condition: node.properties["condition"],
-                  iteration: whileState.iterationCount,
-                },
+                whileTrueInput,
                 whileResult,
                 "success"
               );
@@ -313,11 +340,12 @@ export class WorkflowExecutor {
               }
             } else {
               // Condition is false, exit loop
-              log(node.id, node.type, `Loop condition false, exiting`, "success");
+              const whileFalseInput = { condition: node.properties["condition"] };
+              log(node.id, node.type, `Loop condition false, exiting`, "success", whileFalseInput, whileResult);
               addHistoryStep(
                 node.id,
                 node.type,
-                { condition: node.properties["condition"] },
+                whileFalseInput,
                 whileResult,
                 "success"
               );
@@ -359,10 +387,12 @@ export class WorkflowExecutor {
                 node.id,
                 node.type,
                 `LLM completed, saved to ${saveTo}: ${preview}`,
-                "success"
+                "success",
+                cmdInput,
+                cmdOutput
               );
             } else {
-              log(node.id, node.type, `LLM completed`, "success");
+              log(node.id, node.type, `LLM completed`, "success", cmdInput, cmdOutput);
             }
             addHistoryStep(node.id, node.type, cmdInput, cmdOutput, "success");
 
@@ -408,10 +438,12 @@ export class WorkflowExecutor {
                 node.id,
                 node.type,
                 `HTTP completed, saved to ${httpSaveTo}: ${httpPreview}`,
-                "success"
+                "success",
+                httpInput,
+                httpOutput
               );
             } else {
-              log(node.id, node.type, `HTTP completed`, "success");
+              log(node.id, node.type, `HTTP completed`, "success", httpInput, httpOutput);
             }
             addHistoryStep(node.id, node.type, httpInput, httpOutput, "success");
 
@@ -433,15 +465,16 @@ export class WorkflowExecutor {
               "info"
             );
 
-            const jsonInput = context.variables.get(jsonSource);
+            const jsonInputData = context.variables.get(jsonSource);
             handleJsonNode(node, context);
             const jsonOutput = context.variables.get(jsonSaveTo);
+            const jsonInput = { source: jsonSource, input: jsonInputData };
 
-            log(node.id, node.type, `JSON parsed successfully`, "success");
+            log(node.id, node.type, `JSON parsed successfully`, "success", jsonInput, jsonOutput);
             addHistoryStep(
               node.id,
               node.type,
-              { source: jsonSource, input: jsonInput },
+              jsonInput,
               jsonOutput,
               "success"
             );
@@ -472,7 +505,7 @@ export class WorkflowExecutor {
 
             await handleNoteNode(node, context, this.app, promptCallbacks);
 
-            log(node.id, node.type, `Note written: ${notePath}`, "success");
+            log(node.id, node.type, `Note written: ${notePath}`, "success", noteInput, notePath);
             addHistoryStep(node.id, node.type, noteInput, notePath, "success");
 
             // Push next nodes
@@ -496,16 +529,19 @@ export class WorkflowExecutor {
                 ? noteReadContent.substring(0, 50) +
                   (noteReadContent.length > 50 ? "..." : "")
                 : noteReadContent;
+            const noteReadInput = { path: noteReadPath };
             log(
               node.id,
               node.type,
               `Note read, saved to ${noteReadSaveTo}: ${noteReadPreview}`,
-              "success"
+              "success",
+              noteReadInput,
+              noteReadContent
             );
             addHistoryStep(
               node.id,
               node.type,
-              { path: noteReadPath },
+              noteReadInput,
               noteReadContent,
               "success"
             );
@@ -532,16 +568,19 @@ export class WorkflowExecutor {
             await handleNoteSearchNode(node, context, this.app);
 
             const noteSearchResults = context.variables.get(noteSearchSaveTo);
+            const noteSearchInput = { query: noteSearchQuery, searchContent: noteSearchContent };
             log(
               node.id,
               node.type,
               `Search complete, saved to ${noteSearchSaveTo}`,
-              "success"
+              "success",
+              noteSearchInput,
+              noteSearchResults
             );
             addHistoryStep(
               node.id,
               node.type,
-              { query: noteSearchQuery, searchContent: noteSearchContent },
+              noteSearchInput,
               noteSearchResults,
               "success"
             );
@@ -568,16 +607,19 @@ export class WorkflowExecutor {
             handleNoteListNode(node, context, this.app);
 
             const noteListResults = context.variables.get(noteListSaveTo);
+            const noteListInput = { folder: noteListFolder, recursive: noteListRecursive };
             log(
               node.id,
               node.type,
               `List complete, saved to ${noteListSaveTo}`,
-              "success"
+              "success",
+              noteListInput,
+              noteListResults
             );
             addHistoryStep(
               node.id,
               node.type,
-              { folder: noteListFolder, recursive: noteListRecursive },
+              noteListInput,
               noteListResults,
               "success"
             );
@@ -603,16 +645,19 @@ export class WorkflowExecutor {
             handleFolderListNode(node, context, this.app);
 
             const folderListResults = context.variables.get(folderListSaveTo);
+            const folderListInput = { folder: folderListParent };
             log(
               node.id,
               node.type,
               `Folder list complete, saved to ${folderListSaveTo}`,
-              "success"
+              "success",
+              folderListInput,
+              folderListResults
             );
             addHistoryStep(
               node.id,
               node.type,
-              { folder: folderListParent },
+              folderListInput,
               folderListResults,
               "success"
             );
@@ -631,11 +676,12 @@ export class WorkflowExecutor {
 
             await handleOpenNode(node, context, this.app, promptCallbacks);
 
-            log(node.id, node.type, `File opened: ${openPath}`, "success");
+            const openInput = { path: openPath };
+            log(node.id, node.type, `File opened: ${openPath}`, "success", openInput, openPath);
             addHistoryStep(
               node.id,
               node.type,
-              { path: openPath },
+              openInput,
               openPath,
               "success"
             );
@@ -656,11 +702,12 @@ export class WorkflowExecutor {
             await handleDialogNode(node, context, this.app, promptCallbacks);
 
             const dialogResult = dialogSaveTo ? context.variables.get(dialogSaveTo) : undefined;
-            log(node.id, node.type, `Dialog completed`, "success");
+            const dialogInput = { title: dialogTitle };
+            log(node.id, node.type, `Dialog completed`, "success", dialogInput, dialogResult);
             addHistoryStep(
               node.id,
               node.type,
-              { title: dialogTitle },
+              dialogInput,
               dialogResult,
               "success"
             );
@@ -686,11 +733,12 @@ export class WorkflowExecutor {
             await handlePromptFileNode(node, context, this.app, promptCallbacks);
 
             const selectedFile = context.variables.get(promptFileSaveTo);
-            log(node.id, node.type, `File selected: ${selectedFile}`, "success");
+            const promptFileInput = { title: promptFileTitle };
+            log(node.id, node.type, `File selected: ${selectedFile}`, "success", promptFileInput, selectedFile);
             addHistoryStep(
               node.id,
               node.type,
-              { title: promptFileTitle },
+              promptFileInput,
               selectedFile,
               "success"
             );
@@ -726,16 +774,19 @@ export class WorkflowExecutor {
                 ? selectedText.substring(0, 50) +
                   (selectedText.length > 50 ? "..." : "")
                 : selectedText;
+            const promptSelInput = { title: promptSelTitle };
             log(
               node.id,
               node.type,
               `Selection saved to ${promptSelSaveTo}: ${preview}`,
-              "success"
+              "success",
+              promptSelInput,
+              selectedText
             );
             addHistoryStep(
               node.id,
               node.type,
-              { title: promptSelTitle },
+              promptSelInput,
               selectedText,
               "success"
             );
@@ -765,11 +816,12 @@ export class WorkflowExecutor {
             const fileExpResult = fileExpSaveTo
               ? context.variables.get(fileExpSaveTo)
               : context.variables.get(fileExpSavePathTo);
-            log(node.id, node.type, `File explorer completed`, "success");
+            const fileExpInput = { title: fileExpTitle, mode: fileExpMode };
+            log(node.id, node.type, `File explorer completed`, "success", fileExpInput, fileExpResult);
             addHistoryStep(
               node.id,
               node.type,
-              { title: fileExpTitle, mode: fileExpMode },
+              fileExpInput,
               fileExpResult,
               "success"
             );
@@ -794,11 +846,12 @@ export class WorkflowExecutor {
 
             await handleFileSaveNode(node, context, this.app);
 
-            log(node.id, node.type, `File saved to ${fileSavePath}`, "success");
+            const fileSaveInput = { source: fileSaveSource, path: fileSavePath };
+            log(node.id, node.type, `File saved to ${fileSavePath}`, "success", fileSaveInput, fileSavePath);
             addHistoryStep(
               node.id,
               node.type,
-              { source: fileSaveSource, path: fileSavePath },
+              fileSaveInput,
               fileSavePath,
               "success"
             );
@@ -885,11 +938,12 @@ export class WorkflowExecutor {
 
             await handleWorkflowNode(node, context, this.app, extendedCallbacks);
 
-            log(node.id, node.type, `Sub-workflow completed: ${subWorkflowPath}`, "success");
+            const subWorkflowInput = { path: subWorkflowPath, name: subWorkflowName };
+            log(node.id, node.type, `Sub-workflow completed: ${subWorkflowPath}`, "success", subWorkflowInput, "completed");
             addHistoryStep(
               node.id,
               node.type,
-              { path: subWorkflowPath, name: subWorkflowName },
+              subWorkflowInput,
               "completed",
               "success"
             );
@@ -916,16 +970,19 @@ export class WorkflowExecutor {
 
             const ragSyncSaveTo = node.properties["saveTo"];
             const ragSyncResult = ragSyncSaveTo ? context.variables.get(ragSyncSaveTo) : undefined;
+            const ragSyncInput = { path: ragSyncPath, ragSetting: ragSettingName };
             log(
               node.id,
               node.type,
               `RAG sync completed: ${ragSyncPath}`,
-              "success"
+              "success",
+              ragSyncInput,
+              ragSyncResult
             );
             addHistoryStep(
               node.id,
               node.type,
-              { path: ragSyncPath, ragSetting: ragSettingName },
+              ragSyncInput,
               ragSyncResult,
               "success"
             );
@@ -969,10 +1026,12 @@ export class WorkflowExecutor {
                 node.id,
                 node.type,
                 `MCP completed, saved to ${mcpSaveTo}: ${mcpPreview}`,
-                "success"
+                "success",
+                mcpInput,
+                mcpResult
               );
             } else {
-              log(node.id, node.type, `MCP completed`, "success");
+              log(node.id, node.type, `MCP completed`, "success", mcpInput, mcpResult);
             }
             addHistoryStep(node.id, node.type, mcpInput, mcpResult, "success");
 
@@ -1007,7 +1066,9 @@ export class WorkflowExecutor {
               node.id,
               node.type,
               `Obsidian command executed: ${obsidianCommandId}`,
-              "success"
+              "success",
+              obsidianCmdInput,
+              obsidianCmdResult
             );
             addHistoryStep(
               node.id,

@@ -163,6 +163,7 @@ export const en = {
 
   // Common buttons
   "common.cancel": "Cancel",
+  "common.close": "Close",
   "common.ok": "OK",
   "common.confirm": "Confirm",
   "common.delete": "Delete",
@@ -559,6 +560,16 @@ export const en = {
   "workflow.preview.cancel": "Cancel",
   "workflow.preview.additionalRequest": "Enter your full request:",
   "workflow.preview.additionalPlaceholder": "Enter the complete description of what you want the workflow to do...",
+
+  // Workflow Execution Modal
+  "workflow.execution.title": "Workflow execution",
+  "workflow.execution.running": "Running...",
+  "workflow.execution.stop": "Stop",
+  "workflow.execution.stopped": "Stopped",
+  "workflow.execution.completed": "Completed",
+  "workflow.execution.failed": "Failed",
+  "workflow.execution.notExecutedYet": "Not executed yet",
+  "workflow.execution.noData": "No data available",
 
   // CryptView - File Encryption
   "crypt.encryptFile": "Encrypt file",

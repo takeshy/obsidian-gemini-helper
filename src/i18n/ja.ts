@@ -163,6 +163,7 @@ export const ja: Record<string, string> = {
 
   // Common buttons
   "common.cancel": "キャンセル",
+  "common.close": "閉じる",
   "common.ok": "OK",
   "common.confirm": "確認",
   "common.delete": "削除",
@@ -497,6 +498,16 @@ export const ja: Record<string, string> = {
   "workflow.preview.cancel": "キャンセル",
   "workflow.preview.additionalRequest": "依頼内容を全文入力してください:",
   "workflow.preview.additionalPlaceholder": "ワークフローに求める内容を全て記述してください...",
+
+  // Workflow Execution Modal
+  "workflow.execution.title": "ワークフロー実行中",
+  "workflow.execution.running": "実行中...",
+  "workflow.execution.stop": "停止",
+  "workflow.execution.stopped": "停止しました",
+  "workflow.execution.completed": "完了",
+  "workflow.execution.failed": "失敗",
+  "workflow.execution.notExecutedYet": "まだ実行されていません",
+  "workflow.execution.noData": "データがありません",
 
   // CryptView - File Encryption
   "crypt.encryptFile": "ファイルを暗号化",

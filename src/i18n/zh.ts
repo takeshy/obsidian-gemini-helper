@@ -163,6 +163,7 @@ export const zh: Record<string, string> = {
 
   // Common buttons
   "common.cancel": "取消",
+  "common.close": "关闭",
   "common.ok": "确定",
   "common.confirm": "确认",
   "common.delete": "删除",
@@ -478,4 +479,14 @@ export const zh: Record<string, string> = {
   "workflow.preview.cancel": "取消",
   "workflow.preview.additionalRequest": "请输入完整的请求内容：",
   "workflow.preview.additionalPlaceholder": "完整描述您希望工作流执行的操作...",
+
+  // Workflow Execution Modal
+  "workflow.execution.title": "工作流执行",
+  "workflow.execution.running": "执行中...",
+  "workflow.execution.stop": "停止",
+  "workflow.execution.stopped": "已停止",
+  "workflow.execution.completed": "已完成",
+  "workflow.execution.failed": "失败",
+  "workflow.execution.notExecutedYet": "尚未执行",
+  "workflow.execution.noData": "无可用数据",
 };

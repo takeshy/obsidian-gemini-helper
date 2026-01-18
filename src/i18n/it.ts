@@ -163,6 +163,7 @@ export const it: Record<string, string> = {
 
   // Common buttons
   "common.cancel": "Annulla",
+  "common.close": "Chiudi",
   "common.ok": "OK",
   "common.confirm": "Conferma",
   "common.delete": "Elimina",
@@ -478,4 +479,14 @@ export const it: Record<string, string> = {
   "workflow.preview.cancel": "Annulla",
   "workflow.preview.additionalRequest": "Inserisci la tua richiesta completa:",
   "workflow.preview.additionalPlaceholder": "Descrivi completamente cosa vuoi che faccia il workflow...",
+
+  // Workflow Execution Modal
+  "workflow.execution.title": "Esecuzione workflow",
+  "workflow.execution.running": "In esecuzione...",
+  "workflow.execution.stop": "Ferma",
+  "workflow.execution.stopped": "Fermato",
+  "workflow.execution.completed": "Completato",
+  "workflow.execution.failed": "Fallito",
+  "workflow.execution.notExecutedYet": "Non ancora eseguito",
+  "workflow.execution.noData": "Nessun dato disponibile",
 };

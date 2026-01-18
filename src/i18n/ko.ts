@@ -163,6 +163,7 @@ export const ko: Record<string, string> = {
 
   // Common buttons
   "common.cancel": "취소",
+  "common.close": "닫기",
   "common.ok": "확인",
   "common.confirm": "확인",
   "common.delete": "삭제",
@@ -478,4 +479,14 @@ export const ko: Record<string, string> = {
   "workflow.preview.cancel": "취소",
   "workflow.preview.additionalRequest": "전체 요청 내용을 입력하세요:",
   "workflow.preview.additionalPlaceholder": "워크플로우가 수행할 작업을 완전히 설명하세요...",
+
+  // Workflow Execution Modal
+  "workflow.execution.title": "워크플로우 실행",
+  "workflow.execution.running": "실행 중...",
+  "workflow.execution.stop": "중지",
+  "workflow.execution.stopped": "중지됨",
+  "workflow.execution.completed": "완료",
+  "workflow.execution.failed": "실패",
+  "workflow.execution.notExecutedYet": "아직 실행되지 않음",
+  "workflow.execution.noData": "사용 가능한 데이터 없음",
 };

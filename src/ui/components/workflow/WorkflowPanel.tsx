@@ -365,19 +365,28 @@ export default function WorkflowPanel({ plugin }: WorkflowPanelProps) {
     }
   }, [plugin.app, currentWorkflowIndex]);
 
-  // Watch active file changes
+  // Watch active file changes and file restored events
   useEffect(() => {
     void loadWorkflow();
 
-    const handler = () => {
+    const leafChangeHandler = () => {
       void loadWorkflow();
     };
 
-    plugin.app.workspace.on("active-leaf-change", handler);
-    return () => {
-      plugin.app.workspace.off("active-leaf-change", handler);
+    const restoredHandler = (path: string) => {
+      if (workflowFile && path === workflowFile.path) {
+        void loadWorkflow();
+      }
     };
-  }, [loadWorkflow, plugin.app.workspace]);
+
+    plugin.app.workspace.on("active-leaf-change", leafChangeHandler);
+    const eventRef = plugin.app.workspace.on("gemini-helper:file-restored", restoredHandler);
+
+    return () => {
+      plugin.app.workspace.off("active-leaf-change", leafChangeHandler);
+      plugin.app.workspace.offref(eventRef);
+    };
+  }, [loadWorkflow, plugin.app.workspace, workflowFile]);
 
   // Save workflow
   const saveWorkflow = useCallback(async (newNodes: SidebarNode[]) => {

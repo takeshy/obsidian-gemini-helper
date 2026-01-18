@@ -172,6 +172,8 @@ export class EditHistoryModal extends Modal {
       resetBtn.addEventListener("click", () => {
         new ConfirmModal(this.app, t("editHistoryModal.confirmRevertToBase"), () => {
           void historyManager.revertToBase(this.filePath).then(() => {
+            // Notify listeners that file was restored
+            this.app.workspace.trigger("gemini-helper:file-restored", this.filePath);
             new Notice(t("editHistoryModal.revertedToBase"));
             this.close();
           });

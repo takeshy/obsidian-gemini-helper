@@ -719,18 +719,20 @@ export class GeminiHelperPlugin extends Plugin {
 
     // File opened
     this.registerEvent(
-      this.app.workspace.on("file-open", async (file) => {
+      this.app.workspace.on("file-open", (file) => {
         if (file instanceof TFile) {
-          // Skip encrypted files - they will be handled by CryptView
-          try {
-            const content = await this.app.vault.read(file);
-            if (isEncryptedFile(content)) {
-              return;
+          void (async () => {
+            // Skip encrypted files - they will be handled by CryptView
+            try {
+              const content = await this.app.vault.read(file);
+              if (isEncryptedFile(content)) {
+                return;
+              }
+            } catch {
+              // Ignore read errors
             }
-          } catch {
-            // Ignore read errors
-          }
-          void this.handleWorkflowEvent("file-open", file.path, { file });
+            void this.handleWorkflowEvent("file-open", file.path, { file });
+          })();
         }
       })
     );

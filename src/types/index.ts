@@ -1,4 +1,13 @@
 import type { Content } from "@google/genai";
+import type { EventRef } from "obsidian";
+
+// Extend Obsidian's Workspace type with custom events
+declare module "obsidian" {
+  interface Workspace {
+    on(name: "gemini-helper:file-restored", callback: (path: string) => void): EventRef;
+    trigger(name: "gemini-helper:file-restored", path: string): void;
+  }
+}
 
 // MCP (Model Context Protocol) server configuration
 export interface McpServerConfig {

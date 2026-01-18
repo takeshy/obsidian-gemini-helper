@@ -536,6 +536,112 @@ export class GeminiClient {
     yield { type: "done" };
   }
 
+  // Streaming workflow generation with thinking
+  async *generateWorkflowStream(
+    messages: Message[],
+    systemPrompt?: string
+  ): AsyncGenerator<StreamChunk> {
+    // Build history from all messages except the last one
+    const historyMessages = messages.slice(0, -1);
+    const history = this.messagesToHistory(historyMessages);
+
+    // Check if model supports thinking (Gemma models don't support it)
+    const supportsThinking = !this.model.toLowerCase().includes("gemma");
+
+    // Build thinking config based on model
+    const getThinkingConfig = () => {
+      if (!supportsThinking) return undefined;
+      const modelLower = this.model.toLowerCase();
+      if (modelLower.includes("flash-lite")) {
+        // Flash Lite requires thinkingBudget to enable thinking (-1 = dynamic)
+        return { includeThoughts: true, thinkingBudget: -1 };
+      }
+      return { includeThoughts: true };
+    };
+
+    // Create a chat session with history (no tools for workflow generation)
+    const chat: Chat = this.ai.chats.create({
+      model: this.model,
+      history,
+      config: {
+        systemInstruction: systemPrompt,
+        // Enable thinking for models that support it
+        ...(supportsThinking ? { thinkingConfig: getThinkingConfig() } : {}),
+      },
+    });
+
+    // Get the last user message
+    const lastMessage = messages[messages.length - 1];
+    if (!lastMessage || lastMessage.role !== "user") {
+      yield { type: "error", error: "No user message to send" };
+      return;
+    }
+
+    // Build message parts with attachments
+    const messageParts: Part[] = [];
+
+    // Add attachments first if present
+    if (lastMessage.attachments && lastMessage.attachments.length > 0) {
+      for (const attachment of lastMessage.attachments) {
+        messageParts.push({
+          inlineData: {
+            mimeType: attachment.mimeType,
+            data: attachment.data,
+          },
+        });
+      }
+    }
+
+    // Add text content
+    if (lastMessage.content) {
+      messageParts.push({ text: lastMessage.content });
+    }
+
+    try {
+      const response = await chat.sendMessageStream({ message: messageParts });
+
+      for await (const chunk of response) {
+        // Access candidates via type assertion for thought parts
+        const chunkWithCandidates = chunk as {
+          candidates?: Array<{
+            content?: {
+              parts?: Array<{
+                text?: string;
+                thought?: boolean;
+              }>;
+            };
+          }>;
+        };
+        const candidates = chunkWithCandidates.candidates;
+
+        // Extract and yield thinking parts
+        if (candidates && candidates.length > 0) {
+          const parts = candidates[0]?.content?.parts;
+          if (parts) {
+            for (const part of parts) {
+              if (part.thought && part.text) {
+                yield { type: "thinking", content: part.text };
+              }
+            }
+          }
+        }
+
+        // Yield text chunks
+        const text = chunk.text;
+        if (text) {
+          yield { type: "text", content: text };
+        }
+      }
+
+      yield { type: "done" };
+    } catch (error) {
+      yield {
+        type: "error",
+        error: error instanceof Error ? error.message : "Workflow generation failed",
+      };
+    }
+  }
+
   // Image generation using Gemini
   async *generateImageStream(
     messages: Message[],

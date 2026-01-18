@@ -460,4 +460,22 @@ export const it: Record<string, string> = {
   "workflowSelector.open": "Apri",
   "workflowSelector.execute": "Esegui",
   "workflowSelector.noWorkflows": "Nessun file trovato",
+
+  // Workflow Generation Modal
+  "workflow.generation.title": "Generazione Workflow",
+  "workflow.generation.yourRequest": "La tua richiesta:",
+  "workflow.generation.thinking": "L'IA sta pensando:",
+  "workflow.generation.generating": "Generazione",
+  "workflow.generation.generatingWithCli": "Generazione con {{cli}}",
+  "workflow.generation.parseFailed": "Impossibile analizzare il workflow generato. Riprova.",
+
+  // Workflow Preview Modal
+  "workflow.preview.title": "Anteprima del Workflow generato",
+  "workflow.preview.showYaml": "Mostra YAML",
+  "workflow.preview.ok": "OK",
+  "workflow.preview.no": "No, modifica",
+  "workflow.preview.regenerate": "Rigenera",
+  "workflow.preview.cancel": "Annulla",
+  "workflow.preview.additionalRequest": "Inserisci la tua richiesta completa:",
+  "workflow.preview.additionalPlaceholder": "Descrivi completamente cosa vuoi che faccia il workflow...",
 };

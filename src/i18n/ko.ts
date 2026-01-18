@@ -460,4 +460,22 @@ export const ko: Record<string, string> = {
   "workflowSelector.open": "열기",
   "workflowSelector.execute": "실행",
   "workflowSelector.noWorkflows": "파일을 찾을 수 없습니다",
+
+  // Workflow Generation Modal
+  "workflow.generation.title": "워크플로우 생성 중",
+  "workflow.generation.yourRequest": "요청 내용:",
+  "workflow.generation.thinking": "AI 사고 중:",
+  "workflow.generation.generating": "생성 중",
+  "workflow.generation.generatingWithCli": "{{cli}}로 생성 중",
+  "workflow.generation.parseFailed": "생성된 워크플로우를 분석할 수 없습니다. 다시 시도해 주세요.",
+
+  // Workflow Preview Modal
+  "workflow.preview.title": "생성된 워크플로우 미리보기",
+  "workflow.preview.showYaml": "YAML 보기",
+  "workflow.preview.ok": "확인",
+  "workflow.preview.no": "수정하기",
+  "workflow.preview.regenerate": "다시 생성",
+  "workflow.preview.cancel": "취소",
+  "workflow.preview.additionalRequest": "전체 요청 내용을 입력하세요:",
+  "workflow.preview.additionalPlaceholder": "워크플로우가 수행할 작업을 완전히 설명하세요...",
 };

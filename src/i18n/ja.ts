@@ -480,6 +480,24 @@ export const ja: Record<string, string> = {
   "chat.decryptFailed": "復号化に失敗しました。パスワードを確認してください。",
   "chat.decrypted": "復号化に成功しました",
 
+  // Workflow Generation Modal
+  "workflow.generation.title": "ワークフロー生成中",
+  "workflow.generation.yourRequest": "依頼内容:",
+  "workflow.generation.thinking": "AI思考中:",
+  "workflow.generation.generating": "生成中",
+  "workflow.generation.generatingWithCli": "{{cli}}で生成中",
+  "workflow.generation.parseFailed": "生成されたワークフローの解析に失敗しました。再度お試しください。",
+
+  // Workflow Preview Modal
+  "workflow.preview.title": "生成されたワークフローのプレビュー",
+  "workflow.preview.showYaml": "YAMLを表示",
+  "workflow.preview.ok": "OK",
+  "workflow.preview.no": "修正する",
+  "workflow.preview.regenerate": "再生成",
+  "workflow.preview.cancel": "キャンセル",
+  "workflow.preview.additionalRequest": "依頼内容を全文入力してください:",
+  "workflow.preview.additionalPlaceholder": "ワークフローに求める内容を全て記述してください...",
+
   // CryptView - File Encryption
   "crypt.encryptFile": "ファイルを暗号化",
   "crypt.notConfigured": "暗号化が設定されていません。設定で暗号化を設定してください。",

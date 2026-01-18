@@ -542,6 +542,24 @@ export const en = {
   "chat.decryptFailed": "Decryption failed. Check your password.",
   "chat.decrypted": "Decrypted successfully",
 
+  // Workflow Generation Modal
+  "workflow.generation.title": "Generating workflow",
+  "workflow.generation.yourRequest": "Your request:",
+  "workflow.generation.thinking": "AI thinking:",
+  "workflow.generation.generating": "Generating",
+  "workflow.generation.generatingWithCli": "Generating with {{cli}}",
+  "workflow.generation.parseFailed": "Failed to parse generated workflow. Please try again.",
+
+  // Workflow Preview Modal
+  "workflow.preview.title": "Preview generated workflow",
+  "workflow.preview.showYaml": "Show YAML",
+  "workflow.preview.ok": "OK",
+  "workflow.preview.no": "No, modify",
+  "workflow.preview.regenerate": "Regenerate",
+  "workflow.preview.cancel": "Cancel",
+  "workflow.preview.additionalRequest": "Enter your full request:",
+  "workflow.preview.additionalPlaceholder": "Enter the complete description of what you want the workflow to do...",
+
   // CryptView - File Encryption
   "crypt.encryptFile": "Encrypt file",
   "crypt.notConfigured": "Encryption not configured. Please set up encryption in settings.",

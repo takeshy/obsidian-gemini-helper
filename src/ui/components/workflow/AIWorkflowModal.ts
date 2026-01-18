@@ -6,6 +6,8 @@ import { CLI_MODEL, CLAUDE_CLI_MODEL, CODEX_CLI_MODEL, DEFAULT_CLI_CONFIG, getAv
 import { WORKFLOW_SPECIFICATION } from "src/workflow/workflowSpec";
 import type { SidebarNode, WorkflowNodeType } from "src/workflow/types";
 import { computeLineDiff } from "./EditConfirmationModal";
+import { WorkflowGenerationModal } from "./WorkflowGenerationModal";
+import { showWorkflowPreview } from "./WorkflowPreviewModal";
 import { formatError } from "src/utils/error";
 import { t } from "src/i18n";
 
@@ -492,39 +494,78 @@ export class AIWorkflowModal extends Modal {
       return;
     }
 
-    this.isGenerating = true;
-    this.generateBtn!.disabled = true;
-    this.generateBtn!.textContent = "Generating...";
-    this.statusEl!.textContent = "Generating workflow...";
+    // Get name for create mode
+    const workflowName = this.mode === "create"
+      ? this.nameInputEl?.value?.trim() || "workflow"
+      : this.existingName || "workflow";
 
-    // Disable textarea during generation
-    if (this.descriptionEl) {
-      this.descriptionEl.disabled = true;
-    }
+    // Get output path template for create mode
+    const outputPathTemplate = this.mode === "create"
+      ? this.outputPathEl?.value?.trim() || "workflows/{{name}}/main"
+      : undefined;
+
+    // Resolve @ mentions (embed file content, selection, etc.)
+    const { resolved: resolvedDescription, mentions: resolvedMentions } = await this.resolveMentions(description);
+
+    // Close input modal and start generation flow
+    this.close();
+
+    // Start the generation with preview loop
+    // Use resolved description (with @mentions expanded) as the request
+    await this.runGenerationLoop(
+      resolvedDescription,
+      workflowName,
+      outputPathTemplate,
+      selectedModel,
+      isCliModel,
+      resolvedMentions
+    );
+  }
+
+  /**
+   * Run the generation loop with progress display and preview confirmation
+   */
+  private async runGenerationLoop(
+    currentRequest: string,
+    workflowName: string,
+    outputPathTemplate: string | undefined,
+    selectedModel: ModelType,
+    isCliModel: boolean,
+    resolvedMentions: ResolvedMention[],
+    previousRequest?: string,
+    previousYaml?: string
+  ): Promise<void> {
+
+    // Create AbortController for cancellation
+    const abortController = new AbortController();
+    let generationCancelled = false;
+
+    // Open the generation modal
+    const generationModal = new WorkflowGenerationModal(
+      this.app,
+      currentRequest,
+      abortController,
+      () => { generationCancelled = true; }
+    );
+    generationModal.open();
 
     try {
-      // Get name for create mode
-      const workflowName = this.mode === "create"
-        ? this.nameInputEl?.value?.trim() || "workflow"
-        : undefined;
-
-      // Resolve @ mentions (embed file content, selection, etc.)
-      const { resolved: resolvedDescription, mentions: resolvedMentions } = await this.resolveMentions(description);
-
-      // Show expanded content in textarea
-      if (this.descriptionEl && resolvedMentions.length > 0) {
-        this.descriptionEl.value = resolvedDescription;
-      }
-
       // Build prompts
       const systemPrompt = this.buildSystemPrompt();
-      const userPrompt = this.buildUserPrompt(resolvedDescription, workflowName);
+      const userPrompt = this.buildUserPrompt(currentRequest, workflowName, previousRequest, previousYaml);
 
       let response = "";
-      if (isCliModel) {
-        const cliConfig = this.plugin.settings.cliConfig || DEFAULT_CLI_CONFIG;
 
-        // Select appropriate CLI provider
+      if (isCliModel) {
+        // CLI models don't support streaming thinking
+        const cliConfig = this.plugin.settings.cliConfig || DEFAULT_CLI_CONFIG;
+        const isClaudeCli = selectedModel === "claude-cli";
+        const isCodexCli = selectedModel === "codex-cli";
+
+        // Get CLI provider name for status
+        const cliName = isClaudeCli ? "Claude CLI" : isCodexCli ? "Codex CLI" : "Gemini CLI";
+        generationModal.setStatus(t("workflow.generation.generatingWithCli", { cli: cliName }));
+
         let provider: GeminiCliProvider | ClaudeCliProvider | CodexCliProvider;
         if (isClaudeCli) {
           if (!cliConfig.claudeCliVerified) {
@@ -552,6 +593,9 @@ export class AIWorkflowModal extends Modal {
           cliSystemPrompt,
           vaultBasePath
         )) {
+          if (generationCancelled || abortController.signal.aborted) {
+            break;
+          }
           if (chunk.type === "text") {
             response += chunk.content || "";
           } else if (chunk.type === "error") {
@@ -559,14 +603,14 @@ export class AIWorkflowModal extends Modal {
           }
         }
       } else {
-        // Create Gemini client
+        // API model with streaming thinking support
         const client = new GeminiClient(
           this.plugin.settings.googleApiKey,
           selectedModel
         );
 
-        // Generate (include attachments if any)
-        response = await client.chat(
+        // Use the streaming workflow generation method
+        for await (const chunk of client.generateWorkflowStream(
           [{
             role: "user",
             content: userPrompt,
@@ -574,80 +618,113 @@ export class AIWorkflowModal extends Modal {
             attachments: this.pendingAttachments.length > 0 ? this.pendingAttachments : undefined,
           }],
           systemPrompt
-        );
+        )) {
+          if (generationCancelled || abortController.signal.aborted) {
+            break;
+          }
+
+          if (chunk.type === "thinking" && chunk.content) {
+            // Display thinking content in the modal
+            generationModal.appendThinking(chunk.content);
+          } else if (chunk.type === "text" && chunk.content) {
+            response += chunk.content;
+          } else if (chunk.type === "error") {
+            throw new Error(chunk.error || "Unknown error");
+          }
+        }
+      }
+
+      // Close generation modal
+      generationModal.close();
+
+      // Check if cancelled
+      if (generationCancelled) {
+        this.resolvePromise(null);
+        return;
       }
 
       // Parse the response
       const result = this.parseResponse(response);
 
-      if (result) {
-        // Save the selected model for next time
-        this.plugin.settings.lastAIWorkflowModel = selectedModel;
-        void this.plugin.saveSettings();
+      if (!result) {
+        new Notice(t("workflow.generation.parseFailed"));
+        this.resolvePromise(null);
+        return;
+      }
 
-        // Add description, mode, and resolved mentions to result
-        result.description = description;
-        result.mode = this.mode;
-        result.resolvedMentions = resolvedMentions.length > 0 ? resolvedMentions : undefined;
+      // Save the selected model for next time
+      this.plugin.settings.lastAIWorkflowModel = selectedModel;
+      void this.plugin.saveSettings();
 
-        // Override name with user input for create mode
-        if (this.mode === "create" && workflowName) {
-          result.name = workflowName;
+      // Add metadata to result - only store current request as description
+      result.description = currentRequest;
+      result.mode = this.mode;
+      result.resolvedMentions = resolvedMentions.length > 0 ? resolvedMentions : undefined;
 
-          // Calculate output path
-          const outputPathTemplate = this.outputPathEl?.value?.trim() || "workflows/{{name}}/main";
+      // Override name with user input for create mode
+      if (this.mode === "create") {
+        result.name = workflowName;
+        if (outputPathTemplate) {
           result.outputPath = outputPathTemplate.replace(/\{\{name\}\}/g, workflowName);
         }
+      }
 
-        // Check if confirmation is needed (modify mode with checkbox checked)
-        const needsConfirmation =
-          this.mode === "modify" &&
-          this.confirmCheckbox?.checked &&
-          this.existingYaml;
+      // For modify mode with confirmation enabled, use the diff view
+      const needsDiffConfirmation =
+        this.mode === "modify" &&
+        this.confirmCheckbox?.checked &&
+        this.existingYaml;
 
-        if (needsConfirmation) {
-          this.statusEl!.textContent = "Waiting for confirmation...";
-          const confirmed = await showWorkflowConfirmation(
-            this.app,
-            this.existingYaml!,
-            result.yaml,
-            result.explanation
-          );
+      if (needsDiffConfirmation) {
+        const confirmed = await showWorkflowConfirmation(
+          this.app,
+          this.existingYaml!,
+          result.yaml,
+          result.explanation
+        );
 
-          if (confirmed) {
-            this.statusEl!.textContent = "Workflow modified successfully!";
-            this.resolvePromise(result);
-            this.close();
-          } else {
-            // User cancelled - reset state
-            this.statusEl!.textContent = "Changes cancelled. You can try again.";
-            this.isGenerating = false;
-            this.generateBtn!.disabled = false;
-            this.generateBtn!.textContent = "Modify";
-            if (this.descriptionEl) this.descriptionEl.disabled = false;
-          }
-        } else {
-          this.statusEl!.textContent = "Workflow generated successfully!";
+        if (confirmed) {
           this.resolvePromise(result);
-          this.close();
+        } else {
+          this.resolvePromise(null);
         }
+        return;
+      }
+
+      // Show preview modal for create mode and modify mode without diff confirmation
+      // Pass the current request so user can edit it for the next iteration
+      const previewResult = await showWorkflowPreview(
+        this.app,
+        result.yaml,
+        result.nodes,
+        result.name,
+        currentRequest
+      );
+
+      if (previewResult.result === "ok") {
+        // User approved - return the result
+        this.resolvePromise(result);
+      } else if (previewResult.result === "no") {
+        // User wants modifications - pass current request and YAML as reference for next iteration
+        await this.runGenerationLoop(
+          previewResult.additionalRequest || "",  // New request from user
+          workflowName,
+          outputPathTemplate,
+          selectedModel,
+          isCliModel,
+          resolvedMentions,
+          currentRequest,  // Previous request for reference
+          result.yaml      // Previous YAML for reference
+        );
       } else {
-        this.statusEl!.textContent =
-          "Failed to parse generated workflow. Please try again.";
-        this.isGenerating = false;
-        this.generateBtn!.disabled = false;
-        this.generateBtn!.textContent =
-          this.mode === "create" ? "Generate" : "Modify";
-        if (this.descriptionEl) this.descriptionEl.disabled = false;
+        // User cancelled
+        this.resolvePromise(null);
       }
     } catch (error) {
+      generationModal.close();
       const message = error instanceof Error ? error.message : String(error);
-      this.statusEl!.textContent = `Error: ${message}`;
-      this.isGenerating = false;
-      this.generateBtn!.disabled = false;
-      this.generateBtn!.textContent =
-        this.mode === "create" ? "Generate" : "Modify";
-      if (this.descriptionEl) this.descriptionEl.disabled = false;
+      new Notice(`Error: ${message}`);
+      this.resolvePromise(null);
     }
   }
 
@@ -666,11 +743,30 @@ IMPORTANT RULES:
 7. Start output directly with "name:" - no code fences, no explanation`;
   }
 
-  private buildUserPrompt(description: string, workflowName?: string): string {
+  private buildUserPrompt(
+    currentRequest: string,
+    workflowName?: string,
+    previousRequest?: string,
+    previousYaml?: string
+  ): string {
     if (this.mode === "create") {
+      // If we have previous request/YAML from regeneration, include as reference
+      if (previousRequest && previousYaml) {
+        return `Create or modify a workflow based on the following request.
+
+REFERENCE (previous attempt):
+- Previous request: ${previousRequest}
+- Previous output:
+${previousYaml}
+
+NEW REQUEST:
+${currentRequest}
+
+Output only the complete YAML for the workflow, starting with "name: ${workflowName}".`;
+      }
       return `Create a new workflow named "${workflowName}" that does the following:
 
-${description}
+${currentRequest}
 
 Output only the YAML for the workflow, starting with "name: ${workflowName}".`;
     } else {
@@ -680,7 +776,7 @@ CURRENT WORKFLOW:
 ${this.existingYaml}
 
 MODIFICATIONS REQUESTED:
-${description}
+${currentRequest}
 
 Output only the complete modified YAML, starting with "name:".`;
     }

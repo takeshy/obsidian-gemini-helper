@@ -355,7 +355,7 @@ export class WorkflowSelectorModal extends Modal {
     }
   }
 
-  private async renderWorkflowPreview(): Promise<void> {
+  private renderWorkflowPreview(): void {
     if (!this.previewEl || !this.selectedFile) return;
     this.previewEl.empty();
 
@@ -459,7 +459,7 @@ export class WorkflowSelectorModal extends Modal {
       attr: { open: "" },
     });
     const summary = details.createEl("summary", { cls: "workflow-selector-history-summary" });
-    summary.setText("AI Workflow History");
+    summary.setText("AI workflow history");
 
     const historyList = details.createDiv({ cls: "workflow-selector-history-list" });
 

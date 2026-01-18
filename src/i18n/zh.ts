@@ -460,4 +460,22 @@ export const zh: Record<string, string> = {
   "workflowSelector.open": "打开",
   "workflowSelector.execute": "执行",
   "workflowSelector.noWorkflows": "未找到文件",
+
+  // Workflow Generation Modal
+  "workflow.generation.title": "正在生成工作流",
+  "workflow.generation.yourRequest": "您的请求：",
+  "workflow.generation.thinking": "AI思考中：",
+  "workflow.generation.generating": "生成中",
+  "workflow.generation.generatingWithCli": "使用{{cli}}生成中",
+  "workflow.generation.parseFailed": "无法解析生成的工作流。请重试。",
+
+  // Workflow Preview Modal
+  "workflow.preview.title": "预览生成的工作流",
+  "workflow.preview.showYaml": "显示YAML",
+  "workflow.preview.ok": "确定",
+  "workflow.preview.no": "否，修改",
+  "workflow.preview.regenerate": "重新生成",
+  "workflow.preview.cancel": "取消",
+  "workflow.preview.additionalRequest": "请输入完整的请求内容：",
+  "workflow.preview.additionalPlaceholder": "完整描述您希望工作流执行的操作...",
 };

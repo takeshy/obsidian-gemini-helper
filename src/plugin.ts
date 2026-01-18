@@ -31,6 +31,7 @@ import { promptForFile, promptForAnyFile, promptForNewFilePath } from "src/ui/co
 import { promptForSelection } from "src/ui/components/workflow/SelectionPromptModal";
 import { promptForValue } from "src/ui/components/workflow/ValuePromptModal";
 import { WorkflowSelectorModal } from "src/ui/components/workflow/WorkflowSelectorModal";
+import { WorkflowExecutionModal } from "src/ui/components/workflow/WorkflowExecutionModal";
 import {
   initFileSearchManager,
   resetFileSearchManager,
@@ -178,7 +179,7 @@ export class GeminiHelperPlugin extends Plugin {
       (leaf) => new CryptView(leaf, this)
     );
 
-    // Register file menu (right-click) for encryption
+    // Register file menu (right-click) for encryption and edit history
     this.registerEvent(
       this.app.workspace.on("file-menu", (menu, file) => {
         if (file instanceof TFile && file.extension === "md") {
@@ -188,6 +189,22 @@ export class GeminiHelperPlugin extends Plugin {
               .setIcon("lock")
               .onClick(async () => {
                 await this.encryptFile(file);
+              });
+          });
+          menu.addItem((item) => {
+            item
+              .setTitle(t("statusBar.snapshot"))
+              .setIcon("camera")
+              .onClick(async () => {
+                await this.saveSnapshotForFile(file);
+              });
+          });
+          menu.addItem((item) => {
+            item
+              .setTitle(t("statusBar.history"))
+              .setIcon("history")
+              .onClick(() => {
+                new EditHistoryModal(this.app, file.path).open();
               });
           });
         }
@@ -364,6 +381,42 @@ export class GeminiHelperPlugin extends Plugin {
       })
     );
 
+  }
+
+  /**
+   * Save a snapshot for a specific file
+   */
+  private async saveSnapshotForFile(file: TFile): Promise<void> {
+    const historyManager = getEditHistoryManager();
+    if (!historyManager) {
+      new Notice(t("editHistory.notInitialized"));
+      return;
+    }
+
+    await historyManager.ensureSnapshot(file.path);
+    const entry = await historyManager.saveEdit({
+      path: file.path,
+      modifiedContent: await this.app.vault.read(file),
+      source: "manual",
+    });
+
+    if (entry) {
+      new Notice(t("statusBar.snapshotSaved"));
+    } else {
+      new Notice(t("editHistory.noChanges"));
+    }
+  }
+
+  /**
+   * Save a snapshot for the active file
+   */
+  private async saveSnapshotForActiveFile(): Promise<void> {
+    const activeFile = this.app.workspace.getActiveFile();
+    if (!activeFile) {
+      new Notice(t("editHistory.noActiveFile"));
+      return;
+    }
+    await this.saveSnapshotForFile(activeFile);
   }
 
   private async restorePreviousVersion(filePath: string): Promise<void> {
@@ -586,9 +639,16 @@ export class GeminiHelperPlugin extends Plugin {
       return;
     }
 
+    // Create abort controller for stopping workflow
+    const abortController = new AbortController();
+    let executionModal: WorkflowExecutionModal | null = null;
+
     try {
       const fileContent = await this.app.vault.read(file);
       const workflow = parseWorkflowFromMarkdown(fileContent, workflowName);
+
+      // Check if progress modal should be shown (default: true)
+      const showProgress = workflow.options?.showProgress !== false;
 
       const executor = new WorkflowExecutor(this.app, this);
 
@@ -618,6 +678,20 @@ export class GeminiHelperPlugin extends Plugin {
           start: selectionLocation.start,
           end: selectionLocation.end,
         }));
+      }
+
+      // Create execution modal to show progress (if enabled)
+      if (showProgress) {
+        executionModal = new WorkflowExecutionModal(
+          this.app,
+          workflow,
+          workflowName,
+          abortController,
+          () => {
+            // onAbort callback - nothing special needed for hotkey mode
+          }
+        );
+        executionModal.open();
       }
 
       // Prompt callbacks for hotkey execution
@@ -654,7 +728,10 @@ export class GeminiHelperPlugin extends Plugin {
       await executor.execute(
         workflow,
         input,
-        () => {}, // Log callback
+        (log) => {
+          // Update execution modal with progress
+          executionModal?.updateFromLog(log);
+        },
         {
           workflowPath: filePath,
           workflowName: workflowName,
@@ -663,9 +740,17 @@ export class GeminiHelperPlugin extends Plugin {
         promptCallbacks
       );
 
-      new Notice("Workflow completed successfully");
+      // Mark as completed
+      if (executionModal) {
+        executionModal.setComplete(true);
+      } else {
+        new Notice(t("workflow.completedSuccessfully"));
+      }
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
+      if (executionModal) {
+        executionModal.setComplete(false);
+      }
       new Notice(`Workflow failed: ${message}`);
     }
   }

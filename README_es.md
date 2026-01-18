@@ -135,7 +135,13 @@ Cuando la IA usa `propose_edit`:
 Rastrea y restaura cambios hechos a tus notas:
 
 - **Seguimiento automático** - Todas las ediciones de IA (chat, flujo de trabajo) y cambios manuales se registran
-- **Ver historial** - Comando: "Show edit history" o usa la paleta de comandos
+- **Acceso desde menú de archivo** - Clic derecho en un archivo markdown para acceder a:
+  - **Snapshot** - Guardar el estado actual como instantánea
+  - **History** - Abrir el modal de historial de edición
+
+![Menú de Archivo](snap_history.png)
+
+- **Paleta de comandos** - También disponible via comando "Show edit history"
 - **Vista de diferencias** - Ve exactamente qué cambió con adiciones/eliminaciones codificadas por color
 - **Restaurar** - Revierte a cualquier versión anterior con un clic
 - **Modal redimensionable** - Arrastra para mover, redimensiona desde las esquinas

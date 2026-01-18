@@ -19,6 +19,28 @@ Questo documento fornisce specifiche dettagliate per tutti i tipi di nodi del wo
 
 ---
 
+## Opzioni Workflow
+
+Puoi aggiungere una sezione `options` per controllare il comportamento del workflow:
+
+```yaml
+name: My Workflow
+options:
+  showProgress: false  # Nascondere la finestra modale di avanzamento (default: true)
+nodes:
+  - id: step1
+    type: command
+    ...
+```
+
+| Opzione | Tipo | Default | Descrizione |
+|---------|------|---------|-------------|
+| `showProgress` | boolean | `true` | Mostra la finestra modale di avanzamento quando si esegue tramite hotkey o lista workflow |
+
+**Nota:** L'opzione `showProgress` influisce solo sull'esecuzione tramite hotkey o lista workflow. Il pannello Workflow Visuale mostra sempre l'avanzamento.
+
+---
+
 ## Riferimento Nodi
 
 ### command

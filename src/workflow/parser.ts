@@ -1,5 +1,5 @@
 import { parseYaml, stringifyYaml } from "obsidian";
-import { Workflow, WorkflowEdge, WorkflowNode, WorkflowNodeType } from "./types";
+import { Workflow, WorkflowEdge, WorkflowNode, WorkflowNodeType, WorkflowOptions } from "./types";
 
 // Workflow code block types
 export interface WorkflowCodeBlock {
@@ -175,6 +175,7 @@ export function parseWorkflowFromMarkdown(
       : block.yaml;
   const workflowData = workflowContainer as {
     nodes?: FrontmatterWorkflowNode[];
+    options?: WorkflowOptions;
   };
 
   if (!workflowData || !Array.isArray(workflowData.nodes)) {
@@ -182,10 +183,15 @@ export function parseWorkflowFromMarkdown(
   }
 
   const nodesList: FrontmatterWorkflowNode[] = workflowData.nodes;
+
+  // Parse options
+  const options: WorkflowOptions | undefined = workflowData.options;
+
   const workflow: Workflow = {
     nodes: new Map(),
     edges: [],
     startNode: null,
+    options,
   };
 
   for (let i = 0; i < nodesList.length; i++) {

@@ -19,6 +19,28 @@
 
 ---
 
+## 工作流选项
+
+您可以添加 `options` 部分来控制工作流行为：
+
+```yaml
+name: My Workflow
+options:
+  showProgress: false  # 隐藏执行进度模态框（默认：true）
+nodes:
+  - id: step1
+    type: command
+    ...
+```
+
+| 选项 | 类型 | 默认值 | 描述 |
+|------|------|--------|------|
+| `showProgress` | boolean | `true` | 通过快捷键或工作流列表运行时显示执行进度模态框 |
+
+**注意：** `showProgress` 选项仅影响通过快捷键或工作流列表的执行。可视化工作流面板始终显示进度。
+
+---
+
 ## 节点参考
 
 ### command

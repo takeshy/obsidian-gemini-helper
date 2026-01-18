@@ -19,6 +19,28 @@ This document provides detailed specifications for all workflow node types. For 
 
 ---
 
+## Workflow Options
+
+You can add an `options` section to control workflow behavior:
+
+```yaml
+name: My Workflow
+options:
+  showProgress: false  # Hide execution progress modal (default: true)
+nodes:
+  - id: step1
+    type: command
+    ...
+```
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `showProgress` | boolean | `true` | Show execution progress modal when running via hotkey or workflow list |
+
+**Note:** The `showProgress` option only affects execution via hotkey or workflow list. The Visual Workflow panel always shows progress.
+
+---
+
 ## Node Reference
 
 ### command

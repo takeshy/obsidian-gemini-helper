@@ -19,6 +19,28 @@ Dieses Dokument bietet detaillierte Spezifikationen fuer alle Workflow-Knotentyp
 
 ---
 
+## Workflow-Optionen
+
+Sie koennen einen `options`-Abschnitt hinzufuegen, um das Workflow-Verhalten zu steuern:
+
+```yaml
+name: My Workflow
+options:
+  showProgress: false  # Ausfuehrungsfortschritts-Modal ausblenden (Standard: true)
+nodes:
+  - id: step1
+    type: command
+    ...
+```
+
+| Option | Typ | Standard | Beschreibung |
+|--------|-----|----------|--------------|
+| `showProgress` | boolean | `true` | Fortschritts-Modal bei Ausfuehrung ueber Hotkey oder Workflow-Liste anzeigen |
+
+**Hinweis:** Die Option `showProgress` wirkt sich nur auf die Ausfuehrung ueber Hotkey oder Workflow-Liste aus. Das visuelle Workflow-Panel zeigt immer den Fortschritt an.
+
+---
+
 ## Knotenreferenz
 
 ### command

@@ -487,6 +487,13 @@ export const en = {
   "editHistoryModal.manual": "Manual",
   "editHistoryModal.auto": "Auto",
 
+  // Status bar
+  "statusBar.snapshot": "Snapshot",
+  "statusBar.snapshotTooltip": "Save current state as a snapshot",
+  "statusBar.snapshotSaved": "Snapshot saved",
+  "statusBar.history": "History",
+  "statusBar.historyTooltip": "View edit history",
+
   // Commands
   "command.showEditHistory": "Show edit history",
   "command.restorePreviousVersion": "Restore previous version",

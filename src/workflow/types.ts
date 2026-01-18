@@ -36,10 +36,15 @@ export interface WorkflowEdge {
   label?: string; // "true" or "false" for conditional nodes
 }
 
+export interface WorkflowOptions {
+  showProgress?: boolean;  // Show execution progress modal (default: true)
+}
+
 export interface Workflow {
   nodes: Map<string, WorkflowNode>;
   edges: WorkflowEdge[];
   startNode: string | null;
+  options?: WorkflowOptions;
 }
 
 // Execution context

@@ -135,7 +135,13 @@ When AI uses `propose_edit`:
 Track and restore changes made to your notes:
 
 - **Automatic tracking** - All AI edits (chat, workflow) and manual changes are recorded
-- **View history** - Command: "Show edit history" or use the command palette
+- **File menu access** - Right-click on a markdown file to access:
+  - **Snapshot** - Save current state as a snapshot
+  - **History** - Open edit history modal
+
+![File Menu](snap_history.png)
+
+- **Command palette** - Also available via "Show edit history" command
 - **Diff view** - See exactly what changed with color-coded additions/deletions
 - **Restore** - Revert to any previous version with one click
 - **Resizable modal** - Drag to move, resize from corners

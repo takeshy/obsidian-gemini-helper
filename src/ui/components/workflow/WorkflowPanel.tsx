@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { TFile, Notice, Menu, MarkdownView, stringifyYaml, Modal, App } from "obsidian";
-import { FileText, FolderOpen, Keyboard, KeyboardOff, LayoutGrid, Plus, Save, Sparkles, Zap, ZapOff } from "lucide-react";
+import { FolderOpen, Keyboard, KeyboardOff, LayoutGrid, Plus, Sparkles, Zap, ZapOff } from "lucide-react";
 import { EventTriggerModal } from "./EventTriggerModal";
 import type { WorkflowEventTrigger } from "src/types";
 import { promptForAIWorkflow, ResolvedMention } from "./AIWorkflowModal";
@@ -19,8 +19,6 @@ import { promptForConfirmation } from "./EditConfirmationModal";
 import { promptForDialog } from "./DialogPromptModal";
 import { WorkflowSelectorModal } from "./WorkflowSelectorModal";
 import { t } from "src/i18n";
-import { EditHistoryModal } from "../EditHistoryModal";
-import { getEditHistoryManager } from "src/core/editHistory";
 import { openWorkflowAsCanvas } from "src/utils/workflowToCanvas";
 import { cryptoCache } from "src/core/cryptoCache";
 import { globalEventEmitter } from "src/utils/EventEmitter";
@@ -1079,46 +1077,6 @@ ${result.nodes.map(node => {
             title={t("workflow.exportToCanvas")}
           >
             <LayoutGrid size={14} />
-          </button>
-          <button
-            className="workflow-sidebar-history-btn"
-            onClick={() => {
-              const activeFile = plugin.app.workspace.getActiveFile();
-              if (activeFile) {
-                new EditHistoryModal(plugin.app, activeFile.path).open();
-              } else {
-                new Notice(t("editHistory.noActiveFile"));
-              }
-            }}
-            title={t("editHistory.showHistory")}
-          >
-            <FileText size={14} />
-          </button>
-          <button
-            className="workflow-sidebar-save-btn"
-            onClick={() => {
-              void (async () => {
-                const activeFile = plugin.app.workspace.getActiveFile();
-                if (!activeFile) {
-                  new Notice(t("editHistory.noActiveFile"));
-                  return;
-                }
-                const historyManager = getEditHistoryManager();
-                if (!historyManager) {
-                  new Notice(t("editHistory.notInitialized"));
-                  return;
-                }
-                const entry = await historyManager.saveManualSnapshot(activeFile.path);
-                if (entry) {
-                  new Notice(t("editHistory.saved"));
-                } else {
-                  new Notice(t("editHistory.noChanges"));
-                }
-              })();
-            }}
-            title={t("editHistory.saveSnapshot")}
-          >
-            <Save size={14} />
           </button>
         </div>
       </div>

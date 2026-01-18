@@ -7,7 +7,7 @@ import {
 	useCallback,
 } from "react";
 import { TFile, Notice, MarkdownView, Platform } from "obsidian";
-import { Plus, History, ChevronDown, FileText, Save, Lock } from "lucide-react";
+import { Plus, History, ChevronDown, Lock } from "lucide-react";
 import type { GeminiHelperPlugin } from "src/plugin";
 import {
 	DEFAULT_MODEL,
@@ -53,8 +53,6 @@ import {
 } from "./workflow/EditConfirmationModal";
 import MessageList from "./MessageList";
 import InputArea, { type InputAreaHandle } from "./InputArea";
-import { EditHistoryModal } from "./EditHistoryModal";
-import { getEditHistoryManager } from "src/core/editHistory";
 import {
 	isEncryptedFile,
 	encryptFileContent,
@@ -1710,46 +1708,6 @@ Always be helpful and provide clear, concise responses. When working with notes,
 			<div className="gemini-helper-chat-header">
 				<h3>{t("chat.title")}</h3>
 				<div className="gemini-helper-header-actions">
-					<button
-						className="gemini-helper-icon-btn"
-						onClick={() => {
-							const activeFile = plugin.app.workspace.getActiveFile();
-							if (activeFile) {
-								new EditHistoryModal(plugin.app, activeFile.path).open();
-							} else {
-								new Notice(t("editHistory.noActiveFile"));
-							}
-						}}
-						title={t("editHistory.showHistory")}
-					>
-						<FileText size={18} />
-					</button>
-					<button
-						className="gemini-helper-icon-btn"
-						onClick={() => {
-							void (async () => {
-								const activeFile = plugin.app.workspace.getActiveFile();
-								if (!activeFile) {
-									new Notice(t("editHistory.noActiveFile"));
-									return;
-								}
-								const historyManager = getEditHistoryManager();
-								if (!historyManager) {
-									new Notice(t("editHistory.notInitialized"));
-									return;
-								}
-								const entry = await historyManager.saveManualSnapshot(activeFile.path);
-								if (entry) {
-									new Notice(t("editHistory.saved"));
-								} else {
-									new Notice(t("editHistory.noChanges"));
-								}
-							})();
-						}}
-						title={t("editHistory.saveSnapshot")}
-					>
-						<Save size={18} />
-					</button>
 					<button
 						className="gemini-helper-icon-btn"
 						onClick={startNewChat}

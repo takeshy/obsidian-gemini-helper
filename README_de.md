@@ -135,7 +135,13 @@ Wenn die KI `propose_edit` verwendet:
 Verfolgen und Wiederherstellen von Änderungen an Ihren Notizen:
 
 - **Automatische Verfolgung** - Alle KI-Bearbeitungen (Chat, Workflow) und manuelle Änderungen werden aufgezeichnet
-- **Verlauf anzeigen** - Befehl: "Show edit history" oder verwenden Sie die Befehlspalette
+- **Dateimenü-Zugriff** - Rechtsklick auf eine Markdown-Datei für Zugriff auf:
+  - **Snapshot** - Aktuellen Zustand als Snapshot speichern
+  - **History** - Bearbeitungsverlauf-Modal öffnen
+
+![Dateimenü](snap_history.png)
+
+- **Befehlspalette** - Auch verfügbar über den Befehl "Show edit history"
 - **Diff-Ansicht** - Sehen Sie genau, was sich geändert hat, mit farbcodierten Hinzufügungen/Löschungen
 - **Wiederherstellen** - Mit einem Klick zu jeder früheren Version zurückkehren
 - **Größenveränderbares Modal** - Ziehen zum Verschieben, Größe an den Ecken ändern

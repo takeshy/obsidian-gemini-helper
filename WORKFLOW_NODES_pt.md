@@ -19,6 +19,28 @@ Este documento fornece especificacoes detalhadas para todos os tipos de nos de w
 
 ---
 
+## Opcoes de Workflow
+
+Voce pode adicionar uma secao `options` para controlar o comportamento do workflow:
+
+```yaml
+name: My Workflow
+options:
+  showProgress: false  # Ocultar modal de progresso de execucao (padrao: true)
+nodes:
+  - id: step1
+    type: command
+    ...
+```
+
+| Opcao | Tipo | Padrao | Descricao |
+|--------|------|--------|-------------|
+| `showProgress` | boolean | `true` | Mostrar modal de progresso de execucao ao executar via hotkey ou lista de workflows |
+
+**Nota:** A opcao `showProgress` afeta apenas a execucao via hotkey ou lista de workflows. O painel de Workflow Visual sempre mostra o progresso.
+
+---
+
 ## Referencia de Nos
 
 ### command

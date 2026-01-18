@@ -19,6 +19,28 @@ Ce document fournit les specifications detaillees de tous les types de noeuds de
 
 ---
 
+## Options de Workflow
+
+Vous pouvez ajouter une section `options` pour controler le comportement du workflow :
+
+```yaml
+name: My Workflow
+options:
+  showProgress: false  # Masquer le modal de progression d'execution (defaut: true)
+nodes:
+  - id: step1
+    type: command
+    ...
+```
+
+| Option | Type | Defaut | Description |
+|--------|------|--------|-------------|
+| `showProgress` | boolean | `true` | Afficher le modal de progression d'execution lors de l'execution via raccourci ou liste de workflows |
+
+**Remarque :** L'option `showProgress` n'affecte que l'execution via raccourci ou liste de workflows. Le panneau Visual Workflow affiche toujours la progression.
+
+---
+
 ## Reference des Noeuds
 
 ### command

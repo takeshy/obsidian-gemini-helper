@@ -135,7 +135,13 @@ Quando l'AI usa `propose_edit`:
 Traccia e ripristina le modifiche apportate alle tue note:
 
 - **Tracciamento automatico** - Tutte le modifiche AI (chat, workflow) e le modifiche manuali vengono registrate
-- **Visualizza cronologia** - Comando: "Show edit history" o usa la palette comandi
+- **Accesso dal menu file** - Clicca con il tasto destro su un file markdown per accedere a:
+  - **Snapshot** - Salva lo stato attuale come snapshot
+  - **History** - Apri il modale della cronologia modifiche
+
+![Menu File](snap_history.png)
+
+- **Palette comandi** - Disponibile anche tramite il comando "Show edit history"
 - **Vista diff** - Vedi esattamente cosa è cambiato con aggiunte/eliminazioni colorate
 - **Ripristina** - Torna a qualsiasi versione precedente con un clic
 - **Modale ridimensionabile** - Trascina per spostare, ridimensiona dagli angoli

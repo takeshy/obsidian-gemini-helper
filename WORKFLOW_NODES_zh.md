@@ -59,7 +59,7 @@ nodes:
 | 属性 | 描述 |
 |----------|-------------|
 | `prompt` | 发送给 LLM 的提示词（必填） |
-| `model` | 覆盖当前模型（例如 `gemini-3-flash-preview`、`gemini-3-pro-image-preview`） |
+| `model` | 覆盖当前模型（例如 `gemini-3-flash-preview`、`gemini-3-pro-image-preview`、`gemini-cli`、`claude-cli`、`codex-cli`） |
 | `ragSetting` | `__websearch__`（网络搜索）、`__none__`（无搜索）、设置名称，或省略以使用当前设置 |
 | `attachments` | 包含 FileExplorerData 的变量名称，用逗号分隔（来自 `file-explorer` 节点） |
 | `saveTo` | 用于存储文本响应的变量名 |
@@ -77,6 +77,20 @@ nodes:
   path: "images/cat"
   content: "![cat](data:{{generatedImage.mimeType}};base64,{{generatedImage.data}})"
 ```
+
+**CLI 模型：**
+
+如果在插件设置中配置了 CLI，您可以在工作流中使用 CLI 模型（`gemini-cli`、`claude-cli`、`codex-cli`）。CLI 模型适用于无需 API 费用即可访问旗舰模型。
+
+```yaml
+- id: analyze
+  type: command
+  model: claude-cli
+  prompt: "分析这段代码：\n\n{{code}}"
+  saveTo: analysis
+```
+
+> **注意：** CLI 模型不支持 RAG、网络搜索或图像生成。对于 CLI 模型，`ragSetting` 和 `saveImageTo` 属性将被忽略。
 
 ### note
 
@@ -97,6 +111,7 @@ nodes:
 | `content` | 要写入的内容 |
 | `mode` | `overwrite`（默认）、`append` 或 `create`（如果存在则跳过） |
 | `confirm` | `true`（默认）显示确认对话框，`false` 立即写入 |
+| `history` | `true`（默认，遵循全局设置）保存到编辑历史，`false` 禁用此次写入的历史记录 |
 
 ### note-read
 
@@ -199,6 +214,80 @@ nodes:
 }
 ```
 
+### note-search
+
+按名称或内容搜索笔记。
+
+```yaml
+- id: search
+  type: note-search
+  query: "{{searchTerm}}"
+  searchContent: "true"
+  limit: "20"
+  saveTo: searchResults
+```
+
+| 属性 | 描述 |
+|------|------|
+| `query` | 搜索查询字符串（必需，支持 `{{variables}}`） |
+| `searchContent` | `true` 搜索文件内容，`false`（默认）仅搜索文件名 |
+| `limit` | 最大结果数（默认：10） |
+| `saveTo` | 用于存储结果的变量（必需） |
+
+**输出格式：**
+```json
+{
+  "count": 3,
+  "results": [
+    {"name": "Note1", "path": "folder/Note1.md", "matchedContent": "...匹配项周围的上下文..."}
+  ]
+}
+```
+
+当 `searchContent` 为 `true` 时，`matchedContent` 包含匹配项前后约 50 个字符作为上下文。
+
+### folder-list
+
+列出 Vault 中的文件夹。
+
+```yaml
+- id: listFolders
+  type: folder-list
+  folder: "Projects"
+  saveTo: folderList
+```
+
+| 属性 | 描述 |
+|------|------|
+| `folder` | 父文件夹路径（留空表示整个 Vault） |
+| `saveTo` | 用于存储结果的变量（必需） |
+
+**输出格式：**
+```json
+{
+  "folders": ["Projects/Active", "Projects/Archive", "Projects/Ideas"],
+  "count": 3
+}
+```
+
+文件夹按字母顺序排序。
+
+### open
+
+在 Obsidian 中打开文件。
+
+```yaml
+- id: openNote
+  type: open
+  path: "{{outputPath}}"
+```
+
+| 属性 | 描述 |
+|------|------|
+| `path` | 要打开的文件路径（必需，支持 `{{variables}}`） |
+
+如果路径没有 `.md` 扩展名，会自动添加。
+
 ### http
 
 发送 HTTP 请求。
@@ -247,6 +336,42 @@ nodes:
 对于 `form-data`：
 - FileExplorerData（来自 `file-explorer` 节点）会被自动检测并作为二进制发送
 - 对于文本文件字段使用 `fieldName:filename` 语法（例如 `"file:report.html": "{{htmlContent}}"`）
+
+### json
+
+将 JSON 字符串解析为对象以访问属性。
+
+```yaml
+- id: parseResponse
+  type: json
+  source: response
+  saveTo: data
+```
+
+| 属性 | 描述 |
+|------|------|
+| `source` | 包含 JSON 字符串的变量名（必需） |
+| `saveTo` | 用于存储解析结果的变量名（必需） |
+
+解析后，使用点表示法访问属性：`{{data.items[0].name}}`
+
+**Markdown 代码块中的 JSON：**
+
+`json` 节点会自动从 Markdown 代码块中提取 JSON：
+
+```yaml
+# 如果响应包含：
+# ```json
+# {"status": "ok"}
+# ```
+# json 节点将仅提取和解析 JSON 内容
+- id: parse
+  type: json
+  source: llmResponse
+  saveTo: parsed
+```
+
+当 LLM 响应将 JSON 包装在代码围栏中时，这很有用。
 
 ### dialog
 
@@ -560,6 +685,17 @@ nodes:
   value: "{{counter}} + 1"
 ```
 
+**特殊变量 `_clipboard`:**
+
+如果设置名为 `_clipboard` 的变量，其值将被复制到系统剪贴板：
+
+```yaml
+- id: copyToClipboard
+  type: set
+  name: _clipboard
+  value: "{{result}}"
+```
+
 ### mcp
 
 通过 HTTP 调用远程 MCP (Model Context Protocol) 服务器工具。
@@ -600,6 +736,16 @@ nodes:
 | `command` | 要执行的命令 ID（必填，支持 `{{variables}}`） |
 | `path` | 执行命令前打开的文件（可选，执行后标签页自动关闭） |
 | `saveTo` | 用于存储执行结果的变量（可选） |
+
+**输出格式**（当设置 `saveTo` 时）：
+```json
+{
+  "commandId": "editor:toggle-fold",
+  "path": "notes/example.md",
+  "executed": true,
+  "timestamp": 1704067200000
+}
+```
 
 **查找命令 ID：**
 1. 打开 Obsidian 设置 → 快捷键
@@ -710,18 +856,6 @@ nodes:
     markdown: true
     button1: "OK"
 ```
-
-### 其他节点
-
-| 节点 | 属性 |
-|------|------------|
-| `note-read` | `path`, `saveTo` |
-| `note-search` | `query`, `searchContent`, `limit`, `saveTo` |
-| `folder-list` | `folder`, `saveTo` |
-| `open` | `path` |
-| `json` | `source`, `saveTo` |
-
----
 
 ## 工作流终止
 

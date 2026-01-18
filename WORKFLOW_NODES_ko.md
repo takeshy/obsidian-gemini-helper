@@ -59,7 +59,7 @@ nodes:
 | 속성 | 설명 |
 |----------|-------------|
 | `prompt` | LLM에 보낼 프롬프트 (필수) |
-| `model` | 현재 모델 재정의 (예: `gemini-3-flash-preview`, `gemini-3-pro-image-preview`) |
+| `model` | 현재 모델 재정의 (예: `gemini-3-flash-preview`, `gemini-3-pro-image-preview`, `gemini-cli`, `claude-cli`, `codex-cli`) |
 | `ragSetting` | `__websearch__` (웹 검색), `__none__` (검색 없음), 설정 이름, 또는 현재 설정 사용시 생략 |
 | `attachments` | FileExplorerData를 포함하는 변수 이름들 (쉼표로 구분, `file-explorer` 노드에서 가져옴) |
 | `saveTo` | 텍스트 응답을 저장할 변수 이름 |
@@ -77,6 +77,20 @@ nodes:
   path: "images/cat"
   content: "![cat](data:{{generatedImage.mimeType}};base64,{{generatedImage.data}})"
 ```
+
+**CLI 모델:**
+
+플러그인 설정에서 CLI가 구성된 경우 워크플로우에서 CLI 모델(`gemini-cli`, `claude-cli`, `codex-cli`)을 사용할 수 있습니다. CLI 모델은 API 비용 없이 플래그십 모델에 액세스하는 데 유용합니다.
+
+```yaml
+- id: analyze
+  type: command
+  model: claude-cli
+  prompt: "이 코드를 분석해주세요:\n\n{{code}}"
+  saveTo: analysis
+```
+
+> **참고:** CLI 모델은 RAG, 웹 검색, 이미지 생성을 지원하지 않습니다. CLI 모델에서는 `ragSetting`과 `saveImageTo` 속성이 무시됩니다.
 
 ### note
 
@@ -97,6 +111,7 @@ nodes:
 | `content` | 작성할 콘텐츠 |
 | `mode` | `overwrite` (기본값), `append`, 또는 `create` (이미 존재하면 건너뛰기) |
 | `confirm` | `true` (기본값)는 확인 다이얼로그 표시, `false`는 즉시 작성 |
+| `history` | `true` (기본값, 전역 설정 따름) 편집 기록에 저장, `false`는 이 쓰기에 대한 기록 비활성화 |
 
 ### note-read
 
@@ -199,6 +214,80 @@ nodes:
 }
 ```
 
+### note-search
+
+이름 또는 내용으로 노트를 검색합니다.
+
+```yaml
+- id: search
+  type: note-search
+  query: "{{searchTerm}}"
+  searchContent: "true"
+  limit: "20"
+  saveTo: searchResults
+```
+
+| 속성 | 설명 |
+|------|------|
+| `query` | 검색 쿼리 문자열 (필수, `{{variables}}` 지원) |
+| `searchContent` | `true`는 파일 내용 검색, `false` (기본값)는 파일 이름만 검색 |
+| `limit` | 최대 결과 수 (기본값: 10) |
+| `saveTo` | 결과를 저장할 변수 (필수) |
+
+**출력 형식:**
+```json
+{
+  "count": 3,
+  "results": [
+    {"name": "Note1", "path": "folder/Note1.md", "matchedContent": "...일치 항목 주변 컨텍스트..."}
+  ]
+}
+```
+
+`searchContent`가 `true`일 때, `matchedContent`는 컨텍스트를 위해 일치 항목 전후 약 50자를 포함합니다.
+
+### folder-list
+
+Vault의 폴더를 나열합니다.
+
+```yaml
+- id: listFolders
+  type: folder-list
+  folder: "Projects"
+  saveTo: folderList
+```
+
+| 속성 | 설명 |
+|------|------|
+| `folder` | 상위 폴더 경로 (전체 Vault의 경우 비워둠) |
+| `saveTo` | 결과를 저장할 변수 (필수) |
+
+**출력 형식:**
+```json
+{
+  "folders": ["Projects/Active", "Projects/Archive", "Projects/Ideas"],
+  "count": 3
+}
+```
+
+폴더는 알파벳순으로 정렬됩니다.
+
+### open
+
+Obsidian에서 파일을 엽니다.
+
+```yaml
+- id: openNote
+  type: open
+  path: "{{outputPath}}"
+```
+
+| 속성 | 설명 |
+|------|------|
+| `path` | 열 파일 경로 (필수, `{{variables}}` 지원) |
+
+경로에 `.md` 확장자가 없으면 자동으로 추가됩니다.
+
 ### http
 
 HTTP 요청을 수행합니다.
@@ -247,6 +336,42 @@ HTTP 요청을 수행합니다.
 `form-data`의 경우:
 - FileExplorerData (`file-explorer` 노드에서 가져옴)는 자동으로 감지되어 바이너리로 전송됩니다
 - 텍스트 파일 필드에는 `fieldName:filename` 구문을 사용합니다 (예: `"file:report.html": "{{htmlContent}}"`)
+
+### json
+
+JSON 문자열을 객체로 파싱하여 속성에 접근합니다.
+
+```yaml
+- id: parseResponse
+  type: json
+  source: response
+  saveTo: data
+```
+
+| 속성 | 설명 |
+|------|------|
+| `source` | JSON 문자열을 포함하는 변수 이름 (필수) |
+| `saveTo` | 파싱된 결과를 저장할 변수 이름 (필수) |
+
+파싱 후 점 표기법을 사용하여 속성에 접근합니다: `{{data.items[0].name}}`
+
+**마크다운 코드 블록의 JSON:**
+
+`json` 노드는 마크다운 코드 블록에서 JSON을 자동으로 추출합니다:
+
+```yaml
+# 응답에 다음이 포함된 경우:
+# ```json
+# {"status": "ok"}
+# ```
+# json 노드는 JSON 콘텐츠만 추출하고 파싱합니다
+- id: parse
+  type: json
+  source: llmResponse
+  saveTo: parsed
+```
+
+LLM 응답이 코드 펜스로 JSON을 감싸는 경우에 유용합니다.
 
 ### dialog
 
@@ -560,6 +685,17 @@ FileExplorerData를 볼트에 파일로 저장합니다. 생성된 이미지나 
   value: "{{counter}} + 1"
 ```
 
+**특수 변수 `_clipboard`:**
+
+`_clipboard`라는 이름의 변수를 설정하면 해당 값이 시스템 클립보드에 복사됩니다:
+
+```yaml
+- id: copyToClipboard
+  type: set
+  name: _clipboard
+  value: "{{result}}"
+```
+
 ### mcp
 
 HTTP를 통해 원격 MCP (Model Context Protocol) 서버 도구를 호출합니다.
@@ -600,6 +736,16 @@ ID로 Obsidian 명령을 실행합니다. 이를 통해 워크플로우가 다�
 | `command` | 실행할 명령 ID (필수, `{{variables}}` 지원) |
 | `path` | 명령 실행 전에 열 파일 (선택사항, 실행 후 탭 자동 닫힘) |
 | `saveTo` | 실행 결과를 저장할 변수 (선택 사항) |
+
+**출력 형식** (`saveTo` 설정 시):
+```json
+{
+  "commandId": "editor:toggle-fold",
+  "path": "notes/example.md",
+  "executed": true,
+  "timestamp": 1704067200000
+}
+```
 
 **명령 ID 찾기:**
 1. Obsidian 설정 → 단축키 열기
@@ -710,18 +856,6 @@ nodes:
     markdown: true
     button1: "OK"
 ```
-
-### 기타 노드
-
-| 노드 | 속성 |
-|------|------------|
-| `note-read` | `path`, `saveTo` |
-| `note-search` | `query`, `searchContent`, `limit`, `saveTo` |
-| `folder-list` | `folder`, `saveTo` |
-| `open` | `path` |
-| `json` | `source`, `saveTo` |
-
----
 
 ## 워크플로우 종료
 

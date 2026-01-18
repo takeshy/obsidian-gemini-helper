@@ -59,7 +59,7 @@ Execute an LLM prompt with optional model and search settings.
 | Property | Description |
 |----------|-------------|
 | `prompt` | The prompt to send to the LLM (required) |
-| `model` | Override the current model (e.g., `gemini-3-flash-preview`, `gemini-3-pro-image-preview`) |
+| `model` | Override the current model (e.g., `gemini-3-flash-preview`, `gemini-3-pro-image-preview`, `gemini-cli`, `claude-cli`, `codex-cli`) |
 | `ragSetting` | `__websearch__` (web search), `__none__` (no search), setting name, or omit for current |
 | `attachments` | Comma-separated variable names containing FileExplorerData (from `file-explorer` node) |
 | `saveTo` | Variable name to store text response |
@@ -77,6 +77,20 @@ Execute an LLM prompt with optional model and search settings.
   path: "images/cat"
   content: "![cat](data:{{generatedImage.mimeType}};base64,{{generatedImage.data}})"
 ```
+
+**CLI models:**
+
+You can use CLI models (`gemini-cli`, `claude-cli`, `codex-cli`) in workflows if the CLI is configured in plugin settings. CLI models are useful for accessing flagship models without API costs.
+
+```yaml
+- id: analyze
+  type: command
+  model: claude-cli
+  prompt: "Analyze this code:\n\n{{code}}"
+  saveTo: analysis
+```
+
+> **Note:** CLI models don't support RAG, web search, or image generation. The `ragSetting` and `saveImageTo` properties are ignored for CLI models.
 
 ### note
 
@@ -97,6 +111,7 @@ Write content to a note file.
 | `content` | Content to write |
 | `mode` | `overwrite` (default), `append`, or `create` (skip if exists) |
 | `confirm` | `true` (default) shows confirmation dialog, `false` writes immediately |
+| `history` | `true` (default, follows global setting) saves to edit history, `false` disables history for this write |
 
 ### note-read
 
@@ -199,6 +214,80 @@ List notes with filtering and sorting.
 }
 ```
 
+### note-search
+
+Search for notes by name or content.
+
+```yaml
+- id: search
+  type: note-search
+  query: "{{searchTerm}}"
+  searchContent: "true"
+  limit: "20"
+  saveTo: searchResults
+```
+
+| Property | Description |
+|----------|-------------|
+| `query` | Search query string (required, supports `{{variables}}`) |
+| `searchContent` | `true` searches file contents, `false` (default) searches file names only |
+| `limit` | Maximum results (default: 10) |
+| `saveTo` | Variable for results (required) |
+
+**Output format:**
+```json
+{
+  "count": 3,
+  "results": [
+    {"name": "Note1", "path": "folder/Note1.md", "matchedContent": "...context around match..."}
+  ]
+}
+```
+
+When `searchContent` is `true`, `matchedContent` includes ~50 characters before and after the match for context.
+
+### folder-list
+
+List folders in the vault.
+
+```yaml
+- id: listFolders
+  type: folder-list
+  folder: "Projects"
+  saveTo: folderList
+```
+
+| Property | Description |
+|----------|-------------|
+| `folder` | Parent folder path (empty for entire vault) |
+| `saveTo` | Variable for results (required) |
+
+**Output format:**
+```json
+{
+  "folders": ["Projects/Active", "Projects/Archive", "Projects/Ideas"],
+  "count": 3
+}
+```
+
+Folders are sorted alphabetically.
+
+### open
+
+Open a file in Obsidian.
+
+```yaml
+- id: openNote
+  type: open
+  path: "{{outputPath}}"
+```
+
+| Property | Description |
+|----------|-------------|
+| `path` | File path to open (required, supports `{{variables}}`) |
+
+If the path doesn't have a `.md` extension, it's automatically added.
+
 ### http
 
 Make HTTP requests.
@@ -247,6 +336,42 @@ Make HTTP requests.
 For `form-data`:
 - FileExplorerData (from `file-explorer` node) is auto-detected and sent as binary
 - Use `fieldName:filename` syntax for text file fields (e.g., `"file:report.html": "{{htmlContent}}"`)
+
+### json
+
+Parse a JSON string into an object for property access.
+
+```yaml
+- id: parseResponse
+  type: json
+  source: response
+  saveTo: data
+```
+
+| Property | Description |
+|----------|-------------|
+| `source` | Variable name containing JSON string (required) |
+| `saveTo` | Variable name for parsed result (required) |
+
+After parsing, access properties using dot notation: `{{data.items[0].name}}`
+
+**JSON in markdown code blocks:**
+
+The `json` node automatically extracts JSON from markdown code blocks:
+
+```yaml
+# If response contains:
+# ```json
+# {"status": "ok"}
+# ```
+# The json node will extract and parse just the JSON content
+- id: parse
+  type: json
+  source: llmResponse
+  saveTo: parsed
+```
+
+This is useful when an LLM response wraps JSON in code fences.
 
 ### dialog
 
@@ -560,6 +685,19 @@ Declare and update variables.
   value: "{{counter}} + 1"
 ```
 
+**Special variable `_clipboard`:**
+
+Setting a variable named `_clipboard` copies its value to the system clipboard:
+
+```yaml
+- id: copyToClipboard
+  type: set
+  name: _clipboard
+  value: "{{result}}"
+```
+
+This is useful for integrating with other applications or Obsidian plugins that read from the clipboard.
+
 ### mcp
 
 Call a remote MCP (Model Context Protocol) server tool via HTTP.
@@ -600,6 +738,16 @@ Execute an Obsidian command by its ID. This allows workflows to trigger any Obsi
 | `command` | Command ID to execute (required, supports `{{variables}}`) |
 | `path` | File to open before executing command (optional, tab auto-closes after) |
 | `saveTo` | Variable to store execution result (optional) |
+
+**Output format** (when `saveTo` is set):
+```json
+{
+  "commandId": "editor:toggle-fold",
+  "path": "notes/example.md",
+  "executed": true,
+  "timestamp": 1704067200000
+}
+```
 
 **Finding command IDs:**
 1. Open Obsidian Settings → Hotkeys
@@ -708,16 +856,6 @@ nodes:
     markdown: true
     button1: "OK"
 ```
-
-### Other Nodes
-
-| Node | Properties |
-|------|------------|
-| `note-read` | `path`, `saveTo` |
-| `note-search` | `query`, `searchContent`, `limit`, `saveTo` |
-| `folder-list` | `folder`, `saveTo` |
-| `open` | `path` |
-| `json` | `source`, `saveTo` |
 
 ---
 

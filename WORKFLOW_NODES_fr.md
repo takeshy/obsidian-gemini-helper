@@ -59,7 +59,7 @@ Executer un prompt LLM avec des parametres optionnels de modele et de recherche.
 | Propriete | Description |
 |-----------|-------------|
 | `prompt` | Le prompt a envoyer au LLM (requis) |
-| `model` | Remplacer le modele actuel (ex: `gemini-3-flash-preview`, `gemini-3-pro-image-preview`) |
+| `model` | Remplacer le modele actuel (ex: `gemini-3-flash-preview`, `gemini-3-pro-image-preview`, `gemini-cli`, `claude-cli`, `codex-cli`) |
 | `ragSetting` | `__websearch__` (recherche web), `__none__` (pas de recherche), nom du parametre, ou omettre pour l'actuel |
 | `attachments` | Noms de variables separes par des virgules contenant FileExplorerData (du noeud `file-explorer`) |
 | `saveTo` | Nom de variable pour stocker la reponse textuelle |
@@ -77,6 +77,20 @@ Executer un prompt LLM avec des parametres optionnels de modele et de recherche.
   path: "images/cat"
   content: "![cat](data:{{generatedImage.mimeType}};base64,{{generatedImage.data}})"
 ```
+
+**Modeles CLI :**
+
+Vous pouvez utiliser des modeles CLI (`gemini-cli`, `claude-cli`, `codex-cli`) dans les workflows si le CLI est configure dans les parametres du plugin. Les modeles CLI sont utiles pour acceder aux modeles phares sans frais d'API.
+
+```yaml
+- id: analyze
+  type: command
+  model: claude-cli
+  prompt: "Analyse ce code :\n\n{{code}}"
+  saveTo: analysis
+```
+
+> **Note :** Les modeles CLI ne supportent pas le RAG, la recherche web ou la generation d'images. Les proprietes `ragSetting` et `saveImageTo` sont ignorees pour les modeles CLI.
 
 ### note
 
@@ -97,6 +111,7 @@ Ecrire du contenu dans un fichier de note.
 | `content` | Contenu a ecrire |
 | `mode` | `overwrite` (defaut), `append`, ou `create` (ignorer si existe) |
 | `confirm` | `true` (defaut) affiche une boite de dialogue de confirmation, `false` ecrit immediatement |
+| `history` | `true` (defaut, suit le parametre global) enregistre dans l'historique des modifications, `false` desactive l'historique pour cette ecriture |
 
 ### note-read
 
@@ -199,6 +214,80 @@ Lister les notes avec filtrage et tri.
 }
 ```
 
+### note-search
+
+Recherche des notes par nom ou contenu.
+
+```yaml
+- id: search
+  type: note-search
+  query: "{{searchTerm}}"
+  searchContent: "true"
+  limit: "20"
+  saveTo: searchResults
+```
+
+| Propriete | Description |
+|-----------|-------------|
+| `query` | Chaine de requete de recherche (requis, supporte `{{variables}}`) |
+| `searchContent` | `true` recherche le contenu des fichiers, `false` (defaut) recherche uniquement les noms de fichiers |
+| `limit` | Nombre maximum de resultats (defaut : 10) |
+| `saveTo` | Variable pour les resultats (requis) |
+
+**Format de sortie :**
+```json
+{
+  "count": 3,
+  "results": [
+    {"name": "Note1", "path": "folder/Note1.md", "matchedContent": "...contexte autour de la correspondance..."}
+  ]
+}
+```
+
+Lorsque `searchContent` est `true`, `matchedContent` inclut environ 50 caracteres avant et apres la correspondance pour le contexte.
+
+### folder-list
+
+Liste les dossiers dans le vault.
+
+```yaml
+- id: listFolders
+  type: folder-list
+  folder: "Projects"
+  saveTo: folderList
+```
+
+| Propriete | Description |
+|-----------|-------------|
+| `folder` | Chemin du dossier parent (vide pour tout le vault) |
+| `saveTo` | Variable pour les resultats (requis) |
+
+**Format de sortie :**
+```json
+{
+  "folders": ["Projects/Active", "Projects/Archive", "Projects/Ideas"],
+  "count": 3
+}
+```
+
+Les dossiers sont tries alphabetiquement.
+
+### open
+
+Ouvre un fichier dans Obsidian.
+
+```yaml
+- id: openNote
+  type: open
+  path: "{{outputPath}}"
+```
+
+| Propriete | Description |
+|-----------|-------------|
+| `path` | Chemin du fichier a ouvrir (requis, supporte `{{variables}}`) |
+
+Si le chemin n'a pas d'extension `.md`, elle est ajoutee automatiquement.
+
 ### http
 
 Effectuer des requetes HTTP.
@@ -247,6 +336,42 @@ Effectuer des requetes HTTP.
 Pour `form-data` :
 - FileExplorerData (du noeud `file-explorer`) est auto-detecte et envoye en binaire
 - Utilisez la syntaxe `nomChamp:nomFichier` pour les champs de fichiers texte (ex: `"file:report.html": "{{htmlContent}}"`)
+
+### json
+
+Parse une chaine JSON en objet pour l'acces aux proprietes.
+
+```yaml
+- id: parseResponse
+  type: json
+  source: response
+  saveTo: data
+```
+
+| Propriete | Description |
+|-----------|-------------|
+| `source` | Nom de variable contenant la chaine JSON (requis) |
+| `saveTo` | Nom de variable pour le resultat parse (requis) |
+
+Apres le parsing, accedez aux proprietes avec la notation point : `{{data.items[0].name}}`
+
+**JSON dans les blocs de code markdown :**
+
+Le noeud `json` extrait automatiquement le JSON des blocs de code markdown :
+
+```yaml
+# Si la reponse contient :
+# ```json
+# {"status": "ok"}
+# ```
+# Le noeud json extraira et parsera uniquement le contenu JSON
+- id: parse
+  type: json
+  source: llmResponse
+  saveTo: parsed
+```
+
+Ceci est utile lorsqu'une reponse LLM enveloppe le JSON dans des barrieres de code.
 
 ### dialog
 
@@ -560,6 +685,17 @@ Declarer et mettre a jour des variables.
   value: "{{counter}} + 1"
 ```
 
+**Variable spéciale `_clipboard` :**
+
+Si vous définissez une variable nommée `_clipboard`, sa valeur sera copiée dans le presse-papiers du système :
+
+```yaml
+- id: copyToClipboard
+  type: set
+  name: _clipboard
+  value: "{{result}}"
+```
+
 ### mcp
 
 Appeler un outil de serveur MCP (Model Context Protocol) distant via HTTP.
@@ -600,6 +736,16 @@ Execute une commande Obsidian par son ID. Cela permet aux workflows de declenche
 | `command` | ID de la commande a executer (requis, supporte `{{variables}}`) |
 | `path` | Fichier à ouvrir avant d'exécuter la commande (optionnel, l'onglet se ferme automatiquement après) |
 | `saveTo` | Variable pour stocker le resultat de l'execution (optionnel) |
+
+**Format de sortie** (quand `saveTo` est defini) :
+```json
+{
+  "commandId": "editor:toggle-fold",
+  "path": "notes/example.md",
+  "executed": true,
+  "timestamp": 1704067200000
+}
+```
 
 **Trouver les IDs de commandes :**
 1. Ouvrir les Parametres Obsidian → Raccourcis clavier
@@ -710,18 +856,6 @@ nodes:
     markdown: true
     button1: "OK"
 ```
-
-### Autres Noeuds
-
-| Noeud | Proprietes |
-|-------|------------|
-| `note-read` | `path`, `saveTo` |
-| `note-search` | `query`, `searchContent`, `limit`, `saveTo` |
-| `folder-list` | `folder`, `saveTo` |
-| `open` | `path` |
-| `json` | `source`, `saveTo` |
-
----
 
 ## Terminaison du Workflow
 

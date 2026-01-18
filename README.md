@@ -682,12 +682,12 @@ Edit workflows directly in the visual node editor with drag-and-drop interface.
 **MCP servers (optional):**
 - MCP (Model Context Protocol) servers can be configured in plugin settings for workflow `mcp` nodes
 - MCP servers are external services that provide additional tools and capabilities
-- **Security warning:** Do not store sensitive credentials (API keys, tokens) in MCP server headers. If authentication is required, use environment variables or secure credential management instead.
 
 **Security notes:**
 - Review workflows before running - `http` nodes can transmit vault data to external endpoints
 - Workflow `note` nodes show a confirmation dialog before writing files (default behavior)
 - Slash commands with `confirmEdits: false` will auto-apply file edits without showing Apply/Discard buttons
+- Sensitive credentials: Do not store API keys or tokens directly in workflow YAML (`http` headers, `mcp` settings, etc.). Instead, store them in encrypted files and use `note-read` node to retrieve them at runtime. Workflows can read encrypted files with password prompt.
 
 See [Google AI Terms of Service](https://ai.google.dev/terms) for data retention policies.
 

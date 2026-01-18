@@ -676,12 +676,12 @@ Edita flujos de trabajo directamente en el editor visual de nodos con interfaz d
 **Servidores MCP (opcional):**
 - Los servidores MCP (Model Context Protocol) pueden configurarse en los ajustes del plugin para nodos `mcp` de workflows
 - Los servidores MCP son servicios externos que proporcionan herramientas y capacidades adicionales
-- **Advertencia de seguridad:** No almacenes credenciales sensibles (claves API, tokens) en los encabezados de servidores MCP. Si se requiere autenticación, usa variables de entorno o gestión segura de credenciales.
 
 **Notas de seguridad:**
 - Revisa los flujos de trabajo antes de ejecutarlos - los nodos `http` pueden transmitir datos del vault a endpoints externos
 - Los nodos `note` de flujos de trabajo muestran un diálogo de confirmación antes de escribir archivos (comportamiento predeterminado)
 - Los comandos slash con `confirmEdits: false` aplicarán automáticamente las ediciones de archivos sin mostrar botones Apply/Discard
+- Credenciales sensibles: No almacenes claves API ni tokens directamente en el YAML del workflow (encabezados `http`, configuración `mcp`, etc.). En su lugar, guárdalos en archivos cifrados y usa el nodo `note-read` para obtenerlos en tiempo de ejecución. Los workflows pueden leer archivos cifrados con solicitud de contraseña.
 
 Consulta los [Términos de Servicio de Google AI](https://ai.google.dev/terms) para políticas de retención de datos.
 

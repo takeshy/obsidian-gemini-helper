@@ -676,12 +676,12 @@ Modifica i workflow direttamente nell'editor visuale dei nodi con interfaccia dr
 **Server MCP (opzionali):**
 - I server MCP (Model Context Protocol) possono essere configurati nelle impostazioni del plugin per i nodi `mcp` dei workflow
 - I server MCP sono servizi esterni che forniscono strumenti e capacità aggiuntive
-- **Avviso di sicurezza:** Non memorizzare credenziali sensibili (chiavi API, token) negli header dei server MCP. Se è richiesta l'autenticazione, utilizzare variabili d'ambiente o gestione sicura delle credenziali.
 
 **Note sulla sicurezza:**
 - Rivedi i workflow prima di eseguirli - i nodi `http` possono trasmettere dati del vault a endpoint esterni
 - I nodi `note` dei workflow mostrano un dialogo di conferma prima di scrivere file (comportamento predefinito)
 - I comandi slash con `confirmEdits: false` applicheranno automaticamente le modifiche ai file senza mostrare i pulsanti Applica/Annulla
+- Credenziali sensibili: Non memorizzare chiavi API o token direttamente nel YAML del workflow (header `http`, impostazioni `mcp`, ecc.). Invece, conservali in file crittografati e usa il nodo `note-read` per recuperarli durante l'esecuzione. I workflow possono leggere file crittografati con richiesta di password.
 
 Consulta i [Termini di Servizio Google AI](https://ai.google.dev/terms) per le politiche di conservazione dei dati.
 

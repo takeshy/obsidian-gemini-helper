@@ -676,12 +676,12 @@ Edite workflows diretamente no editor visual de nós com interface drag-and-drop
 **Servidores MCP (opcional):**
 - Servidores MCP (Model Context Protocol) podem ser configurados nas configurações do plugin para nós `mcp` de workflows
 - Servidores MCP são serviços externos que fornecem ferramentas e capacidades adicionais
-- **Aviso de segurança:** Não armazene credenciais sensíveis (chaves de API, tokens) nos headers de servidores MCP. Se a autenticação for necessária, use variáveis de ambiente ou gerenciamento seguro de credenciais.
 
 **Notas de segurança:**
 - Revise workflows antes de executar - nós `http` podem transmitir dados do vault para endpoints externos
 - Nós `note` de workflow mostram um diálogo de confirmação antes de gravar arquivos (comportamento padrão)
 - Comandos de barra com `confirmEdits: false` aplicarão edições de arquivo automaticamente sem mostrar botões Apply/Discard
+- Credenciais sensíveis: Não armazene chaves de API ou tokens diretamente no YAML do workflow (headers `http`, configurações `mcp`, etc.). Em vez disso, armazene-os em arquivos criptografados e use o nó `note-read` para recuperá-los em tempo de execução. Workflows podem ler arquivos criptografados com solicitação de senha.
 
 Veja os [Termos de Serviço do Google AI](https://ai.google.dev/terms) para políticas de retenção de dados.
 

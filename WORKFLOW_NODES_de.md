@@ -59,7 +59,7 @@ Fuehrt einen LLM-Prompt mit optionalen Modell- und Sucheinstellungen aus.
 | Eigenschaft | Beschreibung |
 |-------------|--------------|
 | `prompt` | Der an das LLM zu sendende Prompt (erforderlich) |
-| `model` | Ueberschreibt das aktuelle Modell (z.B. `gemini-3-flash-preview`, `gemini-3-pro-image-preview`) |
+| `model` | Ueberschreibt das aktuelle Modell (z.B. `gemini-3-flash-preview`, `gemini-3-pro-image-preview`, `gemini-cli`, `claude-cli`, `codex-cli`) |
 | `ragSetting` | `__websearch__` (Websuche), `__none__` (keine Suche), Name der Einstellung oder weglassen fuer aktuelles |
 | `attachments` | Kommagetrennte Variablennamen mit FileExplorerData (vom `file-explorer`-Knoten) |
 | `saveTo` | Variablenname zum Speichern der Textantwort |
@@ -77,6 +77,20 @@ Fuehrt einen LLM-Prompt mit optionalen Modell- und Sucheinstellungen aus.
   path: "images/cat"
   content: "![cat](data:{{generatedImage.mimeType}};base64,{{generatedImage.data}})"
 ```
+
+**CLI-Modelle:**
+
+Sie koennen CLI-Modelle (`gemini-cli`, `claude-cli`, `codex-cli`) in Workflows verwenden, wenn die CLI in den Plugin-Einstellungen konfiguriert ist. CLI-Modelle sind nuetzlich, um auf Flagship-Modelle ohne API-Kosten zuzugreifen.
+
+```yaml
+- id: analyze
+  type: command
+  model: claude-cli
+  prompt: "Analysiere diesen Code:\n\n{{code}}"
+  saveTo: analysis
+```
+
+> **Hinweis:** CLI-Modelle unterstuetzen kein RAG, keine Websuche und keine Bildgenerierung. Die Eigenschaften `ragSetting` und `saveImageTo` werden bei CLI-Modellen ignoriert.
 
 ### note
 
@@ -97,6 +111,7 @@ Schreibt Inhalt in eine Notizdatei.
 | `content` | Zu schreibender Inhalt |
 | `mode` | `overwrite` (Standard), `append` oder `create` (ueberspringen, falls vorhanden) |
 | `confirm` | `true` (Standard) zeigt Bestaetigungsdialog, `false` schreibt sofort |
+| `history` | `true` (Standard, folgt globaler Einstellung) speichert im Bearbeitungsverlauf, `false` deaktiviert Verlauf fuer dieses Schreiben |
 
 ### note-read
 
@@ -199,6 +214,80 @@ Listet Notizen mit Filter- und Sortieroptionen auf.
 }
 ```
 
+### note-search
+
+Sucht nach Notizen nach Name oder Inhalt.
+
+```yaml
+- id: search
+  type: note-search
+  query: "{{searchTerm}}"
+  searchContent: "true"
+  limit: "20"
+  saveTo: searchResults
+```
+
+| Eigenschaft | Beschreibung |
+|-------------|--------------|
+| `query` | Suchabfragezeichenfolge (erforderlich, unterstuetzt `{{variables}}`) |
+| `searchContent` | `true` durchsucht Dateiinhalte, `false` (Standard) durchsucht nur Dateinamen |
+| `limit` | Maximale Ergebnisse (Standard: 10) |
+| `saveTo` | Variable fuer Ergebnisse (erforderlich) |
+
+**Ausgabeformat:**
+```json
+{
+  "count": 3,
+  "results": [
+    {"name": "Note1", "path": "folder/Note1.md", "matchedContent": "...Kontext um Treffer..."}
+  ]
+}
+```
+
+Wenn `searchContent` `true` ist, enthaelt `matchedContent` etwa 50 Zeichen vor und nach dem Treffer als Kontext.
+
+### folder-list
+
+Listet Ordner im Vault auf.
+
+```yaml
+- id: listFolders
+  type: folder-list
+  folder: "Projects"
+  saveTo: folderList
+```
+
+| Eigenschaft | Beschreibung |
+|-------------|--------------|
+| `folder` | Uebergeordneter Ordnerpfad (leer fuer gesamten Vault) |
+| `saveTo` | Variable fuer Ergebnisse (erforderlich) |
+
+**Ausgabeformat:**
+```json
+{
+  "folders": ["Projects/Active", "Projects/Archive", "Projects/Ideas"],
+  "count": 3
+}
+```
+
+Ordner werden alphabetisch sortiert.
+
+### open
+
+Oeffnet eine Datei in Obsidian.
+
+```yaml
+- id: openNote
+  type: open
+  path: "{{outputPath}}"
+```
+
+| Eigenschaft | Beschreibung |
+|-------------|--------------|
+| `path` | Dateipfad zum Oeffnen (erforderlich, unterstuetzt `{{variables}}`) |
+
+Wenn der Pfad keine `.md`-Erweiterung hat, wird sie automatisch hinzugefuegt.
+
 ### http
 
 Fuehrt HTTP-Anfragen aus.
@@ -247,6 +336,42 @@ Fuehrt HTTP-Anfragen aus.
 Fuer `form-data`:
 - FileExplorerData (vom `file-explorer`-Knoten) wird automatisch erkannt und als Binaer gesendet
 - Verwenden Sie die `fieldName:filename`-Syntax fuer Textdateifelder (z.B. `"file:report.html": "{{htmlContent}}"`)
+
+### json
+
+Parst einen JSON-String in ein Objekt fuer Eigenschaftszugriff.
+
+```yaml
+- id: parseResponse
+  type: json
+  source: response
+  saveTo: data
+```
+
+| Eigenschaft | Beschreibung |
+|-------------|--------------|
+| `source` | Variablenname mit JSON-String (erforderlich) |
+| `saveTo` | Variablenname fuer geparsten Ergebnis (erforderlich) |
+
+Nach dem Parsen koennen Sie auf Eigenschaften mit Punktnotation zugreifen: `{{data.items[0].name}}`
+
+**JSON in Markdown-Codebloecken:**
+
+Der `json`-Knoten extrahiert JSON automatisch aus Markdown-Codebloecken:
+
+```yaml
+# Wenn die Antwort enthaelt:
+# ```json
+# {"status": "ok"}
+# ```
+# Extrahiert und parst der json-Knoten nur den JSON-Inhalt
+- id: parse
+  type: json
+  source: llmResponse
+  saveTo: parsed
+```
+
+Dies ist nuetzlich, wenn eine LLM-Antwort JSON in Code-Zaeunen einschliesst.
 
 ### dialog
 
@@ -560,6 +685,17 @@ Variablen deklarieren und aktualisieren.
   value: "{{counter}} + 1"
 ```
 
+**Spezielle Variable `_clipboard`:**
+
+Wenn Sie eine Variable namens `_clipboard` setzen, wird ihr Wert in die System-Zwischenablage kopiert:
+
+```yaml
+- id: copyToClipboard
+  type: set
+  name: _clipboard
+  value: "{{result}}"
+```
+
 ### mcp
 
 Ruft ein entferntes MCP (Model Context Protocol) Server-Tool ueber HTTP auf.
@@ -600,6 +736,16 @@ Fuehrt einen Obsidian-Befehl ueber seine ID aus. Dies ermoeglicht es Workflows, 
 | `command` | Auszufuehrende Befehls-ID (erforderlich, unterstuetzt `{{variables}}`) |
 | `path` | Datei, die vor der Befehlsausführung geöffnet wird (optional, Tab wird danach automatisch geschlossen) |
 | `saveTo` | Variable zum Speichern des Ausfuehrungsergebnisses (optional) |
+
+**Ausgabeformat** (wenn `saveTo` gesetzt ist):
+```json
+{
+  "commandId": "editor:toggle-fold",
+  "path": "notes/example.md",
+  "executed": true,
+  "timestamp": 1704067200000
+}
+```
 
 **Befehls-IDs finden:**
 1. Obsidian-Einstellungen → Tastenkuerzel oeffnen
@@ -710,18 +856,6 @@ nodes:
     markdown: true
     button1: "OK"
 ```
-
-### Weitere Knoten
-
-| Knoten | Eigenschaften |
-|--------|---------------|
-| `note-read` | `path`, `saveTo` |
-| `note-search` | `query`, `searchContent`, `limit`, `saveTo` |
-| `folder-list` | `folder`, `saveTo` |
-| `open` | `path` |
-| `json` | `source`, `saveTo` |
-
----
 
 ## Workflow-Beendigung
 

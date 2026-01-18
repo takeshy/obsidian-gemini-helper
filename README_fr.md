@@ -676,12 +676,12 @@ Lors de la régénération d'un workflow (en cliquant sur "Non" dans l'aperçu),
 **Serveurs MCP (optionnel) :**
 - Les serveurs MCP (Model Context Protocol) peuvent être configurés dans les paramètres du plugin pour les nœuds `mcp` des workflows
 - Les serveurs MCP sont des services externes qui fournissent des outils et capacités supplémentaires
-- **Avertissement de sécurité :** Ne stockez pas d'informations d'identification sensibles (clés API, tokens) dans les en-têtes des serveurs MCP. Si une authentification est requise, utilisez des variables d'environnement ou une gestion sécurisée des informations d'identification.
 
 **Notes de sécurité :**
 - Vérifiez les workflows avant de les exécuter - les nœuds `http` peuvent transmettre des données du coffre à des endpoints externes
 - Les nœuds `note` des workflows affichent un dialogue de confirmation avant d'écrire des fichiers (comportement par défaut)
 - Les commandes slash avec `confirmEdits: false` appliqueront automatiquement les modifications de fichiers sans afficher les boutons Appliquer/Annuler
+- Informations d'identification sensibles : Ne stockez pas de clés API ou de tokens directement dans le YAML des workflows (en-têtes `http`, paramètres `mcp`, etc.). Stockez-les plutôt dans des fichiers chiffrés et utilisez le nœud `note-read` pour les récupérer lors de l'exécution. Les workflows peuvent lire les fichiers chiffrés avec une demande de mot de passe.
 
 Voir les [Conditions d'Utilisation de Google AI](https://ai.google.dev/terms) pour les politiques de rétention des données.
 

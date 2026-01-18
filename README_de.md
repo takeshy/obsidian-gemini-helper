@@ -676,12 +676,12 @@ Bearbeiten Sie Workflows direkt im visuellen Node-Editor mit Drag-and-Drop-Oberf
 **MCP-Server (optional):**
 - MCP-Server (Model Context Protocol) können in den Plugin-Einstellungen für Workflow-`mcp`-Nodes konfiguriert werden
 - MCP-Server sind externe Dienste, die zusätzliche Tools und Funktionen bereitstellen
-- **Sicherheitswarnung:** Speichern Sie keine sensiblen Anmeldedaten (API-Schlüssel, Tokens) in MCP-Server-Headern. Wenn Authentifizierung erforderlich ist, verwenden Sie Umgebungsvariablen oder sichere Anmeldedatenverwaltung.
 
 **Sicherheitshinweise:**
 - Überprüfen Sie Workflows vor der Ausführung - `http`-Nodes können Vault-Daten an externe Endpunkte übertragen
 - Workflow-`note`-Nodes zeigen standardmäßig einen Bestätigungsdialog vor dem Schreiben von Dateien
 - Slash-Befehle mit `confirmEdits: false` wenden Dateiänderungen automatisch an, ohne Anwenden/Verwerfen-Schaltflächen anzuzeigen
+- Sensible Anmeldedaten: Speichern Sie API-Schlüssel oder Tokens nicht direkt im Workflow-YAML (`http`-Header, `mcp`-Einstellungen usw.). Speichern Sie diese stattdessen in verschlüsselten Dateien und verwenden Sie den `note-read`-Node, um sie zur Laufzeit abzurufen. Workflows können verschlüsselte Dateien mit Passwortabfrage lesen.
 
 Siehe [Google AI Nutzungsbedingungen](https://ai.google.dev/terms) für Datenaufbewahrungsrichtlinien.
 

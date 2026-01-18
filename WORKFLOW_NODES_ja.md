@@ -59,7 +59,7 @@ nodes:
 | プロパティ | 説明 |
 |------------|------|
 | `prompt` | LLM に送るプロンプト（必須） |
-| `model` | モデルを指定（例：`gemini-3-flash-preview`、`gemini-3-pro-image-preview`） |
+| `model` | モデルを指定（例：`gemini-3-flash-preview`、`gemini-3-pro-image-preview`、`gemini-cli`、`claude-cli`、`codex-cli`） |
 | `ragSetting` | `__websearch__`（Web 検索）、`__none__`（検索なし）、設定名、または省略で現在の設定 |
 | `attachments` | FileExplorerData を含む変数名（カンマ区切り、`file-explorer` ノードから取得） |
 | `saveTo` | テキスト応答を保存する変数名 |
@@ -77,6 +77,20 @@ nodes:
   path: "images/cat"
   content: "![cat](data:{{generatedImage.mimeType}};base64,{{generatedImage.data}})"
 ```
+
+**CLI モデル:**
+
+プラグイン設定で CLI が構成されている場合、ワークフローで CLI モデル（`gemini-cli`、`claude-cli`、`codex-cli`）を使用できます。CLI モデルは API コストなしでフラッグシップモデルにアクセスするのに便利です。
+
+```yaml
+- id: analyze
+  type: command
+  model: claude-cli
+  prompt: "このコードを分析して:\n\n{{code}}"
+  saveTo: analysis
+```
+
+> **注意:** CLI モデルは RAG、Web 検索、画像生成をサポートしていません。CLI モデルでは `ragSetting` と `saveImageTo` プロパティは無視されます。
 
 ### note
 
@@ -97,6 +111,7 @@ nodes:
 | `content` | 書き込む内容 |
 | `mode` | `overwrite`（デフォルト）、`append`、または `create`（存在時スキップ） |
 | `confirm` | `true`（デフォルト）で確認ダイアログ、`false` で即座に書き込み |
+| `history` | `true`（デフォルト、グローバル設定に従う）で編集履歴に保存、`false` でこの書き込みの履歴を無効化 |
 
 ### note-read
 
@@ -199,6 +214,80 @@ nodes:
 }
 ```
 
+### note-search
+
+名前またはコンテンツでノートを検索。
+
+```yaml
+- id: search
+  type: note-search
+  query: "{{searchTerm}}"
+  searchContent: "true"
+  limit: "20"
+  saveTo: searchResults
+```
+
+| プロパティ | 説明 |
+|------------|------|
+| `query` | 検索クエリ文字列（必須、`{{variables}}` 対応） |
+| `searchContent` | `true` でファイル内容を検索、`false`（デフォルト）でファイル名のみ検索 |
+| `limit` | 最大件数（デフォルト: 10） |
+| `saveTo` | 結果を保存する変数（必須） |
+
+**出力形式:**
+```json
+{
+  "count": 3,
+  "results": [
+    {"name": "Note1", "path": "folder/Note1.md", "matchedContent": "...マッチした周辺のコンテキスト..."}
+  ]
+}
+```
+
+`searchContent` が `true` の場合、`matchedContent` にはマッチ箇所の前後約50文字のコンテキストが含まれます。
+
+### folder-list
+
+Vault 内のフォルダを一覧表示。
+
+```yaml
+- id: listFolders
+  type: folder-list
+  folder: "Projects"
+  saveTo: folderList
+```
+
+| プロパティ | 説明 |
+|------------|------|
+| `folder` | 親フォルダパス（空で Vault 全体） |
+| `saveTo` | 結果を保存する変数（必須） |
+
+**出力形式:**
+```json
+{
+  "folders": ["Projects/Active", "Projects/Archive", "Projects/Ideas"],
+  "count": 3
+}
+```
+
+フォルダはアルファベット順にソートされます。
+
+### open
+
+Obsidian でファイルを開く。
+
+```yaml
+- id: openNote
+  type: open
+  path: "{{outputPath}}"
+```
+
+| プロパティ | 説明 |
+|------------|------|
+| `path` | 開くファイルパス（必須、`{{variables}}` 対応） |
+
+パスに `.md` 拡張子がない場合、自動的に追加されます。
+
 ### http
 
 HTTP リクエストを実行。
@@ -247,6 +336,42 @@ HTTP リクエストを実行。
 `form-data` の場合:
 - FileExplorerData（`file-explorer` ノードから）は自動検出されバイナリとして送信
 - テキストファイルには `フィールド名:ファイル名` 構文を使用（例: `"file:report.html": "{{htmlContent}}"`）
+
+### json
+
+JSON 文字列をオブジェクトにパースしてプロパティアクセスを可能にする。
+
+```yaml
+- id: parseResponse
+  type: json
+  source: response
+  saveTo: data
+```
+
+| プロパティ | 説明 |
+|------------|------|
+| `source` | JSON 文字列を含む変数名（必須） |
+| `saveTo` | パース結果を保存する変数名（必須） |
+
+パース後、ドット記法でプロパティにアクセス: `{{data.items[0].name}}`
+
+**Markdown コードブロック内の JSON:**
+
+`json` ノードは Markdown コードブロックから JSON を自動的に抽出します:
+
+```yaml
+# response が以下を含む場合:
+# ```json
+# {"status": "ok"}
+# ```
+# json ノードは JSON コンテンツのみを抽出してパース
+- id: parse
+  type: json
+  source: llmResponse
+  saveTo: parsed
+```
+
+これは LLM の応答が JSON をコードフェンスでラップしている場合に便利です。
 
 ### dialog
 
@@ -560,6 +685,19 @@ FileExplorerData を Vault 内にファイルとして保存。生成された�
   value: "{{counter}} + 1"
 ```
 
+**特殊変数 `_clipboard`:**
+
+`_clipboard` という名前の変数を設定すると、その値がシステムクリップボードにコピーされます：
+
+```yaml
+- id: copyToClipboard
+  type: set
+  name: _clipboard
+  value: "{{result}}"
+```
+
+これは他のアプリケーションやクリップボードから読み取る Obsidian プラグインとの連携に便利です。
+
 ### mcp
 
 リモート MCP（Model Context Protocol）サーバーのツールを HTTP 経由で呼び出します。
@@ -600,6 +738,16 @@ FileExplorerData を Vault 内にファイルとして保存。生成された�
 | `command` | 実行するコマンド ID（必須、`{{変数}}` 対応） |
 | `path` | コマンド実行前に開くファイル（任意、実行後タブは自動で閉じる） |
 | `saveTo` | 実行結果を保存する変数名（任意） |
+
+**出力形式**（`saveTo` 設定時）:
+```json
+{
+  "commandId": "editor:toggle-fold",
+  "path": "notes/example.md",
+  "executed": true,
+  "timestamp": 1704067200000
+}
+```
 
 **コマンド ID の探し方:**
 1. Obsidian 設定 → ホットキー を開く
@@ -708,16 +856,6 @@ nodes:
     markdown: true
     button1: "OK"
 ```
-
-### その他のノード
-
-| ノード | プロパティ |
-|--------|------------|
-| `note-read` | `path`, `saveTo` |
-| `note-search` | `query`, `searchContent`, `limit`, `saveTo` |
-| `folder-list` | `folder`, `saveTo` |
-| `open` | `path` |
-| `json` | `source`, `saveTo` |
 
 ---
 

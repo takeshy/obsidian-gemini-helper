@@ -4,6 +4,7 @@ export interface EventMap {
   "workspace-state-loaded": [state: unknown];
   "rag-setting-changed": [name: string | null];
   "chat-activated": [];
+  "file-restored": [path: string];
 }
 
 type EventName = keyof EventMap;
@@ -48,3 +49,6 @@ export class EventEmitter {
     return this;
   }
 }
+
+// Global event emitter for cross-component communication
+export const globalEventEmitter = new EventEmitter();

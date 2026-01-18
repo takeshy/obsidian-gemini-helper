@@ -2,6 +2,7 @@ import { App, Modal, Notice, Setting } from "obsidian";
 import { t } from "src/i18n";
 import { formatError } from "src/utils/error";
 import { getEditHistoryManager, type EditHistoryEntry } from "src/core/editHistory";
+import { globalEventEmitter } from "src/utils/EventEmitter";
 
 /**
  * Confirmation modal to replace native confirm()
@@ -172,8 +173,7 @@ export class EditHistoryModal extends Modal {
       resetBtn.addEventListener("click", () => {
         new ConfirmModal(this.app, t("editHistoryModal.confirmRevertToBase"), () => {
           void historyManager.revertToBase(this.filePath).then(() => {
-            // Notify listeners that file was restored
-            this.app.workspace.trigger("gemini-helper:file-restored", this.filePath);
+            globalEventEmitter.emit("file-restored", this.filePath);
             new Notice(t("editHistoryModal.revertedToBase"));
             this.close();
           });
@@ -316,6 +316,9 @@ export class EditHistoryModal extends Modal {
           await historyManager.restoreTo(this.filePath, entryId);
         }
       }
+
+      // Notify listeners that file was restored
+      globalEventEmitter.emit("file-restored", this.filePath);
 
       const date = new Date(timestamp);
       const timeStr = date.toLocaleString();
@@ -541,6 +544,9 @@ export class DiffModal extends Modal {
           await historyManager.restoreTo(this.filePath, this.entry.id);
         }
       }
+
+      // Notify listeners that file was restored
+      globalEventEmitter.emit("file-restored", this.filePath);
 
       const date = new Date(this.entry.timestamp);
       const timeStr = date.toLocaleString();

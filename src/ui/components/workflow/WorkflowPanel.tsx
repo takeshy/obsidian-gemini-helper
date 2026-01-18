@@ -23,6 +23,7 @@ import { EditHistoryModal } from "../EditHistoryModal";
 import { getEditHistoryManager } from "src/core/editHistory";
 import { openWorkflowAsCanvas } from "src/utils/workflowToCanvas";
 import { cryptoCache } from "src/core/cryptoCache";
+import { globalEventEmitter } from "src/utils/EventEmitter";
 
 // Password prompt modal for encrypted files
 function promptForPassword(app: App): Promise<string | null> {
@@ -373,20 +374,27 @@ export default function WorkflowPanel({ plugin }: WorkflowPanelProps) {
       void loadWorkflow();
     };
 
+    plugin.app.workspace.on("active-leaf-change", leafChangeHandler);
+
+    return () => {
+      plugin.app.workspace.off("active-leaf-change", leafChangeHandler);
+    };
+  }, [loadWorkflow, plugin.app.workspace]);
+
+  // Watch for file restored events (from edit history revert)
+  useEffect(() => {
     const restoredHandler = (path: string) => {
       if (workflowFile && path === workflowFile.path) {
         void loadWorkflow();
       }
     };
 
-    plugin.app.workspace.on("active-leaf-change", leafChangeHandler);
-    const eventRef = plugin.app.workspace.on("gemini-helper:file-restored", restoredHandler);
+    globalEventEmitter.on("file-restored", restoredHandler);
 
     return () => {
-      plugin.app.workspace.off("active-leaf-change", leafChangeHandler);
-      plugin.app.workspace.offref(eventRef);
+      globalEventEmitter.off("file-restored", restoredHandler);
     };
-  }, [loadWorkflow, plugin.app.workspace, workflowFile]);
+  }, [loadWorkflow, workflowFile]);
 
   // Save workflow
   const saveWorkflow = useCallback(async (newNodes: SidebarNode[]) => {

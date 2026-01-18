@@ -447,4 +447,16 @@ export const zh: Record<string, string> = {
   "workflowModal.encryptedHistoryNeedsPassword": "执行历史已加密。请输入密码查看。",
   "workflowModal.empty": "（空）",
   "workflowModal.circularReference": "（循环引用）",
+
+  // Commands
+  "command.runWorkflow": "运行工作流",
+
+  // Workflow Selector Modal
+  "workflowSelector.title": "运行工作流",
+  "workflowSelector.searchPlaceholder": "搜索文件...",
+  "workflowSelector.selectFileToPreview": "选择文件进行预览",
+  "workflowSelector.selectWorkflow": "选择工作流",
+  "workflowSelector.open": "打开",
+  "workflowSelector.execute": "执行",
+  "workflowSelector.noWorkflows": "未找到文件",
 };

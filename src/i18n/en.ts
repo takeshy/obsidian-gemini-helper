@@ -491,6 +491,16 @@ export const en = {
   "command.restorePreviousVersion": "Restore previous version",
   "command.encryptFile": "Encrypt current file",
   "command.decryptFile": "Decrypt current file",
+  "command.runWorkflow": "Run workflow",
+
+  // Workflow Selector Modal
+  "workflowSelector.title": "Run workflow",
+  "workflowSelector.searchPlaceholder": "Search files...",
+  "workflowSelector.selectFileToPreview": "Select a file to preview",
+  "workflowSelector.selectWorkflow": "Select workflow",
+  "workflowSelector.open": "Open",
+  "workflowSelector.execute": "Execute",
+  "workflowSelector.noWorkflows": "No files found",
 
   // Errors
   "error.failedToCreate": "Failed to create: {{error}}",

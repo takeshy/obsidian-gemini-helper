@@ -27,6 +27,8 @@ import { parseWorkflowFromMarkdown } from "src/workflow/parser";
 import type { WorkflowInput } from "src/workflow/types";
 import { promptForDialog } from "src/ui/components/workflow/DialogPromptModal";
 import { promptForConfirmation } from "src/ui/components/workflow/EditConfirmationModal";
+import { promptForAnyFile, promptForNewFilePath } from "src/ui/components/workflow/FilePromptModal";
+import { WorkflowSelectorModal } from "src/ui/components/workflow/WorkflowSelectorModal";
 import {
   initFileSearchManager,
   resetFileSearchManager,
@@ -310,6 +312,17 @@ export class GeminiHelperPlugin extends Plugin {
       },
     });
 
+    // Add command to run workflow
+    this.addCommand({
+      id: "run-workflow",
+      name: t("command.runWorkflow"),
+      callback: () => {
+        new WorkflowSelectorModal(this.app, this, (filePath, workflowName) => {
+          void this.executeWorkflowFromHotkey(filePath, workflowName);
+        }).open();
+      },
+    });
+
     // Register file events for edit history
     this.registerEvent(
       this.app.vault.on("rename", (file, oldPath) => {
@@ -492,9 +505,66 @@ export class GeminiHelperPlugin extends Plugin {
   }
 
   /**
+   * Prompt for password to decrypt encrypted files
+   */
+  private promptForPassword(): Promise<string | null> {
+    return new Promise((resolve) => {
+      class PasswordModal extends Modal {
+        onOpen(): void {
+          const { contentEl } = this;
+          contentEl.empty();
+          contentEl.addClass("gemini-helper-password-modal");
+
+          contentEl.createEl("h3", { text: t("crypt.enterPassword") });
+          contentEl.createEl("p", { text: t("crypt.enterPasswordDesc") });
+
+          const inputEl = contentEl.createEl("input", {
+            type: "password",
+            placeholder: t("crypt.passwordPlaceholder"),
+            cls: "gemini-helper-password-input",
+          });
+
+          const buttonContainer = contentEl.createDiv({ cls: "gemini-helper-button-container" });
+
+          const cancelBtn = buttonContainer.createEl("button", { text: t("common.cancel") });
+          cancelBtn.addEventListener("click", () => {
+            resolve(null);
+            this.close();
+          });
+
+          const unlockBtn = buttonContainer.createEl("button", { text: t("crypt.unlock"), cls: "mod-cta" });
+          unlockBtn.addEventListener("click", () => {
+            const password = inputEl.value;
+            if (password) {
+              resolve(password);
+              this.close();
+            }
+          });
+
+          inputEl.addEventListener("keydown", (e) => {
+            if (e.key === "Enter" && inputEl.value) {
+              resolve(inputEl.value);
+              this.close();
+            }
+          });
+
+          setTimeout(() => inputEl.focus(), 50);
+        }
+
+        onClose(): void {
+          this.contentEl.empty();
+        }
+      }
+
+      const modal = new PasswordModal(this.app);
+      modal.open();
+    });
+  }
+
+  /**
    * Execute workflow from hotkey
    */
-  private async executeWorkflowFromHotkey(filePath: string, workflowName: string): Promise<void> {
+  async executeWorkflowFromHotkey(filePath: string, workflowName: string): Promise<void> {
     // Capture selection before execution
     this.captureSelection();
     const selection = this.lastSelection;
@@ -553,6 +623,10 @@ export class GeminiHelperPlugin extends Plugin {
         promptForFile: () => Promise.resolve(null),
         promptForSelection: () => Promise.resolve(null),
         promptForValue: () => Promise.resolve(null),
+        promptForAnyFile: (extensions?: string[], defaultPath?: string) =>
+          promptForAnyFile(this.app, extensions, defaultPath || "Select a file"),
+        promptForNewFilePath: (extensions?: string[], defaultPath?: string) =>
+          promptForNewFilePath(this.app, extensions, defaultPath),
         promptForConfirmation: (filePath: string, content: string, mode: string) =>
           promptForConfirmation(this.app, filePath, content, mode),
         promptForDialog: (title: string, message: string, options: string[], multiSelect: boolean, button1: string, button2?: string, markdown?: boolean, inputTitle?: string, defaults?: { input?: string; selected?: string[] }, multiline?: boolean) =>
@@ -562,6 +636,13 @@ export class GeminiHelperPlugin extends Plugin {
           if (noteFile instanceof TFile) {
             await this.app.workspace.getLeaf().openFile(noteFile);
           }
+        },
+        promptForPassword: async () => {
+          // Try cached password first
+          const cached = cryptoCache.getPassword();
+          if (cached) return cached;
+          // Prompt for password
+          return this.promptForPassword();
         },
       };
 

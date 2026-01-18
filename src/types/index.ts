@@ -83,6 +83,9 @@ export interface GeminiHelperSettings {
 
   // Last used model for AI workflow generation
   lastAIWorkflowModel?: string;
+
+  // Last selected workflow path in Run Workflow modal
+  lastSelectedWorkflowPath?: string;
 }
 
 // Edit history settings

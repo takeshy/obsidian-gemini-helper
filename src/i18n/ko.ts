@@ -447,4 +447,16 @@ export const ko: Record<string, string> = {
   "workflowModal.encryptedHistoryNeedsPassword": "실행 기록이 암호화되어 있습니다. 비밀번호를 입력하여 확인하세요.",
   "workflowModal.empty": "(비어 있음)",
   "workflowModal.circularReference": "(순환 참조)",
+
+  // Commands
+  "command.runWorkflow": "워크플로우 실행",
+
+  // Workflow Selector Modal
+  "workflowSelector.title": "워크플로우 실행",
+  "workflowSelector.searchPlaceholder": "파일 검색...",
+  "workflowSelector.selectFileToPreview": "미리보기할 파일 선택",
+  "workflowSelector.selectWorkflow": "워크플로우 선택",
+  "workflowSelector.open": "열기",
+  "workflowSelector.execute": "실행",
+  "workflowSelector.noWorkflows": "파일을 찾을 수 없습니다",
 };

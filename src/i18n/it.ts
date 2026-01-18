@@ -447,4 +447,16 @@ export const it: Record<string, string> = {
   "workflowModal.encryptedHistoryNeedsPassword": "La cronologia di esecuzione è crittografata. Inserisci la password per visualizzarla.",
   "workflowModal.empty": "(vuoto)",
   "workflowModal.circularReference": "(riferimento circolare)",
+
+  // Commands
+  "command.runWorkflow": "Esegui workflow",
+
+  // Workflow Selector Modal
+  "workflowSelector.title": "Esegui Workflow",
+  "workflowSelector.searchPlaceholder": "Cerca file...",
+  "workflowSelector.selectFileToPreview": "Seleziona un file per l'anteprima",
+  "workflowSelector.selectWorkflow": "Seleziona workflow",
+  "workflowSelector.open": "Apri",
+  "workflowSelector.execute": "Esegui",
+  "workflowSelector.noWorkflows": "Nessun file trovato",
 };

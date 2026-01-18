@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { TFile, Notice, Menu, MarkdownView, stringifyYaml, Modal, App } from "obsidian";
-import { FileText, Keyboard, KeyboardOff, LayoutGrid, Plus, Save, Sparkles, Zap, ZapOff } from "lucide-react";
+import { FileText, FolderOpen, Keyboard, KeyboardOff, LayoutGrid, Plus, Save, Sparkles, Zap, ZapOff } from "lucide-react";
 import { EventTriggerModal } from "./EventTriggerModal";
 import type { WorkflowEventTrigger } from "src/types";
 import { promptForAIWorkflow, ResolvedMention } from "./AIWorkflowModal";
@@ -16,6 +16,7 @@ import { promptForValue } from "./ValuePromptModal";
 import { promptForSelection } from "./SelectionPromptModal";
 import { promptForConfirmation } from "./EditConfirmationModal";
 import { promptForDialog } from "./DialogPromptModal";
+import { WorkflowSelectorModal } from "./WorkflowSelectorModal";
 import { t } from "src/i18n";
 import { EditHistoryModal } from "../EditHistoryModal";
 import { getEditHistoryManager } from "src/core/editHistory";
@@ -922,6 +923,13 @@ ${result.nodes.map(node => {
       }
   };
 
+  // Open workflow selector modal
+  const handleOpenWorkflowSelector = () => {
+    new WorkflowSelectorModal(plugin.app, plugin, (filePath, workflowName) => {
+      void plugin.executeWorkflowFromHotkey(filePath, workflowName);
+    }).open();
+  };
+
   // ファイルが選択されていない場合
   if (!workflowFile) {
     return (
@@ -930,12 +938,18 @@ ${result.nodes.map(node => {
           <div className="workflow-empty-state">
             <p>{t("workflow.openMarkdownFile")}</p>
             <button
+              className="workflow-sidebar-run-btn"
+              onClick={handleOpenWorkflowSelector}
+            >
+              <FolderOpen size={14} />
+              <span>{t("command.runWorkflow")}</span>
+            </button>
+            <button
               className="workflow-sidebar-ai-btn mod-cta"
               onClick={() => void handleCreateWithAI()}
-              style={{ marginTop: "12px", display: "inline-flex", alignItems: "center" }}
             >
               <Sparkles size={14} />
-              <span style={{ marginLeft: "6px" }}>{t("workflow.createWithAI")}</span>
+              <span>{t("workflow.createWithAI")}</span>
             </button>
           </div>
         </div>
@@ -951,12 +965,18 @@ ${result.nodes.map(node => {
           <div className="workflow-empty-state">
             <p>{t("workflow.noWorkflowInFile")}</p>
             <button
+              className="workflow-sidebar-run-btn"
+              onClick={handleOpenWorkflowSelector}
+            >
+              <FolderOpen size={14} />
+              <span>{t("command.runWorkflow")}</span>
+            </button>
+            <button
               className="workflow-sidebar-ai-btn mod-cta"
               onClick={() => void handleCreateWithAI()}
-              style={{ marginTop: "12px", display: "inline-flex", alignItems: "center" }}
             >
               <Sparkles size={14} />
-              <span style={{ marginLeft: "6px" }}>{t("workflow.createWithAI")}</span>
+              <span>{t("workflow.createWithAI")}</span>
             </button>
           </div>
         </div>

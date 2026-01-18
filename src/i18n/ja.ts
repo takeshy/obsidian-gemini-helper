@@ -429,6 +429,16 @@ export const ja: Record<string, string> = {
   "command.restorePreviousVersion": "前のバージョンに復元",
   "command.encryptFile": "現在のファイルを暗号化",
   "command.decryptFile": "現在のファイルの暗号化を解除",
+  "command.runWorkflow": "ワークフローを実行",
+
+  // Workflow Selector Modal
+  "workflowSelector.title": "ワークフローを実行",
+  "workflowSelector.searchPlaceholder": "ファイルを検索...",
+  "workflowSelector.selectFileToPreview": "プレビューするファイルを選択",
+  "workflowSelector.selectWorkflow": "ワークフローを選択",
+  "workflowSelector.open": "開く",
+  "workflowSelector.execute": "実行",
+  "workflowSelector.noWorkflows": "ファイルが見つかりません",
 
   // Errors
   "error.failedToCreate": "作成に失敗しました: {{error}}",

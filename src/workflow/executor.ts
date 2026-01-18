@@ -120,6 +120,38 @@ export class WorkflowExecutor {
       onLog?.(logEntry);
     };
 
+    // Truncate binary data for history logging (text is kept as-is)
+    const truncateBinaryData = (data: unknown): unknown => {
+      if (data === null || data === undefined) return data;
+
+      if (typeof data === "string") {
+        // Check if it's Base64 data (binary) - long string with only Base64 chars
+        if (data.length > 1000 && /^[A-Za-z0-9+/=]+$/.test(data.substring(0, 100))) {
+          return `[Binary data: ${data.length} chars]`;
+        }
+        return data;
+      }
+
+      if (Array.isArray(data)) {
+        return data.map((item) => truncateBinaryData(item));
+      }
+
+      if (typeof data === "object") {
+        const result: Record<string, unknown> = {};
+        for (const [key, value] of Object.entries(data as Record<string, unknown>)) {
+          // Skip 'data' field in FileExplorerData (binary content)
+          if (key === "data" && typeof value === "string" && value.length > 1000) {
+            result[key] = `[Binary data: ${value.length} chars]`;
+          } else {
+            result[key] = truncateBinaryData(value);
+          }
+        }
+        return result;
+      }
+
+      return data;
+    };
+
     const addHistoryStep = (
       nodeId: string,
       nodeType: WorkflowNode["type"],
@@ -133,8 +165,8 @@ export class WorkflowExecutor {
           historyRecord,
           nodeId,
           nodeType,
-          input,
-          output,
+          truncateBinaryData(input) as Record<string, unknown> | undefined,
+          truncateBinaryData(output),
           status,
           error
         );

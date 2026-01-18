@@ -447,4 +447,16 @@ export const fr: Record<string, string> = {
   "workflowModal.encryptedHistoryNeedsPassword": "L'historique d'exécution est chiffré. Entrez votre mot de passe pour le consulter.",
   "workflowModal.empty": "(vide)",
   "workflowModal.circularReference": "(référence circulaire)",
+
+  // Commands
+  "command.runWorkflow": "Exécuter le workflow",
+
+  // Workflow Selector Modal
+  "workflowSelector.title": "Exécuter le Workflow",
+  "workflowSelector.searchPlaceholder": "Rechercher des fichiers...",
+  "workflowSelector.selectFileToPreview": "Sélectionnez un fichier pour prévisualiser",
+  "workflowSelector.selectWorkflow": "Sélectionner le workflow",
+  "workflowSelector.open": "Ouvrir",
+  "workflowSelector.execute": "Exécuter",
+  "workflowSelector.noWorkflows": "Aucun fichier trouvé",
 };

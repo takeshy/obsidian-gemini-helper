@@ -14,6 +14,7 @@ import { cryptoCache } from "../core/cryptoCache";
 
 export interface EncryptionConfig {
   enabled: boolean;
+  encryptWorkflowHistory?: boolean;  // Whether to encrypt workflow history
   publicKey: string;
   encryptedPrivateKey: string;
   salt: string;
@@ -37,7 +38,7 @@ export class ExecutionHistoryManager {
    */
   private canEncrypt(): boolean {
     return !!(
-      this.encryptionConfig?.enabled &&
+      this.encryptionConfig?.encryptWorkflowHistory &&
       this.encryptionConfig.publicKey &&
       this.encryptionConfig.encryptedPrivateKey &&
       this.encryptionConfig.salt

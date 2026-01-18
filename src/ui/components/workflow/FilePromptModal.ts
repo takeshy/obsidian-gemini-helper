@@ -190,6 +190,7 @@ class AnyFilePromptModal extends Modal {
   private previewEl: HTMLElement | null = null;
   private component: Component;
   private extensions?: string[];
+  private resolved = false;
 
   constructor(
     app: App,
@@ -247,6 +248,7 @@ class AnyFilePromptModal extends Modal {
 
     const cancelBtn = buttonContainer.createEl("button", { text: t("workflowModal.cancel") });
     cancelBtn.addEventListener("click", () => {
+      this.resolved = true;
       this.resolve(null);
       this.close();
     });
@@ -257,6 +259,7 @@ class AnyFilePromptModal extends Modal {
     });
     confirmBtn.addEventListener("click", () => {
       if (this.selectedFile) {
+        this.resolved = true;
         this.resolve(this.selectedFile.path);
         this.close();
       }
@@ -322,6 +325,10 @@ class AnyFilePromptModal extends Modal {
     this.component.unload();
     const { contentEl } = this;
     contentEl.empty();
+    // Ensure resolve is called if modal is closed without explicit action
+    if (!this.resolved) {
+      this.resolve(null);
+    }
   }
 }
 

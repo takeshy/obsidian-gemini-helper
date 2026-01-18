@@ -1189,39 +1189,42 @@ export class SettingsTab extends PluginSettingTab {
     const encryption = this.plugin.settings.encryption;
     const hasKeys = !!encryption.publicKey && !!encryption.encryptedPrivateKey;
 
-    // Enable/Disable toggle (only if keys are set up)
+    // Encryption toggles (only if keys are set up)
     if (hasKeys) {
-      new Setting(containerEl)
-        .setName(t("settings.encryptionEnabled"))
-        .setDesc(t("settings.encryptionEnabled.desc"))
-        .addToggle((toggle) =>
-          toggle
-            .setValue(encryption.enabled)
-            .onChange((value) => {
-              void (async () => {
-                if (!value) {
-                  // Turning off - confirm
-                  const confirmed = await new ConfirmModal(
-                    this.app,
-                    t("settings.encryptionDisableConfirm"),
-                    t("common.confirm"),
-                    t("common.cancel")
-                  ).openAndWait();
-                  if (!confirmed) {
-                    toggle.setValue(true);
-                    return;
-                  }
-                }
-                this.plugin.settings.encryption.enabled = value;
-                await this.plugin.saveSettings();
-              })();
-            })
-        );
-
       // Show configured status
       new Setting(containerEl)
         .setName(t("settings.encryptionConfigured"))
         .setDesc(t("settings.encryptionConfigured.desc"));
+
+      // Encrypt chat history toggle
+      new Setting(containerEl)
+        .setName(t("settings.encryptChatHistory"))
+        .setDesc(t("settings.encryptChatHistory.desc"))
+        .addToggle((toggle) =>
+          toggle
+            .setValue(encryption.encryptChatHistory ?? false)
+            .onChange(async (value) => {
+              this.plugin.settings.encryption.encryptChatHistory = value;
+              // Also update legacy enabled flag for backward compatibility
+              this.plugin.settings.encryption.enabled = value || encryption.encryptWorkflowHistory;
+              await this.plugin.saveSettings();
+            })
+        );
+
+      // Encrypt workflow history toggle
+      new Setting(containerEl)
+        .setName(t("settings.encryptWorkflowHistory"))
+        .setDesc(t("settings.encryptWorkflowHistory.desc"))
+        .addToggle((toggle) =>
+          toggle
+            .setValue(encryption.encryptWorkflowHistory ?? false)
+            .onChange(async (value) => {
+              this.plugin.settings.encryption.encryptWorkflowHistory = value;
+              // Also update legacy enabled flag for backward compatibility
+              this.plugin.settings.encryption.enabled = value || encryption.encryptChatHistory;
+              await this.plugin.saveSettings();
+            })
+        );
 
       // Reset keys button
       new Setting(containerEl)
@@ -1305,9 +1308,11 @@ export class SettingsTab extends PluginSettingTab {
                   // Encrypt private key with password
                   const { encryptedPrivateKey, salt } = await encryptPrivateKey(privateKey, password);
 
-                  // Save settings
+                  // Save settings - enable both encryption types by default
                   this.plugin.settings.encryption = {
                     enabled: true,
+                    encryptChatHistory: true,
+                    encryptWorkflowHistory: true,
                     publicKey,
                     encryptedPrivateKey,
                     salt,

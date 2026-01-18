@@ -510,8 +510,10 @@ export const en = {
 
   // Encryption
   "settings.encryption": "Encryption",
-  "settings.encryptionEnabled": "Encrypt chat history",
-  "settings.encryptionEnabled.desc": "Encrypt chat history files. Requires password to view content.",
+  "settings.encryptChatHistory": "Encrypt AI chat history",
+  "settings.encryptChatHistory.desc": "Encrypt AI chat history files. Requires password to view content.",
+  "settings.encryptWorkflowHistory": "Encrypt workflow execution logs",
+  "settings.encryptWorkflowHistory.desc": "Encrypt workflow execution log files. Requires password to view content.",
   "settings.encryptionSetup": "Setup encryption",
   "settings.encryptionSetup.desc": "Generate encryption keys. You can encrypt without password, but need password to decrypt.",
   "settings.encryptionSetupBtn": "Setup encryption keys",
@@ -524,7 +526,7 @@ export const en = {
   "settings.encryptionSetupSuccess": "Encryption keys generated successfully",
   "settings.encryptionSetupFailed": "Failed to setup encryption: {{error}}",
   "settings.encryptionConfigured": "Encryption configured",
-  "settings.encryptionConfigured.desc": "Chat history will be encrypted. Password required to decrypt.",
+  "settings.encryptionConfigured.desc": "Encryption keys are set up. Choose which logs to encrypt below.",
   "settings.encryptionResetKeys": "Reset encryption keys",
   "settings.encryptionResetKeys.desc": "Generate new encryption keys. Previous encrypted chats will not be readable.",
   "settings.encryptionResetKeysConfirm": "Reset encryption keys? All previously encrypted chat history will become unreadable.",

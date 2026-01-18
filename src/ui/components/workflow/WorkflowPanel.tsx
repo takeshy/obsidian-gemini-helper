@@ -834,9 +834,10 @@ ${result.nodes.map(node => {
     }
 
     // Build encryption config from settings
-    const encryptionConfig = plugin.settings.encryption?.enabled
+    const encryptionConfig = plugin.settings.encryption?.publicKey
       ? {
           enabled: plugin.settings.encryption.enabled,
+          encryptWorkflowHistory: plugin.settings.encryption.encryptWorkflowHistory,
           publicKey: plugin.settings.encryption.publicKey,
           encryptedPrivateKey: plugin.settings.encryption.encryptedPrivateKey,
           salt: plugin.settings.encryption.salt,

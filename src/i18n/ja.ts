@@ -448,8 +448,10 @@ export const ja: Record<string, string> = {
 
   // Encryption
   "settings.encryption": "暗号化",
-  "settings.encryptionEnabled": "チャット履歴を暗号化",
-  "settings.encryptionEnabled.desc": "チャット履歴ファイルを暗号化します。内容を見るにはパスワードが必要です。",
+  "settings.encryptChatHistory": "AIチャット履歴を暗号化",
+  "settings.encryptChatHistory.desc": "AIチャット履歴ファイルを暗号化します。内容を見るにはパスワードが必要です。",
+  "settings.encryptWorkflowHistory": "ワークフロー実行ログを暗号化",
+  "settings.encryptWorkflowHistory.desc": "ワークフロー実行ログファイルを暗号化します。内容を見るにはパスワードが必要です。",
   "settings.encryptionSetup": "暗号化の設定",
   "settings.encryptionSetup.desc": "暗号化鍵を生成します。暗号化はパスワード不要ですが、復号化にはパスワードが必要です。",
   "settings.encryptionSetupBtn": "暗号化鍵を生成",
@@ -462,7 +464,7 @@ export const ja: Record<string, string> = {
   "settings.encryptionSetupSuccess": "暗号化鍵の生成に成功しました",
   "settings.encryptionSetupFailed": "暗号化の設定に失敗しました: {{error}}",
   "settings.encryptionConfigured": "暗号化が設定済み",
-  "settings.encryptionConfigured.desc": "チャット履歴は暗号化されます。復号化にはパスワードが必要です。",
+  "settings.encryptionConfigured.desc": "暗号化鍵が設定されています。以下で暗号化するログを選択してください。",
   "settings.encryptionResetKeys": "暗号化鍵をリセット",
   "settings.encryptionResetKeys.desc": "新しい暗号化鍵を生成します。以前の暗号化されたチャットは読めなくなります。",
   "settings.encryptionResetKeysConfirm": "暗号化鍵をリセットしますか？以前に暗号化されたチャット履歴は読めなくなります。",

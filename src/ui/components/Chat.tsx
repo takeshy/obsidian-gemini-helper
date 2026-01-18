@@ -270,9 +270,9 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 			md += `<!-- msg-meta:${JSON.stringify(metadata)} -->\n\n---\n\n`;
 		}
 
-		// Encrypt if encryption is enabled
+		// Encrypt if chat history encryption is enabled
 		const encryption = plugin.settings.encryption;
-		if (encryption?.enabled && encryption.publicKey && encryption.encryptedPrivateKey && encryption.salt) {
+		if (encryption?.encryptChatHistory && encryption.publicKey && encryption.encryptedPrivateKey && encryption.salt) {
 			try {
 				// Use the new YAML frontmatter format which stores keys in the file itself
 				return await encryptFileContent(

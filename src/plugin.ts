@@ -27,7 +27,9 @@ import { parseWorkflowFromMarkdown } from "src/workflow/parser";
 import type { WorkflowInput } from "src/workflow/types";
 import { promptForDialog } from "src/ui/components/workflow/DialogPromptModal";
 import { promptForConfirmation } from "src/ui/components/workflow/EditConfirmationModal";
-import { promptForAnyFile, promptForNewFilePath } from "src/ui/components/workflow/FilePromptModal";
+import { promptForFile, promptForAnyFile, promptForNewFilePath } from "src/ui/components/workflow/FilePromptModal";
+import { promptForSelection } from "src/ui/components/workflow/SelectionPromptModal";
+import { promptForValue } from "src/ui/components/workflow/ValuePromptModal";
 import { WorkflowSelectorModal } from "src/ui/components/workflow/WorkflowSelectorModal";
 import {
   initFileSearchManager,
@@ -620,9 +622,12 @@ export class GeminiHelperPlugin extends Plugin {
 
       // Prompt callbacks for hotkey execution
       const promptCallbacks = {
-        promptForFile: () => Promise.resolve(null),
-        promptForSelection: () => Promise.resolve(null),
-        promptForValue: () => Promise.resolve(null),
+        promptForFile: (defaultPath?: string) =>
+          promptForFile(this.app, defaultPath || t("workflowModal.selectFile")),
+        promptForSelection: () =>
+          promptForSelection(this.app, t("workflowModal.selectText")),
+        promptForValue: (prompt: string, defaultValue?: string, multiline?: boolean) =>
+          promptForValue(this.app, prompt, defaultValue || "", multiline || false),
         promptForAnyFile: (extensions?: string[], defaultPath?: string) =>
           promptForAnyFile(this.app, extensions, defaultPath || "Select a file"),
         promptForNewFilePath: (extensions?: string[], defaultPath?: string) =>

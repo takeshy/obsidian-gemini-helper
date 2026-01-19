@@ -38,24 +38,38 @@ export interface AIWorkflowResult {
   resolvedMentions?: ResolvedMention[]; // File contents that were embedded
 }
 
+// Result type for confirmation modal
+export type ConfirmResult = "ok" | "no" | "cancel";
+
+export interface WorkflowConfirmResult {
+  result: ConfirmResult;
+  additionalRequest?: string;
+}
+
 // Confirmation modal for reviewing changes
 class WorkflowConfirmModal extends Modal {
   private oldYaml: string;
   private newYaml: string;
   private explanation?: string;
-  private resolvePromise: (confirmed: boolean) => void;
+  private previousRequest: string;
+  private resolvePromise: (result: WorkflowConfirmResult) => void;
+  private additionalRequestEl: HTMLTextAreaElement | null = null;
+  private additionalRequestContainerEl: HTMLElement | null = null;
+  private isShowingAdditionalRequest = false;
 
   constructor(
     app: App,
     oldYaml: string,
     newYaml: string,
     explanation: string | undefined,
-    resolvePromise: (confirmed: boolean) => void
+    previousRequest: string,
+    resolvePromise: (result: WorkflowConfirmResult) => void
   ) {
     super(app);
     this.oldYaml = oldYaml;
     this.newYaml = newYaml;
     this.explanation = explanation;
+    this.previousRequest = previousRequest;
     this.resolvePromise = resolvePromise;
   }
 
@@ -101,21 +115,60 @@ class WorkflowConfirmModal extends Modal {
       contentEl.textContent = line.content;
     }
 
+    // Additional request container (hidden initially)
+    this.additionalRequestContainerEl = contentEl.createDiv({
+      cls: "workflow-preview-additional is-hidden"
+    });
+    this.additionalRequestContainerEl.createEl("label", {
+      text: t("workflow.preview.additionalRequest")
+    });
+    this.additionalRequestEl = this.additionalRequestContainerEl.createEl("textarea", {
+      cls: "workflow-preview-additional-input",
+      attr: {
+        placeholder: t("workflow.preview.additionalPlaceholder"),
+        rows: "3"
+      },
+    });
+
     // Buttons
     const buttonContainer = contentEl.createDiv({ cls: "ai-workflow-buttons" });
 
-    const cancelBtn = buttonContainer.createEl("button", { text: "Cancel" });
+    const cancelBtn = buttonContainer.createEl("button", { text: t("workflow.preview.cancel") });
     cancelBtn.addEventListener("click", () => {
-      this.resolvePromise(false);
+      this.resolvePromise({ result: "cancel" });
       this.close();
     });
 
+    const noBtn = buttonContainer.createEl("button", { text: t("workflow.preview.no") });
+    noBtn.addEventListener("click", () => {
+      if (!this.isShowingAdditionalRequest) {
+        // First click: show additional request input with previous request pre-filled
+        this.isShowingAdditionalRequest = true;
+        this.additionalRequestContainerEl?.removeClass("is-hidden");
+        if (this.additionalRequestEl && this.previousRequest) {
+          this.additionalRequestEl.value = this.previousRequest;
+        }
+        this.additionalRequestEl?.focus();
+        noBtn.textContent = t("workflow.preview.regenerate");
+        noBtn.addClass("mod-cta");
+        applyBtn.removeClass("mod-cta");
+      } else {
+        // Second click: submit with additional request
+        const additionalRequest = this.additionalRequestEl?.value?.trim() || "";
+        this.resolvePromise({
+          result: "no",
+          additionalRequest,
+        });
+        this.close();
+      }
+    });
+
     const applyBtn = buttonContainer.createEl("button", {
-      text: "Apply changes",
+      text: t("workflow.confirm.useThis"),
       cls: "mod-cta",
     });
     applyBtn.addEventListener("click", () => {
-      this.resolvePromise(true);
+      this.resolvePromise({ result: "ok" });
       this.close();
     });
   }
@@ -179,10 +232,11 @@ function showWorkflowConfirmation(
   app: App,
   oldYaml: string,
   newYaml: string,
-  explanation?: string
-): Promise<boolean> {
+  explanation: string | undefined,
+  previousRequest: string
+): Promise<WorkflowConfirmResult> {
   return new Promise((resolve) => {
-    const modal = new WorkflowConfirmModal(app, oldYaml, newYaml, explanation, resolve);
+    const modal = new WorkflowConfirmModal(app, oldYaml, newYaml, explanation, previousRequest, resolve);
     modal.open();
   });
 }
@@ -771,16 +825,33 @@ export class AIWorkflowModal extends Modal {
         this.existingYaml;
 
       if (needsDiffConfirmation) {
-        const confirmed = await showWorkflowConfirmation(
+        const confirmResult = await showWorkflowConfirmation(
           this.app,
           this.existingYaml!,
           result.yaml,
-          result.explanation
+          result.explanation,
+          currentRequest
         );
 
-        if (confirmed) {
+        if (confirmResult.result === "ok") {
           this.resolvePromise(result);
+        } else if (confirmResult.result === "no") {
+          // User wants modifications - accumulate request history
+          const updatedHistory = [...requestHistory, currentRequest];
+          await this.runGenerationLoop(
+            confirmResult.additionalRequest || "",  // New request from user
+            workflowName,
+            outputPathTemplate,
+            selectedModel,
+            isCliModel,
+            resolvedMentions,
+            workflowPath,     // Workflow path for execution history
+            result.yaml,      // Previous YAML for reference
+            updatedHistory,   // Accumulated request history
+            selectedExecutionSteps  // Keep original execution steps for context
+          );
         } else {
+          // User cancelled
           this.resolvePromise(null);
         }
         return;

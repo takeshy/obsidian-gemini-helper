@@ -492,6 +492,9 @@ export const zh: Record<string, string> = {
   "workflow.historySelect.skipped": "已跳过",
   "workflow.historySelect.error": "错误：",
 
+  // Workflow Confirm Modal
+  "workflow.confirm.useThis": "使用此版本",
+
   // Workflow Execution Modal
   "workflow.execution.title": "工作流执行",
   "workflow.execution.running": "执行中...",

@@ -501,6 +501,9 @@ export const ja: Record<string, string> = {
   "workflow.preview.referenceHistory": "実行履歴を参照",
   "workflow.preview.stepsSelected": "{{count}}ステップ選択中",
 
+  // Workflow Confirm Modal
+  "workflow.confirm.useThis": "これを使用",
+
   // Execution History Select Modal
   "workflow.historySelect.title": "実行履歴を選択",
   "workflow.historySelect.recentExecutions": "最近の実行",

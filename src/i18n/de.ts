@@ -492,6 +492,9 @@ export const de: Record<string, string> = {
   "workflow.historySelect.skipped": "Übersprungen",
   "workflow.historySelect.error": "Fehler:",
 
+  // Workflow Confirm Modal
+  "workflow.confirm.useThis": "Dieses verwenden",
+
   // Workflow Execution Modal
   "workflow.execution.title": "Workflow-Ausführung",
   "workflow.execution.running": "Wird ausgeführt...",

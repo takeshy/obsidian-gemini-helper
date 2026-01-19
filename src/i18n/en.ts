@@ -570,6 +570,9 @@ export const en = {
   "workflow.preview.referenceHistory": "Reference execution history",
   "workflow.preview.stepsSelected": "{{count}} step(s) selected",
 
+  // Workflow Confirm Modal
+  "workflow.confirm.useThis": "Use this",
+
   // Execution History Select Modal
   "workflow.historySelect.title": "Select execution history",
   "workflow.historySelect.recentExecutions": "Recent executions",

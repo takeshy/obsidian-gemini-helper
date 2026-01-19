@@ -492,6 +492,9 @@ export const ko: Record<string, string> = {
   "workflow.historySelect.skipped": "건너뜀",
   "workflow.historySelect.error": "오류:",
 
+  // Workflow Confirm Modal
+  "workflow.confirm.useThis": "이것 사용",
+
   // Workflow Execution Modal
   "workflow.execution.title": "워크플로우 실행",
   "workflow.execution.running": "실행 중...",

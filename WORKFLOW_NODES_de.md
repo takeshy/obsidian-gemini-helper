@@ -891,6 +891,20 @@ content: "{{items[0].name}}"
 path: "{{parsed.notes[{{counter}}].path}}"
 ```
 
+### JSON-Escape-Modifikator
+
+Verwenden Sie `{{variable:json}}`, um den Wert fuer die Einbettung in JSON-Strings zu escapen. Dies escapt korrekt Zeilenumbrueche, Anfuehrungszeichen und andere Sonderzeichen.
+
+```yaml
+# Ohne :json - schlaegt fehl, wenn der Inhalt Zeilenumbrueche/Anfuehrungszeichen hat
+args: '{"text": "{{content}}"}'  # FEHLER wenn der Inhalt Sonderzeichen hat
+
+# Mit :json - sicher fuer jeden Inhalt
+args: '{"text": "{{content:json}}"}'  # OK - korrekt escapt
+```
+
+Dies ist essentiell, wenn Dateiinhalt oder Benutzereingaben an `mcp`- oder `http`-Knoten mit JSON-Body uebergeben werden.
+
 ## Intelligente Eingabeknoten
 
 Die Knoten `prompt-selection` und `prompt-file` erkennen automatisch den Ausfuehrungskontext:

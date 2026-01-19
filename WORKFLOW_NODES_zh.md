@@ -891,6 +891,20 @@ content: "{{items[0].name}}"
 path: "{{parsed.notes[{{counter}}].path}}"
 ```
 
+### JSON转义修饰符
+
+使用 `{{variable:json}}` 来转义值以嵌入JSON字符串。这可以正确转义换行符、引号和其他特殊字符。
+
+```yaml
+# 不使用 :json - 如果内容包含换行符/引号会出错
+args: '{"text": "{{content}}"}'  # 如果内容有特殊字符会出错
+
+# 使用 :json - 对任何内容都安全
+args: '{"text": "{{content:json}}"}'  # OK - 正确转义
+```
+
+这在将文件内容或用户输入传递给带有JSON正文的 `mcp` 或 `http` 节点时是必需的。
+
 ## 智能输入节点
 
 `prompt-selection` 和 `prompt-file` 节点会自动检测执行上下文：

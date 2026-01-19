@@ -893,6 +893,20 @@ content: "{{items[0].name}}"
 path: "{{parsed.notes[{{counter}}].path}}"
 ```
 
+### JSONエスケープ修飾子
+
+`{{variable:json}}` を使用すると、JSON文字列に埋め込むために値をエスケープします。改行、クォート、その他の特殊文字を適切にエスケープします。
+
+```yaml
+# :jsonなし - 内容に改行やクォートがあると壊れる
+args: '{"text": "{{content}}"}'  # 特殊文字があるとエラー
+
+# :jsonあり - どんな内容でも安全
+args: '{"text": "{{content:json}}"}'  # OK - 適切にエスケープ
+```
+
+これは、ファイル内容やユーザー入力を `mcp` や `http` ノードのJSONボディに渡す際に必須です。
+
 ## スマート入力ノード
 
 `prompt-selection` と `prompt-file` ノードは実行コンテキストを自動検出：

@@ -891,6 +891,20 @@ content: "{{items[0].name}}"
 path: "{{parsed.notes[{{counter}}].path}}"
 ```
 
+### JSON 이스케이프 수정자
+
+`{{variable:json}}`을 사용하여 JSON 문자열에 삽입하기 위해 값을 이스케이프합니다. 이것은 줄바꿈, 따옴표 및 기타 특수 문자를 올바르게 이스케이프합니다.
+
+```yaml
+# :json 없이 - 내용에 줄바꿈/따옴표가 있으면 실패
+args: '{"text": "{{content}}"}'  # 특수 문자가 있으면 오류
+
+# :json 사용 - 모든 내용에 안전
+args: '{"text": "{{content:json}}"}'  # OK - 올바르게 이스케이프됨
+```
+
+이것은 파일 내용이나 사용자 입력을 JSON 본문이 있는 `mcp` 또는 `http` 노드에 전달할 때 필수적입니다.
+
 ## 스마트 입력 노드
 
 `prompt-selection` 및 `prompt-file` 노드는 실행 컨텍스트를 자동으로 감지합니다:

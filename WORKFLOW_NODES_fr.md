@@ -891,6 +891,20 @@ content: "{{items[0].name}}"
 path: "{{parsed.notes[{{counter}}].path}}"
 ```
 
+### Modificateur d'Echappement JSON
+
+Utilisez `{{variable:json}}` pour echapper la valeur pour l'integration dans des chaines JSON. Cela echappe correctement les sauts de ligne, les guillemets et autres caracteres speciaux.
+
+```yaml
+# Sans :json - echoue si le contenu contient des sauts de ligne/guillemets
+args: '{"text": "{{content}}"}'  # ERREUR si le contenu a des caracteres speciaux
+
+# Avec :json - sur pour tout contenu
+args: '{"text": "{{content:json}}"}'  # OK - correctement echappe
+```
+
+Ceci est essentiel lors du passage de contenu de fichier ou d'entree utilisateur aux noeuds `mcp` ou `http` avec des corps JSON.
+
 ## Noeuds de Saisie Intelligents
 
 Les noeuds `prompt-selection` et `prompt-file` detectent automatiquement le contexte d'execution :

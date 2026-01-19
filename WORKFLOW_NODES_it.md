@@ -891,6 +891,20 @@ content: "{{items[0].name}}"
 path: "{{parsed.notes[{{counter}}].path}}"
 ```
 
+### Modificatore di Escape JSON
+
+Usa `{{variable:json}}` per effettuare l'escape del valore per l'incorporamento in stringhe JSON. Questo effettua correttamente l'escape di newline, virgolette e altri caratteri speciali.
+
+```yaml
+# Senza :json - fallisce se il contenuto ha newline/virgolette
+args: '{"text": "{{content}}"}'  # ERRORE se il contenuto ha caratteri speciali
+
+# Con :json - sicuro per qualsiasi contenuto
+args: '{"text": "{{content:json}}"}'  # OK - correttamente escapato
+```
+
+Questo è essenziale quando si passa il contenuto del file o l'input dell'utente a nodi `mcp` o `http` con corpi JSON.
+
 ## Nodi di Input Intelligenti
 
 I nodi `prompt-selection` e `prompt-file` rilevano automaticamente il contesto di esecuzione:

@@ -233,12 +233,13 @@ export class McpClient {
       arguments: args || {},
     }) as McpToolCallResult;
 
-    // Extract text content from the result
-    const textContents = result.content
+    // Extract text content from the result (handle missing content)
+    const content = result?.content || [];
+    const textContents = content
       .filter(c => c.type === "text" && c.text)
       .map(c => c.text!);
 
-    if (result.isError) {
+    if (result?.isError) {
       throw new Error(`Tool execution failed: ${textContents.join("\n")}`);
     }
 

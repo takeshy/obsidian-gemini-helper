@@ -66,6 +66,12 @@ function getNestedValue(data: unknown, path: string, context?: ExecutionContext)
 }
 
 // Replace {{variable}} or {{variable.path.to.value}} placeholders with actual values
+// JSON-escape a string value (for embedding in JSON strings)
+function jsonEscapeString(value: string): string {
+  // Use JSON.stringify and remove the surrounding quotes
+  return JSON.stringify(value).slice(1, -1);
+}
+
 export function replaceVariables(
   template: string,
   context: ExecutionContext
@@ -81,7 +87,9 @@ export function replaceVariables(
     iterations++;
 
     // Match {{varName}} or {{varName.path.to.value}} or {{varName.items[0].name}}
-    result = result.replace(/\{\{([\w.[\]]+)\}\}/g, (match, fullPath) => {
+    // Also supports {{varName:json}} modifier for JSON-escaping the value
+    result = result.replace(/\{\{([\w.[\]]+)(:json)?\}\}/g, (match, fullPath, jsonModifier) => {
+    const shouldJsonEscape = jsonModifier === ":json";
     // Check if it's a simple variable or a path
     const dotIndex = fullPath.indexOf(".");
     const bracketIndex = fullPath.indexOf("[");
@@ -94,7 +102,8 @@ export function replaceVariables(
       // Simple variable name
       const value = context.variables.get(fullPath);
       if (value !== undefined) {
-        return String(value);
+        const strValue = String(value);
+        return shouldJsonEscape ? jsonEscapeString(strValue) : strValue;
       }
       return match;
     }
@@ -170,12 +179,15 @@ export function replaceVariables(
           }
         }
         if (result !== undefined) {
+          let strResult: string;
           if (typeof result === "object") {
-            return JSON.stringify(result);
+            strResult = JSON.stringify(result);
           } else if (typeof result === "string" || typeof result === "number" || typeof result === "boolean") {
-            return String(result);
+            strResult = String(result);
+          } else {
+            strResult = JSON.stringify(result);
           }
-          return JSON.stringify(result);
+          return shouldJsonEscape ? jsonEscapeString(strResult) : strResult;
         }
       }
       return match;
@@ -183,12 +195,15 @@ export function replaceVariables(
 
     const nestedValue = getNestedValue(parsedValue, restPath, context);
     if (nestedValue !== undefined) {
+      let strResult: string;
       if (typeof nestedValue === "object") {
-        return JSON.stringify(nestedValue);
+        strResult = JSON.stringify(nestedValue);
       } else if (typeof nestedValue === "string" || typeof nestedValue === "number" || typeof nestedValue === "boolean") {
-        return String(nestedValue);
+        strResult = String(nestedValue);
+      } else {
+        strResult = JSON.stringify(nestedValue);
       }
-      return JSON.stringify(nestedValue);
+      return shouldJsonEscape ? jsonEscapeString(strResult) : strResult;
     }
 
     return match;

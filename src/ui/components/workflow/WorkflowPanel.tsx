@@ -350,6 +350,17 @@ export default function WorkflowPanel({ plugin }: WorkflowPanelProps) {
     setWorkflowOptions(options);
 
     const indexToLoad = currentWorkflowIndex < options.length ? currentWorkflowIndex : 0;
+    const selectedOption = options[indexToLoad];
+
+    // Check for YAML parse error first
+    if (selectedOption?.parseError) {
+      setLoadError(selectedOption.parseError);
+      setNodes([]);
+      setWorkflowName(selectedOption.name || null);
+      setCurrentWorkflowIndex(indexToLoad);
+      return;
+    }
+
     const result = loadFromCodeBlock(content, undefined, indexToLoad);
     if (result.error) {
       setLoadError(result.error);
@@ -504,16 +515,25 @@ ${result.nodes.map(node => {
     if (Number.isNaN(index) || !workflowFile) return;
 
     setCurrentWorkflowIndex(index);
-    const content = await plugin.app.vault.read(workflowFile);
-    const result = loadFromCodeBlock(content, undefined, index);
-    if (result.error) {
-      setLoadError(result.error);
+
+    // Check for YAML parse error first
+    const selectedOpt = workflowOptions[index];
+    if (selectedOpt?.parseError) {
+      setLoadError(selectedOpt.parseError);
       setNodes([]);
-      setWorkflowName(null);
-    } else if (result.data) {
-      setLoadError(null);
-      setNodes(result.data.nodes);
-      setWorkflowName(result.data.name || null);
+      setWorkflowName(selectedOpt.name || null);
+    } else {
+      const content = await plugin.app.vault.read(workflowFile);
+      const result = loadFromCodeBlock(content, undefined, index);
+      if (result.error) {
+        setLoadError(result.error);
+        setNodes([]);
+        setWorkflowName(null);
+      } else if (result.data) {
+        setLoadError(null);
+        setNodes(result.data.nodes);
+        setWorkflowName(result.data.name || null);
+      }
     }
 
     // Move cursor to the selected workflow's position

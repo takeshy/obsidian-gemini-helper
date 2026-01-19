@@ -8,6 +8,7 @@ export interface WorkflowCodeBlock {
   start: number;
   end: number;
   raw: string;
+  parseError?: string; // YAML parse error message if parsing failed
 }
 
 // Match workflow code blocks - end marker must be at start of line
@@ -22,7 +23,17 @@ export function findWorkflowBlocks(content: string): WorkflowCodeBlock[] {
   while ((match = BLOCK_REGEX.exec(content))) {
     const raw = match[0];
     const yamlText = match[1];
-    const parsed = (parseYaml(yamlText) as Record<string, unknown>) || {};
+
+    let parsed: Record<string, unknown> = {};
+    let parseError: string | undefined;
+
+    try {
+      parsed = (parseYaml(yamlText) as Record<string, unknown>) || {};
+    } catch (e) {
+      // Store parse error but still include the block
+      parseError = e instanceof Error ? e.message : String(e);
+    }
+
     const name = typeof parsed.name === "string" ? parsed.name : undefined;
 
     blocks.push({
@@ -31,6 +42,7 @@ export function findWorkflowBlocks(content: string): WorkflowCodeBlock[] {
       start: match.index,
       end: match.index + raw.length,
       raw,
+      parseError,
     });
   }
 
@@ -109,6 +121,7 @@ export interface WorkflowOption {
   endLine: number;    // 0-based line number
   startOffset: number;
   endOffset: number;
+  parseError?: string; // YAML parse error if present
 }
 
 // Convert character offset to line number (0-based)
@@ -132,13 +145,14 @@ export function listWorkflowOptions(content: string): WorkflowOption[] {
       block.name ||
       (typeof workflowObj?.name === "string" ? workflowObj.name : undefined);
     return {
-      label: name || `unnamed #${index + 1}`,
+      label: block.parseError ? `⚠ ${name || `unnamed #${index + 1}`}` : (name || `unnamed #${index + 1}`),
       name,
       index,
       startLine: offsetToLine(content, block.start),
       endLine: offsetToLine(content, block.end),
       startOffset: block.start,
       endOffset: block.end,
+      parseError: block.parseError,
     };
   });
 }

@@ -893,6 +893,20 @@ content: "{{items[0].name}}"
 path: "{{parsed.notes[{{counter}}].path}}"
 ```
 
+### JSON Escape Modifier
+
+Use `{{variable:json}}` to escape the value for embedding in JSON strings. This properly escapes newlines, quotes, and other special characters.
+
+```yaml
+# Without :json - breaks if content has newlines/quotes
+args: '{"text": "{{content}}"}'  # ERROR if content has special chars
+
+# With :json - safe for any content
+args: '{"text": "{{content:json}}"}'  # OK - properly escaped
+```
+
+This is essential when passing file content or user input to `mcp` or `http` nodes with JSON bodies.
+
 ## Smart Input Nodes
 
 `prompt-selection` and `prompt-file` nodes automatically detect execution context:

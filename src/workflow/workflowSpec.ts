@@ -30,7 +30,7 @@ Initialize a new variable.
 
 ### 2. set
 Update an existing variable with expression support.
-- **name** (required): Variable name
+- **name** (required): Variable name (use "_clipboard" to copy value to system clipboard)
 - **value** (required): New value or expression (e.g., "{{counter}} + 1")
 
 ### 3. if
@@ -48,7 +48,7 @@ Loop while condition is true.
 ### 5. command
 Execute LLM prompt.
 - **prompt** (required): Prompt template (supports {{variables}})
-- **model** (optional): Model override (gemini-3-flash-preview, gemini-3-pro-image-preview, etc.)
+- **model** (optional): Model override (gemini-3-flash-preview, gemini-3-pro-image-preview, gemini-cli, claude-cli, codex-cli, etc.)
 - **ragSetting** (optional): Search setting (__websearch__, __none__, or setting name)
 - **attachments** (optional): Comma-separated variable names containing FileExplorerData (from file-explorer node)
 - **saveTo** (optional): Variable name to store text response
@@ -108,6 +108,7 @@ Write/create note.
 - **content** (required): Content to write (supports {{variables}})
 - **mode** (optional): overwrite, append, create (default: overwrite)
 - **confirm** (optional): "true"/"false" for confirmation dialog (default: "true")
+- **history** (optional): "true"/"false" to record edit history (default: "true")
 
 ### 9. note-read
 Read note content.
@@ -342,6 +343,16 @@ Execute an Obsidian command by its ID.
 - **path** (optional): File path to open before executing the command. The file is opened, the command is executed, and the tab is closed automatically. (supports {{variables}})
 - **saveTo** (optional): Variable name to store execution result
 
+**Output format** (when saveTo is set):
+\`\`\`json
+{
+  "commandId": "editor:toggle-fold",
+  "path": "notes/example.md",
+  "executed": true,
+  "timestamp": 1704067200000
+}
+\`\`\`
+
 **Example**:
 \`\`\`yaml
 - id: toggle-fold
@@ -481,6 +492,13 @@ Use a variable as array index for loops:
 ### Expression Support (in set node)
 - Arithmetic: \`{{a}} + {{b}}\`, \`{{count}} * 2\`
 - Operators: +, -, *, /, %
+
+### JSON Escape Modifier
+Use \`{{variable:json}}\` to escape values for embedding in JSON strings:
+\`\`\`yaml
+# Safe for content with newlines, quotes, etc.
+args: '{"text": "{{content:json}}"}'
+\`\`\`
 
 ## Condition Syntax
 Supported operators: ==, !=, <, >, <=, >=, contains

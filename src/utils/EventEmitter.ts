@@ -5,6 +5,7 @@ export interface EventMap {
   "rag-setting-changed": [name: string | null];
   "chat-activated": [];
   "file-restored": [path: string];
+  "execution-history-saved": [workflowPath: string];
 }
 
 type EventName = keyof EventMap;

@@ -12,6 +12,7 @@ import {
 } from "../core/crypto";
 import { cryptoCache } from "../core/cryptoCache";
 import { formatError } from "../utils/error";
+import { globalEventEmitter } from "../utils/EventEmitter";
 
 export interface EncryptionConfig {
   enabled: boolean;
@@ -130,6 +131,9 @@ export class ExecutionHistoryManager {
     } else {
       await this.app.vault.create(filePath, content);
     }
+
+    // Emit event to notify UI components
+    globalEventEmitter.emit("execution-history-saved", record.workflowPath);
   }
 
   /**

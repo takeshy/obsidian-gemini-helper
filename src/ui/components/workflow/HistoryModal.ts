@@ -5,6 +5,7 @@ import { openHistoryCanvas } from "src/workflow/historyCanvas";
 import { cryptoCache } from "src/core/cryptoCache";
 import { decryptPrivateKey } from "src/core/crypto";
 import { t } from "src/i18n";
+import { globalEventEmitter } from "src/utils/EventEmitter";
 
 export class HistoryModal extends Modal {
   private workflowPath: string;
@@ -15,6 +16,7 @@ export class HistoryModal extends Modal {
   private selectedRecordEncrypted: boolean = false;
   private listEl: HTMLElement | null = null;
   private detailEl: HTMLElement | null = null;
+  private historySavedHandler: ((path: string) => void) | null = null;
 
   constructor(app: App, workflowPath: string, workspaceFolder: string, encryptionConfig?: EncryptionConfig) {
     super(app);
@@ -34,6 +36,14 @@ export class HistoryModal extends Modal {
     dragHandle.createEl("h2", { text: t("workflowModal.executionHistory") });
     this.setupDragHandle(dragHandle, modalEl);
 
+    // Listen for history saved events to refresh the list
+    this.historySavedHandler = (path: string) => {
+      if (path === this.workflowPath) {
+        void this.refreshHistory();
+      }
+    };
+    globalEventEmitter.on("execution-history-saved", this.historySavedHandler);
+
     // Check if encryption is enabled but password not cached
     const needsPassword = this.encryptionConfig?.enabled && !cryptoCache.hasPassword();
 
@@ -46,6 +56,11 @@ export class HistoryModal extends Modal {
     await this.loadHistory();
     this.renderList();
     this.renderDetail();
+  }
+
+  private async refreshHistory(): Promise<void> {
+    await this.loadHistory();
+    this.renderList();
   }
 
   private renderPasswordPrompt(contentEl: HTMLElement): void {
@@ -340,5 +355,11 @@ export class HistoryModal extends Modal {
   onClose(): void {
     const { contentEl } = this;
     contentEl.empty();
+
+    // Clean up event listener
+    if (this.historySavedHandler) {
+      globalEventEmitter.off("execution-history-saved", this.historySavedHandler);
+      this.historySavedHandler = null;
+    }
   }
 }

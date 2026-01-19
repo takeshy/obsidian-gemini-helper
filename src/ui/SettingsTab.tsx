@@ -11,6 +11,7 @@ import {
 import type { GeminiHelperPlugin } from "src/plugin";
 import { getFileSearchManager } from "src/core/fileSearch";
 import { verifyCli, verifyClaudeCli, verifyCodexCli } from "src/core/cliProvider";
+import { McpClient } from "src/core/mcpClient";
 import { formatError } from "src/utils/error";
 import { t } from "src/i18n";
 import {
@@ -25,6 +26,7 @@ import {
   type ModelInfo,
   type SlashCommand,
   type ModelType,
+  type McpServerConfig,
 } from "src/types";
 import { getEditHistoryManager } from "src/core/editHistory";
 import { Platform } from "obsidian";
@@ -329,6 +331,178 @@ class SlashCommandModal extends Modal {
             this.close();
           })
       );
+  }
+
+  onClose() {
+    this.contentEl.empty();
+  }
+}
+
+// Modal for creating/editing MCP servers
+class McpServerModal extends Modal {
+  private server: McpServerConfig;
+  private isNew: boolean;
+  private onSubmit: (server: McpServerConfig) => void | Promise<void>;
+  private headersText = "";
+
+  constructor(
+    app: App,
+    server: McpServerConfig | null,
+    onSubmit: (server: McpServerConfig) => void | Promise<void>
+  ) {
+    super(app);
+    this.isNew = server === null;
+    this.server = server
+      ? { ...server }
+      : {
+          name: "",
+          url: "",
+          headers: undefined,
+        };
+    this.headersText = this.server.headers ? JSON.stringify(this.server.headers, null, 2) : "";
+    this.onSubmit = onSubmit;
+  }
+
+  onOpen() {
+    const { contentEl } = this;
+    contentEl.createEl("h2", {
+      text: this.isNew ? t("settings.createMcpServer") : t("settings.editMcpServer"),
+    });
+
+    // Server name
+    new Setting(contentEl)
+      .setName(t("settings.mcpServerName"))
+      .addText((text) => {
+        text
+          .setPlaceholder(t("settings.mcpServerName.placeholder"))
+          .setValue(this.server.name)
+          .onChange((value) => {
+            this.server.name = value;
+          });
+        text.inputEl.addEventListener("keydown", (e) => {
+          if (e.key === "Enter") {
+            e.preventDefault();
+          }
+        });
+      });
+
+    // Server URL
+    new Setting(contentEl)
+      .setName(t("settings.mcpServerUrl"))
+      .addText((text) => {
+        text
+          .setPlaceholder(t("settings.mcpServerUrl.placeholder"))
+          .setValue(this.server.url)
+          .onChange((value) => {
+            this.server.url = value;
+          });
+      });
+
+    // Headers (JSON)
+    const headersSetting = new Setting(contentEl)
+      .setName(t("settings.mcpServerHeaders"))
+      .setDesc(t("settings.mcpServerHeaders.desc"));
+
+    headersSetting.settingEl.addClass("gemini-helper-settings-textarea-container");
+
+    headersSetting.addTextArea((text) => {
+      text
+        .setPlaceholder(t("settings.mcpServerHeaders.placeholder"))
+        .setValue(this.headersText)
+        .onChange((value) => {
+          this.headersText = value;
+        });
+      text.inputEl.rows = 3;
+      text.inputEl.addClass("gemini-helper-settings-textarea");
+    });
+
+    // Test connection button
+    const testSetting = new Setting(contentEl);
+    const testStatusEl = testSetting.controlEl.createDiv({ cls: "gemini-helper-mcp-test-status" });
+
+    testSetting.addButton((btn) =>
+      btn
+        .setButtonText(t("settings.testMcpConnection"))
+        .onClick(() => {
+          void this.testConnection(testStatusEl, btn.buttonEl);
+        })
+    );
+
+    // Action buttons
+    new Setting(contentEl)
+      .addButton((btn) =>
+        btn.setButtonText(t("common.cancel")).onClick(() => this.close())
+      )
+      .addButton((btn) =>
+        btn
+          .setButtonText(this.isNew ? t("common.create") : t("common.save"))
+          .setCta()
+          .onClick(() => {
+            if (!this.server.name.trim()) {
+              new Notice(t("settings.mcpServerNameRequired"));
+              return;
+            }
+            if (!this.server.url.trim()) {
+              new Notice(t("settings.mcpServerUrlRequired"));
+              return;
+            }
+
+            // Parse headers
+            if (this.headersText.trim()) {
+              try {
+                this.server.headers = JSON.parse(this.headersText);
+              } catch {
+                new Notice(t("settings.mcpServerInvalidHeaders"));
+                return;
+              }
+            } else {
+              this.server.headers = undefined;
+            }
+
+            void this.onSubmit(this.server);
+            this.close();
+          })
+      );
+  }
+
+  private async testConnection(statusEl: HTMLElement, btnEl: HTMLButtonElement): Promise<void> {
+    statusEl.empty();
+    statusEl.removeClass("gemini-helper-mcp-status--success", "gemini-helper-mcp-status--error");
+    statusEl.setText("Testing...");
+    btnEl.disabled = true;
+
+    try {
+      // Parse headers for test
+      let headers: Record<string, string> | undefined;
+      if (this.headersText.trim()) {
+        try {
+          headers = JSON.parse(this.headersText);
+        } catch {
+          statusEl.addClass("gemini-helper-mcp-status--error");
+          statusEl.setText(t("settings.mcpServerInvalidHeaders"));
+          btnEl.disabled = false;
+          return;
+        }
+      }
+
+      const client = new McpClient({
+        name: this.server.name || "test",
+        url: this.server.url,
+        headers,
+      });
+
+      await client.initialize();
+      const tools = await client.listTools();
+      await client.close();
+
+      statusEl.addClass("gemini-helper-mcp-status--success");
+      statusEl.setText(t("settings.mcpConnectionSuccess", { count: String(tools.length) }));
+    } catch (error) {
+      statusEl.addClass("gemini-helper-mcp-status--error");
+      statusEl.setText(t("settings.mcpConnectionFailed", { error: formatError(error) }));
+    } finally {
+      btnEl.disabled = false;
+    }
   }
 
   onClose() {
@@ -694,6 +868,10 @@ export class SettingsTab extends PluginSettingTab {
     if (allowRag) {
       this.displayRagSettings(containerEl);
     }
+
+    // MCP servers settings
+    new Setting(containerEl).setName(t("settings.mcpServers")).setHeading();
+    this.displayMcpServersSettings(containerEl);
   }
 
   private displayApiSettings(containerEl: HTMLElement, apiPlan: ApiPlan): void {
@@ -1775,6 +1953,85 @@ export class SettingsTab extends PluginSettingTab {
               })();
             })
         );
+    }
+  }
+
+  private displayMcpServersSettings(containerEl: HTMLElement): void {
+    // Introduction
+    const introEl = containerEl.createDiv({ cls: "setting-item-description gemini-helper-mcp-intro" });
+    introEl.textContent = t("settings.mcpServersIntro");
+
+    // Add new server button
+    new Setting(containerEl)
+      .setName(t("settings.mcpServers.desc"))
+      .addButton((btn) =>
+        btn
+          .setButtonText(t("settings.addMcpServer"))
+          .setCta()
+          .onClick(() => {
+            new McpServerModal(
+              this.app,
+              null,
+              async (server) => {
+                this.plugin.settings.mcpServers.push(server);
+                await this.plugin.saveSettings();
+                this.display();
+                new Notice(t("settings.mcpServerCreated", { name: server.name }));
+              }
+            ).open();
+          })
+      );
+
+    // List existing servers
+    const servers = this.plugin.settings.mcpServers;
+    if (servers.length === 0) {
+      const emptyEl = containerEl.createDiv({ cls: "setting-item-description gemini-helper-mcp-empty" });
+      emptyEl.textContent = t("settings.mcpNoServers");
+    } else {
+      for (const server of servers) {
+        const serverSetting = new Setting(containerEl)
+          .setName(server.name)
+          .setDesc(server.url);
+
+        // Edit button
+        serverSetting.addExtraButton((btn) => {
+          btn
+            .setIcon("pencil")
+            .setTooltip(t("common.edit"))
+            .onClick(() => {
+              new McpServerModal(
+                this.app,
+                server,
+                async (updated) => {
+                  const index = this.plugin.settings.mcpServers.findIndex(
+                    (s) => s.name === server.name && s.url === server.url
+                  );
+                  if (index >= 0) {
+                    this.plugin.settings.mcpServers[index] = updated;
+                    await this.plugin.saveSettings();
+                    this.display();
+                    new Notice(t("settings.mcpServerUpdated", { name: updated.name }));
+                  }
+                }
+              ).open();
+            });
+        });
+
+        // Delete button
+        serverSetting.addExtraButton((btn) => {
+          btn
+            .setIcon("trash")
+            .setTooltip(t("common.delete"))
+            .onClick(async () => {
+              this.plugin.settings.mcpServers = this.plugin.settings.mcpServers.filter(
+                (s) => !(s.name === server.name && s.url === server.url)
+              );
+              await this.plugin.saveSettings();
+              this.display();
+              new Notice(t("settings.mcpServerDeleted", { name: server.name }));
+            });
+        });
+      }
     }
   }
 

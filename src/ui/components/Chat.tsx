@@ -29,6 +29,7 @@ import {
 } from "src/types";
 import { getGeminiClient } from "src/core/gemini";
 import { getEnabledTools } from "src/core/tools";
+import { fetchMcpTools, createMcpToolExecutor, isMcpTool, type McpToolDefinition } from "src/core/mcpTools";
 import { GeminiCliProvider, ClaudeCliProvider, CodexCliProvider } from "src/core/cliProvider";
 import { createToolExecutor } from "src/vault/toolExecutor";
 import {
@@ -1190,13 +1191,26 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 			const runStreamOnce = async () => {
 				const { settings } = plugin;
 				const toolsEnabled = supportsFunctionCalling && !isImageGenerationModel(allowedModel);
-				const allTools = toolsEnabled ? getEnabledTools({
+				const obsidianTools = toolsEnabled ? getEnabledTools({
 					allowWrite: true,
 					allowDelete: true,
 					ragEnabled: allowRag,
 				}) : [];
 
-				// Filter tools based on vaultToolMode
+				// Fetch MCP tools from configured servers
+				const mcpTools: McpToolDefinition[] = toolsEnabled && settings.mcpServers.length > 0
+					? await fetchMcpTools(settings.mcpServers)
+					: [];
+
+				// Create MCP tool executor
+				const mcpToolExecutor = mcpTools.length > 0
+					? createMcpToolExecutor(mcpTools)
+					: undefined;
+
+				// Merge Obsidian tools and MCP tools
+				const allTools = [...obsidianTools, ...mcpTools];
+
+				// Filter Obsidian tools based on vaultToolMode (MCP tools are not affected)
 				const vaultToolNames = [
 					"read_note", "create_note", "propose_edit", "propose_delete",
 					"rename_note", "search_notes", "list_notes", "list_folders",
@@ -1204,6 +1218,11 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 				];
 				const searchToolNames = ["search_notes", "list_notes"];
 				const tools = allTools.filter(tool => {
+					// MCP tools are always included
+					if (isMcpTool(tool)) {
+						return true;
+					}
+					// Filter Obsidian tools based on mode
 					if (vaultToolMode === "none") {
 						return !vaultToolNames.includes(tool.name);
 					}
@@ -1213,8 +1232,8 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 					return true; // "all" mode - keep all tools
 				});
 
-				// Create context for RAG tools
-				const baseToolExecutor = toolsEnabled
+				// Create context for RAG tools (Obsidian tools only)
+				const obsidianToolExecutor = toolsEnabled
 					? createToolExecutor(plugin.app, {
 						ragSyncState: { files: plugin.ragState.files, lastFullSync: plugin.ragState.lastFullSync },
 						ragFilterConfig: {
@@ -1229,6 +1248,21 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 				// Track processed edits/deletes for message display
 				const processedEdits: PendingEditInfo[] = [];
 				const processedDeletes: PendingDeleteInfo[] = [];
+
+				// Combined tool executor that routes to Obsidian or MCP executor based on tool name
+				const baseToolExecutor = (obsidianToolExecutor || mcpToolExecutor)
+					? async (name: string, args: Record<string, unknown>) => {
+						// MCP tools start with "mcp_"
+						if (name.startsWith("mcp_") && mcpToolExecutor) {
+							return await mcpToolExecutor(name, args);
+						}
+						// Otherwise use Obsidian tool executor
+						if (obsidianToolExecutor) {
+							return await obsidianToolExecutor(name, args);
+						}
+						return { error: `Unknown tool: ${name}` };
+					}
+					: undefined;
 
 				// Wrap tool executor to handle propose_edit/propose_delete with immediate confirmation
 				const toolExecutor = baseToolExecutor

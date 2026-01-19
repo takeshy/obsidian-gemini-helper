@@ -616,6 +616,31 @@ export const en = {
   "crypt.preview": "Preview",
   "crypt.save": "Save",
   "crypt.editorPlaceholder": "Enter content...",
+
+  // MCP Server Settings
+  "settings.mcpServers": "Mcp servers",
+  "settings.mcpServers.desc": "Configure external mcp (model context protocol) servers for additional tools in chat",
+  "settings.mcpServersIntro": "Mcp servers provide additional tools that can be used during chat. Add servers to enable their tools.",
+  "settings.addMcpServer": "Add server",
+  "settings.mcpServerName": "Server name",
+  "settings.mcpServerName.placeholder": "My mcp server",
+  "settings.mcpServerUrl": "Server URL",
+  "settings.mcpServerUrl.placeholder": "https://example.com/mcp",
+  "settings.mcpServerHeaders": "Headers (JSON)",
+  "settings.mcpServerHeaders.placeholder": "{\"Authorization\": \"Bearer xxx\"}",
+  "settings.mcpServerHeaders.desc": "Optional headers for authentication (JSON format)",
+  "settings.editMcpServer": "Edit mcp server",
+  "settings.createMcpServer": "Add mcp server",
+  "settings.mcpServerCreated": "Mcp server \"{{name}}\" added",
+  "settings.mcpServerUpdated": "Mcp server \"{{name}}\" updated",
+  "settings.mcpServerDeleted": "Mcp server \"{{name}}\" deleted",
+  "settings.mcpServerNameRequired": "Server name is required",
+  "settings.mcpServerUrlRequired": "Server URL is required",
+  "settings.mcpServerInvalidHeaders": "Invalid JSON for headers",
+  "settings.testMcpConnection": "Test connection",
+  "settings.mcpConnectionSuccess": "Connection successful! {{count}} tool(s) available",
+  "settings.mcpConnectionFailed": "Connection failed: {{error}}",
+  "settings.mcpNoServers": "No mcp servers configured",
 };
 
 export type TranslationKey = keyof typeof en;

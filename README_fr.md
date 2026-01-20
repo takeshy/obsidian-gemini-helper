@@ -74,6 +74,11 @@ Référencez des fichiers et variables en tapant `@` :
 - N'importe quel fichier du coffre - Parcourez et insérez (chemin uniquement ; l'IA lit le contenu via les outils)
 
 > [!NOTE]
+> **Comment fonctionnent `{selection}` et `{content}` :** Lorsque vous passez de la vue Markdown à la vue Chat, la sélection serait normalement effacée en raison du changement de focus. Pour préserver votre sélection, le plugin la capture lors du changement de vue et met en surbrillance la zone sélectionnée avec une couleur d'arrière-plan dans la vue Markdown. L'option `{selection}` n'apparaît dans les suggestions @ que lorsqu'un texte a été sélectionné.
+>
+> `{selection}` et `{content}` ne sont intentionnellement **pas développés** dans la zone de saisie—comme la zone de saisie du chat est compacte, développer un texte long rendrait la saisie difficile. Le contenu est développé lorsque vous envoyez le message, ce que vous pouvez vérifier en consultant votre message envoyé dans le chat.
+
+> [!NOTE]
 > Les mentions @ de fichiers du coffre insèrent uniquement le chemin du fichier - l'IA lit le contenu via les outils. Cela ne fonctionne pas avec les modèles Gemma (pas de support des outils du coffre). Gemini CLI peut lire les fichiers via le shell, mais le format de réponse peut différer.
 
 ## Pièces Jointes

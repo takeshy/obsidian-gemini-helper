@@ -74,6 +74,11 @@ Referenzieren Sie Dateien und Variablen durch Eingabe von `@`:
 - Jede Vault-Datei - Durchsuchen und einfügen (nur Pfad; KI liest Inhalt über Tools)
 
 > [!NOTE]
+> **Wie `{selection}` und `{content}` funktionieren:** Wenn Sie von der Markdown-Ansicht zur Chat-Ansicht wechseln, würde die Auswahl normalerweise aufgrund des Fokuswechsels gelöscht. Um Ihre Auswahl zu bewahren, erfasst das Plugin sie beim Wechsel der Ansichten und hebt den ausgewählten Bereich mit einer Hintergrundfarbe in der Markdown-Ansicht hervor. Die Option `{selection}` erscheint nur in den @-Vorschlägen, wenn Text ausgewählt wurde.
+>
+> Sowohl `{selection}` als auch `{content}` werden absichtlich **nicht erweitert** im Eingabebereich – da das Chat-Eingabefeld kompakt ist, würde das Erweitern von langem Text die Eingabe erschweren. Der Inhalt wird beim Senden der Nachricht erweitert, was Sie überprüfen können, indem Sie Ihre gesendete Nachricht im Chat betrachten.
+
+> [!NOTE]
 > Vault-Datei-@-Erwähnungen fügen nur den Dateipfad ein - die KI liest den Inhalt über Tools. Dies funktioniert nicht mit Gemma-Modellen (keine Vault-Tool-Unterstützung). Gemini CLI kann Dateien über die Shell lesen, aber das Antwortformat kann abweichen.
 
 ## Dateianhänge

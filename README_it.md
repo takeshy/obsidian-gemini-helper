@@ -74,6 +74,11 @@ Fai riferimento a file e variabili digitando `@`:
 - Qualsiasi file del vault - Sfoglia e inserisci (solo percorso; l'AI legge il contenuto tramite strumenti)
 
 > [!NOTE]
+> **Come funzionano `{selection}` e `{content}`:** Quando passi dalla Vista Markdown alla Vista Chat, la selezione verrebbe normalmente cancellata a causa del cambio di focus. Per preservare la tua selezione, il plugin la cattura durante il cambio di vista ed evidenzia l'area selezionata con un colore di sfondo nella Vista Markdown. L'opzione `{selection}` appare nei suggerimenti @ solo quando è stato selezionato del testo.
+>
+> Sia `{selection}` che `{content}` **non vengono espansi** intenzionalmente nell'area di input—poiché l'input della chat è compatto, espandere testo lungo renderebbe difficile la digitazione. Il contenuto viene espanso quando invii il messaggio, cosa che puoi verificare controllando il tuo messaggio inviato nella chat.
+
+> [!NOTE]
 > Le menzioni @ dei file del vault inseriscono solo il percorso del file - l'AI legge il contenuto tramite strumenti. Questo non funziona con i modelli Gemma (nessun supporto per strumenti vault). Gemini CLI può leggere file via shell, ma il formato della risposta potrebbe differire.
 
 ## Allegati

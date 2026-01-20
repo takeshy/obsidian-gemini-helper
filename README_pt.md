@@ -74,6 +74,11 @@ Referencie arquivos e variáveis digitando `@`:
 - Qualquer arquivo do vault - Navegue e insira (somente caminho; a IA lê o conteúdo via ferramentas)
 
 > [!NOTE]
+> **Como `{selection}` e `{content}` funcionam:** Quando você muda da Visualização Markdown para a Visualização de Chat, a seleção normalmente seria apagada devido à mudança de foco. Para preservar sua seleção, o plugin a captura ao mudar de visualização e destaca a área selecionada com uma cor de fundo na Visualização Markdown. A opção `{selection}` só aparece nas sugestões @ quando há texto selecionado.
+>
+> Tanto `{selection}` quanto `{content}` **não são expandidos** intencionalmente na área de entrada—como a entrada do chat é compacta, expandir texto longo dificultaria a digitação. O conteúdo é expandido quando você envia a mensagem, o que pode ser verificado conferindo sua mensagem enviada no chat.
+
+> [!NOTE]
 > Menções de arquivos do vault com @ inserem apenas o caminho do arquivo - a IA lê o conteúdo via ferramentas. Isso não funciona com modelos Gemma (sem suporte a ferramentas do vault). O Gemini CLI pode ler arquivos via shell, mas o formato da resposta pode diferir.
 
 ## Anexos de Arquivos

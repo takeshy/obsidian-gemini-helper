@@ -14,7 +14,7 @@
 - **Image Generation** - Create images with Gemini image models
 - **Encryption** - Password-protect chat history and workflow execution logs
 
-![Image Generation in Chat](chat_image.png)
+![Image Generation in Chat](docs/images/chat_image.png)
 
 ## API Key / CLI Options
 
@@ -49,7 +49,7 @@ This plugin requires a Google Gemini API key or a CLI tool. You can choose betwe
 
 The AI Chat feature provides an interactive conversation interface with Google Gemini, integrated with your Obsidian vault.
 
-![Chat Interface](chat.png)
+![Chat Interface](docs/images/chat.png)
 
 ## Slash Commands
 
@@ -61,7 +61,7 @@ Create reusable prompt templates triggered by `/`:
 
 **Default:** `/infographic` - Converts content to HTML infographic
 
-![Infographic Example](chat_infographic.png)
+![Infographic Example](docs/images/chat_infographic.png)
 
 ## @ Mentions
 
@@ -139,7 +139,7 @@ Track and restore changes made to your notes:
   - **Snapshot** - Save current state as a snapshot
   - **History** - Open edit history modal
 
-![File Menu](snap_history.png)
+![File Menu](docs/images/snap_history.png)
 
 - **Command palette** - Also available via "Show edit history" command
 - **Diff view** - See exactly what changed with color-coded additions/deletions
@@ -174,7 +174,7 @@ Edit history uses a snapshot-based approach:
 - Configure context lines for diffs
 - Set retention limits (max entries per file, max age)
 
-![Edit History Modal](edit_history.png)
+![Edit History Modal](docs/images/edit_history.png)
 
 ## RAG
 
@@ -187,7 +187,31 @@ Retrieval-Augmented Generation for intelligent vault search:
 - **Target folders** - Specify folders to include
 - **Exclude patterns** - Regex patterns to exclude files
 
-![RAG Settings](setting_rag.png)
+![RAG Settings](docs/images/setting_rag.png)
+
+## MCP Servers
+
+MCP (Model Context Protocol) servers provide additional tools that extend the AI's capabilities beyond vault operations.
+
+**Setup:**
+
+1. Open plugin settings → **MCP Servers** section
+2. Click **Add server**
+3. Enter server name and URL
+4. Configure optional headers (JSON format) for authentication
+5. Click **Test connection** to verify and retrieve available tools
+6. Save the server configuration
+
+> **Note:** Test connection is required before saving. This ensures the server is reachable and displays available tools.
+
+![MCP Server Settings](docs/images/setting_mcp.png)
+
+**Using MCP tools:**
+
+- **In Chat:** Click the Database icon (📦) to open tool settings. Enable/disable MCP servers per conversation.
+- **In Workflows:** Use the `mcp` node to call MCP server tools.
+
+**Tool hints:** After successful connection test, available tool names are saved and displayed in both settings and chat UI for easy reference.
 
 ---
 
@@ -195,7 +219,7 @@ Retrieval-Augmented Generation for intelligent vault search:
 
 Build automated multi-step workflows directly in Markdown files. **No programming knowledge required** - just describe what you want in natural language, and the AI will create the workflow for you.
 
-![Visual Workflow Editor](visual_workflow.png)
+![Visual Workflow Editor](docs/images/visual_workflow.png)
 
 ## AI-Powered Workflow Creation
 
@@ -206,7 +230,7 @@ Build automated multi-step workflows directly in Markdown files. **No programmin
 3. Describe what you want: *"Create a workflow that summarizes the selected note and saves it to a summaries folder"*
 4. Click **Generate** - the AI creates the complete workflow
 
-![Create Workflow with AI](create_workflow_with_ai.png)
+![Create Workflow with AI](docs/images/create_workflow_with_ai.png)
 
 **Modify existing workflows the same way:**
 1. Load any workflow
@@ -214,7 +238,7 @@ Build automated multi-step workflows directly in Markdown files. **No programmin
 3. Describe changes: *"Add a step to translate the summary to Japanese"*
 4. Review and apply
 
-![AI Workflow Modification](modify_workflow_with_ai.png)
+![AI Workflow Modification](docs/images/modify_workflow_with_ai.png)
 
 ## Quick Start (Manual)
 
@@ -260,7 +284,7 @@ Open the **Workflow** tab in the Gemini sidebar to run it.
 | RAG | `rag-sync` |
 | External | `mcp`, `obsidian-command` |
 
-> **For detailed node specifications and examples, see [WORKFLOW_NODES.md](WORKFLOW_NODES.md)**
+> **For detailed node specifications and examples, see [WORKFLOW_NODES.md](docs/WORKFLOW_NODES.md)**
 
 ## Hotkey Mode
 
@@ -280,7 +304,7 @@ When triggered by hotkey:
 
 Workflows can be automatically triggered by Obsidian events:
 
-![Event Trigger Settings](event_setting.png)
+![Event Trigger Settings](docs/images/event_setting.png)
 
 | Event | Description |
 |-------|-------------|
@@ -367,7 +391,7 @@ npm run build
 2. Enter in plugin settings
 3. Select API plan (Free/Paid)
 
-![Basic Settings](setting_basic.png)
+![Basic Settings](docs/images/setting_basic.png)
 
 ### CLI Mode (Gemini / Claude / Codex)
 
@@ -394,7 +418,7 @@ npm run build
 - **Tool Limits** - Control function call limits
 - **Edit History** - Track and restore AI-made changes
 
-![Tool Limits & Edit History](setting_tool_history.png)
+![Tool Limits & Edit History](docs/images/setting_tool_history.png)
 
 ### Encryption
 
@@ -404,13 +428,13 @@ Password-protect your chat history and workflow execution logs separately.
 
 1. Set a password in plugin settings (stored securely using public-key cryptography)
 
-![Initial Encryption Setup](setting_initial_encryption.png)
+![Initial Encryption Setup](docs/images/setting_initial_encryption.png)
 
 2. After setup, toggle encryption for each log type:
    - **Encrypt AI chat history** - Encrypt chat conversation files
    - **Encrypt workflow execution logs** - Encrypt workflow history files
 
-![Encryption Settings](setting_encryption.png)
+![Encryption Settings](docs/images/setting_encryption.png)
 
 Each setting can be enabled/disabled independently.
 
@@ -506,9 +530,9 @@ Requires: `pip install cryptography`
 
 > **Warning:** If you forget your password, encrypted files cannot be recovered. Keep your password safe.
 
-> **Tip:** To encrypt all files in a directory at once, use a workflow. See the "Encrypt all files in a directory" example in [WORKFLOW_NODES.md](WORKFLOW_NODES.md#obsidian-command).
+> **Tip:** To encrypt all files in a directory at once, use a workflow. See the "Encrypt all files in a directory" example in [WORKFLOW_NODES.md](docs/WORKFLOW_NODES.md#obsidian-command).
 
-![File Encryption Workflow](enc.png)
+![File Encryption Workflow](docs/images/enc.png)
 
 **Security benefits:**
 - **Protected from AI chat** - Encrypted files cannot be read by AI vault operations (`read_note` tool). This keeps sensitive data like API keys safe from accidental exposure during chat.
@@ -519,7 +543,7 @@ Requires: `pip install cryptography`
 - Define custom prompt templates triggered by `/`
 - Optional model and search override per command
 
-![Slash Commands](setting_slash_command.png)
+![Slash Commands](docs/images/setting_slash_command.png)
 
 ## Usage
 
@@ -553,11 +577,11 @@ Use the command "Gemini Helper: Run Workflow" to browse and execute workflows fr
 3. Preview the workflow content and AI generation history
 4. Select a workflow and click **Run** to execute
 
-![Run Workflow Modal](workflow_list.png)
+![Run Workflow Modal](docs/images/workflow_list.png)
 
 This is useful for quickly running workflows without navigating to the workflow file first.
 
-![Workflow History](workflow_history.png)
+![Workflow History](docs/images/workflow_history.png)
 
 **Visualize as Flowchart:** Click the **Canvas** button (grid icon) in the Workflow panel to export your workflow as an Obsidian Canvas. This creates a visual flowchart where:
 - Loops and branches are clearly displayed with proper routing
@@ -566,7 +590,7 @@ This is useful for quickly running workflows without navigating to the workflow 
 - Each node shows its full configuration
 - A link to the source workflow file is included for quick navigation
 
-![Workflow to Canvas](workflow_to_canvas.png)
+![Workflow to Canvas](docs/images/workflow_to_canvas.png)
 
 This is especially helpful for understanding complex workflows with multiple branches and loops.
 
@@ -574,7 +598,7 @@ This is especially helpful for understanding complex workflows with multiple bra
 
 > **Note:** Canvas files are dynamically created in the workspace folder. Delete them manually after review if no longer needed.
 
-![History Canvas View](history_canvas.png)
+![History Canvas View](docs/images/history_canvas.png)
 
 ### AI Workflow Generation
 
@@ -617,7 +641,7 @@ Each AI-generated workflow saves a history entry above the workflow code block, 
 - Your request description
 - Referenced file contents (in collapsible sections)
 
-![Workflow AI History](workflow_ai_history.png)
+![Workflow AI History](docs/images/workflow_ai_history.png)
 
 **Modify Existing Workflow with AI:**
 1. Load an existing workflow
@@ -626,7 +650,7 @@ Each AI-generated workflow saves a history entry above the workflow code block, 
 4. Review the before/after comparison
 5. Click **Apply Changes** to update
 
-![AI Workflow Modification](modify_workflow_with_ai.png)
+![AI Workflow Modification](docs/images/modify_workflow_with_ai.png)
 
 **Execution History Reference:**
 
@@ -647,7 +671,7 @@ When regenerating a workflow (clicking "No" on the preview), all previous reques
 
 Edit workflows directly in the visual node editor with drag-and-drop interface.
 
-![Manual Workflow Editing](modify_workflow_manual.png)
+![Manual Workflow Editing](docs/images/modify_workflow_manual.png)
 
 **Reload from File:**
 - Select **Reload from file** from the dropdown to re-import workflow from the markdown file

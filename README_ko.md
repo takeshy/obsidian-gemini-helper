@@ -14,7 +14,7 @@ Google Gemini 기반의 **Chat**, **Workflow 자동화**, **RAG** 기능을 제�
 - **Image Generation** - Gemini 이미지 모델로 이미지 생성
 - **암호화** - 채팅 기록 및 워크플로우 실행 로그를 비밀번호로 보호
 
-![채팅에서 이미지 생성](chat_image.png)
+![채팅에서 이미지 생성](docs/images/chat_image.png)
 
 ## API 키 / CLI 옵션
 
@@ -49,7 +49,7 @@ Google Gemini 기반의 **Chat**, **Workflow 자동화**, **RAG** 기능을 제�
 
 AI Chat 기능은 Obsidian vault와 통합된 Google Gemini와의 대화형 인터페이스를 제공합니다.
 
-![Chat Interface](chat.png)
+![Chat Interface](docs/images/chat.png)
 
 ## 슬래시 명령어
 
@@ -61,7 +61,7 @@ AI Chat 기능은 Obsidian vault와 통합된 Google Gemini와의 대화형 인�
 
 **기본 제공:** `/infographic` - 콘텐츠를 HTML 인포그래픽으로 변환
 
-![Infographic Example](chat_infographic.png)
+![Infographic Example](docs/images/chat_infographic.png)
 
 ## @ 멘션
 
@@ -139,7 +139,7 @@ AI가 `propose_edit`을 사용할 때:
   - **Snapshot** - 현재 상태를 스냅샷으로 저장
   - **History** - 편집 히스토리 모달 열기
 
-![File Menu](snap_history.png)
+![File Menu](docs/images/snap_history.png)
 
 - **명령 팔레트** - "Show edit history" 명령어로도 사용 가능
 - **Diff 뷰** - 색상으로 구분된 추가/삭제로 정확히 무엇이 변경되었는지 확인
@@ -174,7 +174,7 @@ Edit history는 스냅샷 기반 접근 방식을 사용합니다:
 - diff의 컨텍스트 줄 수 설정
 - 보존 제한 설정 (파일당 최대 항목 수, 최대 보존 기간)
 
-![Edit History Modal](edit_history.png)
+![Edit History Modal](docs/images/edit_history.png)
 
 ## RAG
 
@@ -187,7 +187,31 @@ vault의 지능적 검색을 위한 검색 증강 생성:
 - **대상 폴더** - 포함할 폴더 지정
 - **제외 패턴** - 파일 제외를 위한 정규식 패턴
 
-![RAG Settings](setting_rag.png)
+![RAG Settings](docs/images/setting_rag.png)
+
+## MCP 서버
+
+MCP(Model Context Protocol) 서버는 Vault 작업 이외의 AI 기능을 확장하는 추가 도구를 제공합니다.
+
+**설정:**
+
+1. 플러그인 설정 → **MCP 서버** 섹션 열기
+2. **서버 추가** 클릭
+3. 서버 이름과 URL 입력
+4. 인증을 위한 선택적 헤더 구성 (JSON 형식)
+5. **연결 테스트** 클릭하여 확인하고 사용 가능한 도구 가져오기
+6. 서버 구성 저장
+
+> **참고:** 저장하기 전에 연결 테스트가 필요합니다. 이를 통해 서버에 접근할 수 있는지 확인하고 사용 가능한 도구를 표시합니다.
+
+![MCP 서버 설정](docs/images/setting_mcp.png)
+
+**MCP 도구 사용:**
+
+- **채팅에서:** 데이터베이스 아이콘(📦)을 클릭하여 도구 설정을 엽니다. 대화별로 MCP 서버를 활성화/비활성화할 수 있습니다.
+- **워크플로우에서:** `mcp` 노드를 사용하여 MCP 서버 도구를 호출합니다.
+
+**도구 힌트:** 연결 테스트 성공 후 사용 가능한 도구 이름이 저장되어 설정과 채팅 UI 모두에 표시됩니다.
 
 ---
 
@@ -195,7 +219,7 @@ vault의 지능적 검색을 위한 검색 증강 생성:
 
 Markdown 파일에서 직접 자동화된 다단계 워크플로우를 구축합니다. **프로그래밍 지식이 필요 없습니다** - 자연어로 원하는 것을 설명하면 AI가 워크플로우를 생성합니다.
 
-![Visual Workflow Editor](visual_workflow.png)
+![Visual Workflow Editor](docs/images/visual_workflow.png)
 
 ## AI 기반 워크플로우 생성
 
@@ -206,7 +230,7 @@ Markdown 파일에서 직접 자동화된 다단계 워크플로우를 구축합
 3. 원하는 것을 설명: *"선택한 노트를 요약하고 summaries 폴더에 저장하는 워크플로우 만들어줘"*
 4. **Generate** 클릭 - AI가 완전한 워크플로우 생성
 
-![Create Workflow with AI](create_workflow_with_ai.png)
+![Create Workflow with AI](docs/images/create_workflow_with_ai.png)
 
 **기존 워크플로우도 같은 방식으로 수정:**
 1. 아무 워크플로우나 로드
@@ -214,7 +238,7 @@ Markdown 파일에서 직접 자동화된 다단계 워크플로우를 구축합
 3. 변경 사항 설명: *"요약을 일본어로 번역하는 단계 추가해줘"*
 4. 검토 후 적용
 
-![AI Workflow Modification](modify_workflow_with_ai.png)
+![AI Workflow Modification](docs/images/modify_workflow_with_ai.png)
 
 ## 빠른 시작 (수동)
 
@@ -260,7 +284,7 @@ Gemini 사이드바에서 **Workflow** 탭을 열어 실행하세요.
 | RAG | `rag-sync` |
 | 외부 | `mcp`, `obsidian-command` |
 
-> **자세한 노드 사양과 예제는 [WORKFLOW_NODES.md](WORKFLOW_NODES_ko.md)를 참조하세요**
+> **자세한 노드 사양과 예제는 [WORKFLOW_NODES.md](docs/WORKFLOW_NODES_ko.md)를 참조하세요**
 
 ## 단축키 모드
 
@@ -280,7 +304,7 @@ Gemini 사이드바에서 **Workflow** 탭을 열어 실행하세요.
 
 Obsidian 이벤트에 의해 워크플로우가 자동으로 트리거될 수 있습니다:
 
-![Event Trigger Settings](event_setting.png)
+![Event Trigger Settings](docs/images/event_setting.png)
 
 | 이벤트 | 설명 |
 |-------|-------------|
@@ -367,7 +391,7 @@ npm run build
 2. 플러그인 설정에 입력
 3. API 플랜 선택 (Free/Paid)
 
-![Basic Settings](setting_basic.png)
+![Basic Settings](docs/images/setting_basic.png)
 
 ### CLI 모드 (Gemini / Claude / Codex)
 
@@ -394,7 +418,7 @@ npm run build
 - **Tool Limits** - function call 제한 설정
 - **Edit History** - AI가 만든 변경 사항을 추적하고 복원
 
-![Tool Limits & Edit History](setting_tool_history.png)
+![Tool Limits & Edit History](docs/images/setting_tool_history.png)
 
 ### 암호화
 
@@ -404,13 +428,13 @@ npm run build
 
 1. 플러그인 설정에서 비밀번호 설정 (공개키 암호화 방식으로 안전하게 저장)
 
-![암호화 초기 설정](setting_initial_encryption.png)
+![암호화 초기 설정](docs/images/setting_initial_encryption.png)
 
 2. 설정 후 각 로그 유형의 암호화를 전환:
    - **AI 채팅 기록 암호화** - 채팅 대화 파일을 암호화
    - **워크플로우 실행 로그 암호화** - 워크플로우 기록 파일을 암호화
 
-![암호화 설정](setting_encryption.png)
+![암호화 설정](docs/images/setting_encryption.png)
 
 각 설정은 독립적으로 활성화/비활성화할 수 있습니다.
 
@@ -500,9 +524,9 @@ if __name__ == "__main__":
 
 > **경고:** 비밀번호를 잊으면 암호화된 파일을 복구할 수 없습니다. 비밀번호를 안전하게 보관하세요.
 
-> **팁:** 디렉토리의 모든 파일을 한 번에 암호화하려면 워크플로우를 사용하세요. [WORKFLOW_NODES_ko.md](WORKFLOW_NODES_ko.md#obsidian-command)의 "디렉토리의 모든 파일 암호화" 예제를 참조하세요.
+> **팁:** 디렉토리의 모든 파일을 한 번에 암호화하려면 워크플로우를 사용하세요. [WORKFLOW_NODES_ko.md](docs/WORKFLOW_NODES_ko.md#obsidian-command)의 "디렉토리의 모든 파일 암호화" 예제를 참조하세요.
 
-![파일 암호화 워크플로우](enc.png)
+![파일 암호화 워크플로우](docs/images/enc.png)
 
 **보안 이점:**
 - **AI 채팅으로부터 보호** - 암호화된 파일은 AI Vault 작업(`read_note` 도구)으로 읽을 수 없습니다. 이를 통해 API 키와 같은 민감한 데이터가 채팅 중 실수로 노출되는 것을 방지합니다.
@@ -513,7 +537,7 @@ if __name__ == "__main__":
 - `/`로 시작하는 사용자 정의 프롬프트 템플릿 정의
 - 명령어별로 모델 및 검색 설정 재정의 가능
 
-![Slash Commands](setting_slash_command.png)
+![Slash Commands](docs/images/setting_slash_command.png)
 
 ## 사용법
 
@@ -547,11 +571,11 @@ if __name__ == "__main__":
 3. 워크플로우 내용과 AI 생성 기록 미리보기
 4. 워크플로우를 선택하고 **Run**을 클릭하여 실행
 
-![워크플로우 실행 모달](workflow_list.png)
+![워크플로우 실행 모달](docs/images/workflow_list.png)
 
 워크플로우 파일로 먼저 이동하지 않고도 빠르게 워크플로우를 실행할 수 있어 유용합니다.
 
-![Workflow History](workflow_history.png)
+![Workflow History](docs/images/workflow_history.png)
 
 **플로우차트로 시각화:** Workflow 패널에서 **Canvas** 버튼(격자 아이콘)을 클릭하여 워크플로우를 Obsidian Canvas로 내보낼 수 있습니다. 다음과 같은 시각적 플로우차트가 생성됩니다:
 - 루프와 분기가 적절한 라우팅으로 명확하게 표시됨
@@ -560,7 +584,7 @@ if __name__ == "__main__":
 - 각 노드가 전체 구성을 표시
 - 빠른 탐색을 위한 원본 워크플로우 파일 링크 포함
 
-![Workflow to Canvas](workflow_to_canvas.png)
+![Workflow to Canvas](docs/images/workflow_to_canvas.png)
 
 여러 분기와 루프가 있는 복잡한 워크플로우를 이해하는 데 특히 유용합니다.
 
@@ -568,7 +592,7 @@ if __name__ == "__main__":
 
 > **참고:** Canvas 파일은 workspace 폴더에 동적으로 생성됩니다. 확인 후 더 이상 필요하지 않으면 수동으로 삭제하세요.
 
-![History Canvas View](history_canvas.png)
+![History Canvas View](docs/images/history_canvas.png)
 
 ### AI 워크플로우 생성
 
@@ -611,7 +635,7 @@ AI로 생성된 워크플로우는 워크플로우 코드 블록 위에 기록 �
 - 요청 설명
 - 참조된 파일 내용 (접을 수 있는 섹션으로)
 
-![워크플로우 AI 기록](workflow_ai_history.png)
+![워크플로우 AI 기록](docs/images/workflow_ai_history.png)
 
 **AI로 기존 워크플로우 수정:**
 1. 기존 워크플로우 로드
@@ -620,7 +644,7 @@ AI로 생성된 워크플로우는 워크플로우 코드 블록 위에 기록 �
 4. 변경 전/후 비교 검토
 5. **Apply Changes**를 클릭하여 업데이트
 
-![AI Workflow Modification](modify_workflow_with_ai.png)
+![AI Workflow Modification](docs/images/modify_workflow_with_ai.png)
 
 **실행 기록 참조:**
 
@@ -641,7 +665,7 @@ AI로 워크플로우를 수정할 때 이전 실행 결과를 참조하여 AI�
 
 드래그 앤 드롭 인터페이스로 비주얼 노드 편집기에서 직접 워크플로우를 편집합니다.
 
-![Manual Workflow Editing](modify_workflow_manual.png)
+![Manual Workflow Editing](docs/images/modify_workflow_manual.png)
 
 **파일에서 다시 로드:**
 - 드롭다운에서 **Reload from file**을 선택하여 markdown 파일에서 워크플로우 다시 가져오기

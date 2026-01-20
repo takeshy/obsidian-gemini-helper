@@ -14,7 +14,7 @@ Asistente de IA **gratuito y de código abierto** para Obsidian con **Chat**, **
 - **Generación de Imágenes** - Crea imágenes con los modelos de imagen de Gemini
 - **Cifrado** - Protege con contraseña el historial de chat y los registros de ejecución de workflows
 
-![Generación de imágenes en el chat](chat_image.png)
+![Generación de imágenes en el chat](docs/images/chat_image.png)
 
 ## Opciones de Clave API / CLI
 
@@ -49,7 +49,7 @@ Este plugin requiere una clave API de Google Gemini o una herramienta CLI. Puede
 
 La función de Chat con IA proporciona una interfaz de conversación interactiva con Google Gemini, integrada con tu vault de Obsidian.
 
-![Interfaz de Chat](chat.png)
+![Interfaz de Chat](docs/images/chat.png)
 
 ## Comandos Slash
 
@@ -61,7 +61,7 @@ Crea plantillas de prompts reutilizables activadas con `/`:
 
 **Por defecto:** `/infographic` - Convierte contenido en infografía HTML
 
-![Ejemplo de Infografía](chat_infographic.png)
+![Ejemplo de Infografía](docs/images/chat_infographic.png)
 
 ## Menciones con @
 
@@ -139,7 +139,7 @@ Rastrea y restaura cambios hechos a tus notas:
   - **Snapshot** - Guardar el estado actual como instantánea
   - **History** - Abrir el modal de historial de edición
 
-![Menú de Archivo](snap_history.png)
+![Menú de Archivo](docs/images/snap_history.png)
 
 - **Paleta de comandos** - También disponible via comando "Show edit history"
 - **Vista de diferencias** - Ve exactamente qué cambió con adiciones/eliminaciones codificadas por color
@@ -174,7 +174,7 @@ El historial de edición usa un enfoque basado en instantáneas:
 - Configurar líneas de contexto para diferencias
 - Establecer límites de retención (máximo de entradas por archivo, edad máxima)
 
-![Modal de Historial de Edición](edit_history.png)
+![Modal de Historial de Edición](docs/images/edit_history.png)
 
 ## RAG
 
@@ -187,7 +187,31 @@ Generación Aumentada por Recuperación para búsqueda inteligente en el vault:
 - **Carpetas objetivo** - Especifica carpetas a incluir
 - **Patrones de exclusión** - Patrones regex para excluir archivos
 
-![Configuración RAG](setting_rag.png)
+![Configuración RAG](docs/images/setting_rag.png)
+
+## Servidores MCP
+
+Los servidores MCP (Model Context Protocol) proporcionan herramientas adicionales que extienden las capacidades de la IA más allá de las operaciones del vault.
+
+**Configuración:**
+
+1. Abre la configuración del plugin → sección **Servidores MCP**
+2. Haz clic en **Agregar servidor**
+3. Ingresa el nombre y URL del servidor
+4. Configura encabezados opcionales (formato JSON) para autenticación
+5. Haz clic en **Probar conexión** para verificar y obtener las herramientas disponibles
+6. Guarda la configuración del servidor
+
+> **Nota:** La prueba de conexión es obligatoria antes de guardar. Esto asegura que el servidor sea accesible y muestra las herramientas disponibles.
+
+![Configuración de Servidores MCP](docs/images/setting_mcp.png)
+
+**Uso de herramientas MCP:**
+
+- **En el chat:** Haz clic en el ícono de base de datos (📦) para abrir la configuración de herramientas. Habilita/deshabilita servidores MCP por conversación.
+- **En flujos de trabajo:** Usa el nodo `mcp` para llamar herramientas del servidor MCP.
+
+**Sugerencias de herramientas:** Después de una prueba de conexión exitosa, los nombres de las herramientas disponibles se guardan y se muestran tanto en la configuración como en la interfaz del chat.
 
 ---
 
@@ -195,7 +219,7 @@ Generación Aumentada por Recuperación para búsqueda inteligente en el vault:
 
 Construye flujos de trabajo automatizados de múltiples pasos directamente en archivos Markdown. **No se requiere conocimiento de programación** - simplemente describe lo que quieres en lenguaje natural, y la IA creará el flujo de trabajo por ti.
 
-![Editor Visual de Flujos de Trabajo](visual_workflow.png)
+![Editor Visual de Flujos de Trabajo](docs/images/visual_workflow.png)
 
 ## Creación de Flujos de Trabajo con IA
 
@@ -206,7 +230,7 @@ Construye flujos de trabajo automatizados de múltiples pasos directamente en ar
 3. Describe lo que quieres: *"Crea un flujo de trabajo que resuma la nota seleccionada y la guarde en una carpeta de resúmenes"*
 4. Haz clic en **Generate** - la IA crea el flujo de trabajo completo
 
-![Crear Flujo de Trabajo con IA](create_workflow_with_ai.png)
+![Crear Flujo de Trabajo con IA](docs/images/create_workflow_with_ai.png)
 
 **Modifica flujos de trabajo existentes de la misma manera:**
 1. Carga cualquier flujo de trabajo
@@ -214,7 +238,7 @@ Construye flujos de trabajo automatizados de múltiples pasos directamente en ar
 3. Describe los cambios: *"Añade un paso para traducir el resumen al japonés"*
 4. Revisa y aplica
 
-![Modificación de Flujo de Trabajo con IA](modify_workflow_with_ai.png)
+![Modificación de Flujo de Trabajo con IA](docs/images/modify_workflow_with_ai.png)
 
 ## Inicio Rápido (Manual)
 
@@ -260,7 +284,7 @@ Hay 22 tipos de nodos disponibles para construir flujos de trabajo:
 | RAG | `rag-sync` |
 | Externos | `mcp`, `obsidian-command` |
 
-> **Para especificaciones detalladas de nodos y ejemplos, consulta [WORKFLOW_NODES_es.md](WORKFLOW_NODES_es.md)**
+> **Para especificaciones detalladas de nodos y ejemplos, consulta [WORKFLOW_NODES_es.md](docs/WORKFLOW_NODES_es.md)**
 
 ## Modo de Atajo de Teclado
 
@@ -280,7 +304,7 @@ Cuando se activa por atajo de teclado:
 
 Los flujos de trabajo pueden activarse automáticamente por eventos de Obsidian:
 
-![Configuración de Disparadores de Eventos](event_setting.png)
+![Configuración de Disparadores de Eventos](docs/images/event_setting.png)
 
 | Evento | Descripción |
 |--------|-------------|
@@ -367,7 +391,7 @@ npm run build
 2. Ingrésala en la configuración del plugin
 3. Selecciona el plan de API (Gratuito/De Pago)
 
-![Configuración Básica](setting_basic.png)
+![Configuración Básica](docs/images/setting_basic.png)
 
 ### Modo CLI (Gemini / Claude / Codex)
 
@@ -394,13 +418,13 @@ npm run build
 - **Tool Limits** - Controla los límites de llamadas a funciones
 - **Edit History** - Rastrea y restaura cambios hechos por IA
 
-![Límite de Herramientas e Historial de Edición](setting_tool_history.png)
+![Límite de Herramientas e Historial de Edición](docs/images/setting_tool_history.png)
 
 ### Comandos Slash
 - Define plantillas de prompts personalizadas activadas por `/`
 - Modelo y búsqueda opcionales por comando
 
-![Comandos Slash](setting_slash_command.png)
+![Comandos Slash](docs/images/setting_slash_command.png)
 
 ### Cifrado
 
@@ -410,13 +434,13 @@ Protege tu historial de chat y registros de ejecución de workflows con contrase
 
 1. Establece una contraseña en la configuración del plugin (almacenada de forma segura usando criptografía de clave pública)
 
-![Configuración Inicial de Cifrado](setting_initial_encryption.png)
+![Configuración Inicial de Cifrado](docs/images/setting_initial_encryption.png)
 
 2. Después de la configuración, activa el cifrado para cada tipo de registro:
    - **Cifrar historial de chat de IA** - Cifra los archivos de conversación de chat
    - **Cifrar registros de ejecución de workflows** - Cifra los archivos de historial de workflows
 
-![Configuración de Cifrado](setting_encryption.png)
+![Configuración de Cifrado](docs/images/setting_encryption.png)
 
 Cada configuración puede habilitarse/deshabilitarse de forma independiente.
 
@@ -506,9 +530,9 @@ Requiere: `pip install cryptography`
 
 > **Advertencia:** Si olvidas tu contraseña, los archivos cifrados no se pueden recuperar. Guarda tu contraseña de forma segura.
 
-> **Consejo:** Para cifrar todos los archivos de un directorio a la vez, usa un workflow. Consulta el ejemplo "Cifrar todos los archivos de un directorio" en [WORKFLOW_NODES_es.md](WORKFLOW_NODES_es.md#obsidian-command).
+> **Consejo:** Para cifrar todos los archivos de un directorio a la vez, usa un workflow. Consulta el ejemplo "Cifrar todos los archivos de un directorio" en [WORKFLOW_NODES_es.md](docs/WORKFLOW_NODES_es.md#obsidian-command).
 
-![Flujo de Cifrado de Archivos](enc.png)
+![Flujo de Cifrado de Archivos](docs/images/enc.png)
 
 **Beneficios de seguridad:**
 - **Protegido del chat de IA** - Los archivos cifrados no pueden ser leídos por las operaciones de vault de IA (herramienta `read_note`). Esto mantiene los datos sensibles como claves API a salvo de exposición accidental durante el chat.
@@ -547,11 +571,11 @@ Usa el comando "Gemini Helper: Run Workflow" para navegar y ejecutar flujos de t
 3. Previsualiza el contenido del workflow y el historial de generación con IA
 4. Selecciona un workflow y haz clic en **Run** para ejecutar
 
-![Modal de Ejecutar Workflow](workflow_list.png)
+![Modal de Ejecutar Workflow](docs/images/workflow_list.png)
 
 Esto es útil para ejecutar rápidamente flujos de trabajo sin tener que navegar primero al archivo del workflow.
 
-![Historial de Flujos de Trabajo](workflow_history.png)
+![Historial de Flujos de Trabajo](docs/images/workflow_history.png)
 
 **Visualizar como Diagrama de Flujo:** Haz clic en el botón **Canvas** (icono de cuadrícula) en el panel de Workflow para exportar tu flujo de trabajo como un Canvas de Obsidian. Esto crea un diagrama de flujo visual donde:
 - Los bucles y las ramificaciones se muestran claramente con enrutamiento adecuado
@@ -560,7 +584,7 @@ Esto es útil para ejecutar rápidamente flujos de trabajo sin tener que navegar
 - Cada nodo muestra su configuración completa
 - Se incluye un enlace al archivo de workflow de origen para navegación rápida
 
-![Workflow to Canvas](workflow_to_canvas.png)
+![Workflow to Canvas](docs/images/workflow_to_canvas.png)
 
 Esto es especialmente útil para entender flujos de trabajo complejos con múltiples ramificaciones y bucles.
 
@@ -568,7 +592,7 @@ Esto es especialmente útil para entender flujos de trabajo complejos con múlti
 
 > **Nota:** Los archivos Canvas se crean dinámicamente en la carpeta del workspace. Elimínalos manualmente después de revisarlos si ya no los necesitas.
 
-![Vista de Canvas del Historial](history_canvas.png)
+![Vista de Canvas del Historial](docs/images/history_canvas.png)
 
 ### Generación de Flujos de Trabajo con IA
 
@@ -611,7 +635,7 @@ Cada flujo de trabajo generado por IA guarda una entrada de historial sobre el b
 - Tu descripción de la solicitud
 - Contenidos de archivos referenciados (en secciones colapsables)
 
-![Historial de IA del Workflow](workflow_ai_history.png)
+![Historial de IA del Workflow](docs/images/workflow_ai_history.png)
 
 **Modificar Flujo de Trabajo Existente con IA:**
 1. Carga un flujo de trabajo existente
@@ -620,7 +644,7 @@ Cada flujo de trabajo generado por IA guarda una entrada de historial sobre el b
 4. Revisa la comparación antes/después
 5. Haz clic en **Apply Changes** para actualizar
 
-![Modificación de Flujo de Trabajo con IA](modify_workflow_with_ai.png)
+![Modificación de Flujo de Trabajo con IA](docs/images/modify_workflow_with_ai.png)
 
 **Referencia del Historial de Ejecución:**
 
@@ -641,7 +665,7 @@ Al regenerar un flujo de trabajo (haciendo clic en "No" en la vista previa), tod
 
 Edita flujos de trabajo directamente en el editor visual de nodos con interfaz de arrastrar y soltar.
 
-![Edición Manual de Flujos de Trabajo](modify_workflow_manual.png)
+![Edición Manual de Flujos de Trabajo](docs/images/modify_workflow_manual.png)
 
 **Recargar desde Archivo:**
 - Selecciona **Reload from file** del menú desplegable para re-importar el flujo de trabajo desde el archivo markdown

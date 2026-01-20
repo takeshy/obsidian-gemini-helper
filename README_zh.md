@@ -14,7 +14,7 @@
 - **图像生成** - 使用 Gemini 图像模型创建图像
 - **加密** - 使用密码保护聊天历史和工作流执行日志
 
-![聊天中的图像生成](chat_image.png)
+![聊天中的图像生成](docs/images/chat_image.png)
 
 ## API 密钥 / CLI 选项
 
@@ -49,7 +49,7 @@
 
 AI 聊天功能提供与 Google Gemini 的交互式对话界面，与您的 Obsidian 仓库深度集成。
 
-![聊天界面](chat.png)
+![聊天界面](docs/images/chat.png)
 
 ## 斜杠命令
 
@@ -61,7 +61,7 @@ AI 聊天功能提供与 Google Gemini 的交互式对话界面，与您的 Obsi
 
 **默认命令：** `/infographic` - 将内容转换为 HTML 信息图
 
-![信息图示例](chat_infographic.png)
+![信息图示例](docs/images/chat_infographic.png)
 
 ## @ 提及
 
@@ -139,7 +139,7 @@ AI 可以使用以下工具与您的仓库交互：
   - **快照** - 将当前状态保存为快照
   - **历史** - 打开编辑历史模态框
 
-![文件菜单](snap_history.png)
+![文件菜单](docs/images/snap_history.png)
 
 - **命令面板** - 也可通过"Show edit history"命令访问
 - **差异视图** - 使用颜色编码的添加/删除准确显示更改内容
@@ -174,7 +174,7 @@ AI 可以使用以下工具与您的仓库交互：
 - 配置差异的上下文行数
 - 设置保留限制（每个文件的最大条目数、最大保存时间）
 
-![编辑历史模态框](edit_history.png)
+![编辑历史模态框](docs/images/edit_history.png)
 
 ## RAG
 
@@ -187,7 +187,31 @@ AI 可以使用以下工具与您的仓库交互：
 - **目标文件夹** - 指定要包含的文件夹
 - **排除模式** - 使用正则表达式模式排除文件
 
-![RAG 设置](setting_rag.png)
+![RAG 设置](docs/images/setting_rag.png)
+
+## MCP 服务器
+
+MCP（Model Context Protocol）服务器提供额外的工具，扩展 AI 在 Vault 操作之外的能力。
+
+**设置：**
+
+1. 打开插件设置 → **MCP 服务器**部分
+2. 点击**添加服务器**
+3. 输入服务器名称和 URL
+4. 配置可选的认证头信息（JSON 格式）
+5. 点击**测试连接**以验证并获取可用工具
+6. 保存服务器配置
+
+> **注意：** 保存前必须测试连接。这确保服务器可访问并显示可用工具。
+
+![MCP 服务器设置](docs/images/setting_mcp.png)
+
+**使用 MCP 工具：**
+
+- **在聊天中：** 点击数据库图标（📦）打开工具设置。按对话启用/禁用 MCP 服务器。
+- **在工作流中：** 使用 `mcp` 节点调用 MCP 服务器工具。
+
+**工具提示：** 连接测试成功后，可用工具名称会被保存，并在设置和聊天界面中显示以供参考。
 
 ---
 
@@ -195,7 +219,7 @@ AI 可以使用以下工具与您的仓库交互：
 
 直接在 Markdown 文件中构建自动化多步骤工作流。**无需编程知识** - 只需用自然语言描述您想要的内容，AI 就会为您创建工作流。
 
-![可视化工作流编辑器](visual_workflow.png)
+![可视化工作流编辑器](docs/images/visual_workflow.png)
 
 ## AI 驱动的工作流创建
 
@@ -206,7 +230,7 @@ AI 可以使用以下工具与您的仓库交互：
 3. 描述您想要的内容：*"创建一个工作流，总结选中的笔记并保存到 summaries 文件夹"*
 4. 点击**生成** - AI 会创建完整的工作流
 
-![使用 AI 创建工作流](create_workflow_with_ai.png)
+![使用 AI 创建工作流](docs/images/create_workflow_with_ai.png)
 
 **以同样的方式修改现有工作流：**
 1. 加载任意工作流
@@ -214,7 +238,7 @@ AI 可以使用以下工具与您的仓库交互：
 3. 描述更改：*"添加一个步骤将摘要翻译成日语"*
 4. 查看并应用
 
-![AI 工作流修改](modify_workflow_with_ai.png)
+![AI 工作流修改](docs/images/modify_workflow_with_ai.png)
 
 ## 快速入门（手动）
 
@@ -260,7 +284,7 @@ nodes:
 | RAG | `rag-sync` |
 | 外部 | `mcp`, `obsidian-command` |
 
-> **详细的节点规范和示例，请参阅 [WORKFLOW_NODES.md](WORKFLOW_NODES_zh.md)**
+> **详细的节点规范和示例，请参阅 [WORKFLOW_NODES.md](docs/WORKFLOW_NODES_zh.md)**
 
 ## 快捷键模式
 
@@ -280,7 +304,7 @@ nodes:
 
 工作流可以由 Obsidian 事件自动触发：
 
-![事件触发器设置](event_setting.png)
+![事件触发器设置](docs/images/event_setting.png)
 
 | 事件 | 描述 |
 |-------|-------------|
@@ -367,7 +391,7 @@ npm run build
 2. 在插件设置中输入
 3. 选择 API 计划（免费/付费）
 
-![基础设置](setting_basic.png)
+![基础设置](docs/images/setting_basic.png)
 
 ### CLI 模式（Gemini / Claude / Codex）
 
@@ -394,7 +418,7 @@ npm run build
 - **工具限制** - 控制函数调用限制
 - **编辑历史** - 追踪和恢复 AI 所做的更改
 
-![工具限制和编辑历史](setting_tool_history.png)
+![工具限制和编辑历史](docs/images/setting_tool_history.png)
 
 ### 加密
 
@@ -404,13 +428,13 @@ npm run build
 
 1. 在插件设置中设置密码（使用公钥加密安全存储）
 
-![加密初始设置](setting_initial_encryption.png)
+![加密初始设置](docs/images/setting_initial_encryption.png)
 
 2. 设置后，为每种日志类型切换加密：
    - **加密 AI 聊天历史** - 加密聊天对话文件
    - **加密工作流执行日志** - 加密工作流历史文件
 
-![加密设置](setting_encryption.png)
+![加密设置](docs/images/setting_encryption.png)
 
 每个设置可以独立启用/禁用。
 
@@ -500,9 +524,9 @@ if __name__ == "__main__":
 
 > **警告：** 如果您忘记密码，加密文件将无法恢复。请妥善保管您的密码。
 
-> **提示：** 要一次性加密目录中的所有文件，请使用工作流。参见 [WORKFLOW_NODES_zh.md](WORKFLOW_NODES_zh.md#obsidian-command) 中的"加密目录中的所有文件"示例。
+> **提示：** 要一次性加密目录中的所有文件，请使用工作流。参见 [WORKFLOW_NODES_zh.md](docs/WORKFLOW_NODES_zh.md#obsidian-command) 中的"加密目录中的所有文件"示例。
 
-![文件加密工作流](enc.png)
+![文件加密工作流](docs/images/enc.png)
 
 **安全优势：**
 - **受 AI 聊天保护** - 加密文件无法被 AI 仓库操作（`read_note` 工具）读取。这可以保护 API 密钥等敏感数据在聊天过程中不会意外泄露。
@@ -513,7 +537,7 @@ if __name__ == "__main__":
 - 定义通过 `/` 触发的自定义提示词模板
 - 可为每个命令单独设置模型和搜索
 
-![斜杠命令](setting_slash_command.png)
+![斜杠命令](docs/images/setting_slash_command.png)
 
 ## 使用方法
 
@@ -547,11 +571,11 @@ if __name__ == "__main__":
 3. 预览工作流内容和 AI 生成历史
 4. 选择工作流并点击 **Run** 执行
 
-![运行工作流模态框](workflow_list.png)
+![运行工作流模态框](docs/images/workflow_list.png)
 
 这对于快速运行工作流而无需首先导航到工作流文件非常有用。
 
-![工作流历史](workflow_history.png)
+![工作流历史](docs/images/workflow_history.png)
 
 **可视化为流程图：** 点击 Workflow 面板中的 **Canvas** 按钮（网格图标），将工作流导出为 Obsidian Canvas。这会创建一个可视化流程图：
 - 循环和分支以适当的路由清晰显示
@@ -560,7 +584,7 @@ if __name__ == "__main__":
 - 每个节点显示其完整配置
 - 包含指向源工作流文件的链接，便于快速导航
 
-![Workflow to Canvas](workflow_to_canvas.png)
+![Workflow to Canvas](docs/images/workflow_to_canvas.png)
 
 这对于理解具有多个分支和循环的复杂工作流特别有用。
 
@@ -568,7 +592,7 @@ if __name__ == "__main__":
 
 > **注意：** Canvas 文件会动态创建在 workspace 文件夹中。查看后如不再需要，请手动删除。
 
-![历史 Canvas 视图](history_canvas.png)
+![历史 Canvas 视图](docs/images/history_canvas.png)
 
 ### AI 工作流生成
 
@@ -611,7 +635,7 @@ AI 工作流模态框支持拖放定位和从角落调整大小，以提供更�
 - 您的请求描述
 - 引用的文件内容（在可折叠部分中）
 
-![工作流 AI 历史](workflow_ai_history.png)
+![工作流 AI 历史](docs/images/workflow_ai_history.png)
 
 **使用 AI 修改现有工作流：**
 1. 加载现有工作流
@@ -620,7 +644,7 @@ AI 工作流模态框支持拖放定位和从角落调整大小，以提供更�
 4. 查看前后对比
 5. 点击**应用更改**进行更新
 
-![AI 工作流修改](modify_workflow_with_ai.png)
+![AI 工作流修改](docs/images/modify_workflow_with_ai.png)
 
 **执行历史引用：**
 
@@ -641,7 +665,7 @@ AI 工作流模态框支持拖放定位和从角落调整大小，以提供更�
 
 使用拖放界面在可视化节点编辑器中直接编辑工作流。
 
-![手动工作流编辑](modify_workflow_manual.png)
+![手动工作流编辑](docs/images/modify_workflow_manual.png)
 
 **从文件重新加载：**
 - 从下拉菜单中选择 **Reload from file** 以从 markdown 文件重新导入工作流

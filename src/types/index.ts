@@ -5,6 +5,8 @@ export interface McpServerConfig {
   name: string;           // Server display name
   url: string;            // Streamable HTTP endpoint URL
   headers?: Record<string, string>;  // Optional headers for authentication
+  enabled: boolean;       // Whether this server is enabled for chat
+  toolHints?: string[];   // Tool names from test connection (for display hints)
 }
 
 // MCP tool information (from server)

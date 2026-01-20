@@ -97,6 +97,18 @@ export default function MessageBubble({
 
   // Convert tool call to display info
   const getToolDisplayInfo = (toolName: string): { icon: string; label: string } => {
+    // Handle MCP tools (format: mcp_{serverName}_{toolName})
+    if (toolName.startsWith("mcp_")) {
+      const parts = toolName.split("_");
+      // Remove "mcp" prefix and extract server name and tool name
+      if (parts.length >= 3) {
+        const serverName = parts[1];
+        const mcpToolName = parts.slice(2).join("_");
+        return { icon: "🔌", label: `${serverName}:${mcpToolName}` };
+      }
+      return { icon: "🔌", label: toolName.replace("mcp_", "") };
+    }
+
     const toolDisplayMap: Record<string, { icon: string; label: string }> = {
       read_note: { icon: "📖", label: t("tool.read") },
       create_note: { icon: "📝", label: t("tool.created") },
@@ -122,6 +134,26 @@ export default function MessageBubble({
     const { label } = getToolDisplayInfo(toolCall.name);
     const parts: string[] = [label];
 
+    // Handle MCP tools - show all arguments
+    if (toolCall.name.startsWith("mcp_")) {
+      const argEntries = Object.entries(args);
+      if (argEntries.length > 0) {
+        const argStrings = argEntries.map(([key, value]) => {
+          if (typeof value === "string") {
+            // Truncate long strings
+            const displayValue = value.length > 50 ? value.slice(0, 50) + "..." : value;
+            return `${key}: "${displayValue}"`;
+          } else if (typeof value === "object" && value !== null) {
+            return `${key}: ${JSON.stringify(value).slice(0, 50)}...`;
+          }
+          return `${key}: ${String(value)}`;
+        });
+        parts.push(argStrings.join(", "));
+      }
+      return parts.join("\n");
+    }
+
+    // Handle built-in tools
     if (args.fileName && typeof args.fileName === "string") {
       parts.push(args.fileName);
     } else if (args.path && typeof args.path === "string") {

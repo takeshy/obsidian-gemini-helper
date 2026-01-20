@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, KeyboardEvent, ChangeEvent, forwardRef, useImperativeHandle } from "react";
 import { Send, Paperclip, StopCircle, Eye, Database, ChevronUp, ChevronDown } from "lucide-react";
 import { Platform, type App } from "obsidian";
-import { isImageGenerationModel, type ModelInfo, type ModelType, type Attachment, type SlashCommand } from "src/types";
+import { isImageGenerationModel, type ModelInfo, type ModelType, type Attachment, type SlashCommand, type McpServerConfig } from "src/types";
 import { t } from "src/i18n";
 
 type VaultToolMode = "all" | "noSearch" | "none";
@@ -21,6 +21,8 @@ interface InputAreaProps {
   vaultToolMode: VaultToolMode;
   onVaultToolModeChange: (mode: VaultToolMode) => void;
   vaultToolModeOnlyNone: boolean; // When true, only "none" option is available
+  mcpServers: McpServerConfig[]; // MCP server configurations
+  onMcpServerToggle: (serverName: string, enabled: boolean) => void; // Per-server toggle handler
   slashCommands: SlashCommand[];
   onSlashCommand: (command: SlashCommand) => string;
   vaultFiles: string[];
@@ -63,6 +65,8 @@ const InputArea = forwardRef<InputAreaHandle, InputAreaProps>(function InputArea
   vaultToolMode,
   onVaultToolModeChange,
   vaultToolModeOnlyNone,
+  mcpServers,
+  onMcpServerToggle,
   slashCommands,
   onSlashCommand,
   vaultFiles,
@@ -463,14 +467,14 @@ const InputArea = forwardRef<InputAreaHandle, InputAreaProps>(function InputArea
           {/* Vault tool mode button */}
           <div className="gemini-helper-vault-tool-container" ref={vaultToolMenuRef}>
             <button
-              className={`gemini-helper-vault-tool-btn ${vaultToolMode !== "all" ? "active" : ""}`}
+              className={`gemini-helper-vault-tool-btn ${vaultToolMode !== "all" || mcpServers.some(s => !s.enabled) ? "active" : ""}`}
               onClick={() => setShowVaultToolMenu(!showVaultToolMenu)}
               disabled={isLoading || isImageGenerationModel(model)}
               title={t("input.vaultToolTitle")}
             >
               <Database size={18} />
             </button>
-            {showVaultToolMenu && (
+            {showVaultToolMenu && mcpServers.length === 0 && (
               <div className="gemini-helper-vault-tool-menu">
                 <div
                   className={`gemini-helper-vault-tool-item ${vaultToolMode === "all" ? "selected" : ""} ${vaultToolModeOnlyNone ? "disabled" : ""}`}
@@ -489,6 +493,54 @@ const InputArea = forwardRef<InputAreaHandle, InputAreaProps>(function InputArea
                   onClick={() => { onVaultToolModeChange("none"); setShowVaultToolMenu(false); }}
                 >
                   {t("input.vaultToolNone")}
+                </div>
+              </div>
+            )}
+            {/* Modal for vault tool + MCP settings when MCP servers are configured */}
+            {showVaultToolMenu && mcpServers.length > 0 && (
+              <div className="gemini-helper-tool-settings-modal">
+                <div className="gemini-helper-tool-settings-content">
+                  <div className="gemini-helper-tool-settings-row">
+                    <label>{t("input.vaultToolLabel")}</label>
+                    <select
+                      value={vaultToolMode}
+                      onChange={(e) => onVaultToolModeChange(e.target.value as VaultToolMode)}
+                      disabled={vaultToolModeOnlyNone}
+                    >
+                      <option value="all" disabled={vaultToolModeOnlyNone}>{t("input.vaultToolAll")}</option>
+                      <option value="noSearch" disabled={vaultToolModeOnlyNone}>{t("input.vaultToolNoSearch")}</option>
+                      <option value="none">{t("input.vaultToolNone")}</option>
+                    </select>
+                  </div>
+                  <div className="gemini-helper-tool-settings-row">
+                    <label>{t("input.mcpServersLabel")}</label>
+                    <div className="gemini-helper-mcp-server-list">
+                      {mcpServers.map((server) => {
+                        const toolCount = server.toolHints?.length || 0;
+                        const toolHint = toolCount > 0
+                          ? t("input.mcpToolHint", { count: String(toolCount), tools: server.toolHints?.slice(0, 3).join(", ") + (toolCount > 3 ? ", ..." : "") })
+                          : "";
+                        return (
+                          <label key={server.name} className="gemini-helper-mcp-server-item" title={server.toolHints?.join(", ") || ""}>
+                            <input
+                              type="checkbox"
+                              checked={vaultToolMode !== "none" && server.enabled}
+                              onChange={(e) => onMcpServerToggle(server.name, e.target.checked)}
+                              disabled={vaultToolMode === "none"}
+                            />
+                            <span className="gemini-helper-mcp-server-name">{server.name}</span>
+                            {toolHint && <span className="gemini-helper-mcp-tool-hint">{toolHint}</span>}
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </div>
+                  <button
+                    className="gemini-helper-tool-settings-close"
+                    onClick={() => setShowVaultToolMenu(false)}
+                  >
+                    {t("input.close")}
+                  </button>
                 </div>
               </div>
             )}

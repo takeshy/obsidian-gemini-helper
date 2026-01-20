@@ -2298,6 +2298,7 @@ export async function handleMcpNode(
     name: url,
     url: url,
     headers: headers,
+    enabled: true,
   });
 
   try {

@@ -14,7 +14,7 @@
 - **Bilderzeugung** - Erstellen Sie Bilder mit Gemini-Bildmodellen
 - **Verschlüsselung** - Passwortschutz für Chat-Verlauf und Workflow-Ausführungsprotokolle
 
-![Bilderzeugung im Chat](chat_image.png)
+![Bilderzeugung im Chat](docs/images/chat_image.png)
 
 ## API-Schlüssel / CLI-Optionen
 
@@ -49,7 +49,7 @@ Dieses Plugin benötigt einen Google Gemini API-Schlüssel oder ein CLI-Tool. Si
 
 Die KI-Chat-Funktion bietet eine interaktive Konversationsschnittstelle mit Google Gemini, integriert in Ihren Obsidian-Vault.
 
-![Chat-Oberfläche](chat.png)
+![Chat-Oberfläche](docs/images/chat.png)
 
 ## Slash-Befehle
 
@@ -61,7 +61,7 @@ Erstellen Sie wiederverwendbare Prompt-Vorlagen, die mit `/` ausgelöst werden:
 
 **Standard:** `/infographic` - Konvertiert Inhalte in HTML-Infografiken
 
-![Infografik-Beispiel](chat_infographic.png)
+![Infografik-Beispiel](docs/images/chat_infographic.png)
 
 ## @-Erwähnungen
 
@@ -139,7 +139,7 @@ Verfolgen und Wiederherstellen von Änderungen an Ihren Notizen:
   - **Snapshot** - Aktuellen Zustand als Snapshot speichern
   - **History** - Bearbeitungsverlauf-Modal öffnen
 
-![Dateimenü](snap_history.png)
+![Dateimenü](docs/images/snap_history.png)
 
 - **Befehlspalette** - Auch verfügbar über den Befehl "Show edit history"
 - **Diff-Ansicht** - Sehen Sie genau, was sich geändert hat, mit farbcodierten Hinzufügungen/Löschungen
@@ -174,7 +174,7 @@ Der Bearbeitungsverlauf verwendet einen Snapshot-basierten Ansatz:
 - Kontextzeilen für Diffs konfigurieren
 - Aufbewahrungslimits festlegen (max. Einträge pro Datei, maximales Alter)
 
-![Bearbeitungsverlauf-Modal](edit_history.png)
+![Bearbeitungsverlauf-Modal](docs/images/edit_history.png)
 
 ## RAG
 
@@ -187,7 +187,31 @@ Retrieval-Augmented Generation für intelligente Vault-Suche:
 - **Zielordner** - Ordner zum Einschließen angeben
 - **Ausschlussmuster** - Regex-Muster zum Ausschließen von Dateien
 
-![RAG-Einstellungen](setting_rag.png)
+![RAG-Einstellungen](docs/images/setting_rag.png)
+
+## MCP-Server
+
+MCP (Model Context Protocol)-Server bieten zusätzliche Werkzeuge, die die Fähigkeiten der KI über Vault-Operationen hinaus erweitern.
+
+**Einrichtung:**
+
+1. Plugin-Einstellungen öffnen → Abschnitt **MCP-Server**
+2. Auf **Server hinzufügen** klicken
+3. Servername und URL eingeben
+4. Optionale Header (JSON-Format) für Authentifizierung konfigurieren
+5. Auf **Verbindung testen** klicken, um zu verifizieren und verfügbare Werkzeuge abzurufen
+6. Serverkonfiguration speichern
+
+> **Hinweis:** Der Verbindungstest ist vor dem Speichern erforderlich. Dies stellt sicher, dass der Server erreichbar ist und zeigt die verfügbaren Werkzeuge an.
+
+![MCP-Server-Einstellungen](docs/images/setting_mcp.png)
+
+**Verwendung von MCP-Werkzeugen:**
+
+- **Im Chat:** Klicken Sie auf das Datenbank-Symbol (📦), um die Werkzeugeinstellungen zu öffnen. Aktivieren/deaktivieren Sie MCP-Server pro Konversation.
+- **In Workflows:** Verwenden Sie den `mcp`-Knoten, um MCP-Server-Werkzeuge aufzurufen.
+
+**Werkzeughinweise:** Nach einem erfolgreichen Verbindungstest werden die Namen der verfügbaren Werkzeuge gespeichert und sowohl in den Einstellungen als auch in der Chat-Oberfläche angezeigt.
 
 ---
 
@@ -195,7 +219,7 @@ Retrieval-Augmented Generation für intelligente Vault-Suche:
 
 Erstellen Sie automatisierte mehrstufige Workflows direkt in Markdown-Dateien. **Keine Programmierkenntnisse erforderlich** - beschreiben Sie einfach in natürlicher Sprache, was Sie möchten, und die KI erstellt den Workflow für Sie.
 
-![Visueller Workflow-Editor](visual_workflow.png)
+![Visueller Workflow-Editor](docs/images/visual_workflow.png)
 
 ## KI-gestützte Workflow-Erstellung
 
@@ -206,7 +230,7 @@ Erstellen Sie automatisierte mehrstufige Workflows direkt in Markdown-Dateien. *
 3. Beschreiben Sie, was Sie möchten: *"Erstelle einen Workflow, der die ausgewählte Notiz zusammenfasst und in einem Zusammenfassungsordner speichert"*
 4. Klicken Sie auf **Generate** - die KI erstellt den kompletten Workflow
 
-![Workflow mit KI erstellen](create_workflow_with_ai.png)
+![Workflow mit KI erstellen](docs/images/create_workflow_with_ai.png)
 
 **Bestehende Workflows auf die gleiche Weise ändern:**
 1. Laden Sie einen beliebigen Workflow
@@ -214,7 +238,7 @@ Erstellen Sie automatisierte mehrstufige Workflows direkt in Markdown-Dateien. *
 3. Beschreiben Sie die Änderungen: *"Füge einen Schritt hinzu, um die Zusammenfassung ins Japanische zu übersetzen"*
 4. Überprüfen und anwenden
 
-![KI-Workflow-Änderung](modify_workflow_with_ai.png)
+![KI-Workflow-Änderung](docs/images/modify_workflow_with_ai.png)
 
 ## Schnellstart (Manuell)
 
@@ -260,7 +284,7 @@ nodes:
 | RAG | `rag-sync` |
 | Extern | `mcp`, `obsidian-command` |
 
-> **Für detaillierte Node-Spezifikationen und Beispiele siehe [WORKFLOW_NODES_de.md](WORKFLOW_NODES_de.md)**
+> **Für detaillierte Node-Spezifikationen und Beispiele siehe [WORKFLOW_NODES_de.md](docs/WORKFLOW_NODES_de.md)**
 
 ## Tastenkürzel-Modus
 
@@ -280,7 +304,7 @@ Bei Auslösung durch Tastenkürzel:
 
 Workflows können automatisch durch Obsidian-Ereignisse ausgelöst werden:
 
-![Ereignis-Trigger-Einstellungen](event_setting.png)
+![Ereignis-Trigger-Einstellungen](docs/images/event_setting.png)
 
 | Ereignis | Beschreibung |
 |----------|--------------|
@@ -367,7 +391,7 @@ npm run build
 2. Geben Sie ihn in den Plugin-Einstellungen ein
 3. Wählen Sie den API-Plan (Kostenlos/Kostenpflichtig)
 
-![Grundeinstellungen](setting_basic.png)
+![Grundeinstellungen](docs/images/setting_basic.png)
 
 ### CLI-Modus (Gemini / Claude / Codex)
 
@@ -394,7 +418,7 @@ npm run build
 - **Tool Limits** - Steuerung der Function-Call-Limits
 - **Edit History** - Verfolgen und Wiederherstellen von KI-Änderungen
 
-![Tool-Limits & Bearbeitungsverlauf](setting_tool_history.png)
+![Tool-Limits & Bearbeitungsverlauf](docs/images/setting_tool_history.png)
 
 ### Verschlüsselung
 
@@ -404,13 +428,13 @@ Schützen Sie Ihren Chat-Verlauf und Workflow-Ausführungsprotokolle separat mit
 
 1. Legen Sie ein Passwort in den Plugin-Einstellungen fest (sicher gespeichert mittels Public-Key-Kryptographie)
 
-![Initiale Verschlüsselungseinrichtung](setting_initial_encryption.png)
+![Initiale Verschlüsselungseinrichtung](docs/images/setting_initial_encryption.png)
 
 2. Nach der Einrichtung aktivieren Sie die Verschlüsselung für jeden Protokolltyp:
    - **AI-Chat-Verlauf verschlüsseln** - Verschlüsselt Chat-Konversationsdateien
    - **Workflow-Ausführungsprotokolle verschlüsseln** - Verschlüsselt Workflow-Verlaufsdateien
 
-![Verschlüsselungseinstellungen](setting_encryption.png)
+![Verschlüsselungseinstellungen](docs/images/setting_encryption.png)
 
 Jede Einstellung kann unabhängig aktiviert/deaktiviert werden.
 
@@ -500,9 +524,9 @@ Benötigt: `pip install cryptography`
 
 > **Warnung:** Wenn Sie Ihr Passwort vergessen, können verschlüsselte Dateien nicht wiederhergestellt werden. Bewahren Sie Ihr Passwort sicher auf.
 
-> **Tipp:** Um alle Dateien in einem Verzeichnis auf einmal zu verschlüsseln, verwenden Sie einen Workflow. Siehe das Beispiel "Alle Dateien in einem Verzeichnis verschlüsseln" in [WORKFLOW_NODES_de.md](WORKFLOW_NODES_de.md#obsidian-command).
+> **Tipp:** Um alle Dateien in einem Verzeichnis auf einmal zu verschlüsseln, verwenden Sie einen Workflow. Siehe das Beispiel "Alle Dateien in einem Verzeichnis verschlüsseln" in [WORKFLOW_NODES_de.md](docs/WORKFLOW_NODES_de.md#obsidian-command).
 
-![Dateiverschlüsselungs-Workflow](enc.png)
+![Dateiverschlüsselungs-Workflow](docs/images/enc.png)
 
 **Sicherheitsvorteile:**
 - **Geschützt vor AI-Chat** - Verschlüsselte Dateien können nicht von AI-Vault-Operationen (`read_note`-Tool) gelesen werden. Dies schützt sensible Daten wie API-Schlüssel vor versehentlicher Offenlegung während des Chats.
@@ -513,7 +537,7 @@ Benötigt: `pip install cryptography`
 - Benutzerdefinierte Prompt-Vorlagen definieren, die mit `/` ausgelöst werden
 - Optionale Modell- und Suchüberschreibung pro Befehl
 
-![Slash-Befehle](setting_slash_command.png)
+![Slash-Befehle](docs/images/setting_slash_command.png)
 
 ## Verwendung
 
@@ -547,11 +571,11 @@ Verwenden Sie den Befehl "Gemini Helper: Run Workflow", um Workflows von überal
 3. Zeigen Sie den Workflow-Inhalt und die AI-Generierungshistorie in der Vorschau an
 4. Wählen Sie einen Workflow und klicken Sie auf **Run**, um auszuführen
 
-![Workflow-Ausführen-Modal](workflow_list.png)
+![Workflow-Ausführen-Modal](docs/images/workflow_list.png)
 
 Dies ist nützlich, um Workflows schnell auszuführen, ohne zuerst zur Workflow-Datei navigieren zu müssen.
 
-![Workflow-Verlauf](workflow_history.png)
+![Workflow-Verlauf](docs/images/workflow_history.png)
 
 **Als Flussdiagramm visualisieren:** Klicken Sie auf die **Canvas**-Schaltfläche (Gittersymbol) im Workflow-Panel, um Ihren Workflow als Obsidian Canvas zu exportieren. Dies erstellt ein visuelles Flussdiagramm, bei dem:
 - Schleifen und Verzweigungen mit korrekter Routenführung klar dargestellt werden
@@ -560,7 +584,7 @@ Dies ist nützlich, um Workflows schnell auszuführen, ohne zuerst zur Workflow-
 - Jeder Knoten seine vollständige Konfiguration anzeigt
 - Ein Link zur Quell-Workflow-Datei für schnelle Navigation enthalten ist
 
-![Workflow to Canvas](workflow_to_canvas.png)
+![Workflow to Canvas](docs/images/workflow_to_canvas.png)
 
 Dies ist besonders hilfreich zum Verständnis komplexer Workflows mit mehreren Verzweigungen und Schleifen.
 
@@ -568,7 +592,7 @@ Dies ist besonders hilfreich zum Verständnis komplexer Workflows mit mehreren V
 
 > **Hinweis:** Canvas-Dateien werden dynamisch im Workspace-Ordner erstellt. Löschen Sie sie nach der Überprüfung manuell, wenn sie nicht mehr benötigt werden.
 
-![Verlaufs-Canvas-Ansicht](history_canvas.png)
+![Verlaufs-Canvas-Ansicht](docs/images/history_canvas.png)
 
 ### KI-Workflow-Generierung
 
@@ -611,7 +635,7 @@ Jeder KI-generierte Workflow speichert einen Verlaufseintrag über dem Workflow-
 - Ihre Anfragebeschreibung
 - Referenzierte Dateiinhalte (in zusammenklappbaren Abschnitten)
 
-![Workflow AI-Verlauf](workflow_ai_history.png)
+![Workflow AI-Verlauf](docs/images/workflow_ai_history.png)
 
 **Bestehenden Workflow mit KI ändern:**
 1. Laden Sie einen bestehenden Workflow
@@ -620,7 +644,7 @@ Jeder KI-generierte Workflow speichert einen Verlaufseintrag über dem Workflow-
 4. Überprüfen Sie den Vorher/Nachher-Vergleich
 5. Klicken Sie auf **Apply Changes**, um zu aktualisieren
 
-![KI-Workflow-Änderung](modify_workflow_with_ai.png)
+![KI-Workflow-Änderung](docs/images/modify_workflow_with_ai.png)
 
 **Ausführungsverlauf-Referenz:**
 
@@ -641,7 +665,7 @@ Beim Regenerieren eines Workflows (Klicken auf "Nein" in der Vorschau) werden al
 
 Bearbeiten Sie Workflows direkt im visuellen Node-Editor mit Drag-and-Drop-Oberfläche.
 
-![Manuelle Workflow-Bearbeitung](modify_workflow_manual.png)
+![Manuelle Workflow-Bearbeitung](docs/images/modify_workflow_manual.png)
 
 **Aus Datei neu laden:**
 - Wählen Sie **Reload from file** aus dem Dropdown, um den Workflow aus der Markdown-Datei neu zu importieren

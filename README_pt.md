@@ -14,7 +14,7 @@ Assistente de IA **gratuito e open-source** para Obsidian com **Chat**, **Automa
 - **Geração de Imagens** - Crie imagens com modelos de imagem do Gemini
 - **Criptografia** - Proteja com senha o histórico de chat e logs de execução de workflows
 
-![Geração de imagens no chat](chat_image.png)
+![Geração de imagens no chat](docs/images/chat_image.png)
 
 ## Chave de API / Opções de CLI
 
@@ -49,7 +49,7 @@ Este plugin requer uma chave de API do Google Gemini ou uma ferramenta CLI. Voc�
 
 O recurso de Chat com IA fornece uma interface de conversação interativa com o Google Gemini, integrada ao seu vault do Obsidian.
 
-![Interface do Chat](chat.png)
+![Interface do Chat](docs/images/chat.png)
 
 ## Comandos de Barra
 
@@ -61,7 +61,7 @@ Crie templates de prompts reutilizáveis acionados por `/`:
 
 **Padrão:** `/infographic` - Converte conteúdo em infográfico HTML
 
-![Exemplo de Infográfico](chat_infographic.png)
+![Exemplo de Infográfico](docs/images/chat_infographic.png)
 
 ## Menções com @
 
@@ -139,7 +139,7 @@ Rastreie e restaure alterações feitas em suas notas:
   - **Snapshot** - Salvar o estado atual como snapshot
   - **History** - Abrir modal de histórico de edições
 
-![Menu de Arquivo](snap_history.png)
+![Menu de Arquivo](docs/images/snap_history.png)
 
 - **Paleta de comandos** - Também disponível via comando "Show edit history"
 - **Visualização de diff** - Veja exatamente o que mudou com adições/exclusões coloridas
@@ -174,7 +174,7 @@ O histórico de edições usa uma abordagem baseada em snapshots:
 - Configurar linhas de contexto para diffs
 - Definir limites de retenção (máximo de entradas por arquivo, idade máxima)
 
-![Modal de Histórico de Edições](edit_history.png)
+![Modal de Histórico de Edições](docs/images/edit_history.png)
 
 ## RAG
 
@@ -187,7 +187,31 @@ Geração Aumentada por Recuperação para busca inteligente no vault:
 - **Pastas de destino** - Especificar pastas a incluir
 - **Padrões de exclusão** - Padrões regex para excluir arquivos
 
-![Configurações RAG](setting_rag.png)
+![Configurações RAG](docs/images/setting_rag.png)
+
+## Servidores MCP
+
+Os servidores MCP (Model Context Protocol) fornecem ferramentas adicionais que estendem as capacidades da IA além das operações do vault.
+
+**Configuração:**
+
+1. Abra as configurações do plugin → seção **Servidores MCP**
+2. Clique em **Adicionar servidor**
+3. Digite o nome e URL do servidor
+4. Configure cabeçalhos opcionais (formato JSON) para autenticação
+5. Clique em **Testar conexão** para verificar e obter as ferramentas disponíveis
+6. Salve a configuração do servidor
+
+> **Nota:** O teste de conexão é obrigatório antes de salvar. Isso garante que o servidor está acessível e exibe as ferramentas disponíveis.
+
+![Configurações de Servidores MCP](docs/images/setting_mcp.png)
+
+**Usando ferramentas MCP:**
+
+- **No chat:** Clique no ícone de banco de dados (📦) para abrir as configurações de ferramentas. Ative/desative servidores MCP por conversa.
+- **Em workflows:** Use o nó `mcp` para chamar ferramentas do servidor MCP.
+
+**Dicas de ferramentas:** Após um teste de conexão bem-sucedido, os nomes das ferramentas disponíveis são salvos e exibidos tanto nas configurações quanto na interface do chat.
 
 ---
 
@@ -195,7 +219,7 @@ Geração Aumentada por Recuperação para busca inteligente no vault:
 
 Construa workflows automatizados de múltiplas etapas diretamente em arquivos Markdown. **Não é necessário conhecimento de programação** - apenas descreva o que você quer em linguagem natural, e a IA criará o workflow para você.
 
-![Editor Visual de Workflows](visual_workflow.png)
+![Editor Visual de Workflows](docs/images/visual_workflow.png)
 
 ## Criação de Workflows com IA
 
@@ -206,7 +230,7 @@ Construa workflows automatizados de múltiplas etapas diretamente em arquivos Ma
 3. Descreva o que você quer: *"Crie um workflow que resuma a nota selecionada e salve em uma pasta de resumos"*
 4. Clique em **Generate** - a IA cria o workflow completo
 
-![Criar Workflow com IA](create_workflow_with_ai.png)
+![Criar Workflow com IA](docs/images/create_workflow_with_ai.png)
 
 **Modifique workflows existentes da mesma forma:**
 1. Carregue qualquer workflow
@@ -214,7 +238,7 @@ Construa workflows automatizados de múltiplas etapas diretamente em arquivos Ma
 3. Descreva as alterações: *"Adicione uma etapa para traduzir o resumo para japonês"*
 4. Revise e aplique
 
-![Modificação de Workflow com IA](modify_workflow_with_ai.png)
+![Modificação de Workflow com IA](docs/images/modify_workflow_with_ai.png)
 
 ## Início Rápido (Manual)
 
@@ -260,7 +284,7 @@ Abra a aba **Workflow** na barra lateral do Gemini para executá-lo.
 | RAG | `rag-sync` |
 | Externo | `mcp`, `obsidian-command` |
 
-> **Para especificações detalhadas de nós e exemplos, veja [WORKFLOW_NODES_pt.md](WORKFLOW_NODES_pt.md)**
+> **Para especificações detalhadas de nós e exemplos, veja [WORKFLOW_NODES_pt.md](docs/WORKFLOW_NODES_pt.md)**
 
 ## Modo de Atalho
 
@@ -280,7 +304,7 @@ Quando acionado por atalho:
 
 Workflows podem ser acionados automaticamente por eventos do Obsidian:
 
-![Configurações de Gatilho de Evento](event_setting.png)
+![Configurações de Gatilho de Evento](docs/images/event_setting.png)
 
 | Evento | Descrição |
 |--------|-----------|
@@ -367,7 +391,7 @@ npm run build
 2. Digite nas configurações do plugin
 3. Selecione o plano de API (Gratuito/Pago)
 
-![Configurações Básicas](setting_basic.png)
+![Configurações Básicas](docs/images/setting_basic.png)
 
 ### Modo CLI (Gemini / Claude / Codex)
 
@@ -394,7 +418,7 @@ npm run build
 - **Tool Limits** - Controlar limites de chamadas de função
 - **Edit History** - Rastrear e restaurar alterações feitas pela IA
 
-![Limites de Ferramentas e Histórico de Edições](setting_tool_history.png)
+![Limites de Ferramentas e Histórico de Edições](docs/images/setting_tool_history.png)
 
 ### Criptografia
 
@@ -404,13 +428,13 @@ Proteja seu histórico de chat e logs de execução de workflows com senha separ
 
 1. Defina uma senha nas configurações do plugin (armazenada com segurança usando criptografia de chave pública)
 
-![Configuração Inicial de Criptografia](setting_initial_encryption.png)
+![Configuração Inicial de Criptografia](docs/images/setting_initial_encryption.png)
 
 2. Após a configuração, ative a criptografia para cada tipo de log:
    - **Criptografar histórico de chat AI** - Criptografa arquivos de conversa de chat
    - **Criptografar logs de execução de workflows** - Criptografa arquivos de histórico de workflows
 
-![Configurações de Criptografia](setting_encryption.png)
+![Configurações de Criptografia](docs/images/setting_encryption.png)
 
 Cada configuração pode ser habilitada/desabilitada independentemente.
 
@@ -500,9 +524,9 @@ Requer: `pip install cryptography`
 
 > **Aviso:** Se você esquecer sua senha, arquivos criptografados não podem ser recuperados. Mantenha sua senha em segurança.
 
-> **Dica:** Para criptografar todos os arquivos em um diretório de uma vez, use um workflow. Veja o exemplo "Criptografar todos os arquivos em um diretório" em [WORKFLOW_NODES_pt.md](WORKFLOW_NODES_pt.md#obsidian-command).
+> **Dica:** Para criptografar todos os arquivos em um diretório de uma vez, use um workflow. Veja o exemplo "Criptografar todos os arquivos em um diretório" em [WORKFLOW_NODES_pt.md](docs/WORKFLOW_NODES_pt.md#obsidian-command).
 
-![Fluxo de Criptografia de Arquivos](enc.png)
+![Fluxo de Criptografia de Arquivos](docs/images/enc.png)
 
 **Benefícios de segurança:**
 - **Protegido do chat com IA** - Arquivos criptografados não podem ser lidos pelas operações de IA no vault (ferramenta `read_note`). Isso mantém dados sensíveis como chaves de API seguros contra exposição acidental durante o chat.
@@ -513,7 +537,7 @@ Requer: `pip install cryptography`
 - Definir templates de prompt personalizados acionados por `/`
 - Override opcional de modelo e busca por comando
 
-![Comandos de Barra](setting_slash_command.png)
+![Comandos de Barra](docs/images/setting_slash_command.png)
 
 ## Uso
 
@@ -547,11 +571,11 @@ Use o comando "Gemini Helper: Run Workflow" para navegar e executar workflows de
 3. Visualize o conteúdo do workflow e o histórico de geração por AI
 4. Selecione um workflow e clique em **Run** para executar
 
-![Modal Executar Workflow](workflow_list.png)
+![Modal Executar Workflow](docs/images/workflow_list.png)
 
 Isso é útil para executar rapidamente workflows sem precisar navegar primeiro até o arquivo do workflow.
 
-![Histórico de Workflow](workflow_history.png)
+![Histórico de Workflow](docs/images/workflow_history.png)
 
 **Visualizar como Fluxograma:** Clique no botão **Canvas** (ícone de grade) no painel Workflow para exportar seu workflow como um Canvas do Obsidian. Isso cria um fluxograma visual onde:
 - Loops e ramificações são exibidos claramente com roteamento adequado
@@ -560,7 +584,7 @@ Isso é útil para executar rapidamente workflows sem precisar navegar primeiro 
 - Cada nó mostra sua configuração completa
 - Um link para o arquivo de workflow de origem está incluído para navegação rápida
 
-![Workflow to Canvas](workflow_to_canvas.png)
+![Workflow to Canvas](docs/images/workflow_to_canvas.png)
 
 Isso é especialmente útil para entender workflows complexos com múltiplas ramificações e loops.
 
@@ -568,7 +592,7 @@ Isso é especialmente útil para entender workflows complexos com múltiplas ram
 
 > **Nota:** Arquivos Canvas são criados dinamicamente na pasta do workspace. Exclua-os manualmente após revisão se não forem mais necessários.
 
-![Visualização do Canvas de Histórico](history_canvas.png)
+![Visualização do Canvas de Histórico](docs/images/history_canvas.png)
 
 ### Geração de Workflow com IA
 
@@ -611,7 +635,7 @@ Cada workflow gerado por IA salva uma entrada de histórico acima do bloco de c�
 - Sua descrição da solicitação
 - Conteúdos de arquivos referenciados (em seções recolhíveis)
 
-![Histórico de IA do Workflow](workflow_ai_history.png)
+![Histórico de IA do Workflow](docs/images/workflow_ai_history.png)
 
 **Modificar Workflow Existente com IA:**
 1. Carregue um workflow existente
@@ -620,7 +644,7 @@ Cada workflow gerado por IA salva uma entrada de histórico acima do bloco de c�
 4. Revise a comparação antes/depois
 5. Clique em **Apply Changes** para atualizar
 
-![Modificação de Workflow com IA](modify_workflow_with_ai.png)
+![Modificação de Workflow com IA](docs/images/modify_workflow_with_ai.png)
 
 **Referência ao Histórico de Execução:**
 
@@ -641,7 +665,7 @@ Ao regenerar um workflow (clicando em "Não" na prévia), todas as solicitaçõe
 
 Edite workflows diretamente no editor visual de nós com interface drag-and-drop.
 
-![Edição Manual de Workflow](modify_workflow_manual.png)
+![Edição Manual de Workflow](docs/images/modify_workflow_manual.png)
 
 **Recarregar do Arquivo:**
 - Selecione **Reload from file** no dropdown para reimportar o workflow do arquivo markdown

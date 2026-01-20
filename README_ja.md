@@ -14,7 +14,7 @@
 - **画像生成** - Gemini 画像モデルで画像を作成
 - **暗号化** - チャット履歴とワークフロー実行ログをパスワード保護
 
-![チャットでの画像生成](chat_image.png)
+![チャットでの画像生成](docs/images/chat_image.png)
 
 ## API キー / CLI の選択肢
 
@@ -49,7 +49,7 @@
 
 AI チャット機能は、Obsidian Vault と統合された Google Gemini との対話型インターフェースを提供します。
 
-![チャット画面](chat.png)
+![チャット画面](docs/images/chat.png)
 
 ## スラッシュコマンド
 
@@ -61,7 +61,7 @@ AI チャット機能は、Obsidian Vault と統合された Google Gemini と�
 
 **デフォルト:** `/infographic` - コンテンツを HTML インフォグラフィックに変換
 
-![インフォグラフィック例](chat_infographic.png)
+![インフォグラフィック例](docs/images/chat_infographic.png)
 
 ## @ メンション
 
@@ -139,7 +139,7 @@ AI が `propose_edit` を使用時：
   - **スナップショット** - 現在の状態をスナップショットとして保存
   - **履歴** - 編集履歴モーダルを開く
 
-![ファイルメニュー](snap_history.png)
+![ファイルメニュー](docs/images/snap_history.png)
 
 - **コマンドパレット** - "Show edit history" コマンドからもアクセス可能
 - **差分表示** - 追加・削除を色分けして変更箇所を正確に表示
@@ -174,7 +174,7 @@ AI が `propose_edit` を使用時：
 - 差分のコンテキスト行数を設定
 - 保持制限を設定（ファイルごとの最大エントリ数、最大保存期間）
 
-![編集履歴モーダル](edit_history.png)
+![編集履歴モーダル](docs/images/edit_history.png)
 
 ## RAG
 
@@ -187,7 +187,31 @@ Vault の知的検索（Retrieval-Augmented Generation）：
 - **対象フォルダ** - インデックスするフォルダを指定
 - **除外パターン** - 正規表現でファイルを除外
 
-![RAG設定](setting_rag.png)
+![RAG設定](docs/images/setting_rag.png)
+
+## MCPサーバー
+
+MCP（Model Context Protocol）サーバーは、Vault操作以外のAI機能を拡張する追加ツールを提供します。
+
+**セットアップ：**
+
+1. プラグイン設定 → **MCPサーバー**セクションを開く
+2. **サーバーを追加**をクリック
+3. サーバー名とURLを入力
+4. 認証用のオプションヘッダー（JSON形式）を設定
+5. **接続テスト**をクリックして接続を確認し、利用可能なツールを取得
+6. サーバー設定を保存
+
+> **注意：** 保存前に接続テストが必須です。これによりサーバーへの接続が確認され、利用可能なツールが表示されます。
+
+![MCPサーバー設定](docs/images/setting_mcp.png)
+
+**MCPツールの使用方法：**
+
+- **チャットで：** データベースアイコン（📦）をクリックしてツール設定を開きます。会話ごとにMCPサーバーを有効/無効にできます。
+- **ワークフローで：** `mcp`ノードを使用してMCPサーバーツールを呼び出します。
+
+**ツールヒント：** 接続テスト成功後、利用可能なツール名が保存され、設定画面とチャットUIの両方に表示されます。
 
 ---
 
@@ -195,7 +219,7 @@ Vault の知的検索（Retrieval-Augmented Generation）：
 
 Markdown ファイル内で自動化ワークフローを構築。**プログラミング知識は不要**です。やりたいことを自然言語で説明するだけで、AI がワークフローを作成します。
 
-![ビジュアルワークフローエディタ](visual_workflow.png)
+![ビジュアルワークフローエディタ](docs/images/visual_workflow.png)
 
 ## AI によるワークフロー作成
 
@@ -206,7 +230,7 @@ Markdown ファイル内で自動化ワークフローを構築。**プログラ
 3. やりたいことを記述：*「選択したノートを要約して summaries フォルダに保存するワークフローを作成して」*
 4. **Generate** をクリック - AI が完全なワークフローを作成
 
-![AI でワークフロー作成](create_workflow_with_ai.png)
+![AI でワークフロー作成](docs/images/create_workflow_with_ai.png)
 
 **既存ワークフローの修正も同様に：**
 1. 任意のワークフローを読み込み
@@ -214,7 +238,7 @@ Markdown ファイル内で自動化ワークフローを構築。**プログラ
 3. 変更内容を記述：*「要約を日本語に翻訳するステップを追加して」*
 4. 確認して適用
 
-![AI ワークフロー修正](modify_workflow_with_ai.png)
+![AI ワークフロー修正](docs/images/modify_workflow_with_ai.png)
 
 ## クイックスタート（手動）
 
@@ -260,7 +284,7 @@ Gemini サイドバーの **Workflow** タブを開いて実行。
 | RAG | `rag-sync` |
 | 外部連携 | `mcp`, `obsidian-command` |
 
-> **詳細なノード仕様と実例は [WORKFLOW_NODES_ja.md](WORKFLOW_NODES_ja.md) を参照してください**
+> **詳細なノード仕様と実例は [WORKFLOW_NODES_ja.md](docs/WORKFLOW_NODES_ja.md) を参照してください**
 
 ## ホットキーモード
 
@@ -280,7 +304,7 @@ Gemini サイドバーの **Workflow** タブを開いて実行。
 
 Obsidian のイベントでワークフローを自動実行：
 
-![イベントトリガー設定](event_setting.png)
+![イベントトリガー設定](docs/images/event_setting.png)
 
 | イベント | 説明 |
 |----------|------|
@@ -367,7 +391,7 @@ npm run build
 2. プラグイン設定で入力
 3. API プラン（無料/有料）を選択
 
-![基本設定](setting_basic.png)
+![基本設定](docs/images/setting_basic.png)
 
 ### CLI モード（Gemini / Claude / Codex）
 
@@ -394,7 +418,7 @@ npm run build
 - **Tool Limits** - 関数呼び出し制限の設定
 - **Edit History** - AI による変更を追跡・復元
 
-![ツール制限・編集履歴](setting_tool_history.png)
+![ツール制限・編集履歴](docs/images/setting_tool_history.png)
 
 ### 暗号化
 
@@ -404,13 +428,13 @@ npm run build
 
 1. プラグイン設定でパスワードを設定（公開鍵暗号方式で安全に保存）
 
-![暗号化初期設定](setting_initial_encryption.png)
+![暗号化初期設定](docs/images/setting_initial_encryption.png)
 
 2. 設定後、各ログタイプの暗号化を切り替え:
    - **AIチャット履歴を暗号化** - チャット会話ファイルを暗号化
    - **ワークフロー実行ログを暗号化** - ワークフロー履歴ファイルを暗号化
 
-![暗号化設定](setting_encryption.png)
+![暗号化設定](docs/images/setting_encryption.png)
 
 各設定は独立して有効/無効を切り替えできます。
 
@@ -506,9 +530,9 @@ if __name__ == "__main__":
 
 > **警告:** パスワードを忘れると、暗号化ファイルは復元できません。パスワードは安全に保管してください。
 
-> **ヒント:** ディレクトリ内のすべてのファイルを一括暗号化するには、ワークフローを使用します。[WORKFLOW_NODES_ja.md](WORKFLOW_NODES_ja.md#obsidian-command) の「ディレクトリ内の全ファイルを暗号化」の例を参照してください。
+> **ヒント:** ディレクトリ内のすべてのファイルを一括暗号化するには、ワークフローを使用します。[WORKFLOW_NODES_ja.md](docs/WORKFLOW_NODES_ja.md#obsidian-command) の「ディレクトリ内の全ファイルを暗号化」の例を参照してください。
 
-![ファイル暗号化ワークフロー](enc.png)
+![ファイル暗号化ワークフロー](docs/images/enc.png)
 
 **セキュリティ上のメリット:**
 - **AIチャットからの保護** - 暗号化ファイルはAIのVault操作（`read_note`ツール）で読み取ることができません。これにより、APIキーなどの機密データがチャット中に誤って漏洩することを防ぎます。
@@ -519,7 +543,7 @@ if __name__ == "__main__":
 - `/` で呼び出すカスタムプロンプトテンプレートを定義
 - コマンドごとにモデルと検索設定を指定可能
 
-![スラッシュコマンド](setting_slash_command.png)
+![スラッシュコマンド](docs/images/setting_slash_command.png)
 
 ## 使い方
 
@@ -553,11 +577,11 @@ if __name__ == "__main__":
 3. ワークフローの内容と AI 生成履歴をプレビュー
 4. ワークフローを選択して **Run** で実行
 
-![ワークフロー実行モーダル](workflow_list.png)
+![ワークフロー実行モーダル](docs/images/workflow_list.png)
 
 ワークフローファイルに移動せずに素早くワークフローを実行できるので便利です。
 
-![ワークフロー履歴](workflow_history.png)
+![ワークフロー履歴](docs/images/workflow_history.png)
 
 **フローチャートとして可視化:** Workflow パネルの **Canvas** ボタン（グリッドアイコン）をクリックすると、ワークフローを Obsidian Canvas にエクスポートできます。以下の特徴があります：
 - ループや分岐が適切なルーティングで明確に表示
@@ -566,7 +590,7 @@ if __name__ == "__main__":
 - 各ノードの設定内容をすべて表示
 - 元のワークフローファイルへのリンクを含み、すぐにナビゲート可能
 
-![Workflow to Canvas](workflow_to_canvas.png)
+![Workflow to Canvas](docs/images/workflow_to_canvas.png)
 
 複数の分岐やループを含む複雑なワークフローを理解するのに特に便利です。
 
@@ -574,7 +598,7 @@ if __name__ == "__main__":
 
 > **Note:** Canvas ファイルはワークスペースフォルダに動的に作成されます。確認後、不要になったら手動で削除してください。
 
-![履歴キャンバスビュー](history_canvas.png)
+![履歴キャンバスビュー](docs/images/history_canvas.png)
 
 ### AI ワークフロー生成
 
@@ -617,7 +641,7 @@ AI で生成したワークフローは、コードブロックの上に履歴�
 - リクエストの内容
 - 参照したファイルの内容（折りたたみセクション内）
 
-![ワークフロー AI 履歴](workflow_ai_history.png)
+![ワークフロー AI 履歴](docs/images/workflow_ai_history.png)
 
 **AI で既存ワークフローを修正：**
 1. 既存のワークフローを読み込み
@@ -626,7 +650,7 @@ AI で生成したワークフローは、コードブロックの上に履歴�
 4. 変更前後の比較を確認
 5. **Apply Changes** で更新を適用
 
-![AI ワークフロー修正](modify_workflow_with_ai.png)
+![AI ワークフロー修正](docs/images/modify_workflow_with_ai.png)
 
 **実行履歴の参照：**
 
@@ -647,7 +671,7 @@ AI でワークフローを修正する際、過去の実行結果を参照し�
 
 ビジュアルノードエディタでドラッグ＆ドロップ操作でワークフローを直接編集。
 
-![手動ワークフロー編集](modify_workflow_manual.png)
+![手動ワークフロー編集](docs/images/modify_workflow_manual.png)
 
 **ファイルから再読み込み：**
 - ドロップダウンから **Reload from file** を選択して、Markdown ファイルからワークフローを再インポート

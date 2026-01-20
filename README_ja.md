@@ -20,19 +20,20 @@
 
 このプラグインには Google Gemini API キーまたは CLI ツールが必要です。以下から選択できます：
 
-| 機能 | 無料 API キー | 有料 API キー | CLI |
-|------|---------------|---------------|-----|
-| 基本チャット | ✅ | ✅ | ✅ |
-| Vault 操作 | ✅ | ✅ | 読み取り/検索のみ |
-| Web 検索 | ✅ | ✅ | ❌ |
-| RAG | ✅（制限あり） | ✅ | ❌ |
-| ワークフロー | ✅ | ✅ | ✅ |
-| 画像生成 | ❌ | ✅ | ❌ |
-| モデル | Flash, Gemma | Flash, Pro, Image | Gemini CLI, Claude Code, Codex |
-| 料金 | **無料** | 従量課金 | **無料** |
+| 機能         | 無料 API キー  | 有料 API キー     | CLI                            |
+| ------------ | -------------- | ----------------- | ------------------------------ |
+| 基本チャット | ✅             | ✅                | ✅                             |
+| Vault 操作   | ✅             | ✅                | 読み取り/検索のみ              |
+| Web 検索     | ✅             | ✅                | ❌                             |
+| RAG          | ✅（制限あり） | ✅                | ❌                             |
+| ワークフロー | ✅             | ✅                | ✅                             |
+| 画像生成     | ❌             | ✅                | ❌                             |
+| モデル       | Flash, Gemma   | Flash, Pro, Image | Gemini CLI, Claude Code, Codex |
+| 料金         | **無料**       | 従量課金          | **無料**                       |
 
 > [!TIP]
 > **CLI オプション**を使えば、アカウントだけでフラッグシップモデルが使えます（API キー不要）！
+>
 > - **Gemini CLI**: [Gemini CLI](https://github.com/google-gemini/gemini-cli) をインストールし、`gemini` を実行して `/auth` で認証
 > - **Claude CLI**: [Claude Code](https://github.com/anthropics/claude-code) をインストール（`npm install -g @anthropic-ai/claude-code`）し、`claude` で認証
 > - **Codex CLI**: [Codex CLI](https://github.com/openai/codex) をインストール（`npm install -g @openai/codex`）し、`codex` で認証
@@ -82,48 +83,49 @@ AI チャット機能は、Obsidian Vault と統合された Google Gemini と�
 
 AI が Vault を直接操作するツール：
 
-| ツール | 説明 |
-|--------|------|
-| `read_note` | ノート内容を読み取り |
-| `create_note` | 新規ノート作成 |
-| `propose_edit` | 確認ダイアログ付き編集 |
-| `propose_delete` | 確認ダイアログ付き削除 |
-| `bulk_propose_edit` | 複数ファイルの一括編集（選択ダイアログ付き） |
-| `bulk_propose_delete` | 複数ファイルの一括削除（選択ダイアログ付き） |
-| `search_notes` | 名前またはコンテンツで Vault を検索 |
-| `list_notes` | フォルダ内ノート一覧 |
-| `rename_note` | リネーム/移動 |
-| `create_folder` | 新規フォルダ作成 |
-| `list_folders` | Vault 内フォルダ一覧 |
-| `get_active_note_info` | アクティブノートの情報取得 |
-| `get_rag_sync_status` | RAG 同期状態を確認 |
+| ツール                 | 説明                                         |
+| ---------------------- | -------------------------------------------- |
+| `read_note`            | ノート内容を読み取り                         |
+| `create_note`          | 新規ノート作成                               |
+| `propose_edit`         | 確認ダイアログ付き編集                       |
+| `propose_delete`       | 確認ダイアログ付き削除                       |
+| `bulk_propose_edit`    | 複数ファイルの一括編集（選択ダイアログ付き） |
+| `bulk_propose_delete`  | 複数ファイルの一括削除（選択ダイアログ付き） |
+| `search_notes`         | 名前またはコンテンツで Vault を検索          |
+| `list_notes`           | フォルダ内ノート一覧                         |
+| `rename_note`          | リネーム/移動                                |
+| `create_folder`        | 新規フォルダ作成                             |
+| `list_folders`         | Vault 内フォルダ一覧                         |
+| `get_active_note_info` | アクティブノートの情報取得                   |
+| `get_rag_sync_status`  | RAG 同期状態を確認                           |
 
 ### Vault ツールモード
 
 添付ボタンの下にあるデータベースアイコン（📦）から、AI が使用できる Vault ツールを制御できます：
 
-| モード | 説明 | 使用可能なツール |
-|--------|------|------------------|
-| **Vault: 全て** | Vault への完全アクセス | すべてのツール |
-| **Vault: 検索なし** | 検索ツールを除外 | `search_notes`、`list_notes` 以外 |
-| **Vault: オフ** | Vault アクセスなし | なし |
+| モード              | 説明                   | 使用可能なツール                  |
+| ------------------- | ---------------------- | --------------------------------- |
+| **Vault: 全て**     | Vault への完全アクセス | すべてのツール                    |
+| **Vault: 検索なし** | 検索ツールを除外       | `search_notes`、`list_notes` 以外 |
+| **Vault: オフ**     | Vault アクセスなし     | なし                              |
 
 **自動モード選択：**
 
-| 条件 | デフォルトモード | 変更可能 |
-|------|------------------|----------|
-| CLI モデル（Gemini/Claude/Codex CLI） | Vault: オフ | 不可 |
-| Gemma モデル | Vault: オフ | 不可 |
-| Web Search 有効 | Vault: オフ | 不可 |
-| Flash Lite + RAG | Vault: オフ | 不可 |
-| RAG 有効 | Vault: 検索なし | 可 |
-| RAG なし | Vault: 全て | 可 |
+| 条件                                  | デフォルトモード | 変更可能 |
+| ------------------------------------- | ---------------- | -------- |
+| CLI モデル（Gemini/Claude/Codex CLI） | Vault: オフ      | 不可     |
+| Gemma モデル                          | Vault: オフ      | 不可     |
+| Web Search 有効                       | Vault: オフ      | 不可     |
+| Flash Lite + RAG                      | Vault: オフ      | 不可     |
+| RAG 有効                              | Vault: 検索なし  | 可       |
+| RAG なし                              | Vault: 全て      | 可       |
 
 > **ヒント：** RAG 使用時は「Vault: 検索なし」が推奨です。RAG が既に Vault 全体のセマンティック検索を提供するため、重複検索を避けられます。
 
 ## 安全な編集
 
 AI が `propose_edit` を使用時：
+
 1. 確認ダイアログで変更内容をプレビュー
 2. **適用** をクリックでファイルに書き込み
 3. **破棄** をクリックでファイルを変更せずキャンセル
@@ -147,6 +149,7 @@ AI が `propose_edit` を使用時：
 - **リサイズ可能なモーダル** - ドラッグで移動、角からリサイズ
 
 **差分の表示形式：**
+
 - `+` 行は古いバージョンに存在していた内容
 - `-` 行は新しいバージョンで追加された内容
 
@@ -160,16 +163,19 @@ AI が `propose_edit` を使用時：
 4. **復元** - 以前のバージョンに復元するには、スナップショットから差分を逆順に適用
 
 **履歴が記録されるタイミング：**
+
 - AI チャット編集（`propose_edit` ツール）
 - ワークフローのノート変更（`note` ノード）
 - コマンドによる手動保存
 - ファイルを開いた時にスナップショットと異なる場合の自動検出
 
 **保存場所：**
+
 - 履歴ファイル: `{workspaceFolder}/history/{filename}.history.md`
 - スナップショットファイル: `{workspaceFolder}/history/{filename}.snapshot.md`
 
 **設定：**
+
 - プラグイン設定で有効/無効を切り替え
 - 差分のコンテキスト行数を設定
 - 保持制限を設定（ファイルごとの最大エントリ数、最大保存期間）
@@ -227,15 +233,16 @@ Markdown ファイル内で自動化ワークフローを構築。**プログラ
 
 1. Gemini サイドバーの **Workflow** タブを開く
 2. ドロップダウンから **+ New (AI)** を選択
-3. やりたいことを記述：*「選択したノートを要約して summaries フォルダに保存するワークフローを作成して」*
+3. やりたいことを記述：_「選択したノートを要約して summaries フォルダに保存するワークフローを作成して」_
 4. **Generate** をクリック - AI が完全なワークフローを作成
 
 ![AI でワークフロー作成](docs/images/create_workflow_with_ai.png)
 
 **既存ワークフローの修正も同様に：**
+
 1. 任意のワークフローを読み込み
 2. **AI Modify** ボタンをクリック
-3. 変更内容を記述：*「要約を日本語に翻訳するステップを追加して」*
+3. 変更内容を記述：_「要約を日本語に翻訳するステップを追加して」_
 4. 確認して適用
 
 ![AI ワークフロー修正](docs/images/modify_workflow_with_ai.png)
@@ -271,18 +278,18 @@ Gemini サイドバーの **Workflow** タブを開いて実行。
 
 22 種類のノードタイプでワークフローを構築できます：
 
-| カテゴリ | ノード |
-|----------|--------|
-| 変数 | `variable`, `set` |
-| 制御 | `if`, `while` |
-| LLM | `command` |
-| データ | `http`, `json` |
-| ノート | `note`, `note-read`, `note-search`, `note-list`, `folder-list`, `open` |
-| ファイル | `file-explorer`, `file-save` |
-| プロンプト | `prompt-file`, `prompt-selection`, `dialog` |
-| 合成 | `workflow` |
-| RAG | `rag-sync` |
-| 外部連携 | `mcp`, `obsidian-command` |
+| カテゴリ   | ノード                                                                 |
+| ---------- | ---------------------------------------------------------------------- |
+| 変数       | `variable`, `set`                                                      |
+| 制御       | `if`, `while`                                                          |
+| LLM        | `command`                                                              |
+| データ     | `http`, `json`                                                         |
+| ノート     | `note`, `note-read`, `note-search`, `note-list`, `folder-list`, `open` |
+| ファイル   | `file-explorer`, `file-save`                                           |
+| プロンプト | `prompt-file`, `prompt-selection`, `dialog`                            |
+| 合成       | `workflow`                                                             |
+| RAG        | `rag-sync`                                                             |
+| 外部連携   | `mcp`, `obsidian-command`                                              |
 
 > **詳細なノード仕様と実例は [WORKFLOW_NODES_ja.md](docs/WORKFLOW_NODES_ja.md) を参照してください**
 
@@ -297,6 +304,7 @@ Gemini サイドバーの **Workflow** タブを開いて実行。
 5. ホットキーを割り当て（例：`Ctrl+Shift+T`）
 
 ホットキー実行時：
+
 - `prompt-file` はアクティブファイルを自動使用（ダイアログなし）
 - `prompt-selection` は現在の選択を使用、選択がなければファイル全体を使用
 
@@ -306,15 +314,16 @@ Obsidian のイベントでワークフローを自動実行：
 
 ![イベントトリガー設定](docs/images/event_setting.png)
 
-| イベント | 説明 |
-|----------|------|
-| ファイル作成 | 新規ファイル作成時にトリガー |
-| ファイル変更 | ファイル保存時にトリガー（5秒デバウンス） |
-| ファイル削除 | ファイル削除時にトリガー |
-| ファイル名変更 | ファイル名変更時にトリガー |
-| ファイルを開く | ファイルを開いた時にトリガー |
+| イベント       | 説明                                      |
+| -------------- | ----------------------------------------- |
+| ファイル作成   | 新規ファイル作成時にトリガー              |
+| ファイル変更   | ファイル保存時にトリガー（5秒デバウンス） |
+| ファイル削除   | ファイル削除時にトリガー                  |
+| ファイル名変更 | ファイル名変更時にトリガー                |
+| ファイルを開く | ファイルを開いた時にトリガー              |
 
 **イベントトリガーの設定：**
+
 1. ワークフローに `name:` フィールドを追加
 2. ワークフローファイルを開いてドロップダウンから選択
 3. Workflow パネルフッターの zap アイコン（⚡）をクリック
@@ -322,6 +331,7 @@ Obsidian のイベントでワークフローを自動実行：
 5. 必要に応じてファイルパターンフィルターを追加
 
 **ファイルパターン例：**
+
 - `**/*.md` - 全フォルダのすべての Markdown ファイル
 - `journal/*.md` - journal フォルダ内の Markdown ファイルのみ
 - `*.md` - ルートフォルダ内の Markdown ファイルのみ
@@ -330,13 +340,13 @@ Obsidian のイベントでワークフローを自動実行：
 
 **イベント変数：** イベント実行時、以下の変数が自動設定されます：
 
-| 変数 | 説明 |
-|------|------|
-| `__eventType__` | イベント種別：`create`, `modify`, `delete`, `rename`, `file-open` |
-| `__eventFilePath__` | 対象ファイルのパス |
-| `__eventFile__` | ファイル情報 JSON（path, basename, name, extension） |
-| `__eventFileContent__` | ファイル内容（create/modify/file-open イベント時） |
-| `__eventOldPath__` | 変更前パス（rename イベント時のみ） |
+| 変数                   | 説明                                                              |
+| ---------------------- | ----------------------------------------------------------------- |
+| `__eventType__`        | イベント種別：`create`, `modify`, `delete`, `rename`, `file-open` |
+| `__eventFilePath__`    | 対象ファイルのパス                                                |
+| `__eventFile__`        | ファイル情報 JSON（path, basename, name, extension）              |
+| `__eventFileContent__` | ファイル内容（create/modify/file-open イベント時）                |
+| `__eventOldPath__`     | 変更前パス（rename イベント時のみ）                               |
 
 > **Note:** `prompt-file` と `prompt-selection` ノードはイベント実行時に自動的にイベントファイルを使用します。`prompt-selection` はファイル全体を選択として扱います。
 
@@ -347,36 +357,41 @@ Obsidian のイベントでワークフローを自動実行：
 ## 対応モデル
 
 ### 有料プラン
-| モデル | 説明 |
-|--------|------|
-| Gemini 3 Flash Preview | 高速モデル、1M コンテキスト（デフォルト） |
-| Gemini 3 Pro Preview | フラッグシップモデル、1M コンテキスト |
-| Gemini 2.5 Flash Lite | 軽量フラッシュモデル |
-| Gemini 2.5 Flash (Image) | 画像生成、1024px |
-| Gemini 3 Pro (Image) | プロ画像生成、4K |
+
+| モデル                   | 説明                                      |
+| ------------------------ | ----------------------------------------- |
+| Gemini 3 Flash Preview   | 高速モデル、1M コンテキスト（デフォルト） |
+| Gemini 3 Pro Preview     | フラッグシップモデル、1M コンテキスト     |
+| Gemini 2.5 Flash Lite    | 軽量フラッシュモデル                      |
+| Gemini 2.5 Flash (Image) | 画像生成、1024px                          |
+| Gemini 3 Pro (Image)     | プロ画像生成、4K                          |
 
 ### 無料プラン
-| モデル | Vault 操作 |
-|--------|------------|
-| Gemini 2.5 Flash | ✅ |
-| Gemini 2.5 Flash Lite | ✅ |
-| Gemini 3 Flash Preview | ✅ |
-| Gemma 3 (27B/12B/4B/1B) | ❌ |
+
+| モデル                  | Vault 操作 |
+| ----------------------- | ---------- |
+| Gemini 2.5 Flash        | ✅         |
+| Gemini 2.5 Flash Lite   | ✅         |
+| Gemini 3 Flash Preview  | ✅         |
+| Gemma 3 (27B/12B/4B/1B) | ❌         |
 
 ## インストール
 
 ### BRAT（推奨）
+
 1. [BRAT](https://github.com/TfTHacker/obsidian42-brat) プラグインをインストール
 2. BRAT 設定 → 「Add Beta plugin」を開く
 3. `https://github.com/takeshy/obsidian-gemini-helper` を入力
 4. コミュニティプラグイン設定でプラグインを有効化
 
 ### 手動インストール
+
 1. リリースから `main.js`, `manifest.json`, `styles.css` をダウンロード
 2. `.obsidian/plugins/` に `gemini-helper` フォルダを作成
 3. ファイルをコピーして Obsidian 設定で有効化
 
 ### ソースからビルド
+
 ```bash
 git clone https://github.com/takeshy/obsidian-gemini-helper
 cd obsidian-gemini-helper
@@ -387,6 +402,7 @@ npm run build
 ## 設定
 
 ### API 設定
+
 1. [ai.google.dev](https://ai.google.dev) で API キーを取得
 2. プラグイン設定で入力
 3. API プラン（無料/有料）を選択
@@ -396,16 +412,19 @@ npm run build
 ### CLI モード（Gemini / Claude / Codex）
 
 **Gemini CLI:**
+
 1. [Gemini CLI](https://github.com/google-gemini/gemini-cli) をインストール
 2. `gemini` → `/auth` で認証
 3. Gemini CLI セクションで「Verify」をクリック
 
 **Claude CLI:**
+
 1. [Claude Code](https://github.com/anthropics/claude-code) をインストール: `npm install -g @anthropic-ai/claude-code`
 2. `claude` で認証
 3. Claude CLI セクションで「Verify」をクリック
 
 **Codex CLI:**
+
 1. [Codex CLI](https://github.com/openai/codex) をインストール: `npm install -g @openai/codex`
 2. `codex` で認証
 3. Codex CLI セクションで「Verify」をクリック
@@ -413,6 +432,7 @@ npm run build
 **CLI の制限:** Vault 読み取り専用、セマンティック/Web 検索なし
 
 ### ワークスペース設定
+
 - **Workspace Folder** - チャット履歴と設定の保存先
 - **System Prompt** - AI への追加指示
 - **Tool Limits** - 関数呼び出し制限の設定
@@ -439,6 +459,7 @@ npm run build
 各設定は独立して有効/無効を切り替えできます。
 
 **機能:**
+
 - **個別制御** - どのログを暗号化するか選択可能（チャット、ワークフロー、または両方）
 - **自動暗号化** - 設定に基づいて新規ファイルは保存時に暗号化
 - **パスワードキャッシュ** - セッション中は一度入力すればOK
@@ -535,11 +556,13 @@ if __name__ == "__main__":
 ![ファイル暗号化ワークフロー](docs/images/enc.png)
 
 **セキュリティ上のメリット:**
+
 - **AIチャットからの保護** - 暗号化ファイルはAIのVault操作（`read_note`ツール）で読み取ることができません。これにより、APIキーなどの機密データがチャット中に誤って漏洩することを防ぎます。
 - **ワークフローからのアクセス** - ワークフローでは`note-read`ノードを使用して暗号化ファイルを読み取れます。アクセス時にパスワードダイアログが表示され、入力後はセッション中キャッシュされます。
 - **シークレットの安全な保管** - APIキーをワークフローに直接記述する代わりに、暗号化ファイルに保存できます。ワークフローはパスワード認証後に実行時にキーを読み取ります。
 
 ### スラッシュコマンド
+
 - `/` で呼び出すカスタムプロンプトテンプレートを定義
 - コマンドごとにモデルと検索設定を指定可能
 
@@ -548,11 +571,13 @@ if __name__ == "__main__":
 ## 使い方
 
 ### チャットを開く
+
 - リボンの Gemini アイコンをクリック
 - コマンド: "Gemini Helper: Open chat"
 - トグル: "Gemini Helper: Toggle chat / editor"
 
 ### チャット操作
+
 - **Enter** - メッセージ送信
 - **Shift+Enter** - 改行
 - **停止ボタン** - 生成を停止
@@ -562,6 +587,7 @@ if __name__ == "__main__":
 ### ワークフローの使い方
 
 **サイドバーから:**
+
 1. サイドバーで **Workflow** タブを開く
 2. `workflow` コードブロックを含むファイルを開く
 3. ドロップダウンからワークフローを選択
@@ -584,6 +610,7 @@ if __name__ == "__main__":
 ![ワークフロー履歴](docs/images/workflow_history.png)
 
 **フローチャートとして可視化:** Workflow パネルの **Canvas** ボタン（グリッドアイコン）をクリックすると、ワークフローを Obsidian Canvas にエクスポートできます。以下の特徴があります：
+
 - ループや分岐が適切なルーティングで明確に表示
 - 条件分岐ノード（`if`/`while`）は Yes/No パスを表示
 - ループバック矢印はノードを迂回して配置され見やすい
@@ -603,6 +630,7 @@ if __name__ == "__main__":
 ### AI ワークフロー生成
 
 **AI で新規ワークフローを作成：**
+
 1. ワークフロードロップダウンから **+ New (AI)** を選択
 2. ワークフロー名と出力先パス（`{{name}}` 変数対応）を入力
 3. ワークフローの動作を自然言語で記述
@@ -618,6 +646,7 @@ if __name__ == "__main__":
 **@ ファイル参照：**
 
 説明フィールドで `@` を入力するとファイルを参照できます：
+
 - `@{selection}` - 現在のエディタ選択範囲
 - `@{content}` - アクティブなノートの内容
 - `@path/to/file.md` - Vault 内の任意のファイル
@@ -637,6 +666,7 @@ AI ワークフローモーダルはドラッグ＆ドロップでの位置調�
 **リクエスト履歴：**
 
 AI で生成したワークフローは、コードブロックの上に履歴エントリが保存されます：
+
 - タイムスタンプとアクション（作成/修正）
 - リクエストの内容
 - 参照したファイルの内容（折りたたみセクション内）
@@ -644,6 +674,7 @@ AI で生成したワークフローは、コードブロックの上に履歴�
 ![ワークフロー AI 履歴](docs/images/workflow_ai_history.png)
 
 **AI で既存ワークフローを修正：**
+
 1. 既存のワークフローを読み込み
 2. **AI Modify** ボタン（スパークルアイコン）をクリック
 3. 変更したい内容を記述
@@ -674,6 +705,7 @@ AI でワークフローを修正する際、過去の実行結果を参照し�
 ![手動ワークフロー編集](docs/images/modify_workflow_manual.png)
 
 **ファイルから再読み込み：**
+
 - ドロップダウンから **Reload from file** を選択して、Markdown ファイルからワークフローを再インポート
 
 ## 動作要件
@@ -685,29 +717,35 @@ AI でワークフローを修正する際、過去の実行結果を参照し�
 ## プライバシー
 
 **ローカルに保存されるデータ：**
+
 - API キー（Obsidian 設定に保存）
 - チャット履歴（Markdown ファイル、暗号化オプションあり）
 - ワークフロー実行履歴（暗号化オプションあり）
 - 暗号化キー（秘密鍵はパスワードで暗号化）
 
 **Google に送信されるデータ：**
+
 - すべてのチャットメッセージと添付ファイルは Google Gemini API に送信されます
 - RAGを有効にすると、Vault ファイルが Google File Search にアップロードされます
 - Web 検索を有効にすると、検索クエリが Google Search に送信されます
 
 **サードパーティサービスへの送信：**
+
 - ワークフローの `http` ノードは、ワークフローで指定された任意の URL にデータを送信できます
 
 **CLI プロバイダー（オプション）：**
+
 - CLI モードを有効にすると、外部 CLI ツール（gemini, claude, codex）が child_process 経由で実行されます
 - これはユーザーが明示的に設定・検証した場合のみ発生します
 - CLI モードはデスクトップ版のみで利用可能です（モバイル版では使用不可）
 
 **MCP サーバー（オプション）：**
+
 - MCP（Model Context Protocol）サーバーは、ワークフローの `mcp` ノード用にプラグイン設定で構成できます
 - MCP サーバーは追加のツールと機能を提供する外部サービスです
 
 **セキュリティに関する注意：**
+
 - 実行前にワークフローを確認してください。`http` ノードは Vault データを外部エンドポイントに送信できます
 - ワークフローの `note` ノードはデフォルトで書き込み前に確認ダイアログを表示します
 - `confirmEdits: false` を設定したスラッシュコマンドは、Apply/Discard ボタンを表示せずにファイル編集を自動適用します

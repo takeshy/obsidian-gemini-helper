@@ -100,13 +100,19 @@ L'IA peut interagir avec votre coffre en utilisant ces outils :
 
 ### Mode Outils du Coffre
 
-Contrôlez quels outils du coffre l'IA peut utiliser via l'icône de base de données (📦) sous le bouton de pièce jointe :
+Lorsque l'IA gère des notes dans le Chat, elle utilise les outils du Vault. Contrôlez quels outils du coffre l'IA peut utiliser via l'icône de base de données (📦) sous le bouton de pièce jointe :
 
 | Mode | Description | Outils Disponibles |
 |------|-------------|-------------------|
 | **Vault: Tous** | Accès complet au coffre | Tous les outils |
 | **Vault: Sans recherche** | Exclure les outils de recherche | Tous sauf `search_notes`, `list_notes` |
 | **Vault: Désactivé** | Aucun accès au coffre | Aucun |
+
+**Quand utiliser chaque mode :**
+
+- **Vault: Tous** - Mode par défaut pour une utilisation générale. L'IA peut lire, écrire et rechercher dans votre coffre.
+- **Vault: Sans recherche** - Utilisez-le lorsque vous souhaitez rechercher uniquement avec RAG, ou lorsque vous connaissez déjà le fichier cible. Cela évite les recherches redondantes dans le vault, économisant des tokens et améliorant le temps de réponse.
+- **Vault: Désactivé** - Utilisez-le lorsque vous n'avez pas besoin d'accès au vault du tout.
 
 **Sélection automatique du mode :**
 
@@ -119,7 +125,11 @@ Contrôlez quels outils du coffre l'IA peut utiliser via l'icône de base de don
 | RAG activé | Vault: Sans recherche | Oui |
 | Sans RAG | Vault: Tous | Oui |
 
-> **Conseil :** Lors de l'utilisation de RAG, "Vault: Sans recherche" est recommandé pour éviter les recherches redondantes – RAG fournit déjà une recherche sémantique sur tout le coffre.
+**Pourquoi certains modes sont forcés :**
+
+- **Modèles CLI/Gemma** : Ces modèles ne prennent pas en charge les appels de fonction, donc les outils Vault ne peuvent pas être utilisés.
+- **Web Search** : Par conception, les outils Vault sont désactivés lorsque Web Search est activé.
+- **Flash Lite + RAG** : Lorsque RAG et les outils Vault sont tous deux activés, les modèles Flash Lite se confondent et ne fonctionnent pas correctement. RAG est automatiquement priorisé et les outils Vault sont désactivés.
 
 ## Édition Sécurisée
 

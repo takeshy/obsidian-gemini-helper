@@ -100,13 +100,19 @@ La IA puede interactuar con tu vault usando estas herramientas:
 
 ### Modo de Herramientas del Vault
 
-Controla qué herramientas del vault puede usar la IA mediante el icono de base de datos (📦) debajo del botón de adjuntos:
+Cuando la IA maneja notas en el Chat, usa herramientas del Vault. Controla qué herramientas del vault puede usar la IA mediante el icono de base de datos (📦) debajo del botón de adjuntos:
 
 | Modo | Descripción | Herramientas Disponibles |
 |------|-------------|--------------------------|
 | **Vault: Todo** | Acceso completo al vault | Todas las herramientas |
 | **Vault: Sin búsqueda** | Excluir herramientas de búsqueda | Todas excepto `search_notes`, `list_notes` |
 | **Vault: Desactivado** | Sin acceso al vault | Ninguna |
+
+**Cuándo usar cada modo:**
+
+- **Vault: Todo** - Modo predeterminado para uso general. La IA puede leer, escribir y buscar en tu vault.
+- **Vault: Sin búsqueda** - Úsalo cuando quieras buscar solo con RAG, o cuando ya conoces el archivo objetivo. Esto evita búsquedas redundantes en el vault, ahorrando tokens y mejorando el tiempo de respuesta.
+- **Vault: Desactivado** - Úsalo cuando no necesitas acceso al vault en absoluto.
 
 **Selección automática de modo:**
 
@@ -119,7 +125,11 @@ Controla qué herramientas del vault puede usar la IA mediante el icono de base 
 | RAG habilitado | Vault: Sin búsqueda | Sí |
 | Sin RAG | Vault: Todo | Sí |
 
-> **Consejo:** Al usar RAG, se recomienda "Vault: Sin búsqueda" para evitar búsquedas redundantes – RAG ya proporciona búsqueda semántica en todo el vault.
+**Por qué algunos modos son forzados:**
+
+- **Modelos CLI/Gemma**: Estos modelos no soportan llamadas a funciones, por lo que las herramientas del Vault no se pueden usar.
+- **Web Search**: Por diseño, las herramientas del Vault están deshabilitadas cuando Web Search está habilitado.
+- **Flash Lite + RAG**: Cuando tanto RAG como las herramientas del Vault están habilitadas, los modelos Flash Lite se confunden y no funcionan correctamente. RAG se prioriza automáticamente y las herramientas del Vault se deshabilitan.
 
 ## Edición Segura
 

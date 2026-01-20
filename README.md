@@ -100,13 +100,19 @@ The AI can interact with your vault using these tools:
 
 ### Vault Tool Mode
 
-Control which vault tools the AI can use via the Database icon (📦) below the attachment button:
+When the AI handles notes in Chat, it uses Vault tools. Control which vault tools the AI can use via the Database icon (📦) below the attachment button:
 
 | Mode | Description | Tools Available |
 |------|-------------|-----------------|
 | **Vault: All** | Full vault access | All tools |
 | **Vault: No search** | Exclude search tools | All except `search_notes`, `list_notes` |
 | **Vault: Off** | No vault access | None |
+
+**When to use each mode:**
+
+- **Vault: All** - Default mode for general use. The AI can read, write, and search your vault.
+- **Vault: No search** - Use when you want to search only with RAG, or when you already know the target file. This avoids redundant vault searches, saving tokens and improving response time.
+- **Vault: Off** - Use when you don't need vault access at all.
 
 **Automatic mode selection:**
 
@@ -119,7 +125,11 @@ Control which vault tools the AI can use via the Database icon (📦) below the 
 | RAG enabled | Vault: No search | Yes |
 | No RAG | Vault: All | Yes |
 
-> **Tip:** When using RAG, "Vault: No search" is recommended to avoid redundant searches - RAG already provides semantic search across your vault.
+**Why some modes are forced:**
+
+- **CLI/Gemma models**: These models do not support function calling, so Vault tools cannot be used.
+- **Web Search**: By design, Vault tools are disabled when Web Search is enabled.
+- **Flash Lite + RAG**: When both RAG and Vault tools are enabled, Flash Lite models get confused and don't work properly. RAG is automatically prioritized and Vault tools are disabled.
 
 ## Safe Editing
 

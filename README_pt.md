@@ -100,13 +100,19 @@ A IA pode interagir com seu vault usando estas ferramentas:
 
 ### Modo de Ferramentas do Vault
 
-Controle quais ferramentas do vault a IA pode usar através do ícone de banco de dados (📦) abaixo do botão de anexo:
+Quando a IA manipula notas no Chat, ela usa ferramentas do Vault. Controle quais ferramentas do vault a IA pode usar através do ícone de banco de dados (📦) abaixo do botão de anexo:
 
 | Modo | Descrição | Ferramentas Disponíveis |
 |------|-----------|------------------------|
 | **Vault: Tudo** | Acesso completo ao vault | Todas as ferramentas |
 | **Vault: Sem pesquisa** | Excluir ferramentas de pesquisa | Todas exceto `search_notes`, `list_notes` |
 | **Vault: Desligado** | Sem acesso ao vault | Nenhuma |
+
+**Quando usar cada modo:**
+
+- **Vault: Tudo** - Modo padrão para uso geral. A IA pode ler, escrever e pesquisar em seu vault.
+- **Vault: Sem pesquisa** - Use quando quiser pesquisar apenas com RAG, ou quando já souber o arquivo alvo. Isso evita pesquisas redundantes no vault, economizando tokens e melhorando o tempo de resposta.
+- **Vault: Desligado** - Use quando não precisar de acesso ao vault.
 
 **Seleção automática de modo:**
 
@@ -119,7 +125,11 @@ Controle quais ferramentas do vault a IA pode usar através do ícone de banco d
 | RAG habilitado | Vault: Sem pesquisa | Sim |
 | Sem RAG | Vault: Tudo | Sim |
 
-> **Dica:** Ao usar RAG, "Vault: Sem pesquisa" é recomendado para evitar buscas redundantes – RAG já fornece busca semântica em todo o vault.
+**Por que alguns modos são forçados:**
+
+- **Modelos CLI/Gemma**: Esses modelos não suportam chamadas de função, então as ferramentas do Vault não podem ser usadas.
+- **Web Search**: Por design, as ferramentas do Vault são desabilitadas quando Web Search está habilitado.
+- **Flash Lite + RAG**: Quando tanto RAG quanto as ferramentas do Vault estão habilitados, os modelos Flash Lite ficam confusos e não funcionam corretamente. RAG é automaticamente priorizado e as ferramentas do Vault são desabilitadas.
 
 ## Edição Segura
 

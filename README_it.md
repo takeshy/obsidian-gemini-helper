@@ -100,13 +100,19 @@ L'AI può interagire con il tuo vault usando questi strumenti:
 
 ### Modalità Strumenti Vault
 
-Controlla quali strumenti del vault può usare l'AI tramite l'icona del database (📦) sotto il pulsante allegati:
+Quando l'AI gestisce le note nella Chat, utilizza gli strumenti Vault. Controlla quali strumenti del vault può usare l'AI tramite l'icona del database (📦) sotto il pulsante allegati:
 
 | Modalità | Descrizione | Strumenti Disponibili |
 |----------|-------------|----------------------|
 | **Vault: Tutti** | Accesso completo al vault | Tutti gli strumenti |
 | **Vault: Senza ricerca** | Esclude gli strumenti di ricerca | Tutti tranne `search_notes`, `list_notes` |
 | **Vault: Disattivato** | Nessun accesso al vault | Nessuno |
+
+**Quando usare ogni modalità:**
+
+- **Vault: Tutti** - Modalità predefinita per uso generale. L'AI può leggere, scrivere e cercare nel tuo vault.
+- **Vault: Senza ricerca** - Usala quando vuoi cercare solo con RAG, o quando conosci già il file di destinazione. Questo evita ricerche ridondanti nel vault, risparmiando token e migliorando il tempo di risposta.
+- **Vault: Disattivato** - Usala quando non hai bisogno di accesso al vault.
 
 **Selezione automatica della modalità:**
 
@@ -119,7 +125,11 @@ Controlla quali strumenti del vault può usare l'AI tramite l'icona del database
 | RAG abilitato | Vault: Senza ricerca | Sì |
 | Nessun RAG | Vault: Tutti | Sì |
 
-> **Suggerimento:** Quando usi RAG, è consigliato "Vault: Senza ricerca" per evitare ricerche ridondanti – RAG fornisce già la ricerca semantica in tutto il vault.
+**Perché alcune modalità sono forzate:**
+
+- **Modelli CLI/Gemma**: Questi modelli non supportano le chiamate di funzione, quindi gli strumenti Vault non possono essere utilizzati.
+- **Web Search**: Per design, gli strumenti Vault sono disabilitati quando Web Search è abilitata.
+- **Flash Lite + RAG**: Quando sia RAG che gli strumenti Vault sono abilitati, i modelli Flash Lite si confondono e non funzionano correttamente. RAG viene automaticamente prioritizzato e gli strumenti Vault vengono disabilitati.
 
 ## Modifica Sicura
 

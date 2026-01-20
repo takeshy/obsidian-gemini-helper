@@ -100,13 +100,19 @@ Die KI kann mit Ihrem Vault über diese Tools interagieren:
 
 ### Vault-Tool-Modus
 
-Steuern Sie, welche Vault-Tools die KI verwenden kann, über das Datenbank-Symbol (📦) unter dem Anhang-Button:
+Wenn die KI Notizen im Chat verarbeitet, verwendet sie Vault-Tools. Steuern Sie, welche Vault-Tools die KI verwenden kann, über das Datenbank-Symbol (📦) unter dem Anhang-Button:
 
 | Modus | Beschreibung | Verfügbare Tools |
 |-------|--------------|------------------|
 | **Vault: Alle** | Voller Vault-Zugriff | Alle Tools |
 | **Vault: Ohne Suche** | Suchwerkzeuge ausschließen | Alle außer `search_notes`, `list_notes` |
 | **Vault: Aus** | Kein Vault-Zugriff | Keine |
+
+**Wann welcher Modus verwendet werden sollte:**
+
+- **Vault: Alle** - Standardmodus für allgemeine Verwendung. Die KI kann Ihren Vault lesen, schreiben und durchsuchen.
+- **Vault: Ohne Suche** - Verwenden Sie diesen Modus, wenn Sie nur mit RAG suchen möchten oder wenn Sie die Zieldatei bereits kennen. Dies vermeidet redundante Vault-Suchen und spart Tokens und verbessert die Antwortzeit.
+- **Vault: Aus** - Verwenden Sie diesen Modus, wenn Sie überhaupt keinen Vault-Zugriff benötigen.
 
 **Automatische Modusauswahl:**
 
@@ -119,7 +125,11 @@ Steuern Sie, welche Vault-Tools die KI verwenden kann, über das Datenbank-Symbo
 | RAG aktiviert | Vault: Ohne Suche | Ja |
 | Kein RAG | Vault: Alle | Ja |
 
-> **Tipp:** Bei der Verwendung von RAG wird "Vault: Ohne Suche" empfohlen, um redundante Suchen zu vermeiden – RAG bietet bereits semantische Suche über Ihren Vault.
+**Warum einige Modi erzwungen werden:**
+
+- **CLI/Gemma-Modelle**: Diese Modelle unterstützen keine Funktionsaufrufe, daher können Vault-Tools nicht verwendet werden.
+- **Web Search**: Gemäß Design sind Vault-Tools deaktiviert, wenn Web Search aktiviert ist.
+- **Flash Lite + RAG**: Wenn sowohl RAG als auch Vault-Tools aktiviert sind, werden Flash Lite-Modelle verwirrt und funktionieren nicht richtig. RAG wird automatisch priorisiert und Vault-Tools werden deaktiviert.
 
 ## Sicheres Bearbeiten
 

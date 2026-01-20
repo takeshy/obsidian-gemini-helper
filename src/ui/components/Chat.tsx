@@ -29,7 +29,7 @@ import {
 } from "src/types";
 import { getGeminiClient } from "src/core/gemini";
 import { getEnabledTools } from "src/core/tools";
-import { fetchMcpTools, createMcpToolExecutor, isMcpTool, type McpToolDefinition } from "src/core/mcpTools";
+import { fetchMcpTools, createMcpToolExecutor, isMcpTool, type McpToolDefinition, type McpToolExecutor } from "src/core/mcpTools";
 import { GeminiCliProvider, ClaudeCliProvider, CodexCliProvider } from "src/core/cliProvider";
 import { createToolExecutor } from "src/vault/toolExecutor";
 import {
@@ -171,10 +171,13 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 		}
 		return "all";
 	});
+	// MCP servers state: local copy with per-server enabled state (for chat session)
+	const [mcpServers, setMcpServers] = useState(() => [...plugin.settings.mcpServers]);
 	const messagesContainerRef = useRef<HTMLDivElement>(null);
 	const abortControllerRef = useRef<AbortController | null>(null);
 	const inputAreaRef = useRef<InputAreaHandle>(null);
 	const currentSlashCommandRef = useRef<SlashCommand | null>(null);
+	const mcpExecutorRef = useRef<McpToolExecutor | null>(null);
 	const [vaultFiles, setVaultFiles] = useState<string[]>([]);
 	const [hasSelection, setHasSelection] = useState(false);
 	const [cliConfig, setCliConfig] = useState(plugin.settings.cliConfig || DEFAULT_CLI_CONFIG);
@@ -540,6 +543,16 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 		void loadChatHistories();
 	}, [loadChatHistories]);
 
+	// Cleanup MCP executor on unmount
+	useEffect(() => {
+		return () => {
+			if (mcpExecutorRef.current) {
+				void mcpExecutorRef.current.cleanup();
+				mcpExecutorRef.current = null;
+			}
+		};
+	}, []);
+
 	// Load vault files for @ mention suggestions
 	useEffect(() => {
 		const updateVaultFiles = () => {
@@ -679,6 +692,8 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 			setRagEnabledState(plugin.settings.ragEnabled);
 			setCliConfig(plugin.settings.cliConfig || DEFAULT_CLI_CONFIG);
 			setHasApiKey(!!plugin.settings.googleApiKey);
+			// Sync MCP servers from settings
+			setMcpServers([...plugin.settings.mcpServers]);
 		};
 		plugin.settingsEmitter.on("settings-updated", handleSettingsUpdated);
 		return () => {
@@ -725,6 +740,21 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 	// Handle vault tool mode change from UI
 	const handleVaultToolModeChange = (mode: "all" | "noSearch" | "none") => {
 		setVaultToolMode(mode);
+		// When vault tools are disabled, also disable all MCP servers
+		if (mode === "none") {
+			setMcpServers(servers => servers.map(s => ({ ...s, enabled: false })));
+		}
+	};
+
+	// Handle per-server MCP toggle from UI
+	const handleMcpServerToggle = (serverName: string, enabled: boolean) => {
+		setMcpServers(servers => {
+			const updated = servers.map(s => s.name === serverName ? { ...s, enabled } : s);
+			// Save to settings
+			plugin.settings.mcpServers = updated;
+			void plugin.saveSettings();
+			return updated;
+		});
 	};
 
 	// Handle model change from UI
@@ -920,6 +950,11 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 		setStreamingContent("");
 		setStreamingThinking("");
 		setShowHistory(false);
+		// Cleanup MCP executor session
+		if (mcpExecutorRef.current) {
+			void mcpExecutorRef.current.cleanup();
+			mcpExecutorRef.current = null;
+		}
 	};
 
 	// Decrypt and load encrypted chat
@@ -1197,15 +1232,25 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 					ragEnabled: allowRag,
 				}) : [];
 
-				// Fetch MCP tools from configured servers
-				const mcpTools: McpToolDefinition[] = toolsEnabled && settings.mcpServers.length > 0
-					? await fetchMcpTools(settings.mcpServers)
+				// Fetch MCP tools from enabled servers only
+				const enabledMcpServers = mcpServers.filter(s => s.enabled);
+				const mcpTools: McpToolDefinition[] = toolsEnabled && enabledMcpServers.length > 0
+					? await fetchMcpTools(enabledMcpServers)
 					: [];
+
+				// Cleanup previous MCP executor if exists
+				if (mcpExecutorRef.current) {
+					void mcpExecutorRef.current.cleanup();
+					mcpExecutorRef.current = null;
+				}
 
 				// Create MCP tool executor
 				const mcpToolExecutor = mcpTools.length > 0
 					? createMcpToolExecutor(mcpTools)
 					: undefined;
+
+				// Store for session reuse
+				mcpExecutorRef.current = mcpToolExecutor ?? null;
 
 				// Merge Obsidian tools and MCP tools
 				const allTools = [...obsidianTools, ...mcpTools];
@@ -1254,7 +1299,7 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 					? async (name: string, args: Record<string, unknown>) => {
 						// MCP tools start with "mcp_"
 						if (name.startsWith("mcp_") && mcpToolExecutor) {
-							return await mcpToolExecutor(name, args);
+							return await mcpToolExecutor.execute(name, args);
 						}
 						// Otherwise use Obsidian tool executor
 						if (obsidianToolExecutor) {
@@ -1864,6 +1909,8 @@ Always be helpful and provide clear, concise responses. When working with notes,
 						vaultToolMode={vaultToolMode}
 						onVaultToolModeChange={handleVaultToolModeChange}
 						vaultToolModeOnlyNone={isCliMode || isGemmaModel || selectedRagSetting === "__websearch__" || (isFlashLiteModel && !!selectedRagSetting && selectedRagSetting !== "__websearch__")}
+						mcpServers={mcpServers}
+						onMcpServerToggle={handleMcpServerToggle}
 						slashCommands={plugin.settings.slashCommands}
 						onSlashCommand={handleSlashCommand}
 						vaultFiles={vaultFiles}

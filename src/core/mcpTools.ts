@@ -27,6 +27,53 @@ function getServerKey(server: McpServerConfig): string {
 }
 
 /**
+ * Convert MCP property schema to Gemini format recursively
+ */
+function convertPropertySchema(prop: Record<string, unknown>): ToolPropertyDefinition {
+  const result: ToolPropertyDefinition = {
+    type: (prop.type as string) || "string",
+    description: (prop.description as string) || "",
+  };
+
+  if (prop.enum) {
+    result.enum = prop.enum as string[];
+  }
+
+  // Handle array type - must have items for Gemini API
+  if (prop.type === "array") {
+    if (prop.items) {
+      const items = prop.items as Record<string, unknown>;
+      if (items.type === "object" && items.properties) {
+        // Array of objects
+        const nestedProps: Record<string, ToolPropertyDefinition> = {};
+        for (const [k, v] of Object.entries(items.properties as Record<string, unknown>)) {
+          nestedProps[k] = convertPropertySchema(v as Record<string, unknown>);
+        }
+        result.items = {
+          type: "object",
+          properties: nestedProps,
+          required: items.required as string[] | undefined,
+        };
+      } else {
+        // Array of primitives
+        result.items = {
+          type: (items.type as string) || "string",
+          description: (items.description as string) || "",
+        };
+      }
+    } else {
+      // Default to array of strings if items not specified
+      result.items = {
+        type: "string",
+        description: "",
+      };
+    }
+  }
+
+  return result;
+}
+
+/**
  * Convert MCP tool schema to Gemini tool format
  */
 function convertMcpToolToGemini(
@@ -42,13 +89,7 @@ function convertMcpToolToGemini(
   if (inputSchema.properties && typeof inputSchema.properties === "object") {
     for (const [key, value] of Object.entries(inputSchema.properties)) {
       const prop = value as Record<string, unknown>;
-      properties[key] = {
-        type: (prop.type as string) || "string",
-        description: (prop.description as string) || "",
-      };
-      if (prop.enum) {
-        properties[key].enum = prop.enum as string[];
-      }
+      properties[key] = convertPropertySchema(prop);
     }
   }
 
@@ -106,8 +147,11 @@ export async function fetchMcpTools(
     return [];
   }
 
-  const allTools: McpToolDefinition[] = [];
   const now = Date.now();
+
+  // Separate servers into cached and needs-fetch
+  const cachedTools: McpToolDefinition[] = [];
+  const serversToFetch: McpServerConfig[] = [];
 
   for (const server of servers) {
     const cacheKey = getServerKey(server);
@@ -115,23 +159,27 @@ export async function fetchMcpTools(
 
     // Use cache if available and not expired
     if (!forceRefresh && cached && (now - cached.fetchedAt) < CACHE_TTL_MS) {
-      allTools.push(...cached.tools);
-      continue;
+      cachedTools.push(...cached.tools);
+    } else {
+      serversToFetch.push(server);
     }
-
-    // Fetch fresh tools
-    const tools = await fetchToolsFromServer(server);
-
-    // Update cache
-    toolsCache.set(cacheKey, {
-      tools,
-      fetchedAt: now,
-    });
-
-    allTools.push(...tools);
   }
 
-  return allTools;
+  // Fetch from servers in parallel
+  const fetchResults = await Promise.all(
+    serversToFetch.map(async (server) => {
+      const tools = await fetchToolsFromServer(server);
+      // Update cache
+      toolsCache.set(getServerKey(server), {
+        tools,
+        fetchedAt: now,
+      });
+      return tools;
+    })
+  );
+
+  // Combine cached and freshly fetched tools
+  return [...cachedTools, ...fetchResults.flat()];
 }
 
 /**
@@ -142,39 +190,76 @@ export function isMcpTool(tool: ToolDefinition): tool is McpToolDefinition {
 }
 
 /**
- * Create an MCP tool executor
- * Returns a function that executes MCP tools by name
+ * MCP tool executor with session management
+ * Reuses MCP client connections for better performance
+ */
+export interface McpToolExecutor {
+  execute: (toolName: string, args: Record<string, unknown>) => Promise<unknown>;
+  cleanup: () => Promise<void>;
+}
+
+/**
+ * Create an MCP tool executor with session reuse
+ * Returns an executor object with execute and cleanup methods
  */
 export function createMcpToolExecutor(
   mcpTools: McpToolDefinition[]
-): (toolName: string, args: Record<string, unknown>) => Promise<unknown> {
+): McpToolExecutor {
   // Create a map for quick lookup
   const toolMap = new Map<string, McpToolDefinition>();
   for (const tool of mcpTools) {
     toolMap.set(tool.name, tool);
   }
 
-  return async (toolName: string, args: Record<string, unknown>): Promise<unknown> => {
+  // Client pool keyed by server URL
+  const clientPool = new Map<string, McpClient>();
+
+  const getClient = async (server: McpServerConfig): Promise<McpClient> => {
+    const key = getServerKey(server);
+    let client = clientPool.get(key);
+
+    if (!client) {
+      client = new McpClient(server);
+      await client.initialize();
+      clientPool.set(key, client);
+    }
+
+    return client;
+  };
+
+  const execute = async (toolName: string, args: Record<string, unknown>): Promise<unknown> => {
     const tool = toolMap.get(toolName);
     if (!tool) {
       return { error: `MCP tool not found: ${toolName}` };
     }
 
-    const client = new McpClient(tool.mcpServer);
-
     try {
-      await client.initialize();
+      const client = await getClient(tool.mcpServer);
       const result = await client.callTool(tool.mcpToolName, args);
-      await client.close();
-
       return { result };
     } catch (error) {
-      await client.close().catch(() => {});
+      // On error, remove the client from pool to force reconnection on next call
+      const key = getServerKey(tool.mcpServer);
+      const client = clientPool.get(key);
+      if (client) {
+        await client.close().catch(() => {});
+        clientPool.delete(key);
+      }
 
       const errorMessage = error instanceof Error ? error.message : String(error);
       return { error: `MCP tool execution failed: ${errorMessage}` };
     }
   };
+
+  const cleanup = async (): Promise<void> => {
+    const closePromises = Array.from(clientPool.values()).map(client =>
+      client.close().catch(() => {})
+    );
+    await Promise.all(closePromises);
+    clientPool.clear();
+  };
+
+  return { execute, cleanup };
 }
 
 /**

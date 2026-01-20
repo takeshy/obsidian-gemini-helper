@@ -478,11 +478,22 @@ export class GeminiHelperPlugin extends Plugin {
     this.settings = {
       ...DEFAULT_SETTINGS,
       ...loaded,
-      // Deep copy array to avoid mutating DEFAULT_SETTINGS
+      // Deep copy arrays to avoid mutating DEFAULT_SETTINGS
       // Use loaded commands if present, otherwise use default commands
       slashCommands: loaded.slashCommands
         ? [...loaded.slashCommands]
         : [...DEFAULT_SETTINGS.slashCommands],
+      // Deep copy MCP servers
+      mcpServers: loaded.mcpServers
+        ? [...loaded.mcpServers]
+        : [],
+      // Deep copy workflow arrays
+      enabledWorkflowHotkeys: loaded.enabledWorkflowHotkeys
+        ? [...loaded.enabledWorkflowHotkeys]
+        : [],
+      enabledWorkflowEventTriggers: loaded.enabledWorkflowEventTriggers
+        ? [...loaded.enabledWorkflowEventTriggers]
+        : [],
       // Deep merge editHistory settings
       editHistory: {
         ...DEFAULT_EDIT_HISTORY_SETTINGS,
@@ -886,7 +897,6 @@ export class GeminiHelperPlugin extends Plugin {
       return regex.test(filePath);
     } catch {
       // Invalid regex pattern, return false
-      console.warn(`Invalid file pattern: ${pattern}`);
       return false;
     }
   }

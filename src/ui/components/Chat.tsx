@@ -1232,8 +1232,10 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 					ragEnabled: allowRag,
 				}) : [];
 
-				// Fetch MCP tools from enabled servers only
-				const enabledMcpServers = mcpServers.filter(s => s.enabled);
+				// Fetch MCP tools from enabled servers only (skip if vaultToolMode is "none")
+				const enabledMcpServers = vaultToolMode !== "none"
+					? mcpServers.filter(s => s.enabled)
+					: [];
 				const mcpTools: McpToolDefinition[] = toolsEnabled && enabledMcpServers.length > 0
 					? await fetchMcpTools(enabledMcpServers)
 					: [];

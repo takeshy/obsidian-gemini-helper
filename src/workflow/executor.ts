@@ -932,7 +932,7 @@ export class WorkflowExecutor {
                   promptForFile: () => Promise.resolve(null),
                   promptForSelection: () => Promise.resolve(null),
                   promptForValue: () => Promise.resolve(null),
-                  promptForConfirmation: () => Promise.resolve(false),
+                  promptForConfirmation: () => Promise.resolve({ confirmed: false }),
                   executeSubWorkflow
                 };
 

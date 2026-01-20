@@ -184,6 +184,8 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 	const [hasApiKey, setHasApiKey] = useState(!!plugin.settings.googleApiKey);
 	const [decryptingChatId, setDecryptingChatId] = useState<string | null>(null);
 	const [decryptPassword, setDecryptPassword] = useState("");
+	// Pending feedback for edit rejection (to be sent after state update)
+	const [pendingEditFeedback, setPendingEditFeedback] = useState<{ filePath: string; request: string } | null>(null);
 
 	// CLI provider state (CLI not available on mobile)
 	const geminiCliVerified = !Platform.isMobile && cliConfig.cliVerified === true;
@@ -710,6 +712,21 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 		}
 	}, [apiPlan, currentModel, plugin]);
 
+	// Handle pending edit feedback (send after state update to avoid closure issues)
+	useEffect(() => {
+		if (pendingEditFeedback && !isLoading) {
+			const { filePath, request } = pendingEditFeedback;
+			setPendingEditFeedback(null);
+
+			// Build simple feedback message (chat already shows the original request and AI's proposal)
+			const feedbackMessage = request.trim()
+				? `${t("message.editFeedbackHeader", { filePath })}\n\n${t("message.editFeedbackUserRequest")}\n\n${request}`
+				: `${t("message.editFeedbackHeader", { filePath })}\n\n${t("message.editFeedbackRetry")}`;
+
+			void sendMessage(feedbackMessage);
+		}
+	}, [pendingEditFeedback, isLoading]);
+
 	// Check if current model is Flash Lite or Gemma
 	const isFlashLiteModel = currentModel.toLowerCase().includes("flash-lite");
 	const isGemmaModel = currentModel.toLowerCase().includes("gemma");
@@ -857,8 +874,6 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 			if (!selection) {
 				selection = plugin.getLastSelection();
 				locationInfo = plugin.getSelectionLocation();
-				// Clear cached selection after using it
-				plugin.clearLastSelection();
 			}
 
 			// Build selection text with location info
@@ -1295,6 +1310,8 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 				// Track processed edits/deletes for message display
 				const processedEdits: PendingEditInfo[] = [];
 				const processedDeletes: PendingDeleteInfo[] = [];
+				// Track pending additional request for edit feedback (use container to bypass TS narrowing)
+				const pendingAdditionalRequestRef: { current: { filePath: string; request: string } | null } = { current: null };
 
 				// Combined tool executor that routes to Obsidian or MCP executor based on tool name
 				const baseToolExecutor = (obsidianToolExecutor || mcpToolExecutor)
@@ -1335,7 +1352,7 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 										return { ...result, applied: false, error: applyResult.error };
 									}
 								} else {
-									const confirmed = await promptForConfirmation(
+									const confirmResult = await promptForConfirmation(
 										plugin.app,
 										pending.originalPath,
 										pending.newContent,
@@ -1343,7 +1360,7 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 										pending.originalContent
 									);
 
-									if (confirmed) {
+									if (confirmResult.confirmed) {
 										const applyResult = await applyEdit(plugin.app);
 										if (applyResult.success) {
 											processedEdits.push({ originalPath: pending.originalPath, status: "applied" });
@@ -1353,6 +1370,15 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 											processedEdits.push({ originalPath: pending.originalPath, status: "failed" });
 											return { ...result, applied: false, error: applyResult.error };
 										}
+									} else if (confirmResult.additionalRequest !== undefined) {
+										// User requested changes with feedback
+										discardEdit(plugin.app);
+										processedEdits.push({ originalPath: pending.originalPath, status: "discarded" });
+										pendingAdditionalRequestRef.current = {
+											filePath: pending.originalPath,
+											request: confirmResult.additionalRequest,
+										};
+										return { ...result, applied: false, message: "User requested changes" };
 									} else {
 										discardEdit(plugin.app);
 										processedEdits.push({ originalPath: pending.originalPath, status: "discarded" });
@@ -1649,6 +1675,14 @@ Always be helpful and provide clear, concise responses. When working with notes,
 
 				// Save chat history
 				await saveCurrentChat(newMessages);
+
+				// Check if user requested changes with feedback - use state to trigger send after re-render
+				if (pendingAdditionalRequestRef.current) {
+					const requestInfo = pendingAdditionalRequestRef.current;
+					pendingAdditionalRequestRef.current = null; // Clear to prevent re-sending
+					// Set state to trigger useEffect which will send the message after messages state is updated
+					setPendingEditFeedback(requestInfo);
+				}
 			};
 
 			const retryDelays = apiPlan === "paid" ? PAID_RATE_LIMIT_RETRY_DELAYS_MS : [];

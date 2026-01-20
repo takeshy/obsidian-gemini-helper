@@ -1395,12 +1395,12 @@ export async function handleNoteNode(
   const confirm = node.properties["confirm"] !== "false";
 
   if (confirm && promptCallbacks?.promptForConfirmation) {
-    const confirmed = await promptCallbacks.promptForConfirmation(
+    const confirmResult = await promptCallbacks.promptForConfirmation(
       notePath,
       content,
       mode
     );
-    if (!confirmed) {
+    if (!confirmResult.confirmed) {
       throw new Error("Note write cancelled by user");
     }
   }

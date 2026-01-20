@@ -954,6 +954,33 @@
   opacity: 0.9;
 }
 
+/* Edit Additional Request */
+.gemini-helper-edit-additional {
+  margin-bottom: 10px;
+}
+
+.gemini-helper-edit-additional-input {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 4px;
+  background: var(--background-primary);
+  resize: vertical;
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--text-normal);
+  box-sizing: border-box;
+}
+
+.gemini-helper-edit-additional-input:focus {
+  border-color: var(--interactive-accent);
+  outline: none;
+}
+
+.gemini-helper-edit-additional-input::placeholder {
+  color: var(--text-muted);
+}
+
 /* Edit Status */
 .gemini-helper-edit-status {
   margin-top: 10px;
@@ -2461,6 +2488,46 @@
   font-size: 13px;
   border-radius: 4px;
   cursor: pointer;
+}
+
+/* Utility classes */
+.gemini-helper-hidden {
+  display: none;
+}
+
+/* Edit Confirmation Additional Request */
+.gemini-helper-edit-additional-container {
+  padding: 0 16px 16px;
+}
+
+.gemini-helper-edit-additional-label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 14px;
+  color: var(--text-muted);
+}
+
+.gemini-helper-edit-confirm-modal .gemini-helper-edit-additional-input {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 4px;
+  background: var(--background-primary);
+  resize: vertical;
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--text-normal);
+  box-sizing: border-box;
+  min-height: 80px;
+}
+
+.gemini-helper-edit-confirm-modal .gemini-helper-edit-additional-input:focus {
+  border-color: var(--interactive-accent);
+  outline: none;
+}
+
+.gemini-helper-edit-confirm-modal .gemini-helper-edit-additional-input::placeholder {
+  color: var(--text-muted);
 }
 
 /* ===============================================

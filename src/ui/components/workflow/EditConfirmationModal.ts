@@ -82,6 +82,14 @@ export function computeLineDiff(oldText: string, newText: string): DiffLine[] {
 }
 
 /**
+ * Result type for edit confirmation
+ */
+export interface EditConfirmationResult {
+  confirmed: boolean;
+  additionalRequest?: string;
+}
+
+/**
  * Modal for confirming file edits before writing
  * Shows file path, mode, and content preview
  * Resizable and draggable like HTMLPreviewModal
@@ -91,8 +99,11 @@ export class EditConfirmationModal extends Modal {
   private content: string;
   private originalContent: string;
   private mode: string;
-  private resolvePromise: ((value: boolean) => void) | null = null;
+  private resolvePromise: ((value: EditConfirmationResult) => void) | null = null;
   private component: Component;
+  private isShowingAdditionalRequest = false;
+  private additionalRequestEl: HTMLTextAreaElement | null = null;
+  private requestChangesBtn: HTMLButtonElement | null = null;
 
   // Drag state
   private isDragging = false;
@@ -193,6 +204,22 @@ export class EditConfirmationModal extends Modal {
       );
     }
 
+    // Additional request textarea (hidden initially)
+    const additionalRequestContainer = contentEl.createDiv({
+      cls: "gemini-helper-edit-additional-container gemini-helper-hidden",
+    });
+
+    additionalRequestContainer.createEl("label", {
+      text: t("message.additionalPlaceholder"),
+      cls: "gemini-helper-edit-additional-label",
+    });
+
+    this.additionalRequestEl = additionalRequestContainer.createEl("textarea", {
+      cls: "gemini-helper-edit-additional-input",
+      placeholder: t("message.additionalPlaceholder"),
+    });
+    this.additionalRequestEl.rows = 3;
+
     // Action buttons
     const actions = contentEl.createDiv({
       cls: "gemini-helper-edit-confirm-actions",
@@ -200,16 +227,40 @@ export class EditConfirmationModal extends Modal {
 
     const cancelBtn = actions.createEl("button", { text: t("workflowModal.cancel") });
     cancelBtn.addEventListener("click", () => {
-      this.resolvePromise?.(false);
+      this.resolvePromise?.({ confirmed: false });
       this.close();
     });
 
+    this.requestChangesBtn = actions.createEl("button", {
+      text: t("message.requestChanges"),
+      cls: "mod-warning",
+    });
+    this.requestChangesBtn.addEventListener("click", () => {
+      if (this.isShowingAdditionalRequest) {
+        // Second click: submit with additional request
+        const additionalRequest = this.additionalRequestEl?.value || "";
+        this.resolvePromise?.({
+          confirmed: false,
+          additionalRequest,
+        });
+        this.close();
+      } else {
+        // First click: show textarea
+        this.isShowingAdditionalRequest = true;
+        additionalRequestContainer.removeClass("gemini-helper-hidden");
+        if (this.requestChangesBtn) {
+          this.requestChangesBtn.textContent = t("message.regenerate");
+        }
+        this.additionalRequestEl?.focus();
+      }
+    });
+
     const confirmBtn = actions.createEl("button", {
-      text: t("workflowModal.confirm"),
+      text: t("message.apply"),
       cls: "mod-cta",
     });
     confirmBtn.addEventListener("click", () => {
-      this.resolvePromise?.(true);
+      this.resolvePromise?.({ confirmed: true });
       this.close();
     });
 
@@ -367,14 +418,14 @@ export class EditConfirmationModal extends Modal {
     this.component.unload();
     this.contentEl.empty();
     // If closed without clicking a button, treat as cancel
-    this.resolvePromise?.(false);
+    this.resolvePromise?.({ confirmed: false });
   }
 
   /**
    * Open the modal and wait for user response
-   * @returns Promise<boolean> - true if confirmed, false if cancelled
+   * @returns Promise<EditConfirmationResult> - result with confirmed status and optional additional request
    */
-  openAndWait(): Promise<boolean> {
+  openAndWait(): Promise<EditConfirmationResult> {
     return new Promise((resolve) => {
       this.resolvePromise = resolve;
       this.open();
@@ -389,7 +440,7 @@ export class EditConfirmationModal extends Modal {
  * @param content - Content to be written
  * @param mode - Write mode (create, append, overwrite)
  * @param originalContent - Original content for diff display (optional)
- * @returns Promise<boolean> - true if confirmed, false if cancelled
+ * @returns Promise<EditConfirmationResult> - result with confirmed status and optional additional request
  */
 export function promptForConfirmation(
   app: App,
@@ -397,7 +448,7 @@ export function promptForConfirmation(
   content: string,
   mode: string,
   originalContent?: string
-): Promise<boolean> {
+): Promise<EditConfirmationResult> {
   const modal = new EditConfirmationModal(app, filePath, content, mode, originalContent);
   return modal.openAndWait();
 }

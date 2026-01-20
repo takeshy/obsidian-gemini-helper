@@ -1,3 +1,5 @@
+import type { EditConfirmationResult } from "src/ui/components/workflow/EditConfirmationModal";
+
 // Workflow node types
 export type WorkflowNodeType =
   | "variable"
@@ -171,7 +173,7 @@ export interface PromptCallbacks {
     filePath: string,
     content: string,
     mode: string
-  ) => Promise<boolean>;
+  ) => Promise<EditConfirmationResult>;
   promptForDialog?: (
     title: string,
     message: string,

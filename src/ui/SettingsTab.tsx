@@ -12,6 +12,7 @@ import type { GeminiHelperPlugin } from "src/plugin";
 import { getFileSearchManager } from "src/core/fileSearch";
 import { verifyCli, verifyClaudeCli, verifyCodexCli } from "src/core/cliProvider";
 import { McpClient } from "src/core/mcpClient";
+import { clearMcpToolsCache } from "src/core/mcpTools";
 import { formatError } from "src/utils/error";
 import { t } from "src/i18n";
 import {
@@ -344,6 +345,9 @@ class McpServerModal extends Modal {
   private isNew: boolean;
   private onSubmit: (server: McpServerConfig) => void | Promise<void>;
   private headersText = "";
+  private connectionTested = false;
+  private saveBtn: import("obsidian").ButtonComponent | null = null;
+  private testRequiredEl: HTMLElement | null = null;
 
   constructor(
     app: App,
@@ -352,12 +356,16 @@ class McpServerModal extends Modal {
   ) {
     super(app);
     this.isNew = server === null;
+    // For existing servers with toolHints, consider connection already tested
+    this.connectionTested = server !== null && Array.isArray(server.toolHints) && server.toolHints.length > 0;
     this.server = server
       ? { ...server }
       : {
           name: "",
           url: "",
           headers: undefined,
+          enabled: true,
+          toolHints: undefined,
         };
     this.headersText = this.server.headers ? JSON.stringify(this.server.headers, null, 2) : "";
     this.onSubmit = onSubmit;
@@ -428,41 +436,55 @@ class McpServerModal extends Modal {
         })
     );
 
+    // Test required message
+    this.testRequiredEl = contentEl.createDiv({ cls: "gemini-helper-mcp-test-required" });
+    this.testRequiredEl.setText(t("settings.testConnectionRequired"));
+    if (this.connectionTested) {
+      this.testRequiredEl.addClass("gemini-helper-hidden");
+    }
+
     // Action buttons
-    new Setting(contentEl)
-      .addButton((btn) =>
-        btn.setButtonText(t("common.cancel")).onClick(() => this.close())
-      )
-      .addButton((btn) =>
-        btn
-          .setButtonText(this.isNew ? t("common.create") : t("common.save"))
-          .setCta()
-          .onClick(() => {
-            if (!this.server.name.trim()) {
-              new Notice(t("settings.mcpServerNameRequired"));
+    const actionSetting = new Setting(contentEl);
+    actionSetting.addButton((btn) =>
+      btn.setButtonText(t("common.cancel")).onClick(() => this.close())
+    );
+    actionSetting.addButton((btn) => {
+      this.saveBtn = btn;
+      btn
+        .setButtonText(this.isNew ? t("common.create") : t("common.save"))
+        .setCta()
+        .onClick(() => {
+          if (!this.server.name.trim()) {
+            new Notice(t("settings.mcpServerNameRequired"));
+            return;
+          }
+          if (!this.server.url.trim()) {
+            new Notice(t("settings.mcpServerUrlRequired"));
+            return;
+          }
+          if (!this.connectionTested) {
+            new Notice(t("settings.testConnectionRequired"));
+            return;
+          }
+
+          // Parse headers
+          if (this.headersText.trim()) {
+            try {
+              this.server.headers = JSON.parse(this.headersText);
+            } catch {
+              new Notice(t("settings.mcpServerInvalidHeaders"));
               return;
             }
-            if (!this.server.url.trim()) {
-              new Notice(t("settings.mcpServerUrlRequired"));
-              return;
-            }
+          } else {
+            this.server.headers = undefined;
+          }
 
-            // Parse headers
-            if (this.headersText.trim()) {
-              try {
-                this.server.headers = JSON.parse(this.headersText);
-              } catch {
-                new Notice(t("settings.mcpServerInvalidHeaders"));
-                return;
-              }
-            } else {
-              this.server.headers = undefined;
-            }
-
-            void this.onSubmit(this.server);
-            this.close();
-          })
-      );
+          void this.onSubmit(this.server);
+          this.close();
+        });
+      // Disable save button if connection not tested
+      btn.setDisabled(!this.connectionTested);
+    });
   }
 
   private async testConnection(statusEl: HTMLElement, btnEl: HTMLButtonElement): Promise<void> {
@@ -489,15 +511,49 @@ class McpServerModal extends Modal {
         name: this.server.name || "test",
         url: this.server.url,
         headers,
+        enabled: true,
       });
 
       await client.initialize();
       const tools = await client.listTools();
       await client.close();
 
+      // Save tool hints
+      const toolNames = tools.map(tool => tool.name);
+      this.server.toolHints = toolNames;
+
+      // Mark connection as tested and enable save button
+      this.connectionTested = true;
+      if (this.saveBtn) {
+        this.saveBtn.setDisabled(false);
+      }
+      if (this.testRequiredEl) {
+        this.testRequiredEl.addClass("gemini-helper-hidden");
+      }
+
       statusEl.addClass("gemini-helper-mcp-status--success");
-      statusEl.setText(t("settings.mcpConnectionSuccess", { count: String(tools.length) }));
+      statusEl.empty();
+
+      // Show tool count
+      const countEl = statusEl.createDiv({ cls: "gemini-helper-mcp-tools-count" });
+      countEl.setText(t("settings.mcpConnectionSuccess", { count: String(tools.length) }));
+
+      // Show tool names if any
+      if (tools.length > 0) {
+        const toolsEl = statusEl.createDiv({ cls: "gemini-helper-mcp-tools-list" });
+        toolsEl.setText(toolNames.join(", "));
+      }
     } catch (error) {
+      // Reset connection tested flag on error
+      this.connectionTested = false;
+      this.server.toolHints = undefined;
+      if (this.saveBtn) {
+        this.saveBtn.setDisabled(true);
+      }
+      if (this.testRequiredEl) {
+        this.testRequiredEl.removeClass("gemini-helper-hidden");
+      }
+
       statusEl.addClass("gemini-helper-mcp-status--error");
       statusEl.setText(t("settings.mcpConnectionFailed", { error: formatError(error) }));
     } finally {
@@ -1975,6 +2031,7 @@ export class SettingsTab extends PluginSettingTab {
               async (server) => {
                 this.plugin.settings.mcpServers.push(server);
                 await this.plugin.saveSettings();
+                clearMcpToolsCache();
                 this.display();
                 new Notice(t("settings.mcpServerCreated", { name: server.name }));
               }
@@ -1989,9 +2046,15 @@ export class SettingsTab extends PluginSettingTab {
       emptyEl.textContent = t("settings.mcpNoServers");
     } else {
       for (const server of servers) {
+        // Build description with URL and tool hints
+        let desc = server.url;
+        if (server.toolHints && server.toolHints.length > 0) {
+          desc += `\n${t("settings.mcpToolHints", { tools: server.toolHints.join(", ") })}`;
+        }
+
         const serverSetting = new Setting(containerEl)
           .setName(server.name)
-          .setDesc(server.url);
+          .setDesc(desc);
 
         // Edit button
         serverSetting.addExtraButton((btn) => {
@@ -2009,6 +2072,7 @@ export class SettingsTab extends PluginSettingTab {
                   if (index >= 0) {
                     this.plugin.settings.mcpServers[index] = updated;
                     await this.plugin.saveSettings();
+                    clearMcpToolsCache();
                     this.display();
                     new Notice(t("settings.mcpServerUpdated", { name: updated.name }));
                   }
@@ -2027,6 +2091,7 @@ export class SettingsTab extends PluginSettingTab {
                 (s) => !(s.name === server.name && s.url === server.url)
               );
               await this.plugin.saveSettings();
+              clearMcpToolsCache();
               this.display();
               new Notice(t("settings.mcpServerDeleted", { name: server.name }));
             });

@@ -3717,6 +3717,109 @@
   background: transparent;
 }
 
+/* Tool settings modal (for vault + MCP) */
+.gemini-helper-tool-settings-modal {
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  margin-bottom: 4px;
+  min-width: 200px;
+  background: var(--background-secondary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 100;
+  padding: 12px;
+}
+
+.gemini-helper-tool-settings-content {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.gemini-helper-tool-settings-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.gemini-helper-tool-settings-row > label {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.gemini-helper-tool-settings-row > label:has(input[type="checkbox"]) {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-normal);
+  cursor: pointer;
+}
+
+.gemini-helper-tool-settings-row > label:has(input[type="checkbox"]:disabled) {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.gemini-helper-tool-settings-row select {
+  width: 100%;
+  padding: 6px 8px;
+  font-size: 12px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 4px;
+  background: var(--background-primary);
+  color: var(--text-normal);
+}
+
+.gemini-helper-tool-settings-row select:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.gemini-helper-tool-settings-close {
+  padding: 6px 12px;
+  font-size: 12px;
+  border: none;
+  border-radius: 4px;
+  background: var(--interactive-accent);
+  color: var(--text-on-accent);
+  cursor: pointer;
+  transition: background 0.1s;
+}
+
+.gemini-helper-tool-settings-close:hover {
+  background: var(--interactive-accent-hover);
+}
+
+/* MCP server list in tool settings modal */
+.gemini-helper-mcp-server-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 150px;
+  overflow-y: auto;
+  padding: 4px 0;
+}
+
+.gemini-helper-mcp-server-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-normal);
+  cursor: pointer;
+}
+
+.gemini-helper-mcp-server-item:has(input:disabled) {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.gemini-helper-mcp-server-item input[type="checkbox"] {
+  margin: 0;
+}
+
 /* Mobile styles for vault tool */
 .is-mobile .gemini-helper-vault-tool-btn {
   width: 44px;
@@ -5512,4 +5615,44 @@
 .is-mobile .workflow-execution-buttons button {
   width: 100%;
   padding: 12px;
+}
+
+/* MCP test connection status */
+.gemini-helper-mcp-test-status {
+  font-size: 12px;
+  margin-right: 8px;
+}
+
+.gemini-helper-mcp-status--success {
+  color: var(--color-green);
+}
+
+.gemini-helper-mcp-status--error {
+  color: var(--color-red);
+}
+
+.gemini-helper-mcp-tools-count {
+  font-weight: 500;
+}
+
+.gemini-helper-mcp-tools-list {
+  margin-top: 4px;
+  font-size: 11px;
+  color: var(--text-muted);
+  word-break: break-word;
+}
+
+.gemini-helper-mcp-test-required {
+  font-size: 12px;
+  color: var(--text-warning);
+  margin-bottom: 12px;
+}
+
+.gemini-helper-mcp-server-name {
+  margin-right: 4px;
+}
+
+.gemini-helper-mcp-tool-hint {
+  font-size: 10px;
+  color: var(--text-muted);
 }

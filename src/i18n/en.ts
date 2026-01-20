@@ -213,9 +213,12 @@ export const en = {
   "input.webSearch": "Web search",
   "input.rag": "Semantic search: {{name}}",
   "input.vaultToolTitle": "Vault tool settings",
+  "input.vaultToolLabel": "Vault tools",
   "input.vaultToolAll": "Vault: all",
   "input.vaultToolNoSearch": "Vault: no search",
   "input.vaultToolNone": "Vault: off",
+  "input.mcpServersLabel": "External tools (mcp)",
+  "input.close": "Close",
   "input.selectionVariable": "Selected text in editor",
   "input.contentVariable": "Active note content",
   "input.vaultFile": "Vault file",
@@ -641,6 +644,11 @@ export const en = {
   "settings.mcpConnectionSuccess": "Connection successful! {{count}} tool(s) available",
   "settings.mcpConnectionFailed": "Connection failed: {{error}}",
   "settings.mcpNoServers": "No mcp servers configured",
+  "settings.testConnectionRequired": "Test connection required before saving",
+  "settings.mcpToolHints": "Tools: {{tools}}",
+
+  // Input - MCP tool hint
+  "input.mcpToolHint": "({{count}} tools: {{tools}})",
 };
 
 export type TranslationKey = keyof typeof en;

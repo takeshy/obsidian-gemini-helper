@@ -213,9 +213,12 @@ export const ja: Record<string, string> = {
   "input.webSearch": "ウェブ検索",
   "input.rag": "セマンティック検索: {{name}}",
   "input.vaultToolTitle": "Vaultツール設定",
+  "input.vaultToolLabel": "Vaultツール",
   "input.vaultToolAll": "Vault: 全て",
   "input.vaultToolNoSearch": "Vault: 検索なし",
   "input.vaultToolNone": "Vault: オフ",
+  "input.mcpServersLabel": "外部ツール (mcp)",
+  "input.close": "閉じる",
   "input.selectionVariable": "エディタで選択したテキスト",
   "input.contentVariable": "アクティブノートの内容",
   "input.vaultFile": "Vaultファイル",
@@ -632,4 +635,9 @@ export const ja: Record<string, string> = {
   "settings.mcpConnectionSuccess": "接続成功！{{count}}個のツールが利用可能です",
   "settings.mcpConnectionFailed": "接続失敗: {{error}}",
   "settings.mcpNoServers": "MCPサーバーが設定されていません",
+  "settings.testConnectionRequired": "保存前に接続テストが必要です",
+  "settings.mcpToolHints": "ツール: {{tools}}",
+
+  // Input - MCP tool hint
+  "input.mcpToolHint": "({{count}}個のツール: {{tools}})",
 };

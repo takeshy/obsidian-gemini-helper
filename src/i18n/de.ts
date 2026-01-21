@@ -475,6 +475,7 @@ export const de: Record<string, string> = {
   "workflow.generation.generating": "Generieren",
   "workflow.generation.generatingWithCli": "Generieren mit {{cli}}",
   "workflow.generation.parseFailed": "Der generierte Workflow konnte nicht analysiert werden. Bitte versuchen Sie es erneut.",
+  "workflow.generation.executionHistoryIncluded": "📋 {{count}} Ausführungsschritt(e) enthalten",
 
   // Workflow Preview Modal
   "workflow.preview.title": "Vorschau des generierten Workflows",

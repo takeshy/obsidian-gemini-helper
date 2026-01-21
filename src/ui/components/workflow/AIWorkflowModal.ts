@@ -694,7 +694,8 @@ export class AIWorkflowModal extends Modal {
       this.app,
       currentRequest,
       abortController,
-      () => { generationCancelled = true; }
+      () => { generationCancelled = true; },
+      selectedExecutionSteps?.length ?? 0
     );
     generationModal.open();
 

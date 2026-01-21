@@ -17,17 +17,20 @@ export class WorkflowGenerationModal extends Modal {
   private abortController: AbortController;
   private onCancel: () => void;
   private isCancelled = false;
+  private executionStepsCount: number;
 
   constructor(
     app: App,
     request: string,
     abortController: AbortController,
-    onCancel: () => void
+    onCancel: () => void,
+    executionStepsCount = 0
   ) {
     super(app);
     this.request = request;
     this.abortController = abortController;
     this.onCancel = onCancel;
+    this.executionStepsCount = executionStepsCount;
   }
 
   onOpen(): void {
@@ -55,6 +58,15 @@ export class WorkflowGenerationModal extends Modal {
     requestSection.createEl("h3", { text: t("workflow.generation.yourRequest") });
     const requestContent = requestSection.createDiv({ cls: "workflow-generation-request-content" });
     requestContent.textContent = this.request;
+
+    // Execution history info (if steps are selected)
+    if (this.executionStepsCount > 0) {
+      const historySection = contentEl.createDiv({ cls: "workflow-generation-history-info" });
+      historySection.createEl("span", {
+        cls: "workflow-generation-history-badge",
+        text: t("workflow.generation.executionHistoryIncluded", { count: this.executionStepsCount }),
+      });
+    }
 
     // Thinking section
     const thinkingSection = contentEl.createDiv({ cls: "workflow-generation-thinking-section" });

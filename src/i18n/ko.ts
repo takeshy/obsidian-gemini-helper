@@ -475,6 +475,7 @@ export const ko: Record<string, string> = {
   "workflow.generation.generating": "생성 중",
   "workflow.generation.generatingWithCli": "{{cli}}로 생성 중",
   "workflow.generation.parseFailed": "생성된 워크플로우를 분석할 수 없습니다. 다시 시도해 주세요.",
+  "workflow.generation.executionHistoryIncluded": "📋 실행 이력 {{count}}개 단계 포함",
 
   // Workflow Preview Modal
   "workflow.preview.title": "생성된 워크플로우 미리보기",

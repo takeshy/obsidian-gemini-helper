@@ -4645,6 +4645,21 @@
   overflow-y: auto;
 }
 
+.workflow-generation-history-info {
+  margin-top: 8px;
+  margin-bottom: 8px;
+}
+
+.workflow-generation-history-badge {
+  display: inline-block;
+  padding: 4px 10px;
+  background-color: var(--background-modifier-success);
+  color: var(--text-on-accent);
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
 .workflow-generation-thinking-section {
   margin-bottom: 16px;
 }

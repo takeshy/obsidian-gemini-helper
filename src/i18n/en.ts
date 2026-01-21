@@ -566,6 +566,7 @@ export const en = {
   "workflow.generation.generating": "Generating",
   "workflow.generation.generatingWithCli": "Generating with {{cli}}",
   "workflow.generation.parseFailed": "Failed to parse generated workflow. Please try again.",
+  "workflow.generation.executionHistoryIncluded": "📋 {{count}} execution step(s) included",
 
   // Workflow Preview Modal
   "workflow.preview.title": "Preview generated workflow",

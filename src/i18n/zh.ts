@@ -475,6 +475,7 @@ export const zh: Record<string, string> = {
   "workflow.generation.generating": "生成中",
   "workflow.generation.generatingWithCli": "使用{{cli}}生成中",
   "workflow.generation.parseFailed": "无法解析生成的工作流。请重试。",
+  "workflow.generation.executionHistoryIncluded": "📋 包含 {{count}} 个执行步骤",
 
   // Workflow Preview Modal
   "workflow.preview.title": "预览生成的工作流",

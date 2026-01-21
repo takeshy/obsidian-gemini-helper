@@ -475,6 +475,7 @@ export const pt: Record<string, string> = {
   "workflow.generation.generating": "Gerando",
   "workflow.generation.generatingWithCli": "Gerando com {{cli}}",
   "workflow.generation.parseFailed": "Não foi possível analisar o workflow gerado. Por favor, tente novamente.",
+  "workflow.generation.executionHistoryIncluded": "📋 {{count}} passo(s) de execução incluído(s)",
 
   // Workflow Preview Modal
   "workflow.preview.title": "Visualizar Workflow gerado",

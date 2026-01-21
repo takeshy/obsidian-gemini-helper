@@ -497,6 +497,7 @@ export const ja: Record<string, string> = {
   "workflow.generation.generating": "生成中",
   "workflow.generation.generatingWithCli": "{{cli}}で生成中",
   "workflow.generation.parseFailed": "生成されたワークフローの解析に失敗しました。再度お試しください。",
+  "workflow.generation.executionHistoryIncluded": "📋 実行履歴 {{count}} ステップを含む",
 
   // Workflow Preview Modal
   "workflow.preview.title": "生成されたワークフローのプレビュー",

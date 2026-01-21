@@ -3,7 +3,7 @@ import type { GeminiHelperPlugin } from "src/plugin";
 import { GeminiCliProvider, ClaudeCliProvider, CodexCliProvider } from "src/core/cliProvider";
 import { GeminiClient } from "src/core/gemini";
 import { CLI_MODEL, CLAUDE_CLI_MODEL, CODEX_CLI_MODEL, DEFAULT_CLI_CONFIG, getAvailableModels, type ModelType, type Attachment } from "src/types";
-import { WORKFLOW_SPECIFICATION } from "src/workflow/workflowSpec";
+import { getWorkflowSpecification } from "src/workflow/workflowSpec";
 import type { SidebarNode, WorkflowNodeType, ExecutionStep } from "src/workflow/types";
 import { ExecutionHistoryManager } from "src/workflow/history";
 import { computeLineDiff } from "./EditConfirmationModal";
@@ -899,9 +899,17 @@ export class AIWorkflowModal extends Modal {
   }
 
   private buildSystemPrompt(): string {
+    // Build dynamic workflow specification with current settings
+    const workflowSpec = getWorkflowSpecification({
+      apiPlan: this.plugin.settings.apiPlan,
+      cliConfig: this.plugin.settings.cliConfig,
+      mcpServers: this.plugin.settings.mcpServers || [],
+      ragSettingNames: Object.keys(this.plugin.workspaceState.ragSettings || {}),
+    });
+
     return `You are a workflow generator for Obsidian. You create and modify workflows in YAML format.
 
-${WORKFLOW_SPECIFICATION}
+${workflowSpec}
 
 IMPORTANT RULES:
 1. Output ONLY the workflow YAML, no explanation or markdown code fences

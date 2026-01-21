@@ -45,13 +45,15 @@ nodes:
 
 ### command
 
-Execute an LLM prompt with optional model and search settings.
+Execute an LLM prompt with optional model, search, vault tools, and MCP settings.
 
 ```yaml
 - id: search
   type: command
   model: gemini-3-flash-preview  # Optional: specific model
   ragSetting: __websearch__      # Optional: __websearch__, __none__, or setting name
+  vaultTools: all                # Optional: all, noSearch, none
+  mcpServers: "server1,server2"  # Optional: comma-separated MCP server names
   prompt: "Search for {{topic}}"
   saveTo: result
 ```
@@ -59,8 +61,10 @@ Execute an LLM prompt with optional model and search settings.
 | Property | Description |
 |----------|-------------|
 | `prompt` | The prompt to send to the LLM (required) |
-| `model` | Override the current model (e.g., `gemini-3-flash-preview`, `gemini-3-pro-image-preview`, `gemini-cli`, `claude-cli`, `codex-cli`) |
-| `ragSetting` | `__websearch__` (web search), `__none__` (no search), setting name, or omit for current |
+| `model` | Override the current model (available models depend on API plan setting) |
+| `ragSetting` | `__websearch__` (web search), `__none__` (no search), RAG setting name, or omit for current |
+| `vaultTools` | Vault tools mode: `all` (search + read/write), `noSearch` (read/write only), `none` (disabled). Default: `all` |
+| `mcpServers` | Comma-separated MCP server names to enable (must be configured in plugin settings) |
 | `attachments` | Comma-separated variable names containing FileExplorerData (from `file-explorer` node) |
 | `saveTo` | Variable name to store text response |
 | `saveImageTo` | Variable name to store generated image (FileExplorerData format, for image models) |

@@ -45,13 +45,15 @@ nodes:
 
 ### command
 
-执行带有可选模型和搜索设置的 LLM 提示词。
+执行带有可选模型、搜索、Vault 工具和 MCP 设置的 LLM 提示词。
 
 ```yaml
 - id: search
   type: command
   model: gemini-3-flash-preview  # 可选：指定模型
   ragSetting: __websearch__      # 可选：__websearch__、__none__ 或设置名称
+  vaultTools: all                # 可选：all、noSearch、none
+  mcpServers: "server1,server2"  # 可选：逗号分隔的 MCP 服务器名称
   prompt: "Search for {{topic}}"
   saveTo: result
 ```
@@ -59,8 +61,10 @@ nodes:
 | 属性 | 描述 |
 |----------|-------------|
 | `prompt` | 发送给 LLM 的提示词（必填） |
-| `model` | 覆盖当前模型（例如 `gemini-3-flash-preview`、`gemini-3-pro-image-preview`、`gemini-cli`、`claude-cli`、`codex-cli`） |
-| `ragSetting` | `__websearch__`（网络搜索）、`__none__`（无搜索）、设置名称，或省略以使用当前设置 |
+| `model` | 覆盖当前模型（可用模型取决于 API 计划设置） |
+| `ragSetting` | `__websearch__`（网络搜索）、`__none__`（无搜索）、RAG 设置名称，或省略以使用当前设置 |
+| `vaultTools` | Vault 工具模式：`all`（搜索 + 读写）、`noSearch`（仅读写）、`none`（禁用）。默认：`all` |
+| `mcpServers` | 要启用的 MCP 服务器名称，逗号分隔（必须在插件设置中配置） |
 | `attachments` | 包含 FileExplorerData 的变量名称，用逗号分隔（来自 `file-explorer` 节点） |
 | `saveTo` | 用于存储文本响应的变量名 |
 | `saveImageTo` | 用于存储生成图片的变量名（FileExplorerData 格式，用于图像模型） |

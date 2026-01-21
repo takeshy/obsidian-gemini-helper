@@ -4,11 +4,14 @@ import { getGeminiClient } from "../core/gemini";
 import { getFileSearchManager } from "../core/fileSearch";
 import { getEditHistoryManager } from "../core/editHistory";
 import { CliProviderManager } from "../core/cliProvider";
-import { isImageGenerationModel, type ModelType } from "../types";
+import { isImageGenerationModel, type ModelType, type ToolDefinition } from "../types";
 import { McpClient } from "../core/mcpClient";
 import { isEncryptedFile, decryptFileContent } from "../core/crypto";
 import { cryptoCache } from "../core/cryptoCache";
 import { formatError } from "../utils/error";
+import { getEnabledTools } from "../core/tools";
+import { fetchMcpTools, createMcpToolExecutor, type McpToolDefinition } from "../core/mcpTools";
+import { createToolExecutor } from "../vault/toolExecutor";
 import {
   WorkflowNode,
   ExecutionContext,
@@ -566,10 +569,109 @@ export async function handleCommandNode(
     },
   ];
 
+  // Get vault tools mode (default: "all")
+  // "all" = all vault tools, "noSearch" = exclude search_notes/list_notes, "none" = no vault tools
+  const vaultToolMode = (node.properties["vaultTools"] || "all") as "all" | "noSearch" | "none";
+
+  // Get MCP server names to enable (comma-separated)
+  const mcpServersStr = node.properties["mcpServers"] || "";
+  const enabledMcpServerNames = mcpServersStr
+    ? mcpServersStr.split(",").map((s: string) => s.trim()).filter((s: string) => s)
+    : [];
+
+  // Prepare tools and executors for non-image models
+  let tools: ToolDefinition[] = [];
+  let toolExecutor: ((name: string, args: Record<string, unknown>) => Promise<unknown>) | undefined;
+  let mcpToolExecutor: ReturnType<typeof createMcpToolExecutor> | null = null;
+
+  const isImageModel = isImageGenerationModel(model as ModelType);
+
+  if (!isImageModel && vaultToolMode !== "none") {
+    // Get vault tools based on RAG setting
+    const allowRag = ragSettingName !== "__websearch__" && ragSettingName !== "__none__" && ragSettingName !== "";
+    const vaultTools = getEnabledTools({
+      allowWrite: true,
+      allowDelete: true,
+      ragEnabled: allowRag,
+    });
+
+    // Filter vault tools based on mode
+    const vaultToolNames = [
+      "read_note", "create_note", "propose_edit", "propose_delete",
+      "rename_note", "search_notes", "list_notes", "list_folders",
+      "create_folder", "get_active_note_info", "get_rag_sync_status"
+    ];
+    const searchToolNames = ["search_notes", "list_notes"];
+
+    tools = vaultTools.filter(tool => {
+      if (vaultToolMode === "noSearch") {
+        return !searchToolNames.includes(tool.name);
+      }
+      return true; // "all" mode - keep all vault tools
+    });
+
+    // Create vault tool executor
+    const obsidianToolExecutor = createToolExecutor(app, {
+      listNotesLimit: plugin.settings.listNotesLimit,
+      maxNoteChars: plugin.settings.maxNoteChars,
+    });
+
+    // Fetch MCP tools from specified servers
+    let mcpTools: McpToolDefinition[] = [];
+    if (enabledMcpServerNames.length > 0 && plugin.settings.mcpServers) {
+      const enabledServers = plugin.settings.mcpServers.filter(
+        server => enabledMcpServerNames.includes(server.name)
+      );
+      if (enabledServers.length > 0) {
+        try {
+          mcpTools = await fetchMcpTools(enabledServers);
+          // Add MCP tools to the tools array
+          tools = [...tools, ...mcpTools];
+          // Create MCP tool executor
+          mcpToolExecutor = createMcpToolExecutor(mcpTools);
+        } catch (error) {
+          console.error("Failed to fetch MCP tools:", error);
+          // Continue without MCP tools
+        }
+      }
+    }
+
+    // Create combined tool executor
+    if (tools.length > 0) {
+      toolExecutor = async (name: string, args: Record<string, unknown>) => {
+        // MCP tools start with "mcp_"
+        if (name.startsWith("mcp_") && mcpToolExecutor) {
+          return await mcpToolExecutor.execute(name, args);
+        }
+        // Otherwise use Obsidian tool executor
+        return await obsidianToolExecutor(name, args);
+      };
+    }
+  } else if (!isImageModel && enabledMcpServerNames.length > 0 && plugin.settings.mcpServers) {
+    // vaultToolMode is "none" but MCP servers are specified
+    const enabledServers = plugin.settings.mcpServers.filter(
+      server => enabledMcpServerNames.includes(server.name)
+    );
+    if (enabledServers.length > 0) {
+      try {
+        const mcpTools = await fetchMcpTools(enabledServers);
+        tools = mcpTools;
+        mcpToolExecutor = createMcpToolExecutor(mcpTools);
+        toolExecutor = async (name: string, args: Record<string, unknown>) => {
+          if (mcpToolExecutor) {
+            return await mcpToolExecutor.execute(name, args);
+          }
+          return { error: `Unknown tool: ${name}` };
+        };
+      } catch (error) {
+        console.error("Failed to fetch MCP tools:", error);
+      }
+    }
+  }
+
   // Execute LLM call - use generateImageStream for image models
   let fullResponse = "";
   const generatedImages: Array<{ mimeType: string; data: string }> = [];
-  const isImageModel = isImageGenerationModel(model as ModelType);
 
   const stream = isImageModel
     ? client.generateImageStream(
@@ -581,9 +683,9 @@ export async function handleCommandNode(
       )
     : client.chatWithToolsStream(
         messages,
-        [], // No tools for workflow command
+        tools,
         undefined, // No system prompt
-        undefined, // No executeToolCall
+        toolExecutor,
         storeIds.length > 0 ? storeIds : undefined, // RAG store IDs
         useWebSearch, // Web search mode
         undefined // No options
@@ -598,6 +700,15 @@ export async function handleCommandNode(
       throw new Error(chunk.content);
     } else if (chunk.type === "done") {
       break;
+    }
+  }
+
+  // Cleanup MCP executor
+  if (mcpToolExecutor) {
+    try {
+      await mcpToolExecutor.cleanup();
+    } catch (error) {
+      console.error("Failed to cleanup MCP executor:", error);
     }
   }
 

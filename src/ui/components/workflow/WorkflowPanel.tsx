@@ -706,15 +706,12 @@ ${result.nodes.map(node => {
     const newNodes = [...nodes, newNode];
     setNodes(newNodes);
 
-    // Get RAG setting names from workspace state
-    const ragSettingNames = Object.keys(plugin.workspaceState.ragSettings || {});
-
     // Open editor for new node
     const modal = new NodeEditorModal(plugin.app, newNode, (updatedNode) => {
       const updatedNodes = newNodes.map((n) => (n.id === updatedNode.id ? updatedNode : n));
       setNodes(updatedNodes);
       void saveWorkflow(updatedNodes);
-    }, ragSettingNames, plugin.settings.cliConfig);
+    }, plugin);
     modal.open();
   };
 
@@ -723,14 +720,11 @@ ${result.nodes.map(node => {
     const node = nodes[index];
     if (!node) return;
 
-    // Get RAG setting names from workspace state
-    const ragSettingNames = Object.keys(plugin.workspaceState.ragSettings || {});
-
     const modal = new NodeEditorModal(plugin.app, node, (updatedNode) => {
       const newNodes = nodes.map((n, i) => (i === index ? updatedNode : n));
       setNodes(newNodes);
       void saveWorkflow(newNodes);
-    }, ragSettingNames, plugin.settings.cliConfig);
+    }, plugin);
     modal.open();
   };
 

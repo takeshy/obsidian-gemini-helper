@@ -371,6 +371,8 @@ export class WorkflowExecutor {
               prompt: promptTemplate,
               model: node.properties["model"] || "(current)",
               ragSetting: node.properties["ragSetting"] || "(current)",
+              vaultTools: node.properties["vaultTools"] || "all",
+              mcpServers: node.properties["mcpServers"] || "(none)",
             };
 
             await handleCommandNode(node, context, this.app, this.plugin);

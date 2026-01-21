@@ -45,13 +45,15 @@ nodes:
 
 ### command
 
-モデルと検索設定を指定して LLM プロンプトを実行。
+モデル、検索、ボールトツール、MCP 設定を指定して LLM プロンプトを実行。
 
 ```yaml
 - id: search
   type: command
   model: gemini-3-flash-preview  # 任意: 特定のモデル
   ragSetting: __websearch__      # 任意: __websearch__, __none__, または設定名
+  vaultTools: all                # 任意: all, noSearch, none
+  mcpServers: "server1,server2"  # 任意: カンマ区切りの MCP サーバー名
   prompt: "{{topic}}を検索"
   saveTo: result
 ```
@@ -59,8 +61,10 @@ nodes:
 | プロパティ | 説明 |
 |------------|------|
 | `prompt` | LLM に送るプロンプト（必須） |
-| `model` | モデルを指定（例：`gemini-3-flash-preview`、`gemini-3-pro-image-preview`、`gemini-cli`、`claude-cli`、`codex-cli`） |
-| `ragSetting` | `__websearch__`（Web 検索）、`__none__`（検索なし）、設定名、または省略で現在の設定 |
+| `model` | モデルを指定（利用可能なモデルは API プラン設定に依存） |
+| `ragSetting` | `__websearch__`（Web 検索）、`__none__`（検索なし）、RAG 設定名、または省略で現在の設定 |
+| `vaultTools` | ボールトツールモード: `all`（検索 + 読み書き）、`noSearch`（読み書きのみ）、`none`（無効）。デフォルト: `all` |
+| `mcpServers` | 有効にする MCP サーバー名（カンマ区切り、プラグイン設定で構成済みである必要あり） |
 | `attachments` | FileExplorerData を含む変数名（カンマ区切り、`file-explorer` ノードから取得） |
 | `saveTo` | テキスト応答を保存する変数名 |
 | `saveImageTo` | 生成された画像を保存する変数名（FileExplorerData形式、画像モデル用） |

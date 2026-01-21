@@ -45,13 +45,15 @@ nodes:
 
 ### command
 
-Executer un prompt LLM avec des parametres optionnels de modele et de recherche.
+Executer un prompt LLM avec des parametres optionnels de modele, recherche, outils de vault et MCP.
 
 ```yaml
 - id: search
   type: command
-  model: gemini-3-flash-preview  # Optional: specific model
-  ragSetting: __websearch__      # Optional: __websearch__, __none__, or setting name
+  model: gemini-3-flash-preview  # Optionnel: modele specifique
+  ragSetting: __websearch__      # Optionnel: __websearch__, __none__, ou nom de parametre
+  vaultTools: all                # Optionnel: all, noSearch, none
+  mcpServers: "server1,server2"  # Optionnel: noms de serveurs MCP separes par virgules
   prompt: "Search for {{topic}}"
   saveTo: result
 ```
@@ -59,8 +61,10 @@ Executer un prompt LLM avec des parametres optionnels de modele et de recherche.
 | Propriete | Description |
 |-----------|-------------|
 | `prompt` | Le prompt a envoyer au LLM (requis) |
-| `model` | Remplacer le modele actuel (ex: `gemini-3-flash-preview`, `gemini-3-pro-image-preview`, `gemini-cli`, `claude-cli`, `codex-cli`) |
-| `ragSetting` | `__websearch__` (recherche web), `__none__` (pas de recherche), nom du parametre, ou omettre pour l'actuel |
+| `model` | Remplacer le modele actuel (les modeles disponibles dependent du parametre du plan API) |
+| `ragSetting` | `__websearch__` (recherche web), `__none__` (pas de recherche), nom du parametre RAG, ou omettre pour l'actuel |
+| `vaultTools` | Mode des outils vault: `all` (recherche + lecture/ecriture), `noSearch` (lecture/ecriture uniquement), `none` (desactive). Par defaut: `all` |
+| `mcpServers` | Noms de serveurs MCP separes par virgules a activer (doivent etre configures dans les parametres du plugin) |
 | `attachments` | Noms de variables separes par des virgules contenant FileExplorerData (du noeud `file-explorer`) |
 | `saveTo` | Nom de variable pour stocker la reponse textuelle |
 | `saveImageTo` | Nom de variable pour stocker l'image generee (format FileExplorerData, pour les modeles d'image) |

@@ -45,13 +45,15 @@ nodes:
 
 ### command
 
-선택적 모델 및 검색 설정으로 LLM 프롬프트를 실행합니다.
+선택적 모델, 검색, Vault 도구 및 MCP 설정으로 LLM 프롬프트를 실행합니다.
 
 ```yaml
 - id: search
   type: command
   model: gemini-3-flash-preview  # 선택 사항: 특정 모델
   ragSetting: __websearch__      # 선택 사항: __websearch__, __none__, 또는 설정 이름
+  vaultTools: all                # 선택 사항: all, noSearch, none
+  mcpServers: "server1,server2"  # 선택 사항: 쉼표로 구분된 MCP 서버 이름
   prompt: "Search for {{topic}}"
   saveTo: result
 ```
@@ -59,8 +61,10 @@ nodes:
 | 속성 | 설명 |
 |----------|-------------|
 | `prompt` | LLM에 보낼 프롬프트 (필수) |
-| `model` | 현재 모델 재정의 (예: `gemini-3-flash-preview`, `gemini-3-pro-image-preview`, `gemini-cli`, `claude-cli`, `codex-cli`) |
-| `ragSetting` | `__websearch__` (웹 검색), `__none__` (검색 없음), 설정 이름, 또는 현재 설정 사용시 생략 |
+| `model` | 현재 모델 재정의 (사용 가능한 모델은 API 플랜 설정에 따라 다름) |
+| `ragSetting` | `__websearch__` (웹 검색), `__none__` (검색 없음), RAG 설정 이름, 또는 현재 설정 사용시 생략 |
+| `vaultTools` | Vault 도구 모드: `all` (검색 + 읽기/쓰기), `noSearch` (읽기/쓰기만), `none` (비활성화). 기본값: `all` |
+| `mcpServers` | 활성화할 MCP 서버 이름 (쉼표로 구분, 플러그인 설정에서 구성되어 있어야 함) |
 | `attachments` | FileExplorerData를 포함하는 변수 이름들 (쉼표로 구분, `file-explorer` 노드에서 가져옴) |
 | `saveTo` | 텍스트 응답을 저장할 변수 이름 |
 | `saveImageTo` | 생성된 이미지를 저장할 변수 이름 (FileExplorerData 형식, 이미지 모델용) |

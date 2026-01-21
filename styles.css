@@ -1930,6 +1930,9 @@
 .workflow-node-editor-modal {
   padding: 20px;
   min-width: 400px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 .workflow-node-editor-modal h2 {
@@ -1937,8 +1940,45 @@
   margin-bottom: 16px;
 }
 
+.workflow-node-editor-scroll {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+  padding-right: 8px;
+}
+
 .workflow-node-editor-textarea {
   width: 100%;
+  max-height: 200px;
+  resize: vertical;
+}
+
+/* MCP checkboxes in node editor */
+.workflow-mcp-checkboxes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.workflow-mcp-checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  background: var(--background-secondary);
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.workflow-mcp-checkbox-label input[type="checkbox"] {
+  margin: 0;
+}
+
+.workflow-mcp-checkbox-label input[type="checkbox"]:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 /* Path suggestion dropdown for workflow node editor */

@@ -1,7 +1,39 @@
 // Workflow specification for AI generation
 // This is used as a system prompt when Gemini generates or modifies workflows
 
-export const WORKFLOW_SPECIFICATION = `
+import { getAvailableModels, type ApiPlan, type McpServerConfig, CLI_MODEL, CLAUDE_CLI_MODEL, CODEX_CLI_MODEL, type CliProviderConfig } from "src/types";
+
+export interface WorkflowSpecContext {
+  apiPlan: ApiPlan;
+  cliConfig?: CliProviderConfig;
+  mcpServers: McpServerConfig[];
+  ragSettingNames: string[];
+}
+
+export function getWorkflowSpecification(context: WorkflowSpecContext): string {
+  // Build available models list
+  const models = getAvailableModels(context.apiPlan);
+  const modelNames = models.map(m => m.name);
+
+  // Add CLI models if verified
+  if (context.cliConfig?.cliVerified) modelNames.push(CLI_MODEL.name);
+  if (context.cliConfig?.claudeCliVerified) modelNames.push(CLAUDE_CLI_MODEL.name);
+  if (context.cliConfig?.codexCliVerified) modelNames.push(CODEX_CLI_MODEL.name);
+
+  const modelList = modelNames.join(", ");
+
+  // Build MCP servers list
+  const mcpServerNames = context.mcpServers.map(s => s.name);
+  const mcpServerList = mcpServerNames.length > 0
+    ? `Available MCP servers: ${mcpServerNames.join(", ")}`
+    : "No MCP servers configured";
+
+  // Build RAG settings list
+  const ragList = context.ragSettingNames.length > 0
+    ? `Available RAG settings: ${context.ragSettingNames.join(", ")}`
+    : "No RAG settings configured";
+
+  return `
 # Obsidian Workflow Specification
 
 ## Format
@@ -48,8 +80,10 @@ Loop while condition is true.
 ### 5. command
 Execute LLM prompt.
 - **prompt** (required): Prompt template (supports {{variables}})
-- **model** (optional): Model override (gemini-3-flash-preview, gemini-3-pro-image-preview, gemini-cli, claude-cli, codex-cli, etc.)
-- **ragSetting** (optional): Search setting (__websearch__, __none__, or setting name)
+- **model** (optional): Model override. Available models: ${modelList}
+- **ragSetting** (optional): Search setting (__websearch__, __none__, or RAG setting name). ${ragList}
+- **vaultTools** (optional): Vault tools mode - "all" (search + read/write), "noSearch" (read/write only), "none" (disabled). Default: "all"
+- **mcpServers** (optional): Comma-separated MCP server names to enable. ${mcpServerList}
 - **attachments** (optional): Comma-separated variable names containing FileExplorerData (from file-explorer node)
 - **saveTo** (optional): Variable name to store text response
 - **saveImageTo** (optional): Variable name to store generated image (FileExplorerData format, for image models)
@@ -559,3 +593,11 @@ nodes:
 6. Always specify saveTo for nodes that produce output
 7. Use meaningful workflow names
 `;
+}
+
+// Legacy export for backward compatibility (uses default context)
+export const WORKFLOW_SPECIFICATION = getWorkflowSpecification({
+  apiPlan: "paid",
+  mcpServers: [],
+  ragSettingNames: [],
+});

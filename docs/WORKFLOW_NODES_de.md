@@ -45,13 +45,15 @@ nodes:
 
 ### command
 
-Fuehrt einen LLM-Prompt mit optionalen Modell- und Sucheinstellungen aus.
+Fuehrt einen LLM-Prompt mit optionalen Modell-, Such-, Vault-Tools- und MCP-Einstellungen aus.
 
 ```yaml
 - id: search
   type: command
   model: gemini-3-flash-preview  # Optional: spezifisches Modell
   ragSetting: __websearch__      # Optional: __websearch__, __none__ oder Name der Einstellung
+  vaultTools: all                # Optional: all, noSearch, none
+  mcpServers: "server1,server2"  # Optional: kommagetrennte MCP-Servernamen
   prompt: "Search for {{topic}}"
   saveTo: result
 ```
@@ -59,8 +61,10 @@ Fuehrt einen LLM-Prompt mit optionalen Modell- und Sucheinstellungen aus.
 | Eigenschaft | Beschreibung |
 |-------------|--------------|
 | `prompt` | Der an das LLM zu sendende Prompt (erforderlich) |
-| `model` | Ueberschreibt das aktuelle Modell (z.B. `gemini-3-flash-preview`, `gemini-3-pro-image-preview`, `gemini-cli`, `claude-cli`, `codex-cli`) |
-| `ragSetting` | `__websearch__` (Websuche), `__none__` (keine Suche), Name der Einstellung oder weglassen fuer aktuelles |
+| `model` | Ueberschreibt das aktuelle Modell (verfuegbare Modelle haengen von der API-Plan-Einstellung ab) |
+| `ragSetting` | `__websearch__` (Websuche), `__none__` (keine Suche), RAG-Einstellungsname oder weglassen fuer aktuelles |
+| `vaultTools` | Vault-Tools-Modus: `all` (Suche + Lesen/Schreiben), `noSearch` (nur Lesen/Schreiben), `none` (deaktiviert). Standard: `all` |
+| `mcpServers` | Kommagetrennte MCP-Servernamen zum Aktivieren (muessen in den Plugin-Einstellungen konfiguriert sein) |
 | `attachments` | Kommagetrennte Variablennamen mit FileExplorerData (vom `file-explorer`-Knoten) |
 | `saveTo` | Variablenname zum Speichern der Textantwort |
 | `saveImageTo` | Variablenname zum Speichern des generierten Bildes (FileExplorerData-Format, fuer Bildmodelle) |

@@ -1,6 +1,7 @@
 import { App, Modal, Setting, TFile } from "obsidian";
 import { SidebarNode, WorkflowNodeType } from "src/workflow/types";
-import type { CliProviderConfig } from "src/types";
+import { getAvailableModels, CLI_MODEL, CLAUDE_CLI_MODEL, CODEX_CLI_MODEL } from "src/types";
+import type { GeminiHelperPlugin } from "src/plugin";
 
 // @ path autocomplete helper
 interface PathSuggestion {
@@ -85,15 +86,13 @@ export class NodeEditorModal extends Modal {
   private editedNext?: string;
   private editedTrueNext?: string;
   private editedFalseNext?: string;
-  private ragSettingNames: string[];
-  private cliConfig?: CliProviderConfig;
+  private plugin: GeminiHelperPlugin;
 
   constructor(
     app: App,
     node: SidebarNode,
     onSave: (node: SidebarNode) => void,
-    ragSettingNames: string[] = [],
-    cliConfig?: CliProviderConfig
+    plugin: GeminiHelperPlugin
   ) {
     super(app);
     this.node = node;
@@ -102,20 +101,26 @@ export class NodeEditorModal extends Modal {
     this.editedNext = node.next;
     this.editedTrueNext = node.trueNext;
     this.editedFalseNext = node.falseNext;
-    this.ragSettingNames = ragSettingNames;
-    this.cliConfig = cliConfig;
+    this.plugin = plugin;
   }
 
   onOpen(): void {
-    const { contentEl } = this;
+    const { contentEl, modalEl } = this;
     contentEl.empty();
     contentEl.addClass("workflow-node-editor-modal");
+    modalEl.addClass("gemini-helper-modal-resizable");
 
-    contentEl.createEl("h2", {
+    // Drag handle with title
+    const dragHandle = contentEl.createDiv({ cls: "modal-drag-handle" });
+    dragHandle.createEl("h2", {
       text: `Edit ${NODE_TYPE_LABELS[this.node.type]} node`,
     });
+    this.setupDragHandle(dragHandle, modalEl);
 
-    new Setting(contentEl)
+    // Scrollable content area
+    const scrollContainer = contentEl.createDiv({ cls: "workflow-node-editor-scroll" });
+
+    new Setting(scrollContainer)
       .setName("Node type")
       .setDesc(`ID: ${this.node.id}`)
       .addText((text) => {
@@ -123,7 +128,7 @@ export class NodeEditorModal extends Modal {
         text.setDisabled(true);
       });
 
-    this.renderPropertyFields(contentEl);
+    this.renderPropertyFields(scrollContainer);
 
     const buttonContainer = contentEl.createDiv({ cls: "workflow-modal-buttons" });
 
@@ -137,6 +142,49 @@ export class NodeEditorModal extends Modal {
       text: "Cancel",
     });
     cancelBtn.addEventListener("click", () => this.close());
+  }
+
+  private setupDragHandle(dragHandle: HTMLElement, modalEl: HTMLElement): void {
+    let isDragging = false;
+    let startX = 0;
+    let startY = 0;
+    let startLeft = 0;
+    let startTop = 0;
+
+    const onMouseDown = (e: MouseEvent) => {
+      isDragging = true;
+      startX = e.clientX;
+      startY = e.clientY;
+      const rect = modalEl.getBoundingClientRect();
+      startLeft = rect.left;
+      startTop = rect.top;
+
+      modalEl.setCssStyles({
+        position: "fixed",
+        margin: "0",
+      });
+
+      document.addEventListener("mousemove", onMouseMove);
+      document.addEventListener("mouseup", onMouseUp);
+    };
+
+    const onMouseMove = (e: MouseEvent) => {
+      if (!isDragging) return;
+      const deltaX = e.clientX - startX;
+      const deltaY = e.clientY - startY;
+      modalEl.setCssStyles({
+        left: `${startLeft + deltaX}px`,
+        top: `${startTop + deltaY}px`,
+      });
+    };
+
+    const onMouseUp = () => {
+      isDragging = false;
+      document.removeEventListener("mousemove", onMouseMove);
+      document.removeEventListener("mouseup", onMouseUp);
+    };
+
+    dragHandle.addEventListener("mousedown", onMouseDown);
   }
 
   private renderPropertyFields(container: HTMLElement): void {
@@ -161,38 +209,51 @@ export class NodeEditorModal extends Modal {
       case "command": {
         this.addTextArea(container, "prompt", "Prompt", "Enter prompt template (supports {{variables}}, @file.md)", true);
 
-        // Model dropdown with Search auto-reset for CLI models
-        // Only show verified CLI models
-        const cliOptions: Array<{ value: string; label: string }> = [];
-        if (this.cliConfig?.cliVerified) {
-          cliOptions.push({ value: "gemini-cli", label: "Gemini CLI" });
-        }
-        if (this.cliConfig?.claudeCliVerified) {
-          cliOptions.push({ value: "claude-cli", label: "Claude CLI" });
-        }
-        if (this.cliConfig?.codexCliVerified) {
-          cliOptions.push({ value: "codex-cli", label: "Codex CLI" });
+        // Build model options based on API plan
+        const cliConfig = this.plugin.settings.cliConfig;
+        const apiPlan = this.plugin.settings.apiPlan;
+        const availableModels = getAvailableModels(apiPlan);
+
+        const modelOptions: Array<{ value: string; label: string }> = [
+          { value: "", label: "Use current model" },
+        ];
+
+        // Add models based on plan
+        for (const model of availableModels) {
+          modelOptions.push({ value: model.name, label: model.displayName });
         }
 
-        const modelOptions = [
-          { value: "", label: "Use current model" },
-          { value: "gemini-3-flash-preview", label: "Gemini 3 Flash Preview" },
-          { value: "gemini-3-pro-preview", label: "Gemini 3 Pro Preview" },
-          { value: "gemini-3-pro-image-preview", label: "Gemini 3 Pro (Image)" },
-          { value: "gemini-2.5-flash", label: "Gemini 2.5 Flash" },
-          { value: "gemini-2.5-pro", label: "Gemini 2.5 Pro" },
-          { value: "gemini-2.5-flash-lite", label: "Gemini 2.5 Flash Lite" },
-          { value: "gemini-2.5-flash-image", label: "Gemini 2.5 Flash (Image)" },
-          ...cliOptions,
-        ];
+        // Add verified CLI models
+        if (cliConfig?.cliVerified) {
+          modelOptions.push({ value: CLI_MODEL.name, label: CLI_MODEL.displayName });
+        }
+        if (cliConfig?.claudeCliVerified) {
+          modelOptions.push({ value: CLAUDE_CLI_MODEL.name, label: CLAUDE_CLI_MODEL.displayName });
+        }
+        if (cliConfig?.codexCliVerified) {
+          modelOptions.push({ value: CODEX_CLI_MODEL.name, label: CODEX_CLI_MODEL.displayName });
+        }
+
+        // Search options (RAG)
+        const ragSettingNames = Object.keys(this.plugin.workspaceState.ragSettings || {});
         const searchOptions = [
           { value: "__none__", label: "None" },
           { value: "__websearch__", label: "Web search" },
-          ...this.ragSettingNames.map(name => ({ value: name, label: `Semantic search: ${name}` })),
+          ...ragSettingNames.map(name => ({ value: name, label: `Semantic search: ${name}` })),
         ];
 
-        let searchDropdown: HTMLSelectElement | null = null;
+        // Vault tools options
+        const vaultToolOptions = [
+          { value: "all", label: "All (search + read/write)" },
+          { value: "noSearch", label: "No search (read/write only)" },
+          { value: "none", label: "None" },
+        ];
+
         const isCliModel = (model: string) => model === "gemini-cli" || model === "claude-cli" || model === "codex-cli";
+
+        let searchDropdown: HTMLSelectElement | null = null;
+        let vaultToolDropdown: HTMLSelectElement | null = null;
+        let mcpCheckboxes: Array<{ name: string; checkbox: HTMLInputElement }> = [];
 
         // Model dropdown
         new Setting(container).setName("Model").addDropdown((dropdown) => {
@@ -202,16 +263,28 @@ export class NodeEditorModal extends Modal {
           dropdown.setValue(this.editedProperties["model"] || "");
           dropdown.onChange((value) => {
             this.editedProperties["model"] = value;
-            // Auto-set Search to None and disable for CLI models
+            // Auto-disable tools for CLI models
             if (isCliModel(value)) {
               this.editedProperties["ragSetting"] = "__none__";
+              this.editedProperties["vaultTools"] = "none";
+              this.editedProperties["mcpServers"] = "";
               if (searchDropdown) {
                 searchDropdown.value = "__none__";
                 searchDropdown.disabled = true;
               }
+              if (vaultToolDropdown) {
+                vaultToolDropdown.value = "none";
+                vaultToolDropdown.disabled = true;
+              }
+              for (const { checkbox } of mcpCheckboxes) {
+                checkbox.checked = false;
+                checkbox.disabled = true;
+              }
             } else {
-              if (searchDropdown) {
-                searchDropdown.disabled = false;
+              if (searchDropdown) searchDropdown.disabled = false;
+              if (vaultToolDropdown) vaultToolDropdown.disabled = false;
+              for (const { checkbox } of mcpCheckboxes) {
+                checkbox.disabled = false;
               }
             }
           });
@@ -224,7 +297,6 @@ export class NodeEditorModal extends Modal {
           for (const opt of searchOptions) {
             dropdown.addOption(opt.value, opt.label);
           }
-          // Set initial disabled state based on current model
           if (isCliModel(initialModel)) {
             this.editedProperties["ragSetting"] = "__none__";
             dropdown.setValue("__none__");
@@ -236,6 +308,50 @@ export class NodeEditorModal extends Modal {
             this.editedProperties["ragSetting"] = value;
           });
         });
+
+        // Vault Tools dropdown
+        new Setting(container).setName("Vault Tools").addDropdown((dropdown) => {
+          vaultToolDropdown = dropdown.selectEl;
+          for (const opt of vaultToolOptions) {
+            dropdown.addOption(opt.value, opt.label);
+          }
+          if (isCliModel(initialModel)) {
+            this.editedProperties["vaultTools"] = "none";
+            dropdown.setValue("none");
+            vaultToolDropdown.disabled = true;
+          } else {
+            dropdown.setValue(this.editedProperties["vaultTools"] || "all");
+          }
+          dropdown.onChange((value) => {
+            this.editedProperties["vaultTools"] = value;
+          });
+        });
+
+        // MCP Servers (checkboxes)
+        const mcpServers = this.plugin.settings.mcpServers || [];
+        if (mcpServers.length > 0) {
+          const enabledMcpServers = (this.editedProperties["mcpServers"] || "").split(",").filter(s => s.trim());
+
+          const mcpSetting = new Setting(container).setName("MCP Servers");
+          const mcpContainer = mcpSetting.settingEl.createDiv({ cls: "workflow-mcp-checkboxes" });
+
+          for (const server of mcpServers) {
+            const label = mcpContainer.createEl("label", { cls: "workflow-mcp-checkbox-label" });
+            const checkbox = label.createEl("input", { type: "checkbox" });
+            checkbox.checked = enabledMcpServers.includes(server.name);
+            checkbox.disabled = isCliModel(initialModel);
+            label.createSpan({ text: server.name });
+
+            mcpCheckboxes.push({ name: server.name, checkbox });
+
+            checkbox.addEventListener("change", () => {
+              const selected = mcpCheckboxes
+                .filter(({ checkbox }) => checkbox.checked)
+                .map(({ name }) => name);
+              this.editedProperties["mcpServers"] = selected.join(",");
+            });
+          }
+        }
 
         this.addTextField(container, "attachments", "Attachments", "Variable names with file data (comma-separated)");
         this.addTextField(container, "saveTo", "Save To", "Variable name to store text result");
@@ -343,14 +459,16 @@ export class NodeEditorModal extends Modal {
         this.addTextField(container, "prefix", "Prefix", "Prefix for imported variables");
         break;
 
-      case "rag-sync":
+      case "rag-sync": {
         this.addTextField(container, "path", "Note Path", "Path to note to sync (supports {{variables}})");
+        const ragNames = Object.keys(this.plugin.workspaceState.ragSettings || {});
         this.addLabeledDropdown(container, "ragSetting", "RAG Setting", [
           { value: "", label: "Select RAG setting" },
-          ...this.ragSettingNames.map(name => ({ value: name, label: name })),
+          ...ragNames.map((name: string) => ({ value: name, label: name })),
         ]);
         this.addTextField(container, "saveTo", "Save To", "Variable name to store result (optional)");
         break;
+      }
 
       case "file-save":
         this.addTextField(container, "source", "Source Variable", "Variable containing FileExplorerData (e.g., from file-explorer or saveImageTo)");
@@ -408,7 +526,9 @@ export class NodeEditorModal extends Modal {
     placeholder: string,
     enablePathCompletion = false
   ): void {
-    const setting = new Setting(container).setName(name).addTextArea((text) => {
+    const setting = new Setting(container).setName(name);
+    let textAreaEl: HTMLTextAreaElement | null = null;
+    setting.addTextArea((text) => {
       text.setPlaceholder(placeholder);
       text.setValue(this.editedProperties[key] || "");
       text.onChange((value) => {
@@ -416,11 +536,11 @@ export class NodeEditorModal extends Modal {
       });
       text.inputEl.rows = 3;
       text.inputEl.addClass("workflow-node-editor-textarea");
-
-      if (enablePathCompletion) {
-        this.setupPathCompletion(text.inputEl, setting.settingEl, key);
-      }
+      textAreaEl = text.inputEl;
     });
+    if (enablePathCompletion && textAreaEl) {
+      this.setupPathCompletion(textAreaEl, setting.settingEl, key);
+    }
   }
 
   private addDropdown(

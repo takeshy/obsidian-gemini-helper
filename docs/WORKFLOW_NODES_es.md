@@ -45,13 +45,15 @@ nodes:
 
 ### command
 
-Ejecuta un prompt de LLM con configuraciones opcionales de modelo y busqueda.
+Ejecuta un prompt de LLM con configuraciones opcionales de modelo, busqueda, herramientas de vault y MCP.
 
 ```yaml
 - id: search
   type: command
   model: gemini-3-flash-preview  # Opcional: modelo especifico
   ragSetting: __websearch__      # Opcional: __websearch__, __none__, o nombre de configuracion
+  vaultTools: all                # Opcional: all, noSearch, none
+  mcpServers: "server1,server2"  # Opcional: nombres de servidores MCP separados por coma
   prompt: "Search for {{topic}}"
   saveTo: result
 ```
@@ -59,8 +61,10 @@ Ejecuta un prompt de LLM con configuraciones opcionales de modelo y busqueda.
 | Propiedad | Descripcion |
 |----------|-------------|
 | `prompt` | El prompt a enviar al LLM (requerido) |
-| `model` | Sobrescribir el modelo actual (ej., `gemini-3-flash-preview`, `gemini-3-pro-image-preview`, `gemini-cli`, `claude-cli`, `codex-cli`) |
-| `ragSetting` | `__websearch__` (busqueda web), `__none__` (sin busqueda), nombre de configuracion, u omitir para actual |
+| `model` | Sobrescribir el modelo actual (los modelos disponibles dependen de la configuracion del plan API) |
+| `ragSetting` | `__websearch__` (busqueda web), `__none__` (sin busqueda), nombre de configuracion RAG, u omitir para actual |
+| `vaultTools` | Modo de herramientas de vault: `all` (busqueda + lectura/escritura), `noSearch` (solo lectura/escritura), `none` (deshabilitado). Por defecto: `all` |
+| `mcpServers` | Nombres de servidores MCP separados por coma para habilitar (deben estar configurados en los ajustes del plugin) |
 | `attachments` | Nombres de variables separados por coma conteniendo FileExplorerData (del nodo `file-explorer`) |
 | `saveTo` | Nombre de variable para almacenar respuesta de texto |
 | `saveImageTo` | Nombre de variable para almacenar imagen generada (formato FileExplorerData, para modelos de imagen) |

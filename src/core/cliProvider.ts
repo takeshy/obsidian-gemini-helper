@@ -1,10 +1,13 @@
 /**
  * CLI Provider abstraction layer
- * Allows using Gemini CLI or Claude CLI as chat backend
+ * Allows using Gemini CLI, Claude CLI, or Codex CLI as chat backend
  *
  * Requirements:
- * - Non-Windows: `gemini` or `claude` command must be in PATH
- * - Windows: CLI must be installed at %APPDATA%\npm or %LOCALAPPDATA%
+ * - Non-Windows: CLI commands (`gemini`, `claude`, `codex`) must be in PATH
+ * - Windows: The actual .js script must be found in npm global node_modules
+ *   (searches %APPDATA%\npm, %PROGRAMFILES%\nodejs, and PATH-based locations)
+ *   Note: On Windows, we run scripts with `node` directly because npm creates
+ *   .cmd wrapper scripts that require shell: true, which is a security risk.
  *
  * Note: child_process is dynamically imported to avoid loading on mobile
  */
@@ -39,17 +42,23 @@ function isWindows(): boolean {
 /**
  * Resolve the Gemini CLI command and arguments
  * Always uses shell: false for security
+ *
+ * On Windows, we must find the actual .js script and run it with node,
+ * because npm creates .cmd wrapper scripts that require shell: true.
  */
 function resolveGeminiCommand(args: string[]): { command: string; args: string[] } {
-  // On Windows, resolve to the npm global package at APPDATA
-  if (isWindows() && typeof process !== "undefined") {
-    const appdata = process.env?.APPDATA;
-    const npmPrefix = appdata ? `${appdata}\\npm` : "";
-
-    if (npmPrefix) {
-      const scriptPath = `${npmPrefix}\\node_modules\\@google\\gemini-cli\\dist\\index.js`;
+  // On Windows, find the npm package script (required because .cmd scripts need shell: true)
+  if (isWindows()) {
+    const scriptPath = findWindowsNpmScript("@google\\gemini-cli\\dist\\index.js");
+    if (scriptPath) {
       return { command: "node", args: [scriptPath, ...args] };
     }
+    // If not found, return node with the expected path (will fail with helpful error)
+    const appdata = process.env?.APPDATA;
+    const fallbackPath = appdata
+      ? `${appdata}\\npm\\node_modules\\@google\\gemini-cli\\dist\\index.js`
+      : "@google\\gemini-cli\\dist\\index.js";
+    return { command: "node", args: [fallbackPath, ...args] };
   }
 
   // Non-Windows: use gemini command directly (must be in PATH)
@@ -59,14 +68,15 @@ function resolveGeminiCommand(args: string[]): { command: string; args: string[]
 function formatWindowsCliError(message: string | undefined): string | undefined {
   if (!isWindows()) return message;
   if (!message) {
-    return "Gemini CLI not found. Install it at %APPDATA%\\npm with npm -g.";
+    return "Gemini CLI not found. Install it with `npm install -g @google/gemini-cli` and ensure it is in your PATH.";
   }
   if (
     message.includes("Cannot find module") ||
     message.includes("MODULE_NOT_FOUND") ||
-    message.includes("@google\\gemini-cli")
+    message.includes("@google\\gemini-cli") ||
+    message.includes("ENOENT")
   ) {
-    return "Gemini CLI not found at %APPDATA%\\npm. Install it with `npm -g @google/gemini-cli`.";
+    return "Gemini CLI not found. Install it with `npm install -g @google/gemini-cli` and ensure it is in your PATH.";
   }
   return message;
 }
@@ -88,31 +98,102 @@ function fileExistsSync(path: string): boolean {
 }
 
 /**
- * Resolve the Claude CLI command and arguments
- * Always uses shell: false for security
+ * Get candidate Windows npm global node_modules paths
+ * Returns paths where npm packages might be installed globally
  */
-function resolveClaudeCommand(args: string[]): { command: string; args: string[] } {
-  // On Windows, resolve to the npm global package at APPDATA or LOCALAPPDATA
-  if (isWindows() && typeof process !== "undefined") {
-    const appdata = process.env?.APPDATA;
-    const localAppdata = process.env?.LOCALAPPDATA;
+function getWindowsNpmPaths(): string[] {
+  if (!isWindows() || typeof process === "undefined") return [];
 
-    // Try APPDATA\npm first (npm global installs)
-    if (appdata) {
-      const npmPath = `${appdata}\\npm`;
-      const scriptPath = `${npmPath}\\node_modules\\@anthropic-ai\\claude-code\\cli.js`;
-      return { command: "node", args: [scriptPath, ...args] };
-    }
+  const paths: string[] = [];
+  const env = process.env;
 
-    // Fallback to LOCALAPPDATA
-    if (localAppdata) {
-      const scriptPath = `${localAppdata}\\Programs\\claude\\claude.exe`;
-      return { command: scriptPath, args };
+  // 1. Default npm global prefix: %APPDATA%\npm
+  if (env?.APPDATA) {
+    paths.push(`${env.APPDATA}\\npm\\node_modules`);
+  }
+
+  // 2. Node.js installation directory (all users): %PROGRAMFILES%\nodejs
+  if (env?.PROGRAMFILES) {
+    paths.push(`${env.PROGRAMFILES}\\nodejs\\node_modules`);
+  }
+
+  // 3. Node.js x86 on 64-bit Windows: %PROGRAMFILES(X86)%\nodejs
+  const programFilesX86 = env?.["PROGRAMFILES(X86)"];
+  if (programFilesX86) {
+    paths.push(`${programFilesX86}\\nodejs\\node_modules`);
+  }
+
+  // 4. Custom npm prefix from PATH - look for node.exe location
+  if (env?.PATH) {
+    const pathDirs = env.PATH.split(";");
+    for (const dir of pathDirs) {
+      if (!dir) continue;
+      // Check if this directory contains node.exe (indicates Node.js installation)
+      if (fileExistsSync(`${dir}\\node.exe`)) {
+        // npm global packages are typically in node_modules sibling to node.exe
+        paths.push(`${dir}\\node_modules`);
+      }
+      // Also check for npm directory (npm global prefix)
+      if (dir.toLowerCase().includes("npm") && fileExistsSync(`${dir}\\node_modules`)) {
+        paths.push(`${dir}\\node_modules`);
+      }
     }
   }
 
+  // Remove duplicates
+  return [...new Set(paths)];
+}
+
+/**
+ * Find a Windows npm package script by checking multiple locations
+ * Returns the full path to the script if found, undefined otherwise
+ */
+function findWindowsNpmScript(packagePath: string): string | undefined {
+  const npmPaths = getWindowsNpmPaths();
+  for (const npmPath of npmPaths) {
+    const scriptPath = `${npmPath}\\${packagePath}`;
+    if (fileExistsSync(scriptPath)) {
+      return scriptPath;
+    }
+  }
+  return undefined;
+}
+
+/**
+ * Resolve the Claude CLI command and arguments
+ * Always uses shell: false for security
+ *
+ * On Windows, we must find the actual .js script and run it with node,
+ * because npm creates .cmd wrapper scripts that require shell: true.
+ */
+function resolveClaudeCommand(args: string[]): { command: string; args: string[] } {
+  // On Windows, find the npm package script or standalone exe
+  if (isWindows() && typeof process !== "undefined") {
+    // First, try to find the npm package script
+    const scriptPath = findWindowsNpmScript("@anthropic-ai\\claude-code\\cli.js");
+    if (scriptPath) {
+      return { command: "node", args: [scriptPath, ...args] };
+    }
+
+    // Try standalone Claude installation at LOCALAPPDATA
+    const localAppdata = process.env?.LOCALAPPDATA;
+    if (localAppdata) {
+      const exePath = `${localAppdata}\\Programs\\claude\\claude.exe`;
+      if (fileExistsSync(exePath)) {
+        return { command: exePath, args };
+      }
+    }
+
+    // If not found, return node with the expected path (will fail with helpful error)
+    const appdata = process.env?.APPDATA;
+    const fallbackPath = appdata
+      ? `${appdata}\\npm\\node_modules\\@anthropic-ai\\claude-code\\cli.js`
+      : "@anthropic-ai\\claude-code\\cli.js";
+    return { command: "node", args: [fallbackPath, ...args] };
+  }
+
   // Non-Windows: check common installation paths first (Obsidian may not have full PATH)
-  if (!isWindows() && typeof process !== "undefined") {
+  if (typeof process !== "undefined") {
     const home = process.env?.HOME;
     const candidatePaths: string[] = [];
 
@@ -143,14 +224,15 @@ function resolveClaudeCommand(args: string[]): { command: string; args: string[]
 function formatWindowsClaudeCliError(message: string | undefined): string | undefined {
   if (!isWindows()) return message;
   if (!message) {
-    return "Claude CLI not found. Install it with `npm install -g @anthropic-ai/claude-code`.";
+    return "Claude CLI not found. Install it with `npm install -g @anthropic-ai/claude-code` and ensure it is in your PATH.";
   }
   if (
     message.includes("Cannot find module") ||
     message.includes("MODULE_NOT_FOUND") ||
-    message.includes("@anthropic-ai\\claude-code")
+    message.includes("@anthropic-ai\\claude-code") ||
+    message.includes("ENOENT")
   ) {
-    return "Claude CLI not found. Install it with `npm install -g @anthropic-ai/claude-code`.";
+    return "Claude CLI not found. Install it with `npm install -g @anthropic-ai/claude-code` and ensure it is in your PATH.";
   }
   return message;
 }
@@ -158,17 +240,23 @@ function formatWindowsClaudeCliError(message: string | undefined): string | unde
 /**
  * Resolve the Codex CLI command and arguments
  * Always uses shell: false for security
+ *
+ * On Windows, we must find the actual .js script and run it with node,
+ * because npm creates .cmd wrapper scripts that require shell: true.
  */
 function resolveCodexCommand(args: string[]): { command: string; args: string[] } {
-  // On Windows, resolve to the npm global package at APPDATA
-  if (isWindows() && typeof process !== "undefined") {
-    const appdata = process.env?.APPDATA;
-
-    if (appdata) {
-      const npmPath = `${appdata}\\npm`;
-      const scriptPath = `${npmPath}\\node_modules\\@openai\\codex\\bin\\codex.js`;
+  // On Windows, find the npm package script (required because .cmd scripts need shell: true)
+  if (isWindows()) {
+    const scriptPath = findWindowsNpmScript("@openai\\codex\\bin\\codex.js");
+    if (scriptPath) {
       return { command: "node", args: [scriptPath, ...args] };
     }
+    // If not found, return node with the expected path (will fail with helpful error)
+    const appdata = process.env?.APPDATA;
+    const fallbackPath = appdata
+      ? `${appdata}\\npm\\node_modules\\@openai\\codex\\bin\\codex.js`
+      : "@openai\\codex\\bin\\codex.js";
+    return { command: "node", args: [fallbackPath, ...args] };
   }
 
   // Non-Windows: use codex command directly (must be in PATH)
@@ -178,14 +266,15 @@ function resolveCodexCommand(args: string[]): { command: string; args: string[] 
 function formatWindowsCodexCliError(message: string | undefined): string | undefined {
   if (!isWindows()) return message;
   if (!message) {
-    return "Codex CLI not found. Install it with `npm install -g @openai/codex`.";
+    return "Codex CLI not found. Install it with `npm install -g @openai/codex` and ensure it is in your PATH.";
   }
   if (
     message.includes("Cannot find module") ||
     message.includes("MODULE_NOT_FOUND") ||
-    message.includes("@openai\\codex")
+    message.includes("@openai\\codex") ||
+    message.includes("ENOENT")
   ) {
-    return "Codex CLI not found. Install it with `npm install -g @openai/codex`.";
+    return "Codex CLI not found. Install it with `npm install -g @openai/codex` and ensure it is in your PATH.";
   }
   return message;
 }

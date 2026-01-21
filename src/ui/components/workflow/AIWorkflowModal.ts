@@ -950,11 +950,17 @@ ${currentRequest}
 
 Output only the YAML for the workflow, starting with "name: ${workflowName}".`;
     } else {
+      // Build execution history section if steps are selected
+      let executionSection = "";
+      if (selectedExecutionSteps && selectedExecutionSteps.length > 0) {
+        executionSection = this.formatExecutionSteps(selectedExecutionSteps);
+      }
+
       return `Modify the following workflow according to these requirements:
 
 CURRENT WORKFLOW:
 ${this.existingYaml}
-
+${executionSection}
 MODIFICATIONS REQUESTED:
 ${currentRequest}
 

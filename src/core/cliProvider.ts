@@ -1,10 +1,10 @@
 /**
  * CLI Provider abstraction layer
- * Allows using Gemini CLI or Claude CLI as chat backend
+ * Allows using Gemini CLI, Claude CLI, or Codex CLI as chat backend
  *
  * Requirements:
- * - Non-Windows: `gemini` or `claude` command must be in PATH
- * - Windows: CLI must be installed at %APPDATA%\npm or %LOCALAPPDATA%
+ * - CLI commands (`gemini`, `claude`, `codex`) must be in PATH
+ * - On Windows: Also checks %APPDATA%\npm and %LOCALAPPDATA% as fallback
  *
  * Note: child_process is dynamically imported to avoid loading on mobile
  */
@@ -41,32 +41,37 @@ function isWindows(): boolean {
  * Always uses shell: false for security
  */
 function resolveGeminiCommand(args: string[]): { command: string; args: string[] } {
-  // On Windows, resolve to the npm global package at APPDATA
+  // On Windows, try npm global package at APPDATA first, then fall back to PATH
   if (isWindows() && typeof process !== "undefined") {
     const appdata = process.env?.APPDATA;
-    const npmPrefix = appdata ? `${appdata}\\npm` : "";
 
-    if (npmPrefix) {
+    if (appdata) {
+      const npmPrefix = `${appdata}\\npm`;
       const scriptPath = `${npmPrefix}\\node_modules\\@google\\gemini-cli\\dist\\index.js`;
-      return { command: "node", args: [scriptPath, ...args] };
+      // Only use node + script path if the script exists
+      if (fileExistsSync(scriptPath)) {
+        return { command: "node", args: [scriptPath, ...args] };
+      }
     }
+    // Fall through to use gemini from PATH if script not found at APPDATA
   }
 
-  // Non-Windows: use gemini command directly (must be in PATH)
+  // Use gemini command directly (must be in PATH)
   return { command: "gemini", args };
 }
 
 function formatWindowsCliError(message: string | undefined): string | undefined {
   if (!isWindows()) return message;
   if (!message) {
-    return "Gemini CLI not found. Install it at %APPDATA%\\npm with npm -g.";
+    return "Gemini CLI not found. Install it with `npm install -g @google/gemini-cli` and ensure it is in your PATH.";
   }
   if (
     message.includes("Cannot find module") ||
     message.includes("MODULE_NOT_FOUND") ||
-    message.includes("@google\\gemini-cli")
+    message.includes("@google\\gemini-cli") ||
+    message.includes("ENOENT")
   ) {
-    return "Gemini CLI not found at %APPDATA%\\npm. Install it with `npm -g @google/gemini-cli`.";
+    return "Gemini CLI not found. Install it with `npm install -g @google/gemini-cli` and ensure it is in your PATH.";
   }
   return message;
 }
@@ -143,14 +148,15 @@ function resolveClaudeCommand(args: string[]): { command: string; args: string[]
 function formatWindowsClaudeCliError(message: string | undefined): string | undefined {
   if (!isWindows()) return message;
   if (!message) {
-    return "Claude CLI not found. Install it with `npm install -g @anthropic-ai/claude-code`.";
+    return "Claude CLI not found. Install it with `npm install -g @anthropic-ai/claude-code` and ensure it is in your PATH.";
   }
   if (
     message.includes("Cannot find module") ||
     message.includes("MODULE_NOT_FOUND") ||
-    message.includes("@anthropic-ai\\claude-code")
+    message.includes("@anthropic-ai\\claude-code") ||
+    message.includes("ENOENT")
   ) {
-    return "Claude CLI not found. Install it with `npm install -g @anthropic-ai/claude-code`.";
+    return "Claude CLI not found. Install it with `npm install -g @anthropic-ai/claude-code` and ensure it is in your PATH.";
   }
   return message;
 }
@@ -160,32 +166,37 @@ function formatWindowsClaudeCliError(message: string | undefined): string | unde
  * Always uses shell: false for security
  */
 function resolveCodexCommand(args: string[]): { command: string; args: string[] } {
-  // On Windows, resolve to the npm global package at APPDATA
+  // On Windows, try npm global package at APPDATA first, then fall back to PATH
   if (isWindows() && typeof process !== "undefined") {
     const appdata = process.env?.APPDATA;
 
     if (appdata) {
       const npmPath = `${appdata}\\npm`;
       const scriptPath = `${npmPath}\\node_modules\\@openai\\codex\\bin\\codex.js`;
-      return { command: "node", args: [scriptPath, ...args] };
+      // Only use node + script path if the script exists
+      if (fileExistsSync(scriptPath)) {
+        return { command: "node", args: [scriptPath, ...args] };
+      }
     }
+    // Fall through to use codex from PATH if script not found at APPDATA
   }
 
-  // Non-Windows: use codex command directly (must be in PATH)
+  // Use codex command directly (must be in PATH)
   return { command: "codex", args };
 }
 
 function formatWindowsCodexCliError(message: string | undefined): string | undefined {
   if (!isWindows()) return message;
   if (!message) {
-    return "Codex CLI not found. Install it with `npm install -g @openai/codex`.";
+    return "Codex CLI not found. Install it with `npm install -g @openai/codex` and ensure it is in your PATH.";
   }
   if (
     message.includes("Cannot find module") ||
     message.includes("MODULE_NOT_FOUND") ||
-    message.includes("@openai\\codex")
+    message.includes("@openai\\codex") ||
+    message.includes("ENOENT")
   ) {
-    return "Codex CLI not found. Install it with `npm install -g @openai/codex`.";
+    return "Codex CLI not found. Install it with `npm install -g @openai/codex` and ensure it is in your PATH.";
   }
   return message;
 }

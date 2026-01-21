@@ -596,11 +596,6 @@ export async function handleCommandNode(
     });
 
     // Filter vault tools based on mode
-    const vaultToolNames = [
-      "read_note", "create_note", "propose_edit", "propose_delete",
-      "rename_note", "search_notes", "list_notes", "list_folders",
-      "create_folder", "get_active_note_info", "get_rag_sync_status"
-    ];
     const searchToolNames = ["search_notes", "list_notes"];
 
     tools = vaultTools.filter(tool => {

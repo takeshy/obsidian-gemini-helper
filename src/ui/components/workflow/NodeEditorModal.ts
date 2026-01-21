@@ -253,7 +253,7 @@ export class NodeEditorModal extends Modal {
 
         let searchDropdown: HTMLSelectElement | null = null;
         let vaultToolDropdown: HTMLSelectElement | null = null;
-        let mcpCheckboxes: Array<{ name: string; checkbox: HTMLInputElement }> = [];
+        const mcpCheckboxes: Array<{ name: string; checkbox: HTMLInputElement }> = [];
 
         // Model dropdown
         new Setting(container).setName("Model").addDropdown((dropdown) => {
@@ -310,7 +310,7 @@ export class NodeEditorModal extends Modal {
         });
 
         // Vault Tools dropdown
-        new Setting(container).setName("Vault Tools").addDropdown((dropdown) => {
+        new Setting(container).setName("Vault tools").addDropdown((dropdown) => {
           vaultToolDropdown = dropdown.selectEl;
           for (const opt of vaultToolOptions) {
             dropdown.addOption(opt.value, opt.label);
@@ -332,7 +332,7 @@ export class NodeEditorModal extends Modal {
         if (mcpServers.length > 0) {
           const enabledMcpServers = (this.editedProperties["mcpServers"] || "").split(",").filter(s => s.trim());
 
-          const mcpSetting = new Setting(container).setName("MCP Servers");
+          const mcpSetting = new Setting(container).setName("Mcp servers");
           const mcpContainer = mcpSetting.settingEl.createDiv({ cls: "workflow-mcp-checkboxes" });
 
           for (const server of mcpServers) {

@@ -290,6 +290,15 @@ function getNodeSummary(node: SidebarNode): string {
   }
 }
 
+// Find the minimum number of backticks needed to safely wrap content
+function getCodeFenceBackticks(content: string): string {
+  // Find the longest sequence of backticks in the content
+  const matches = content.match(/`+/g);
+  const maxBackticks = matches ? Math.max(...matches.map(m => m.length)) : 0;
+  // Use at least 3, or 1 more than the longest sequence found
+  return '`'.repeat(Math.max(3, maxBackticks + 1));
+}
+
 // Build history entry with optional collapsed file contents
 function buildHistoryEntry(
   action: "Created" | "Modified",
@@ -303,7 +312,8 @@ function buildHistoryEntry(
   if (resolvedMentions && resolvedMentions.length > 0) {
     for (const mention of resolvedMentions) {
       const escapedContent = mention.content.split('\n').join('\n>   > ');
-      entry += `\n>   > [!note]- ${mention.original}\n>   > \`\`\`\n>   > ${escapedContent}\n>   > \`\`\``;
+      const fence = getCodeFenceBackticks(mention.content);
+      entry += `\n>   > [!note]- ${mention.original}\n>   > ${fence}\n>   > ${escapedContent}\n>   > ${fence}`;
     }
   }
 

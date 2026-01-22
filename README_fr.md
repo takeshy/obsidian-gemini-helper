@@ -368,6 +368,7 @@ Les workflows peuvent être automatiquement déclenchés par des événements Ob
 |--------|-------------|
 | Gemini 3 Flash Preview | Modèle rapide, contexte 1M (par défaut) |
 | Gemini 3 Pro Preview | Modèle phare, contexte 1M |
+| Gemini 2.5 Flash | Modèle rapide, contexte 1M |
 | Gemini 2.5 Flash Lite | Modèle flash léger |
 | Gemini 2.5 Flash (Image) | Génération d'images, 1024px |
 | Gemini 3 Pro (Image) | Génération d'images Pro, 4K |

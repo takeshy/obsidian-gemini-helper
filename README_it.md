@@ -368,6 +368,7 @@ I workflow possono essere attivati automaticamente dagli eventi di Obsidian:
 |---------|-------------|
 | Gemini 3 Flash Preview | Modello veloce, contesto 1M (default) |
 | Gemini 3 Pro Preview | Modello flagship, contesto 1M |
+| Gemini 2.5 Flash | Modello veloce, contesto 1M |
 | Gemini 2.5 Flash Lite | Modello flash leggero |
 | Gemini 2.5 Flash (Image) | Generazione immagini, 1024px |
 | Gemini 3 Pro (Image) | Generazione immagini Pro, 4K |

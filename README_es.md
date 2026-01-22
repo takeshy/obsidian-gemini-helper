@@ -368,6 +368,7 @@ Los flujos de trabajo pueden activarse automáticamente por eventos de Obsidian:
 |--------|-------------|
 | Gemini 3 Flash Preview | Modelo rápido, contexto de 1M (predeterminado) |
 | Gemini 3 Pro Preview | Modelo insignia, contexto de 1M |
+| Gemini 2.5 Flash | Modelo rápido, contexto de 1M |
 | Gemini 2.5 Flash Lite | Modelo flash ligero |
 | Gemini 2.5 Flash (Image) | Generación de imágenes, 1024px |
 | Gemini 3 Pro (Image) | Generación de imágenes Pro, 4K |

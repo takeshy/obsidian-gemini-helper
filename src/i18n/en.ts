@@ -99,6 +99,10 @@ export const en = {
   "settings.useCurrentSetting": "Use current setting",
   "settings.confirmEdits": "Confirm edits",
   "settings.confirmEdits.desc": "Show apply/discard buttons for propose_edit (disable for auto-apply)",
+  "settings.vaultToolModeOptional": "Vault tools (optional)",
+  "settings.vaultToolModeOptional.desc": "Override the vault tool mode when using this command",
+  "settings.mcpServersOptional": "Mcp servers (optional)",
+  "settings.mcpServersOptional.desc": "Override which mcp servers are enabled when using this command",
 
   // Settings - RAG
   "settings.enableRag": "Enable semantic search (rag)",

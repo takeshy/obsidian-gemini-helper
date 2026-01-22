@@ -99,6 +99,10 @@ export const ko: Record<string, string> = {
   "settings.useCurrentSetting": "현재 설정 사용",
   "settings.confirmEdits": "편집 확인",
   "settings.confirmEdits.desc": "propose_edit에 적용/취소 버튼 표시 (비활성화하면 자동 적용)",
+  "settings.vaultToolModeOptional": "보관함 도구 (선택사항)",
+  "settings.vaultToolModeOptional.desc": "이 명령어 사용 시 보관함 도구 모드를 재정의",
+  "settings.mcpServersOptional": "MCP 서버 (선택사항)",
+  "settings.mcpServersOptional.desc": "이 명령어 사용 시 활성화할 MCP 서버를 재정의",
 
   // Settings - RAG
   "settings.enableRag": "시맨틱 검색 (RAG) 활성화",

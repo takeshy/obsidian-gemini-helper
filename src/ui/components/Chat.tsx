@@ -953,6 +953,24 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 				handleRagSettingChange(newSetting);
 			}
 
+		// Optionally change vault tool mode (null = keep current)
+		if (command.vaultToolMode !== null && command.vaultToolMode !== undefined) {
+			setVaultToolMode(command.vaultToolMode);
+			// When vault tools are disabled, also disable all MCP servers
+			if (command.vaultToolMode === "none") {
+				setMcpServers(servers => servers.map(s => ({ ...s, enabled: false })));
+			}
+		}
+
+		// Optionally change MCP server enabled state (null = keep current)
+		if (command.enabledMcpServers !== null && command.enabledMcpServers !== undefined) {
+			const enabledSet = new Set(command.enabledMcpServers);
+			setMcpServers(servers => servers.map(s => ({
+				...s,
+				enabled: enabledSet.has(s.name)
+			})));
+		}
+
 		// Return template as-is, variables will be resolved on send
 		return command.promptTemplate;
 	};

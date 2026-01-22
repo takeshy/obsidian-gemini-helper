@@ -99,6 +99,10 @@ export const ja: Record<string, string> = {
   "settings.useCurrentSetting": "現在の設定を使用",
   "settings.confirmEdits": "編集の確認",
   "settings.confirmEdits.desc": "propose_editの適用/破棄ボタンを表示（無効で自動適用）",
+  "settings.vaultToolModeOptional": "Vaultツール（任意）",
+  "settings.vaultToolModeOptional.desc": "このコマンド使用時にVaultツールモードを変更",
+  "settings.mcpServersOptional": "MCPサーバー（任意）",
+  "settings.mcpServersOptional.desc": "このコマンド使用時に有効にするMCPサーバーを設定",
 
   // Settings - RAG
   "settings.enableRag": "セマンティック検索 (RAG) を有効化",

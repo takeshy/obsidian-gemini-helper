@@ -99,6 +99,10 @@ export const zh: Record<string, string> = {
   "settings.useCurrentSetting": "使用当前设置",
   "settings.confirmEdits": "确认编辑",
   "settings.confirmEdits.desc": "为 propose_edit 显示应用/放弃按钮（禁用以自动应用）",
+  "settings.vaultToolModeOptional": "库工具（可选）",
+  "settings.vaultToolModeOptional.desc": "使用此命令时覆盖库工具模式",
+  "settings.mcpServersOptional": "MCP 服务器（可选）",
+  "settings.mcpServersOptional.desc": "使用此命令时覆盖启用的 MCP 服务器",
 
   // Settings - RAG
   "settings.enableRag": "启用语义搜索 (RAG)",

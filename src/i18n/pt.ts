@@ -99,6 +99,10 @@ export const pt: Record<string, string> = {
   "settings.useCurrentSetting": "Usar configuração atual",
   "settings.confirmEdits": "Confirmar edições",
   "settings.confirmEdits.desc": "Mostrar botões aplicar/descartar para propose_edit (desativar para auto-aplicar)",
+  "settings.vaultToolModeOptional": "Ferramentas do vault (opcional)",
+  "settings.vaultToolModeOptional.desc": "Substituir o modo de ferramentas do vault ao usar este comando",
+  "settings.mcpServersOptional": "Servidores MCP (opcional)",
+  "settings.mcpServersOptional.desc": "Substituir quais servidores MCP estão habilitados ao usar este comando",
 
   // Settings - RAG
   "settings.enableRag": "Ativar pesquisa semântica (RAG)",

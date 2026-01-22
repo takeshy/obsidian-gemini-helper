@@ -31,6 +31,9 @@ export interface WorkflowEventTrigger {
   filePattern?: string;       // Optional glob pattern to filter files (e.g., "*.md", "folder/**")
 }
 
+// Vault tool mode type
+export type VaultToolMode = "all" | "noSearch" | "none";
+
 // Slash command definition
 export interface SlashCommand {
   id: string;
@@ -40,6 +43,8 @@ export interface SlashCommand {
   description?: string;         // オートコンプリートに表示
   searchSetting?: string | null; // null = 現在の設定, "" = None, "__websearch__" = Web Search, その他 = Semantic Search設定名
   confirmEdits?: boolean;       // undefined/true = 編集確認を表示, false = 自動適用
+  vaultToolMode?: VaultToolMode | null; // null = 現在の設定, "all" = すべて, "noSearch" = 検索なし, "none" = オフ
+  enabledMcpServers?: string[] | null;  // null = 現在の設定, [] = すべてオフ, ["name1", "name2"] = 指定のサーバーのみ有効
 }
 
 // Settings interface

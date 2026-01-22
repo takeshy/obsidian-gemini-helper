@@ -99,6 +99,10 @@ export const fr: Record<string, string> = {
   "settings.useCurrentSetting": "Utiliser le paramètre actuel",
   "settings.confirmEdits": "Confirmer les modifications",
   "settings.confirmEdits.desc": "Afficher les boutons appliquer/annuler pour propose_edit (désactiver pour application auto)",
+  "settings.vaultToolModeOptional": "Outils du coffre (optionnel)",
+  "settings.vaultToolModeOptional.desc": "Remplacer le mode des outils du coffre lors de l'utilisation de cette commande",
+  "settings.mcpServersOptional": "Serveurs MCP (optionnel)",
+  "settings.mcpServersOptional.desc": "Remplacer les serveurs MCP activés lors de l'utilisation de cette commande",
 
   // Settings - RAG
   "settings.enableRag": "Activer la recherche sémantique (RAG)",

@@ -369,6 +369,7 @@ nodes:
 | Gemini 3 Flash Preview | 快速模型，1M 上下文（默认） |
 | Gemini 3 Pro Preview | 旗舰模型，1M 上下文 |
 | Gemini 2.5 Flash | 快速模型，1M 上下文 |
+| Gemini 2.5 Pro | Pro 模型，1M 上下文 |
 | Gemini 2.5 Flash Lite | 轻量级 flash 模型 |
 | Gemini 2.5 Flash (Image) | 图像生成，1024px |
 | Gemini 3 Pro (Image) | Pro 图像生成，4K |

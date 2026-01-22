@@ -283,6 +283,11 @@ export const PAID_MODELS: ModelInfo[] = [
     description: "Fast model with 1M context",
   },
   {
+    name: "gemini-2.5-pro",
+    displayName: "Gemini 2.5 Pro",
+    description: "Pro model with 1M context",
+  },
+  {
     name: "gemini-2.5-flash-lite",
     displayName: "Gemini 2.5 Flash Lite",
     description: "Lightweight flash model",

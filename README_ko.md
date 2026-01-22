@@ -369,6 +369,7 @@ Obsidian 이벤트에 의해 워크플로우가 자동으로 트리거될 수 �
 | Gemini 3 Flash Preview | 빠른 모델, 1M 컨텍스트 (기본값) |
 | Gemini 3 Pro Preview | 플래그십 모델, 1M 컨텍스트 |
 | Gemini 2.5 Flash | 빠른 모델, 1M 컨텍스트 |
+| Gemini 2.5 Pro | Pro 모델, 1M 컨텍스트 |
 | Gemini 2.5 Flash Lite | 경량 flash 모델 |
 | Gemini 2.5 Flash (Image) | 이미지 생성, 1024px |
 | Gemini 3 Pro (Image) | Pro 이미지 생성, 4K |

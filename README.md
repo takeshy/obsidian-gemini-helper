@@ -369,6 +369,7 @@ Workflows can be automatically triggered by Obsidian events:
 | Gemini 3 Flash Preview | Fast model, 1M context (default) |
 | Gemini 3 Pro Preview | Flagship model, 1M context |
 | Gemini 2.5 Flash | Fast model, 1M context |
+| Gemini 2.5 Pro | Pro model, 1M context |
 | Gemini 2.5 Flash Lite | Lightweight flash model |
 | Gemini 2.5 Flash (Image) | Image generation, 1024px |
 | Gemini 3 Pro (Image) | Pro image generation, 4K |

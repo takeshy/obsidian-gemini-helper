@@ -380,6 +380,7 @@ Obsidian のイベントでワークフローを自動実行：
 | Gemini 3 Flash Preview   | 高速モデル、1M コンテキスト（デフォルト） |
 | Gemini 3 Pro Preview     | フラッグシップモデル、1M コンテキスト     |
 | Gemini 2.5 Flash         | 高速モデル、1M コンテキスト               |
+| Gemini 2.5 Pro           | プロモデル、1M コンテキスト               |
 | Gemini 2.5 Flash Lite    | 軽量フラッシュモデル                      |
 | Gemini 2.5 Flash (Image) | 画像生成、1024px                          |
 | Gemini 3 Pro (Image)     | プロ画像生成、4K                          |

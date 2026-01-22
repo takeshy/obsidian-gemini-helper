@@ -369,6 +369,7 @@ Workflows können automatisch durch Obsidian-Ereignisse ausgelöst werden:
 | Gemini 3 Flash Preview | Schnelles Modell, 1M Kontext (Standard) |
 | Gemini 3 Pro Preview | Flaggschiff-Modell, 1M Kontext |
 | Gemini 2.5 Flash | Schnelles Modell, 1M Kontext |
+| Gemini 2.5 Pro | Pro-Modell, 1M Kontext |
 | Gemini 2.5 Flash Lite | Leichtgewichtiges Flash-Modell |
 | Gemini 2.5 Flash (Image) | Bilderzeugung, 1024px |
 | Gemini 3 Pro (Image) | Pro-Bilderzeugung, 4K |

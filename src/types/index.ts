@@ -34,6 +34,14 @@ export interface WorkflowEventTrigger {
 // Vault tool mode type
 export type VaultToolMode = "all" | "noSearch" | "none";
 
+// Reason why vault tools are set to "none"
+// "manual" = user manually turned off (MCP servers remain unchanged)
+// "flashLiteRag" = flash-lite + RAG enabled (MCP servers also disabled)
+// "cli" = CLI mode (MCP servers also disabled)
+// "gemma" = Gemma model (no function calling support, MCP servers also disabled)
+// "websearch" = Web search mode (MCP servers also disabled)
+export type VaultToolNoneReason = "manual" | "flashLiteRag" | "cli" | "gemma" | "websearch";
+
 // Slash command definition
 export interface SlashCommand {
   id: string;

@@ -25,6 +25,7 @@ import {
 	type SlashCommand,
 	type GeneratedImage,
 	type ChatProvider,
+	type VaultToolNoneReason,
 	isImageGenerationModel,
 } from "src/types";
 import { getGeminiClient } from "src/core/gemini";
@@ -171,8 +172,47 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 		}
 		return "all";
 	});
+	// Reason why vault tools are "none" - determines whether MCP should also be disabled
+	const [vaultToolNoneReason, setVaultToolNoneReason] = useState<VaultToolNoneReason | null>(() => {
+		const ragSetting = plugin.workspaceState.selectedRagSetting;
+		const initialModel = plugin.getSelectedModel();
+		const isInitialFlashLite = initialModel.toLowerCase().includes("flash-lite");
+		const isInitialCli = initialModel === "gemini-cli" || initialModel === "claude-cli" || initialModel === "codex-cli";
+		const isInitialGemma = initialModel.toLowerCase().includes("gemma");
+
+		if (isInitialCli) {
+			return "cli";
+		}
+		if (isInitialGemma) {
+			return "gemma";
+		}
+		if (ragSetting === "__websearch__") {
+			return "websearch";
+		}
+		if (ragSetting && isInitialFlashLite) {
+			return "flashLiteRag";
+		}
+		return null;
+	});
 	// MCP servers state: local copy with per-server enabled state (for chat session)
-	const [mcpServers, setMcpServers] = useState(() => [...plugin.settings.mcpServers]);
+	// If vaultToolNoneReason is not "manual", disable all MCP servers initially
+	const [mcpServers, setMcpServers] = useState(() => {
+		const ragSetting = plugin.workspaceState.selectedRagSetting;
+		const initialModel = plugin.getSelectedModel();
+		const isInitialFlashLite = initialModel.toLowerCase().includes("flash-lite");
+		const isInitialCli = initialModel === "gemini-cli" || initialModel === "claude-cli" || initialModel === "codex-cli";
+		const isInitialGemma = initialModel.toLowerCase().includes("gemma");
+
+		// Check if MCP should be disabled (same logic as vaultToolNoneReason)
+		const shouldDisableMcp = isInitialCli || isInitialGemma ||
+			ragSetting === "__websearch__" ||
+			(ragSetting && isInitialFlashLite);
+
+		if (shouldDisableMcp) {
+			return plugin.settings.mcpServers.map(s => ({ ...s, enabled: false }));
+		}
+		return [...plugin.settings.mcpServers];
+	});
 	const messagesContainerRef = useRef<HTMLDivElement>(null);
 	const abortControllerRef = useRef<AbortController | null>(null);
 	const inputAreaRef = useRef<InputAreaHandle>(null);
@@ -739,28 +779,32 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 		if (name === "__websearch__") {
 			// Web Search: force to "none" (no vault tools)
 			setVaultToolMode("none");
+			setVaultToolNoneReason("websearch");
+			setMcpServers(servers => servers.map(s => ({ ...s, enabled: false })));
 		} else if (name) {
 			// RAG is selected
 			if (isFlashLiteModel) {
 				// Flash Lite + RAG: force to "none"
 				setVaultToolMode("none");
+				setVaultToolNoneReason("flashLiteRag");
+				setMcpServers(servers => servers.map(s => ({ ...s, enabled: false })));
 			} else {
 				// Other models + RAG: default to "noSearch"
 				setVaultToolMode("noSearch");
+				setVaultToolNoneReason(null);
 			}
 		} else {
 			// No RAG selected: default to "all"
 			setVaultToolMode("all");
+			setVaultToolNoneReason(null);
 		}
 	};
 
 	// Handle vault tool mode change from UI
 	const handleVaultToolModeChange = (mode: "all" | "noSearch" | "none") => {
 		setVaultToolMode(mode);
-		// When vault tools are disabled, also disable all MCP servers
-		if (mode === "none") {
-			setMcpServers(servers => servers.map(s => ({ ...s, enabled: false })));
-		}
+		// Manual change: MCP servers remain unchanged
+		setVaultToolNoneReason(mode === "none" ? "manual" : null);
 	};
 
 	// Handle per-server MCP toggle from UI
@@ -791,12 +835,16 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 				handleRagSettingChange(null);
 			}
 			setVaultToolMode("none");
+			setVaultToolNoneReason("cli");
+			setMcpServers(servers => servers.map(s => ({ ...s, enabled: false })));
 		} else if (isNewModelGemma) {
 			// Gemma: force Search to None and Vault to Off
 			if (selectedRagSetting !== null) {
 				handleRagSettingChange(null);
 			}
 			setVaultToolMode("none");
+			setVaultToolNoneReason("gemma");
+			setMcpServers(servers => servers.map(s => ({ ...s, enabled: false })));
 		} else if (isImageGenerationModel(model)) {
 			// 2.5 Flash Image: no tools supported → force None
 			// 3 Pro Image: Web Search only → keep if Web Search, else None
@@ -812,22 +860,30 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 			}
 			// Reset vault tool mode for image generation models
 			setVaultToolMode("all");
+			setVaultToolNoneReason(null);
 		} else if (isNewModelFlashLite) {
 			if (selectedRagSetting && selectedRagSetting !== "__websearch__") {
 				// Flash Lite + RAG: force vault tool mode to "none"
 				setVaultToolMode("none");
+				setVaultToolNoneReason("flashLiteRag");
+				setMcpServers(servers => servers.map(s => ({ ...s, enabled: false })));
 			} else {
 				// Flash Lite without RAG: reset to "all"
 				setVaultToolMode("all");
+				setVaultToolNoneReason(null);
 			}
 		} else {
 			// Normal models: check current RAG setting and reset appropriately
 			if (selectedRagSetting === "__websearch__") {
 				setVaultToolMode("none");
+				setVaultToolNoneReason("websearch");
+				setMcpServers(servers => servers.map(s => ({ ...s, enabled: false })));
 			} else if (selectedRagSetting) {
 				setVaultToolMode("noSearch");
+				setVaultToolNoneReason(null);
 			} else {
 				setVaultToolMode("all");
+				setVaultToolNoneReason(null);
 			}
 		}
 	};
@@ -953,23 +1009,21 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 				handleRagSettingChange(newSetting);
 			}
 
-		// Optionally change vault tool mode (null = keep current)
-		if (command.vaultToolMode !== null && command.vaultToolMode !== undefined) {
-			setVaultToolMode(command.vaultToolMode);
-			// When vault tools are disabled, also disable all MCP servers
-			if (command.vaultToolMode === "none") {
-				setMcpServers(servers => servers.map(s => ({ ...s, enabled: false })));
+			// Optionally change vault tool mode (null = keep current)
+			// Slash commands are input helpers, so vaultToolMode="none" uses "manual" reason (MCP unchanged)
+			if (command.vaultToolMode !== null && command.vaultToolMode !== undefined) {
+				setVaultToolMode(command.vaultToolMode);
+				setVaultToolNoneReason(command.vaultToolMode === "none" ? "manual" : null);
 			}
-		}
 
-		// Optionally change MCP server enabled state (null = keep current)
-		if (command.enabledMcpServers !== null && command.enabledMcpServers !== undefined) {
-			const enabledSet = new Set(command.enabledMcpServers);
-			setMcpServers(servers => servers.map(s => ({
-				...s,
-				enabled: enabledSet.has(s.name)
-			})));
-		}
+			// Optionally change MCP server enabled state (null = keep current)
+			if (command.enabledMcpServers !== null && command.enabledMcpServers !== undefined) {
+				const enabledSet = new Set(command.enabledMcpServers);
+				setMcpServers(servers => servers.map(s => ({
+					...s,
+					enabled: enabledSet.has(s.name)
+				})));
+			}
 
 		// Return template as-is, variables will be resolved on send
 		return command.promptTemplate;

@@ -99,6 +99,10 @@ export const en = {
   "settings.useCurrentSetting": "Use current setting",
   "settings.confirmEdits": "Confirm edits",
   "settings.confirmEdits.desc": "Show apply/discard buttons for propose_edit (disable for auto-apply)",
+  "settings.vaultToolModeOptional": "Vault tools (optional)",
+  "settings.vaultToolModeOptional.desc": "Override the vault tool mode when using this command",
+  "settings.mcpServersOptional": "Mcp servers (optional)",
+  "settings.mcpServersOptional.desc": "Override which mcp servers are enabled when using this command",
 
   // Settings - RAG
   "settings.enableRag": "Enable semantic search (rag)",
@@ -478,6 +482,11 @@ export const en = {
   "editHistoryModal.confirmRevertToBase": "Revert to base snapshot? Unsaved changes will be discarded.",
   "editHistoryModal.revertedToBase": "Reverted to base snapshot",
   "editHistoryModal.close": "Close",
+  "editHistoryModal.copy": "Copy",
+  "editHistoryModal.copyTo": "Copy to",
+  "editHistoryModal.copied": "Copied to {{path}}",
+  "editHistoryModal.copyFailed": "Failed to copy",
+  "editHistoryModal.fileExists": "File already exists",
 
   // Diff Modal
   "diffModal.title": "Diff: {{timestamp}} - {{source}}",

@@ -28,6 +28,7 @@ import {
   type SlashCommand,
   type ModelType,
   type McpServerConfig,
+  type VaultToolMode,
 } from "src/types";
 import { getEditHistoryManager } from "src/core/editHistory";
 import { Platform } from "obsidian";
@@ -164,6 +165,7 @@ class SlashCommandModal extends Modal {
   private ragSettings: string[];
   private availableModels: ModelInfo[];
   private allowWebSearch: boolean;
+  private mcpServers: McpServerConfig[];
 
   constructor(
     app: App,
@@ -172,6 +174,7 @@ class SlashCommandModal extends Modal {
     ragSettings: string[],
     availableModels: ModelInfo[],
     allowWebSearch: boolean,
+    mcpServers: McpServerConfig[],
     onSubmit: (command: SlashCommand) => void | Promise<void>
   ) {
     super(app);
@@ -180,6 +183,7 @@ class SlashCommandModal extends Modal {
     this.ragSettings = ragSettings;
     this.availableModels = availableModels;
     this.allowWebSearch = allowWebSearch;
+    this.mcpServers = mcpServers;
     this.command = command
       ? { ...command }
       : {
@@ -189,6 +193,8 @@ class SlashCommandModal extends Modal {
           model: null,
           description: "",
           searchSetting: null,
+          vaultToolMode: null,
+          enabledMcpServers: null,
         };
     this.onSubmit = onSubmit;
   }
@@ -309,6 +315,90 @@ class SlashCommandModal extends Modal {
             this.command.confirmEdits = value;
           })
       );
+
+    // Vault tool mode (optional)
+    new Setting(contentEl)
+      .setName(t("settings.vaultToolModeOptional"))
+      .setDesc(t("settings.vaultToolModeOptional.desc"))
+      .addDropdown((dropdown) => {
+        dropdown.addOption("__current__", t("settings.useCurrentSetting"));
+        dropdown.addOption("all", t("input.vaultToolAll"));
+        dropdown.addOption("noSearch", t("input.vaultToolNoSearch"));
+        dropdown.addOption("none", t("input.vaultToolNone"));
+        // Map stored value to dropdown value
+        const storedValue = this.command.vaultToolMode;
+        const dropdownValue = storedValue === null || storedValue === undefined ? "__current__" : storedValue;
+        dropdown.setValue(dropdownValue);
+        dropdown.onChange((value) => {
+          // Map dropdown value back to stored value
+          this.command.vaultToolMode = value === "__current__" ? null : value as VaultToolMode;
+        });
+      });
+
+    // MCP servers (optional) - only show if servers are configured
+    if (this.mcpServers.length > 0) {
+      new Setting(contentEl)
+        .setName(t("settings.mcpServersOptional"))
+        .setDesc(t("settings.mcpServersOptional.desc"));
+
+      // Create container for checkboxes
+      const mcpContainer = contentEl.createDiv({ cls: "gemini-helper-mcp-checkboxes" });
+
+      // "Use current setting" option
+      const currentSettingLabel = mcpContainer.createEl("label", { cls: "gemini-helper-mcp-checkbox-label" });
+      const currentSettingCheckbox = currentSettingLabel.createEl("input", { type: "checkbox" });
+      currentSettingCheckbox.checked = this.command.enabledMcpServers === null || this.command.enabledMcpServers === undefined;
+      currentSettingLabel.appendText(t("settings.useCurrentSetting"));
+
+      // Container for server checkboxes
+      const serverCheckboxesContainer = mcpContainer.createDiv({ cls: "gemini-helper-mcp-server-checkboxes" });
+
+      // Track enabled servers
+      const enabledServers = new Set<string>(this.command.enabledMcpServers || []);
+
+      // Update visibility based on "use current" state
+      const updateServerCheckboxesVisibility = () => {
+        serverCheckboxesContainer.style.display = currentSettingCheckbox.checked ? "none" : "block";
+      };
+      updateServerCheckboxesVisibility();
+
+      // Create checkbox for each MCP server
+      this.mcpServers.forEach((server) => {
+        const label = serverCheckboxesContainer.createEl("label", { cls: "gemini-helper-mcp-checkbox-label" });
+        const checkbox = label.createEl("input", { type: "checkbox" });
+        checkbox.checked = this.command.enabledMcpServers === null || this.command.enabledMcpServers === undefined
+          ? server.enabled
+          : enabledServers.has(server.name);
+        label.appendText(server.name);
+
+        checkbox.addEventListener("change", () => {
+          if (checkbox.checked) {
+            enabledServers.add(server.name);
+          } else {
+            enabledServers.delete(server.name);
+          }
+          this.command.enabledMcpServers = Array.from(enabledServers);
+        });
+      });
+
+      // Handle "use current" checkbox change
+      currentSettingCheckbox.addEventListener("change", () => {
+        if (currentSettingCheckbox.checked) {
+          this.command.enabledMcpServers = null;
+        } else {
+          // Initialize with currently enabled servers in settings
+          const defaultEnabled = this.mcpServers.filter(s => s.enabled).map(s => s.name);
+          enabledServers.clear();
+          defaultEnabled.forEach(name => enabledServers.add(name));
+          this.command.enabledMcpServers = defaultEnabled;
+          // Update checkboxes to reflect default state
+          serverCheckboxesContainer.querySelectorAll<HTMLInputElement>("input[type='checkbox']").forEach((cb, idx) => {
+            cb.checked = enabledServers.has(this.mcpServers[idx].name);
+          });
+        }
+        updateServerCheckboxesVisibility();
+      });
+    }
 
     // Action buttons
     new Setting(contentEl)
@@ -836,6 +926,7 @@ export class SettingsTab extends PluginSettingTab {
               allowRag ? ragSettingNames : [],
               availableModels,
               allowWebSearch,
+              this.plugin.settings.mcpServers,
               async (command) => {
                 this.plugin.settings.slashCommands.push(command);
                 await this.plugin.saveSettings();
@@ -870,6 +961,7 @@ export class SettingsTab extends PluginSettingTab {
                 allowRag ? ragSettingNames : [],
                 availableModels,
                 allowWebSearch,
+                this.plugin.settings.mcpServers,
                 async (updated) => {
                   const index = this.plugin.settings.slashCommands.findIndex(
                     (c) => c.id === command.id

@@ -99,6 +99,10 @@ export const ko: Record<string, string> = {
   "settings.useCurrentSetting": "현재 설정 사용",
   "settings.confirmEdits": "편집 확인",
   "settings.confirmEdits.desc": "propose_edit에 적용/취소 버튼 표시 (비활성화하면 자동 적용)",
+  "settings.vaultToolModeOptional": "보관함 도구 (선택사항)",
+  "settings.vaultToolModeOptional.desc": "이 명령어 사용 시 보관함 도구 모드를 재정의",
+  "settings.mcpServersOptional": "MCP 서버 (선택사항)",
+  "settings.mcpServersOptional.desc": "이 명령어 사용 시 활성화할 MCP 서버를 재정의",
 
   // Settings - RAG
   "settings.enableRag": "시맨틱 검색 (RAG) 활성화",
@@ -392,6 +396,11 @@ export const ko: Record<string, string> = {
   "editHistoryModal.confirmRevertToBase": "기본 스냅샷으로 되돌리시겠습니까? 저장되지 않은 변경 사항이 삭제됩니다.",
   "editHistoryModal.revertedToBase": "기본 스냅샷으로 되돌렸습니다",
   "editHistoryModal.close": "닫기",
+  "editHistoryModal.copy": "복사",
+  "editHistoryModal.copyTo": "복사 위치",
+  "editHistoryModal.copied": "{{path}}에 복사됨",
+  "editHistoryModal.copyFailed": "복사 실패",
+  "editHistoryModal.fileExists": "파일이 이미 존재합니다",
   "editHistoryModal.manual": "수동",
   "editHistoryModal.auto": "자동",
 

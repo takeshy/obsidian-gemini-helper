@@ -99,6 +99,10 @@ export const it: Record<string, string> = {
   "settings.useCurrentSetting": "Usa impostazione corrente",
   "settings.confirmEdits": "Conferma modifiche",
   "settings.confirmEdits.desc": "Mostra pulsanti applica/annulla per propose_edit (disabilita per auto-applicazione)",
+  "settings.vaultToolModeOptional": "Strumenti del vault (opzionale)",
+  "settings.vaultToolModeOptional.desc": "Sostituisci la modalità strumenti del vault usando questo comando",
+  "settings.mcpServersOptional": "Server MCP (opzionale)",
+  "settings.mcpServersOptional.desc": "Sostituisci quali server MCP sono abilitati usando questo comando",
 
   // Settings - RAG
   "settings.enableRag": "Abilita ricerca semantica (RAG)",
@@ -392,6 +396,11 @@ export const it: Record<string, string> = {
   "editHistoryModal.confirmRevertToBase": "Tornare allo snapshot base? Le modifiche non salvate andranno perse.",
   "editHistoryModal.revertedToBase": "Tornato allo snapshot base",
   "editHistoryModal.close": "Chiudi",
+  "editHistoryModal.copy": "Copia",
+  "editHistoryModal.copyTo": "Copia in",
+  "editHistoryModal.copied": "Copiato in {{path}}",
+  "editHistoryModal.copyFailed": "Copia fallita",
+  "editHistoryModal.fileExists": "Il file esiste già",
   "editHistoryModal.manual": "manuale",
   "editHistoryModal.auto": "auto",
 

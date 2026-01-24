@@ -31,6 +31,17 @@ export interface WorkflowEventTrigger {
   filePattern?: string;       // Optional glob pattern to filter files (e.g., "*.md", "folder/**")
 }
 
+// Vault tool mode type
+export type VaultToolMode = "all" | "noSearch" | "none";
+
+// Reason why vault tools are set to "none"
+// "manual" = user manually turned off (MCP servers remain unchanged)
+// "flashLiteRag" = flash-lite + RAG enabled (MCP servers also disabled)
+// "cli" = CLI mode (MCP servers also disabled)
+// "gemma" = Gemma model (no function calling support, MCP servers also disabled)
+// "websearch" = Web search mode (MCP servers also disabled)
+export type VaultToolNoneReason = "manual" | "flashLiteRag" | "cli" | "gemma" | "websearch";
+
 // Slash command definition
 export interface SlashCommand {
   id: string;
@@ -40,6 +51,8 @@ export interface SlashCommand {
   description?: string;         // オートコンプリートに表示
   searchSetting?: string | null; // null = 現在の設定, "" = None, "__websearch__" = Web Search, その他 = Semantic Search設定名
   confirmEdits?: boolean;       // undefined/true = 編集確認を表示, false = 自動適用
+  vaultToolMode?: VaultToolMode | null; // null = 現在の設定, "all" = すべて, "noSearch" = 検索なし, "none" = オフ
+  enabledMcpServers?: string[] | null;  // null = 現在の設定, [] = すべてオフ, ["name1", "name2"] = 指定のサーバーのみ有効
 }
 
 // Settings interface

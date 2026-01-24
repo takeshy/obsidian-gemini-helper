@@ -161,6 +161,7 @@ AI가 `propose_edit`을 사용할 때:
 - **명령 팔레트** - "Show edit history" 명령어로도 사용 가능
 - **Diff 뷰** - 색상으로 구분된 추가/삭제로 정확히 무엇이 변경되었는지 확인
 - **복원** - 한 번의 클릭으로 이전 버전으로 되돌리기
+- **복사** - 이전 버전을 새 파일로 저장 (기본 이름: `{filename}_{datetime}.md`)
 - **크기 조절 가능한 모달** - 드래그하여 이동, 모서리에서 크기 조절
 
 **Diff 표시:**
@@ -430,6 +431,9 @@ npm run build
 3. Codex CLI 섹션에서 "Verify" 클릭
 
 **CLI 제한 사항:** 읽기 전용 vault 작업, semantic/web search 없음
+
+> [!TIP]
+> **Claude CLI 팁:** Gemini Helper의 채팅 세션은 로컬에 저장됩니다. Obsidian 외부에서 대화를 계속하려면 vault 디렉토리에서 `claude --resume`을 실행하여 이전 세션을 확인하고 재개할 수 있습니다.
 
 ### Workspace 설정
 - **Workspace Folder** - 채팅 기록 및 설정 저장 위치

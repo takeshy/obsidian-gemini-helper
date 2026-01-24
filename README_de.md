@@ -161,6 +161,7 @@ Verfolgen und Wiederherstellen von Änderungen an Ihren Notizen:
 - **Befehlspalette** - Auch verfügbar über den Befehl "Show edit history"
 - **Diff-Ansicht** - Sehen Sie genau, was sich geändert hat, mit farbcodierten Hinzufügungen/Löschungen
 - **Wiederherstellen** - Mit einem Klick zu jeder früheren Version zurückkehren
+- **Kopieren** - Speichere eine historische Version als neue Datei (Standardname: `{filename}_{datetime}.md`)
 - **Größenveränderbares Modal** - Ziehen zum Verschieben, Größe an den Ecken ändern
 
 **Diff-Anzeige:**
@@ -430,6 +431,9 @@ npm run build
 3. Klicken Sie auf "Verify" im Codex CLI-Bereich
 
 **CLI-Einschränkungen:** Nur-Lese-Vault-Operationen, keine semantische/Websuche
+
+> [!TIP]
+> **Claude CLI-Tipp:** Chat-Sitzungen von Gemini Helper werden lokal gespeichert. Sie können Gespräche außerhalb von Obsidian fortsetzen, indem Sie `claude --resume` in Ihrem Vault-Verzeichnis ausführen, um vergangene Sitzungen anzuzeigen und fortzusetzen.
 
 ### Workspace-Einstellungen
 - **Workspace Folder** - Speicherort für Chat-Verlauf und Einstellungen

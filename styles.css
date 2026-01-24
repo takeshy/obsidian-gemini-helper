@@ -3691,10 +3691,14 @@
   font-size: 12px;
   line-height: 1.5;
   overflow-x: auto;
+  user-select: text;
+  -webkit-user-select: text;
 }
 
 .gemini-helper-diff-line {
   white-space: pre;
+  user-select: text;
+  -webkit-user-select: text;
 }
 
 .gemini-helper-diff-hunk {
@@ -5777,4 +5781,33 @@
 .gemini-helper-mcp-tool-hint {
   font-size: 10px;
   color: var(--text-muted);
+}
+
+/* Slash Command Modal - MCP Checkbox Styles */
+.gemini-helper-mcp-checkboxes {
+  margin-top: 8px;
+}
+
+.gemini-helper-mcp-checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 0;
+  cursor: pointer;
+}
+
+.gemini-helper-mcp-checkbox-label input[type="checkbox"] {
+  margin: 0;
+}
+
+.gemini-helper-mcp-server-checkboxes {
+  margin-left: 20px;
+  border-left: 2px solid var(--background-modifier-border);
+  padding-left: 12px;
+  margin-top: 4px;
+}
+
+/* Edit History - Copy Input */
+.gemini-helper-copy-input {
+  width: 100%;
 }

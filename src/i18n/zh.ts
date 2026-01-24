@@ -99,6 +99,10 @@ export const zh: Record<string, string> = {
   "settings.useCurrentSetting": "使用当前设置",
   "settings.confirmEdits": "确认编辑",
   "settings.confirmEdits.desc": "为 propose_edit 显示应用/放弃按钮（禁用以自动应用）",
+  "settings.vaultToolModeOptional": "库工具（可选）",
+  "settings.vaultToolModeOptional.desc": "使用此命令时覆盖库工具模式",
+  "settings.mcpServersOptional": "MCP 服务器（可选）",
+  "settings.mcpServersOptional.desc": "使用此命令时覆盖启用的 MCP 服务器",
 
   // Settings - RAG
   "settings.enableRag": "启用语义搜索 (RAG)",
@@ -392,6 +396,11 @@ export const zh: Record<string, string> = {
   "editHistoryModal.confirmRevertToBase": "恢复到基础快照？未保存的更改将被丢弃。",
   "editHistoryModal.revertedToBase": "已恢复到基础快照",
   "editHistoryModal.close": "关闭",
+  "editHistoryModal.copy": "复制",
+  "editHistoryModal.copyTo": "复制到",
+  "editHistoryModal.copied": "已复制到 {{path}}",
+  "editHistoryModal.copyFailed": "复制失败",
+  "editHistoryModal.fileExists": "文件已存在",
   "editHistoryModal.manual": "手动",
   "editHistoryModal.auto": "自动",
 

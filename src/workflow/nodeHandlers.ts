@@ -21,6 +21,17 @@ import {
   FileExplorerData,
 } from "./types";
 
+/**
+ * Error thrown when user requests content regeneration from a note confirmation dialog
+ * The executor should catch this and re-run the previous command node
+ */
+export class RegenerateRequestError extends Error {
+  constructor(message: string = "Regeneration requested") {
+    super(message);
+    this.name = "RegenerateRequestError";
+  }
+}
+
 // Get value from object/JSON string using dot notation path
 function getNestedValue(data: unknown, path: string, context?: ExecutionContext): unknown {
   const parts = path.split(".");
@@ -421,7 +432,24 @@ export async function handleCommandNode(
   }
 
   // Replace variables in prompt
-  const prompt = replaceVariables(promptTemplate, context);
+  let prompt = replaceVariables(promptTemplate, context);
+  const originalPrompt = prompt; // Save for potential regeneration
+
+  // Check if this is a regeneration request for this node
+  if (context.regenerateInfo?.commandNodeId === node.id) {
+    const info = context.regenerateInfo;
+    prompt = `${info.originalPrompt}
+
+[Previous output]
+${info.previousOutput}
+
+[User feedback]
+${info.additionalRequest}
+
+Please revise the output based on the user's feedback above.`;
+    // Clear regenerate info after using it
+    context.regenerateInfo = undefined;
+  }
 
   // Get model (use node's model or current selection)
   const modelName = node.properties["model"] || "";
@@ -469,6 +497,12 @@ export async function handleCommandNode(
     const saveTo = node.properties["saveTo"];
     if (saveTo) {
       context.variables.set(saveTo, fullResponse);
+      // Save command info for potential regeneration
+      context.lastCommandInfo = {
+        nodeId: node.id,
+        originalPrompt,
+        saveTo,
+      };
     }
     return;
   }
@@ -711,6 +745,12 @@ export async function handleCommandNode(
   const saveTo = node.properties["saveTo"];
   if (saveTo) {
     context.variables.set(saveTo, fullResponse);
+    // Save command info for potential regeneration (used when note node requests changes)
+    context.lastCommandInfo = {
+      nodeId: node.id,
+      originalPrompt,
+      saveTo,
+    };
   }
 
   // Save generated images to variable if specified
@@ -1507,6 +1547,21 @@ export async function handleNoteNode(
       mode
     );
     if (!confirmResult.confirmed) {
+      // Check if user requested regeneration
+      if (confirmResult.additionalRequest && context.lastCommandInfo) {
+        // Get the previous output from the command node
+        const previousOutput = context.variables.get(context.lastCommandInfo.saveTo);
+        const previousOutputStr = typeof previousOutput === "string" ? previousOutput : String(previousOutput ?? "");
+
+        // Set regenerate info for the executor to handle
+        context.regenerateInfo = {
+          commandNodeId: context.lastCommandInfo.nodeId,
+          originalPrompt: context.lastCommandInfo.originalPrompt,
+          previousOutput: previousOutputStr,
+          additionalRequest: confirmResult.additionalRequest,
+        };
+        throw new RegenerateRequestError("Regeneration requested by user");
+      }
       throw new Error("Note write cancelled by user");
     }
   }

@@ -34,6 +34,7 @@ import {
   handleMcpNode,
   handleObsidianCommandNode,
   replaceVariables,
+  RegenerateRequestError,
 } from "./nodeHandlers";
 import { parseWorkflowFromMarkdown } from "./parser";
 import { ExecutionHistoryManager, EncryptionConfig } from "./history";
@@ -1090,6 +1091,23 @@ export class WorkflowExecutor {
 
         }
       } catch (error) {
+        // Check if this is a regeneration request
+        if (error instanceof RegenerateRequestError && context.regenerateInfo) {
+          const regenerateInfo = context.regenerateInfo;
+          log(
+            node.id,
+            node.type,
+            `User requested regeneration with feedback: "${regenerateInfo.additionalRequest.substring(0, 50)}..."`,
+            "info"
+          );
+
+          // Re-push the current node (note) to run after command regenerates
+          stack.push({ nodeId: node.id, iterationCount: 0 });
+          // Push the command node to run first (LIFO)
+          stack.push({ nodeId: regenerateInfo.commandNodeId, iterationCount: 0 });
+          continue; // Skip error handling, continue the execution loop
+        }
+
         const errorMessage =
           error instanceof Error ? error.message : String(error);
         log(node.id, node.type, `Error: ${errorMessage}`, "error");

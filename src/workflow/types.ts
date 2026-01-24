@@ -49,11 +49,28 @@ export interface Workflow {
   options?: WorkflowOptions;
 }
 
+// Information about the last executed command node (for regeneration)
+export interface LastCommandInfo {
+  nodeId: string;
+  originalPrompt: string;
+  saveTo: string;
+}
+
+// Information needed to regenerate content
+export interface RegenerateInfo {
+  commandNodeId: string;
+  originalPrompt: string;
+  previousOutput: string;
+  additionalRequest: string;
+}
+
 // Execution context
 export interface ExecutionContext {
   variables: Map<string, string | number>;
   chatId?: string;
   logs: ExecutionLog[];
+  lastCommandInfo?: LastCommandInfo;
+  regenerateInfo?: RegenerateInfo;
 }
 
 export interface ExecutionLog {

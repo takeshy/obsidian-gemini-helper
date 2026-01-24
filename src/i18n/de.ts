@@ -396,6 +396,11 @@ export const de: Record<string, string> = {
   "editHistoryModal.confirmRevertToBase": "Auf Basis-Snapshot zurücksetzen? Nicht gespeicherte Änderungen gehen verloren.",
   "editHistoryModal.revertedToBase": "Auf Basis-Snapshot zurückgesetzt",
   "editHistoryModal.close": "Schließen",
+  "editHistoryModal.copy": "Kopieren",
+  "editHistoryModal.copyTo": "Kopieren nach",
+  "editHistoryModal.copied": "Kopiert nach {{path}}",
+  "editHistoryModal.copyFailed": "Kopieren fehlgeschlagen",
+  "editHistoryModal.fileExists": "Datei existiert bereits",
   "editHistoryModal.manual": "manuell",
   "editHistoryModal.auto": "auto",
 

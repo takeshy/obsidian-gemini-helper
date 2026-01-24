@@ -161,6 +161,7 @@ Track and restore changes made to your notes:
 - **Command palette** - Also available via "Show edit history" command
 - **Diff view** - See exactly what changed with color-coded additions/deletions
 - **Restore** - Revert to any previous version with one click
+- **Copy** - Save a historical version as a new file (default name: `{filename}_{datetime}.md`)
 - **Resizable modal** - Drag to move, resize from corners
 
 **Diff display:**
@@ -430,6 +431,9 @@ npm run build
 3. Click "Verify" in Codex CLI section
 
 **CLI Limitations:** Read-only vault operations, no semantic/web search
+
+> [!TIP]
+> **Claude CLI tip:** Chat sessions from Gemini Helper are stored locally. You can continue conversations outside of Obsidian by running `claude --resume` in your vault directory to see and resume past sessions.
 
 ### Workspace Settings
 - **Workspace Folder** - Chat history and settings location

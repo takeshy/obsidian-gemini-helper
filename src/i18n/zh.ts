@@ -396,6 +396,11 @@ export const zh: Record<string, string> = {
   "editHistoryModal.confirmRevertToBase": "恢复到基础快照？未保存的更改将被丢弃。",
   "editHistoryModal.revertedToBase": "已恢复到基础快照",
   "editHistoryModal.close": "关闭",
+  "editHistoryModal.copy": "复制",
+  "editHistoryModal.copyTo": "复制到",
+  "editHistoryModal.copied": "已复制到 {{path}}",
+  "editHistoryModal.copyFailed": "复制失败",
+  "editHistoryModal.fileExists": "文件已存在",
   "editHistoryModal.manual": "手动",
   "editHistoryModal.auto": "自动",
 

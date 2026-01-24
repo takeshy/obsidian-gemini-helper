@@ -5,6 +5,92 @@ import { getEditHistoryManager, type EditHistoryEntry } from "src/core/editHisto
 import { globalEventEmitter } from "src/utils/EventEmitter";
 
 /**
+ * Generate default copy filename with datetime
+ * e.g., "notes/daily/2025-01-10.md" -> "notes/daily/2025-01-10_20250124_153045.md"
+ */
+function generateCopyFilename(originalPath: string): string {
+  const now = new Date();
+  const datetime = now.toISOString()
+    .replace(/[-:]/g, "")
+    .replace("T", "_")
+    .slice(0, 15); // YYYYMMDD_HHMMSS
+
+  const ext = originalPath.lastIndexOf(".");
+  if (ext === -1) {
+    return `${originalPath}_${datetime}`;
+  }
+  return `${originalPath.slice(0, ext)}_${datetime}${originalPath.slice(ext)}`;
+}
+
+/**
+ * Modal to input copy destination path
+ */
+class CopyInputModal extends Modal {
+  private defaultPath: string;
+  private onSubmit: (destPath: string) => void | Promise<void>;
+  private inputEl: HTMLInputElement | null = null;
+
+  constructor(app: App, defaultPath: string, onSubmit: (destPath: string) => void | Promise<void>) {
+    super(app);
+    this.defaultPath = defaultPath;
+    this.onSubmit = onSubmit;
+  }
+
+  onOpen(): void {
+    const { contentEl } = this;
+    contentEl.createEl("h3", { text: t("editHistoryModal.copyTo") });
+
+    const inputContainer = contentEl.createDiv({ cls: "gemini-helper-copy-input-container" });
+    this.inputEl = inputContainer.createEl("input", {
+      type: "text",
+      value: this.defaultPath,
+      cls: "gemini-helper-copy-input",
+    });
+
+    // Select all on focus
+    this.inputEl.addEventListener("focus", () => {
+      this.inputEl?.select();
+    });
+
+    // Handle enter key
+    this.inputEl.addEventListener("keydown", (e: KeyboardEvent) => {
+      if (e.key === "Enter" && this.inputEl?.value) {
+        this.close();
+        void this.onSubmit(this.inputEl.value);
+      }
+    });
+
+    const buttonContainer = contentEl.createDiv({ cls: "modal-button-container" });
+
+    buttonContainer.createEl("button", {
+      text: t("common.cancel"),
+    }).addEventListener("click", () => {
+      this.close();
+    });
+
+    const submitBtn = buttonContainer.createEl("button", {
+      text: t("editHistoryModal.copy"),
+      cls: "mod-cta",
+    });
+    submitBtn.addEventListener("click", () => {
+      if (this.inputEl?.value) {
+        this.close();
+        void this.onSubmit(this.inputEl.value);
+      }
+    });
+
+    // Focus input after modal opens
+    setTimeout(() => {
+      this.inputEl?.focus();
+    }, 50);
+  }
+
+  onClose(): void {
+    this.contentEl.empty();
+  }
+}
+
+/**
  * Confirmation modal to replace native confirm()
  */
 class ConfirmModal extends Modal {
@@ -286,6 +372,18 @@ export class EditHistoryModal extends Modal {
         void this.handleRestore(entry.id, entry.timestamp);
       }).open();
     });
+
+    // Copy button
+    const copyBtn = actionsEl.createEl("button", {
+      cls: "gemini-helper-edit-history-btn",
+      text: t("editHistoryModal.copy"),
+    });
+    copyBtn.addEventListener("click", () => {
+      const defaultPath = generateCopyFilename(this.filePath);
+      new CopyInputModal(this.app, defaultPath, async (destPath: string) => {
+        await this.handleCopy(entry.id, destPath);
+      }).open();
+    });
   }
 
   private getSourceLabel(entry: EditHistoryEntry): string {
@@ -328,6 +426,28 @@ export class EditHistoryModal extends Modal {
       new Notice("Failed to restore");
     } finally {
       this.close();
+    }
+  }
+
+  private async handleCopy(entryId: string, destPath: string) {
+    try {
+      const historyManager = getEditHistoryManager();
+      if (!historyManager) {
+        new Notice(t("editHistoryModal.copyFailed"));
+        return;
+      }
+
+      const result = await historyManager.copyTo(this.filePath, entryId, destPath);
+      if (result.success) {
+        new Notice(t("editHistoryModal.copied", { path: destPath }));
+      } else if (result.error === "File already exists") {
+        new Notice(t("editHistoryModal.fileExists"));
+      } else {
+        new Notice(t("editHistoryModal.copyFailed"));
+      }
+    } catch (e) {
+      console.error("Failed to copy:", formatError(e));
+      new Notice(t("editHistoryModal.copyFailed"));
     }
   }
 
@@ -489,6 +609,16 @@ export class DiffModal extends Modal {
           })
       )
       .addButton((btn) =>
+        btn
+          .setButtonText(t("editHistoryModal.copy"))
+          .onClick(() => {
+            const defaultPath = generateCopyFilename(this.filePath);
+            new CopyInputModal(this.app, defaultPath, async (destPath: string) => {
+              await this.handleCopy(destPath);
+            }).open();
+          })
+      )
+      .addButton((btn) =>
         btn.setButtonText(t("diffModal.close")).onClick(() => {
           this.close();
         })
@@ -556,6 +686,28 @@ export class DiffModal extends Modal {
       new Notice("Failed to restore");
     } finally {
       this.close();
+    }
+  }
+
+  private async handleCopy(destPath: string) {
+    try {
+      const historyManager = getEditHistoryManager();
+      if (!historyManager) {
+        new Notice(t("editHistoryModal.copyFailed"));
+        return;
+      }
+
+      const result = await historyManager.copyTo(this.filePath, this.entry.id, destPath);
+      if (result.success) {
+        new Notice(t("editHistoryModal.copied", { path: destPath }));
+      } else if (result.error === "File already exists") {
+        new Notice(t("editHistoryModal.fileExists"));
+      } else {
+        new Notice(t("editHistoryModal.copyFailed"));
+      }
+    } catch (e) {
+      console.error("Failed to copy:", formatError(e));
+      new Notice(t("editHistoryModal.copyFailed"));
     }
   }
 

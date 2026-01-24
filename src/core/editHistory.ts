@@ -897,6 +897,31 @@ export class EditHistoryManager {
   }
 
   /**
+   * Copy content at a specific history entry to a new file
+   */
+  async copyTo(sourcePath: string, entryId: string, destPath: string): Promise<{ success: boolean; error?: string }> {
+    const content = await this.getContentAt(sourcePath, entryId);
+    if (content === null) {
+      return { success: false, error: "Failed to get content at entry" };
+    }
+
+    // Check if destination file already exists
+    if (await this.app.vault.adapter.exists(destPath)) {
+      return { success: false, error: "File already exists" };
+    }
+
+    // Ensure parent folder exists
+    const parentPath = destPath.substring(0, destPath.lastIndexOf("/"));
+    if (parentPath && !(await this.app.vault.adapter.exists(parentPath))) {
+      await this.app.vault.createFolder(parentPath);
+    }
+
+    // Create the new file
+    await this.app.vault.create(destPath, content);
+    return { success: true };
+  }
+
+  /**
    * Check if a file has edit history
    * If history exists but snapshot doesn't (inconsistent state), delete the orphaned history and return false
    */

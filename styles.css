@@ -3691,10 +3691,14 @@
   font-size: 12px;
   line-height: 1.5;
   overflow-x: auto;
+  user-select: text;
+  -webkit-user-select: text;
 }
 
 .gemini-helper-diff-line {
   white-space: pre;
+  user-select: text;
+  -webkit-user-select: text;
 }
 
 .gemini-helper-diff-hunk {
@@ -5801,4 +5805,9 @@
   border-left: 2px solid var(--background-modifier-border);
   padding-left: 12px;
   margin-top: 4px;
+}
+
+/* Edit History - Copy Input */
+.gemini-helper-copy-input {
+  width: 100%;
 }

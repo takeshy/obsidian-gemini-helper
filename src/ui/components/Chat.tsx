@@ -173,7 +173,7 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 		return "all";
 	});
 	// Reason why vault tools are "none" - determines whether MCP should also be disabled
-	const [vaultToolNoneReason, setVaultToolNoneReason] = useState<VaultToolNoneReason | null>(() => {
+	const [_vaultToolNoneReason, setVaultToolNoneReason] = useState<VaultToolNoneReason | null>(() => {
 		const ragSetting = plugin.workspaceState.selectedRagSetting;
 		const initialModel = plugin.getSelectedModel();
 		const isInitialFlashLite = initialModel.toLowerCase().includes("flash-lite");

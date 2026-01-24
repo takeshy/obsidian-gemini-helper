@@ -482,6 +482,11 @@ export const en = {
   "editHistoryModal.confirmRevertToBase": "Revert to base snapshot? Unsaved changes will be discarded.",
   "editHistoryModal.revertedToBase": "Reverted to base snapshot",
   "editHistoryModal.close": "Close",
+  "editHistoryModal.copy": "Copy",
+  "editHistoryModal.copyTo": "Copy to",
+  "editHistoryModal.copied": "Copied to {{path}}",
+  "editHistoryModal.copyFailed": "Failed to copy",
+  "editHistoryModal.fileExists": "File already exists",
 
   // Diff Modal
   "diffModal.title": "Diff: {{timestamp}} - {{source}}",

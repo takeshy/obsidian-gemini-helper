@@ -420,6 +420,11 @@ export const ja: Record<string, string> = {
   "editHistoryModal.confirmRevertToBase": "ベースのスナップショットに戻しますか？未保存の変更は破棄されます。",
   "editHistoryModal.revertedToBase": "ベースのスナップショットに戻しました",
   "editHistoryModal.close": "閉じる",
+  "editHistoryModal.copy": "コピー",
+  "editHistoryModal.copyTo": "コピー先",
+  "editHistoryModal.copied": "{{path}}にコピーしました",
+  "editHistoryModal.copyFailed": "コピーに失敗しました",
+  "editHistoryModal.fileExists": "ファイルが既に存在します",
 
   // Diff Modal
   "diffModal.title": "差分: {{timestamp}} - {{source}}",

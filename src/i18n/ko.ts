@@ -396,6 +396,11 @@ export const ko: Record<string, string> = {
   "editHistoryModal.confirmRevertToBase": "기본 스냅샷으로 되돌리시겠습니까? 저장되지 않은 변경 사항이 삭제됩니다.",
   "editHistoryModal.revertedToBase": "기본 스냅샷으로 되돌렸습니다",
   "editHistoryModal.close": "닫기",
+  "editHistoryModal.copy": "복사",
+  "editHistoryModal.copyTo": "복사 위치",
+  "editHistoryModal.copied": "{{path}}에 복사됨",
+  "editHistoryModal.copyFailed": "복사 실패",
+  "editHistoryModal.fileExists": "파일이 이미 존재합니다",
   "editHistoryModal.manual": "수동",
   "editHistoryModal.auto": "자동",
 

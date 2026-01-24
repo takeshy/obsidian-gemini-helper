@@ -396,6 +396,11 @@ export const fr: Record<string, string> = {
   "editHistoryModal.confirmRevertToBase": "Revenir à l'instantané de base ? Les modifications non enregistrées seront perdues.",
   "editHistoryModal.revertedToBase": "Revenu à l'instantané de base",
   "editHistoryModal.close": "Fermer",
+  "editHistoryModal.copy": "Copier",
+  "editHistoryModal.copyTo": "Copier vers",
+  "editHistoryModal.copied": "Copié vers {{path}}",
+  "editHistoryModal.copyFailed": "Échec de la copie",
+  "editHistoryModal.fileExists": "Le fichier existe déjà",
   "editHistoryModal.manual": "manuel",
   "editHistoryModal.auto": "auto",
 

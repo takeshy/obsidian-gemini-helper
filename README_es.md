@@ -9,7 +9,7 @@ Asistente de IA **gratuito y de código abierto** para Obsidian con **Chat**, **
 ## Características Principales
 
 - **Chat con IA** - Respuestas en streaming, archivos adjuntos, operaciones en el vault, comandos slash
-- **Constructor de Flujos de Trabajo** - Automatiza tareas de múltiples pasos con editor visual de nodos y 22 tipos de nodos
+- **Constructor de Flujos de Trabajo** - Automatiza tareas de múltiples pasos con editor visual de nodos y 23 tipos de nodos
 - **Historial de Edición** - Rastrea y restaura cambios hechos por IA con vista de diferencias
 - **RAG** - Generación Aumentada por Recuperación para búsqueda inteligente en tu vault
 - **Búsqueda Web** - Accede a información actualizada a través de Google Search
@@ -287,7 +287,7 @@ Abre la pestaña **Workflow** en la barra lateral de Gemini para ejecutarlo.
 
 ## Tipos de Nodos Disponibles
 
-Hay 22 tipos de nodos disponibles para construir flujos de trabajo:
+Hay 23 tipos de nodos disponibles para construir flujos de trabajo:
 
 | Categoría | Nodos |
 |-----------|-------|
@@ -301,6 +301,7 @@ Hay 22 tipos de nodos disponibles para construir flujos de trabajo:
 | Composición | `workflow` |
 | RAG | `rag-sync` |
 | Externos | `mcp`, `obsidian-command` |
+| Utilidad | `sleep` |
 
 > **Para especificaciones detalladas de nodos y ejemplos, consulta [WORKFLOW_NODES_es.md](docs/WORKFLOW_NODES_es.md)**
 

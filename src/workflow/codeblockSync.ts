@@ -52,7 +52,8 @@ function isWorkflowNodeType(value: unknown): value is WorkflowNodeType {
     value === "workflow" ||
     value === "rag-sync" ||
     value === "mcp" ||
-    value === "obsidian-command"
+    value === "obsidian-command" ||
+    value === "sleep"
   );
 }
 

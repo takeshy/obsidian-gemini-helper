@@ -313,6 +313,7 @@ export const en = {
   "workflow.nodeType.ragSync": "Rag sync",
   "workflow.nodeType.mcp": "MCP",
   "workflow.nodeType.obsidianCommand": "Obsidian command",
+  "workflow.nodeType.sleep": "Sleep",
   "workflow.nodeType.imageGeneration": "Image generation",
 
   // Workflow Panel - UI Strings

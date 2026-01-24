@@ -9,7 +9,7 @@ Assistant IA **gratuit et open-source** pour Obsidian avec **Chat**, **Automatis
 ## Points Forts
 
 - **Chat IA** - Réponses en streaming, pièces jointes, opérations sur le coffre, commandes slash
-- **Constructeur de Workflows** - Automatisez des tâches multi-étapes avec l'éditeur visuel de nœuds et 22 types de nœuds
+- **Constructeur de Workflows** - Automatisez des tâches multi-étapes avec l'éditeur visuel de nœuds et 23 types de nœuds
 - **Historique d'Édition** - Suivez et restaurez les modifications faites par l'IA avec vue des différences
 - **RAG** - Génération Augmentée par Récupération pour une recherche intelligente dans votre coffre
 - **Recherche Web** - Accédez à des informations actualisées via Google Search
@@ -287,7 +287,7 @@ Ouvrez l'onglet **Workflow** dans la barre latérale Gemini pour l'exécuter.
 
 ## Types de Nœuds Disponibles
 
-22 types de nœuds sont disponibles pour construire des workflows :
+23 types de nœuds sont disponibles pour construire des workflows :
 
 | Catégorie | Nœuds |
 |-----------|-------|
@@ -301,6 +301,7 @@ Ouvrez l'onglet **Workflow** dans la barre latérale Gemini pour l'exécuter.
 | Composition | `workflow` |
 | RAG | `rag-sync` |
 | Externe | `mcp`, `obsidian-command` |
+| Utilitaire | `sleep` |
 
 > **Pour les spécifications détaillées des nœuds et des exemples, voir [WORKFLOW_NODES_fr.md](docs/WORKFLOW_NODES_fr.md)**
 

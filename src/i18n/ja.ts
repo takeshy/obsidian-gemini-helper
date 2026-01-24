@@ -313,6 +313,7 @@ export const ja: Record<string, string> = {
   "workflow.nodeType.ragSync": "RAG同期",
   "workflow.nodeType.mcp": "MCP",
   "workflow.nodeType.obsidianCommand": "Obsidianコマンド",
+  "workflow.nodeType.sleep": "スリープ",
   "workflow.nodeType.imageGeneration": "画像生成",
 
   // Workflow Panel - UI Strings

@@ -9,7 +9,7 @@
 ## 主な機能
 
 - **AI チャット** - ストリーミング応答、ファイル添付、Vault 操作、スラッシュコマンド
-- **ワークフロービルダー** - ビジュアルノードエディタと 22 種類のノードでマルチステップタスクを自動化
+- **ワークフロービルダー** - ビジュアルノードエディタと 23 種類のノードでマルチステップタスクを自動化
 - **編集履歴** - AI による変更を差分表示で追跡・復元
 - **RAG** - Vault 全体の知的検索（Retrieval-Augmented Generation）
 - **Web 検索** - Google 検索で最新情報を取得
@@ -294,20 +294,21 @@ Gemini サイドバーの **Workflow** タブを開いて実行。
 
 ## 利用可能なノードタイプ
 
-22 種類のノードタイプでワークフローを構築できます：
+23 種類のノードタイプでワークフローを構築できます：
 
-| カテゴリ   | ノード                                                                 |
-| ---------- | ---------------------------------------------------------------------- |
-| 変数       | `variable`, `set`                                                      |
-| 制御       | `if`, `while`                                                          |
-| LLM        | `command`                                                              |
-| データ     | `http`, `json`                                                         |
-| ノート     | `note`, `note-read`, `note-search`, `note-list`, `folder-list`, `open` |
-| ファイル   | `file-explorer`, `file-save`                                           |
-| プロンプト | `prompt-file`, `prompt-selection`, `dialog`                            |
-| 合成       | `workflow`                                                             |
-| RAG        | `rag-sync`                                                             |
-| 外部連携   | `mcp`, `obsidian-command`                                              |
+| カテゴリ       | ノード                                                                 |
+| -------------- | ---------------------------------------------------------------------- |
+| 変数           | `variable`, `set`                                                      |
+| 制御           | `if`, `while`                                                          |
+| LLM            | `command`                                                              |
+| データ         | `http`, `json`                                                         |
+| ノート         | `note`, `note-read`, `note-search`, `note-list`, `folder-list`, `open` |
+| ファイル       | `file-explorer`, `file-save`                                           |
+| プロンプト     | `prompt-file`, `prompt-selection`, `dialog`                            |
+| 合成           | `workflow`                                                             |
+| RAG            | `rag-sync`                                                             |
+| 外部連携       | `mcp`, `obsidian-command`                                              |
+| ユーティリティ | `sleep`                                                                |
 
 > **詳細なノード仕様と実例は [WORKFLOW_NODES_ja.md](docs/WORKFLOW_NODES_ja.md) を参照してください**
 

@@ -9,7 +9,7 @@ Assistente de IA **gratuito e open-source** para Obsidian com **Chat**, **Automa
 ## Destaques
 
 - **Chat com IA** - Respostas em streaming, anexos de arquivos, operações no vault, comandos de barra
-- **Construtor de Workflows** - Automatize tarefas de múltiplas etapas com editor visual de nós e 22 tipos de nós
+- **Construtor de Workflows** - Automatize tarefas de múltiplas etapas com editor visual de nós e 23 tipos de nós
 - **Histórico de Edições** - Rastreie e restaure alterações feitas pela IA com visualização de diff
 - **RAG** - Geração Aumentada por Recuperação para busca inteligente em seu vault
 - **Busca na Web** - Acesse informações atualizadas via Google Search
@@ -287,7 +287,7 @@ Abra a aba **Workflow** na barra lateral do Gemini para executá-lo.
 
 ## Tipos de Nós Disponíveis
 
-22 tipos de nós estão disponíveis para construção de workflows:
+23 tipos de nós estão disponíveis para construção de workflows:
 
 | Categoria | Nós |
 |-----------|-----|
@@ -301,6 +301,7 @@ Abra a aba **Workflow** na barra lateral do Gemini para executá-lo.
 | Composição | `workflow` |
 | RAG | `rag-sync` |
 | Externo | `mcp`, `obsidian-command` |
+| Utilitário | `sleep` |
 
 > **Para especificações detalhadas de nós e exemplos, veja [WORKFLOW_NODES_pt.md](docs/WORKFLOW_NODES_pt.md)**
 

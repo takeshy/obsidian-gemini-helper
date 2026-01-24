@@ -29,6 +29,7 @@ function getNodeTypeLabels(): Record<WorkflowNodeType, string> {
     "rag-sync": t("workflow.nodeType.ragSync"),
     mcp: t("workflow.nodeType.mcp"),
     "obsidian-command": t("workflow.nodeType.obsidianCommand"),
+    sleep: t("workflow.nodeType.sleep"),
   };
 }
 
@@ -78,6 +79,8 @@ function getNodeSummary(node: SidebarNode): string {
       return `${node.properties["tool"]} @ ${node.properties["url"]}`;
     case "obsidian-command":
       return node.properties["command"] || "(no command)";
+    case "sleep":
+      return `${node.properties["duration"] || "0"}ms`;
   }
 }
 

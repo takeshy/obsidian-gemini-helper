@@ -16,6 +16,7 @@ Questo documento fornisce specifiche dettagliate per tutti i tipi di nodi del wo
 | Composizione | `workflow` | Eseguire un altro workflow come sub-workflow |
 | RAG | `rag-sync` | Sincronizzare note con lo store RAG |
 | Esterni | `mcp`, `obsidian-command` | Chiamare server MCP esterni o comandi Obsidian |
+| Utilità | `sleep` | Mettere in pausa l'esecuzione del workflow |
 
 ---
 
@@ -738,7 +739,7 @@ Esegue un comando Obsidian tramite il suo ID. Questo permette ai workflow di att
 | Proprieta | Descrizione |
 |-----------|-------------|
 | `command` | ID del comando da eseguire (obbligatorio, supporta `{{variabili}}`) |
-| `path` | File da aprire prima di eseguire il comando (opzionale, la scheda si chiude automaticamente dopo) |
+| `path` | File da aprire prima di eseguire il comando (opzionale, la scheda rimane aperta) |
 | `saveTo` | Variabile per memorizzare il risultato dell'esecuzione (opzionale) |
 
 **Formato output** (quando `saveTo` e impostato):
@@ -811,6 +812,12 @@ nodes:
     type: obsidian-command
     command: "gemini-helper:encrypt-file"
     path: "{{fileList.notes[index].path}}"
+  - id: wait
+    type: sleep
+    duration: "1000"
+  - id: close-tab
+    type: obsidian-command
+    command: "workspace:close"
   - id: increment
     type: set
     name: index
@@ -822,7 +829,35 @@ nodes:
     message: "{{index}} file crittografati"
 ```
 
-> **Nota:** La proprietà `path` apre il file, esegue il comando, quindi chiude automaticamente la scheda. I file già aperti rimangono aperti.
+> **Nota:** Poiché il comando di crittografia viene eseguito in modo asincrono, viene utilizzato un nodo `sleep` per attendere il completamento dell'operazione prima di chiudere la scheda.
+
+### sleep
+
+Mette in pausa l'esecuzione del workflow per una durata specificata. Utile per attendere il completamento di operazioni asincrone.
+
+```yaml
+- id: wait
+  type: sleep
+  duration: "1000"
+```
+
+| Proprietà | Descrizione |
+|-----------|-------------|
+| `duration` | Durata della pausa in millisecondi (obbligatorio, supporta `{{variabili}}`) |
+
+**Esempio:**
+```yaml
+- id: run-command
+  type: obsidian-command
+  command: "some-plugin:async-operation"
+  path: "notes/file.md"
+- id: wait-for-completion
+  type: sleep
+  duration: "2000"
+- id: close
+  type: obsidian-command
+  command: "workspace:close"
+```
 
 ---
 

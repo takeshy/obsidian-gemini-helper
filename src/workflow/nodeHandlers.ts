@@ -2361,8 +2361,6 @@ export async function handleObsidianCommandNode(
     throw new Error(`Command not found: ${commandId}`);
   }
 
-  let newlyOpenedLeaf: WorkspaceLeaf | null = null;
-
   // If path is specified, open the file first
   if (path) {
     const filePath = path.endsWith(".md") ? path : `${path}.md`;
@@ -2386,19 +2384,18 @@ export async function handleObsidianCommandNode(
       // File is already open, just activate it
       app.workspace.setActiveLeaf(existingLeaf, { focus: true });
     } else {
-      // Open in a new tab and track it for closing later
-      newlyOpenedLeaf = app.workspace.getLeaf("tab");
-      await newlyOpenedLeaf.openFile(file);
+      // Open in a new tab (tab remains open after command execution)
+      const newLeaf = app.workspace.getLeaf("tab");
+      await newLeaf.openFile(file);
+      // Ensure the new leaf is active
+      app.workspace.setActiveLeaf(newLeaf, { focus: true });
     }
+    // Wait for the workspace to settle before executing command
+    await new Promise(resolve => setTimeout(resolve, 100));
   }
 
   // Execute the command
   await (app as unknown as { commands: { executeCommandById: (id: string) => Promise<void> } }).commands.executeCommandById(commandId);
-
-  // Close only the tab we newly opened
-  if (newlyOpenedLeaf) {
-    newlyOpenedLeaf.detach();
-  }
 
   // Save execution info to variable if specified
   const saveTo = node.properties["saveTo"];
@@ -2473,6 +2470,18 @@ export async function handleMcpNode(
   } finally {
     // Close the client connection
     await client.close();
+  }
+}
+
+// Handle sleep node - pause execution for specified duration
+export async function handleSleepNode(
+  node: WorkflowNode,
+  context: ExecutionContext
+): Promise<void> {
+  const durationStr = replaceVariables(node.properties["duration"] || "0", context);
+  const duration = parseInt(durationStr, 10);
+  if (duration > 0) {
+    await new Promise(resolve => setTimeout(resolve, duration));
   }
 }
 

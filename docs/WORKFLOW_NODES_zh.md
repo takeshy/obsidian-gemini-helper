@@ -16,6 +16,7 @@
 | 组合 | `workflow` | 将另一个工作流作为子工作流执行 |
 | RAG | `rag-sync` | 同步笔记到 RAG 存储 |
 | 外部 | `mcp`, `obsidian-command` | 调用外部 MCP 服务器或 Obsidian 命令 |
+| 实用工具 | `sleep` | 暂停工作流执行 |
 
 ---
 
@@ -738,7 +739,7 @@ nodes:
 | 属性 | 描述 |
 |----------|-------------|
 | `command` | 要执行的命令 ID（必填，支持 `{{variables}}`） |
-| `path` | 执行命令前打开的文件（可选，执行后标签页自动关闭） |
+| `path` | 执行命令前打开的文件（可选，标签页保持打开） |
 | `saveTo` | 用于存储执行结果的变量（可选） |
 
 **输出格式**（当设置 `saveTo` 时）：
@@ -811,6 +812,12 @@ nodes:
     type: obsidian-command
     command: "gemini-helper:encrypt-file"
     path: "{{fileList.notes[index].path}}"
+  - id: wait
+    type: sleep
+    duration: "1000"
+  - id: close-tab
+    type: obsidian-command
+    command: "workspace:close"
   - id: increment
     type: set
     name: index
@@ -822,7 +829,35 @@ nodes:
     message: "已加密 {{index}} 个文件"
 ```
 
-> **注意：** `path` 属性会打开文件、执行命令，然后自动关闭标签页。已打开的文件将保持打开状态。
+> **注意：** 由于加密命令是异步执行的，因此使用 `sleep` 节点等待操作完成后再关闭标签页。
+
+### sleep
+
+暂停工作流执行指定的时间。适用于等待异步操作完成。
+
+```yaml
+- id: wait
+  type: sleep
+  duration: "1000"
+```
+
+| 属性 | 描述 |
+|------|------|
+| `duration` | 暂停时间（毫秒，必填，支持 `{{variables}}`） |
+
+**示例：**
+```yaml
+- id: run-command
+  type: obsidian-command
+  command: "some-plugin:async-operation"
+  path: "notes/file.md"
+- id: wait-for-completion
+  type: sleep
+  duration: "2000"
+- id: close
+  type: obsidian-command
+  command: "workspace:close"
+```
 
 ---
 

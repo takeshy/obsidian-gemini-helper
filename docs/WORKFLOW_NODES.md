@@ -16,6 +16,7 @@ This document provides detailed specifications for all workflow node types. For 
 | Composition | `workflow` | Execute another workflow as a sub-workflow |
 | RAG | `rag-sync` | Sync notes to RAG store |
 | External | `mcp`, `obsidian-command` | Call external MCP servers or Obsidian commands |
+| Utility | `sleep` | Pause workflow execution |
 
 ---
 
@@ -740,7 +741,7 @@ Execute an Obsidian command by its ID. This allows workflows to trigger any Obsi
 | Property | Description |
 |----------|-------------|
 | `command` | Command ID to execute (required, supports `{{variables}}`) |
-| `path` | File to open before executing command (optional, tab auto-closes after) |
+| `path` | File to open before executing command (optional, tab remains open) |
 | `saveTo` | Variable to store execution result (optional) |
 
 **Output format** (when `saveTo` is set):
@@ -813,6 +814,12 @@ nodes:
     type: obsidian-command
     command: "gemini-helper:encrypt-file"
     path: "{{fileList.notes[index].path}}"
+  - id: wait
+    type: sleep
+    duration: "1000"
+  - id: close-tab
+    type: obsidian-command
+    command: "workspace:close"
   - id: increment
     type: set
     name: index
@@ -824,7 +831,37 @@ nodes:
     message: "Encrypted {{index}} files"
 ```
 
-> **Note:** The `path` property opens the file, executes the command, then automatically closes the tab. Files already open remain open.
+> **Note:** Since the encryption command runs asynchronously, a `sleep` node is used to wait for the operation to complete before closing the tab.
+
+### sleep
+
+Pause workflow execution for a specified duration. Useful for waiting for asynchronous operations to complete.
+
+```yaml
+- id: wait
+  type: sleep
+  duration: "1000"
+```
+
+| Property | Description |
+|----------|-------------|
+| `duration` | Sleep duration in milliseconds (required, supports `{{variables}}`) |
+
+**Example:**
+```yaml
+- id: run-command
+  type: obsidian-command
+  command: "some-plugin:async-operation"
+  path: "notes/file.md"
+- id: wait-for-completion
+  type: sleep
+  duration: "2000"
+- id: close
+  type: obsidian-command
+  command: "workspace:close"
+```
+
+---
 
 **Example: RAG query with ragujuary**
 

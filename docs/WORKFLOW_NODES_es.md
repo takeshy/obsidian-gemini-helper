@@ -16,6 +16,7 @@ Este documento proporciona especificaciones detalladas para todos los tipos de n
 | Composicion | `workflow` | Ejecutar otro workflow como sub-workflow |
 | RAG | `rag-sync` | Sincronizar notas al almacen RAG |
 | Externo | `mcp`, `obsidian-command` | Llamar servidores MCP externos o comandos de Obsidian |
+| Utilidad | `sleep` | Pausar la ejecución del flujo de trabajo |
 
 ---
 
@@ -738,7 +739,7 @@ Ejecuta un comando de Obsidian por su ID. Esto permite que los workflows activen
 | Propiedad | Descripcion |
 |----------|-------------|
 | `command` | ID del comando a ejecutar (requerido, soporta `{{variables}}`) |
-| `path` | Archivo a abrir antes de ejecutar el comando (opcional, la pestaña se cierra automáticamente después) |
+| `path` | Archivo a abrir antes de ejecutar el comando (opcional, la pestaña permanece abierta) |
 | `saveTo` | Variable para almacenar el resultado de la ejecucion (opcional) |
 
 **Formato de salida** (cuando `saveTo` esta configurado):
@@ -811,6 +812,12 @@ nodes:
     type: obsidian-command
     command: "gemini-helper:encrypt-file"
     path: "{{fileList.notes[index].path}}"
+  - id: wait
+    type: sleep
+    duration: "1000"
+  - id: close-tab
+    type: obsidian-command
+    command: "workspace:close"
   - id: increment
     type: set
     name: index
@@ -822,7 +829,35 @@ nodes:
     message: "{{index}} archivos cifrados"
 ```
 
-> **Nota:** La propiedad `path` abre el archivo, ejecuta el comando y luego cierra automáticamente la pestaña. Los archivos que ya están abiertos permanecen abiertos.
+> **Nota:** Dado que el comando de cifrado se ejecuta de forma asíncrona, se utiliza un nodo `sleep` para esperar a que la operación se complete antes de cerrar la pestaña.
+
+### sleep
+
+Pausa la ejecución del flujo de trabajo durante un tiempo especificado. Útil para esperar a que se completen las operaciones asíncronas.
+
+```yaml
+- id: wait
+  type: sleep
+  duration: "1000"
+```
+
+| Propiedad | Descripción |
+|-----------|-------------|
+| `duration` | Duración del sueño en milisegundos (requerido, soporta `{{variables}}`) |
+
+**Ejemplo:**
+```yaml
+- id: run-command
+  type: obsidian-command
+  command: "some-plugin:async-operation"
+  path: "notes/file.md"
+- id: wait-for-completion
+  type: sleep
+  duration: "2000"
+- id: close
+  type: obsidian-command
+  command: "workspace:close"
+```
 
 ---
 

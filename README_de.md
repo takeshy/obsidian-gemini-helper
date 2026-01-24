@@ -9,7 +9,7 @@
 ## Highlights
 
 - **KI-Chat** - Streaming-Antworten, Dateianhänge, Vault-Operationen, Slash-Befehle
-- **Workflow Builder** - Automatisieren Sie mehrstufige Aufgaben mit visuellem Node-Editor und 22 Node-Typen
+- **Workflow Builder** - Automatisieren Sie mehrstufige Aufgaben mit visuellem Node-Editor und 23 Node-Typen
 - **Bearbeitungsverlauf** - Verfolgen und Wiederherstellen von KI-Änderungen mit Diff-Ansicht
 - **RAG** - Retrieval-Augmented Generation für intelligente Suche in Ihrem Vault
 - **Websuche** - Zugriff auf aktuelle Informationen über Google Search
@@ -287,7 +287,7 @@ nodes:
 
 ## Verfügbare Node-Typen
 
-22 Node-Typen stehen für die Workflow-Erstellung zur Verfügung:
+23 Node-Typen stehen für die Workflow-Erstellung zur Verfügung:
 
 | Kategorie | Nodes |
 |-----------|-------|
@@ -301,6 +301,7 @@ nodes:
 | Komposition | `workflow` |
 | RAG | `rag-sync` |
 | Extern | `mcp`, `obsidian-command` |
+| Dienstprogramm | `sleep` |
 
 > **Für detaillierte Node-Spezifikationen und Beispiele siehe [WORKFLOW_NODES_de.md](docs/WORKFLOW_NODES_de.md)**
 

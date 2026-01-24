@@ -53,7 +53,7 @@ nodes:
     saveTo: result
 \`\`\`
 
-## Node Types (22 total)
+## Node Types (23 total)
 
 ### 1. variable
 Initialize a new variable.
@@ -427,7 +427,20 @@ nodes:
     message: "Encrypted {{index}} files"
 \`\`\`
 
-**Use case**: Trigger any Obsidian command, including commands from other plugins. Use the \`path\` property to run commands that require an active file without leaving tabs open.
+**Use case**: Trigger any Obsidian command, including commands from other plugins. Use the \`path\` property to open a file and set it as active before running the command. The tab remains open after execution.
+
+### 23. sleep
+Pause workflow execution for a specified duration.
+- **duration** (required): Sleep duration in milliseconds (supports {{variables}})
+
+**Example**:
+\`\`\`yaml
+- id: wait
+  type: sleep
+  duration: "1000"
+\`\`\`
+
+**Use case**: Wait for async operations to complete, rate limiting API calls, or adding delays between operations.
 
 ## Control Flow
 

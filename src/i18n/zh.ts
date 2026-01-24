@@ -305,6 +305,7 @@ export const zh: Record<string, string> = {
   "workflow.nodeType.ragSync": "RAG 同步",
   "workflow.nodeType.mcp": "MCP",
   "workflow.nodeType.obsidianCommand": "Obsidian 命令",
+  "workflow.nodeType.sleep": "暂停",
   "workflow.nodeType.imageGeneration": "图片生成",
 
   // Workflow Panel - UI Strings

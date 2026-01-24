@@ -77,6 +77,7 @@ const NODE_TYPE_LABELS: Record<WorkflowNodeType, string> = {
   "rag-sync": "RAG Sync",
   mcp: "MCP",
   "obsidian-command": "Obsidian Command",
+  sleep: "Sleep",
 };
 
 export class NodeEditorModal extends Modal {
@@ -488,6 +489,10 @@ export class NodeEditorModal extends Modal {
         this.addTextField(container, "command", "Command ID", "Obsidian command ID (e.g., editor:toggle-fold, app:reload)");
         this.addTextField(container, "path", "File Path", "File to open before command (optional, tab closes after)");
         this.addTextField(container, "saveTo", "Save To", "Variable name to store execution result (optional)");
+        break;
+
+      case "sleep":
+        this.addTextField(container, "duration", "Duration (ms)", "Sleep duration in milliseconds (e.g., 1000 for 1 second)");
         break;
     }
 

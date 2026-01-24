@@ -2051,7 +2051,7 @@ export class GeminiHelperPlugin extends Plugin {
     // Check if encryption keys are configured (password has been set)
     if (!encryption?.publicKey || !encryption?.encryptedPrivateKey || !encryption?.salt) {
       new Notice(t("crypt.notConfigured"));
-      return;
+      throw new Error(t("crypt.notConfigured"));
     }
 
     try {

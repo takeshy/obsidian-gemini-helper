@@ -23,7 +23,8 @@ export type WorkflowNodeType =
   | "file-explorer"
   | "file-save"
   | "mcp"
-  | "obsidian-command";
+  | "obsidian-command"
+  | "sleep";
 
 export interface WorkflowNode {
   id: string;

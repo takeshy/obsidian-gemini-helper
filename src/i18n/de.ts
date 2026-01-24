@@ -305,6 +305,7 @@ export const de: Record<string, string> = {
   "workflow.nodeType.ragSync": "RAG-Sync",
   "workflow.nodeType.mcp": "MCP",
   "workflow.nodeType.obsidianCommand": "Obsidian-Befehl",
+  "workflow.nodeType.sleep": "Pause",
   "workflow.nodeType.imageGeneration": "Bildgenerierung",
 
   // Workflow Panel - UI Strings

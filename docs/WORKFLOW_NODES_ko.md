@@ -16,6 +16,7 @@
 | 구성 | `workflow` | 다른 워크플로우를 서브 워크플로우로 실행 |
 | RAG | `rag-sync` | 노트를 RAG 저장소에 동기화 |
 | 외부 | `mcp`, `obsidian-command` | 외부 MCP 서버 또는 Obsidian 명령 호출 |
+| 유틸리티 | `sleep` | 워크플로우 실행 일시 정지 |
 
 ---
 
@@ -738,7 +739,7 @@ ID로 Obsidian 명령을 실행합니다. 이를 통해 워크플로우가 다�
 | 속성 | 설명 |
 |----------|-------------|
 | `command` | 실행할 명령 ID (필수, `{{variables}}` 지원) |
-| `path` | 명령 실행 전에 열 파일 (선택사항, 실행 후 탭 자동 닫힘) |
+| `path` | 명령 실행 전에 열 파일 (선택사항, 탭 열린 상태 유지) |
 | `saveTo` | 실행 결과를 저장할 변수 (선택 사항) |
 
 **출력 형식** (`saveTo` 설정 시):
@@ -811,6 +812,12 @@ nodes:
     type: obsidian-command
     command: "gemini-helper:encrypt-file"
     path: "{{fileList.notes[index].path}}"
+  - id: wait
+    type: sleep
+    duration: "1000"
+  - id: close-tab
+    type: obsidian-command
+    command: "workspace:close"
   - id: increment
     type: set
     name: index
@@ -822,7 +829,35 @@ nodes:
     message: "{{index}}개 파일 암호화됨"
 ```
 
-> **참고:** `path` 속성은 파일을 열고, 명령을 실행한 후 탭을 자동으로 닫습니다. 이미 열려 있는 파일은 열린 상태로 유지됩니다.
+> **참고:** 암호화 명령은 비동기적으로 실행되므로, 탭을 닫기 전에 작업 완료를 기다리기 위해 `sleep` 노드가 사용됩니다.
+
+### sleep
+
+지정된 시간 동안 워크플로우 실행을 일시 정지합니다. 비동기 작업 완료를 기다릴 때 유용합니다.
+
+```yaml
+- id: wait
+  type: sleep
+  duration: "1000"
+```
+
+| 속성 | 설명 |
+|------|------|
+| `duration` | 대기 시간(밀리초, 필수, `{{variables}}` 지원) |
+
+**예제:**
+```yaml
+- id: run-command
+  type: obsidian-command
+  command: "some-plugin:async-operation"
+  path: "notes/file.md"
+- id: wait-for-completion
+  type: sleep
+  duration: "2000"
+- id: close
+  type: obsidian-command
+  command: "workspace:close"
+```
 
 ---
 

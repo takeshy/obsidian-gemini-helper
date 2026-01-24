@@ -16,6 +16,7 @@ Ce document fournit les specifications detaillees de tous les types de noeuds de
 | Composition | `workflow` | Executer un autre workflow comme sous-workflow |
 | RAG | `rag-sync` | Synchroniser les notes vers le store RAG |
 | Externe | `mcp`, `obsidian-command` | Appeler des serveurs MCP externes ou des commandes Obsidian |
+| Utilitaire | `sleep` | Mettre en pause l'exécution du flux de travail |
 
 ---
 
@@ -738,7 +739,7 @@ Execute une commande Obsidian par son ID. Cela permet aux workflows de declenche
 | Propriete | Description |
 |-----------|-------------|
 | `command` | ID de la commande a executer (requis, supporte `{{variables}}`) |
-| `path` | Fichier à ouvrir avant d'exécuter la commande (optionnel, l'onglet se ferme automatiquement après) |
+| `path` | Fichier à ouvrir avant d'exécuter la commande (optionnel, l'onglet reste ouvert) |
 | `saveTo` | Variable pour stocker le resultat de l'execution (optionnel) |
 
 **Format de sortie** (quand `saveTo` est defini) :
@@ -811,6 +812,12 @@ nodes:
     type: obsidian-command
     command: "gemini-helper:encrypt-file"
     path: "{{fileList.notes[index].path}}"
+  - id: wait
+    type: sleep
+    duration: "1000"
+  - id: close-tab
+    type: obsidian-command
+    command: "workspace:close"
   - id: increment
     type: set
     name: index
@@ -822,7 +829,35 @@ nodes:
     message: "{{index}} fichiers chiffrés"
 ```
 
-> **Remarque :** La propriété `path` ouvre le fichier, exécute la commande, puis ferme automatiquement l'onglet. Les fichiers déjà ouverts restent ouverts.
+> **Remarque :** Comme la commande de chiffrement s'exécute de manière asynchrone, un nœud `sleep` est utilisé pour attendre la fin de l'opération avant de fermer l'onglet.
+
+### sleep
+
+Met en pause l'exécution du flux de travail pendant une durée spécifiée. Utile pour attendre la fin des opérations asynchrones.
+
+```yaml
+- id: wait
+  type: sleep
+  duration: "1000"
+```
+
+| Propriété | Description |
+|-----------|-------------|
+| `duration` | Durée de pause en millisecondes (requis, supporte `{{variables}}`) |
+
+**Exemple :**
+```yaml
+- id: run-command
+  type: obsidian-command
+  command: "some-plugin:async-operation"
+  path: "notes/file.md"
+- id: wait-for-completion
+  type: sleep
+  duration: "2000"
+- id: close
+  type: obsidian-command
+  command: "workspace:close"
+```
 
 ---
 

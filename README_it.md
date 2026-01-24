@@ -9,7 +9,7 @@ Assistente AI **gratuito e open-source** per Obsidian con **Chat**, **Automazion
 ## Caratteristiche Principali
 
 - **Chat AI** - Risposte in streaming, allegati, operazioni sul vault, comandi slash
-- **Workflow Builder** - Automatizza attività multi-step con editor visuale e 22 tipi di nodi
+- **Workflow Builder** - Automatizza attività multi-step con editor visuale e 23 tipi di nodi
 - **Cronologia Modifiche** - Traccia e ripristina le modifiche fatte dall'AI con vista diff
 - **RAG** - Retrieval-Augmented Generation per ricerca intelligente nel tuo vault
 - **Ricerca Web** - Accedi a informazioni aggiornate tramite Google Search
@@ -287,7 +287,7 @@ Apri la scheda **Workflow** nella sidebar di Gemini per eseguirlo.
 
 ## Tipi di Nodo Disponibili
 
-22 tipi di nodo sono disponibili per costruire workflow:
+23 tipi di nodo sono disponibili per costruire workflow:
 
 | Categoria | Nodi |
 |-----------|------|
@@ -301,6 +301,7 @@ Apri la scheda **Workflow** nella sidebar di Gemini per eseguirlo.
 | Composizione | `workflow` |
 | RAG | `rag-sync` |
 | Esterni | `mcp`, `obsidian-command` |
+| Utilità | `sleep` |
 
 > **Per specifiche dettagliate sui nodi ed esempi, consulta [WORKFLOW_NODES.md](docs/WORKFLOW_NODES_it.md)**
 

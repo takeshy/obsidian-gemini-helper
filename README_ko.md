@@ -9,7 +9,7 @@ Google Gemini 기반의 **Chat**, **Workflow 자동화**, **RAG** 기능을 제�
 ## 주요 기능
 
 - **AI Chat** - 스트리밍 응답, 파일 첨부, vault 작업, 슬래시 명령어
-- **Workflow Builder** - 비주얼 노드 편집기와 22개 노드 유형으로 다단계 작업 자동화
+- **Workflow Builder** - 비주얼 노드 편집기와 23개 노드 유형으로 다단계 작업 자동화
 - **Edit History** - AI가 만든 변경 사항을 diff 뷰로 추적하고 복원
 - **RAG** - vault 전체에서 지능적 검색을 위한 검색 증강 생성
 - **Web Search** - Google Search를 통한 최신 정보 접근
@@ -287,7 +287,7 @@ Gemini 사이드바에서 **Workflow** 탭을 열어 실행하세요.
 
 ## 사용 가능한 노드 유형
 
-워크플로우 구축에 22개 노드 유형을 사용할 수 있습니다:
+워크플로우 구축에 23개 노드 유형을 사용할 수 있습니다:
 
 | 카테고리 | 노드 |
 |----------|-------|
@@ -301,6 +301,7 @@ Gemini 사이드바에서 **Workflow** 탭을 열어 실행하세요.
 | 구성 | `workflow` |
 | RAG | `rag-sync` |
 | 외부 | `mcp`, `obsidian-command` |
+| 유틸리티 | `sleep` |
 
 > **자세한 노드 사양과 예제는 [WORKFLOW_NODES.md](docs/WORKFLOW_NODES_ko.md)를 참조하세요**
 

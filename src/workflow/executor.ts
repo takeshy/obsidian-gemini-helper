@@ -33,6 +33,7 @@ import {
   handleRagSyncNode,
   handleMcpNode,
   handleObsidianCommandNode,
+  handleSleepNode,
   replaceVariables,
   RegenerateRequestError,
 } from "./nodeHandlers";
@@ -1084,6 +1085,27 @@ export class WorkflowExecutor {
             // Push next nodes
             const obsidianCmdNextNodes = getNextNodes(workflow, node.id);
             for (const nextId of obsidianCmdNextNodes.reverse()) {
+              stack.push({ nodeId: nextId, iterationCount: 0 });
+            }
+            break;
+          }
+
+          case "sleep": {
+            const sleepDuration = replaceVariables(node.properties["duration"] || "0", context);
+            log(node.id, node.type, `Sleeping for ${sleepDuration}ms`, "info");
+
+            const sleepInput: Record<string, unknown> = {
+              duration: sleepDuration,
+            };
+
+            await handleSleepNode(node, context);
+
+            log(node.id, node.type, `Sleep completed`, "success", sleepInput);
+            addHistoryStep(node.id, node.type, sleepInput, undefined, "success");
+
+            // Push next nodes
+            const sleepNextNodes = getNextNodes(workflow, node.id);
+            for (const nextId of sleepNextNodes.reverse()) {
               stack.push({ nodeId: nextId, iterationCount: 0 });
             }
             break;

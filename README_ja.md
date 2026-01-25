@@ -452,6 +452,25 @@ npm run build
 
 **CLI の制限:** Vault 読み取り専用、セマンティック/Web 検索なし
 
+**カスタム CLI パス:** CLI の自動検出に失敗した場合は、Verify ボタンの横にある歯車アイコン（⚙️）をクリックして、CLI パスを手動で指定できます。
+
+<details>
+<summary><b>Windows: CLI パスの確認方法</b></summary>
+
+1. PowerShell を開いて以下を実行：
+   ```powershell
+   Get-Command gemini
+   ```
+2. スクリプトのパスが表示されます（例: `C:\Users\YourName\AppData\Roaming\npm\gemini.ps1`）
+3. `npm` フォルダから実際の `index.js` へのパスに変換：
+   ```
+   C:\Users\YourName\AppData\Roaming\npm\node_modules\@google\gemini-cli\dist\index.js
+   ```
+4. このフルパスを CLI パス設定に入力
+
+Claude CLI の場合は `Get-Command claude` を実行し、`node_modules\@anthropic-ai\claude-code\dist\index.js` に移動してください。
+</details>
+
 > [!TIP]
 > **Claude CLI ヒント:** Gemini Helper のチャットセッションはローカルに保存されます。Obsidian の外で会話を続けるには、Vault ディレクトリで `claude --resume` を実行して過去のセッションを表示・再開できます。
 

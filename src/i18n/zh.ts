@@ -42,6 +42,16 @@ export const zh: Record<string, string> = {
   "settings.cliLimitation1": "库的写入操作不可用（仅读取和搜索）",
   "settings.cliLimitation2": "语义搜索不可用",
   "settings.cliLimitation3": "网络搜索不可用",
+  "settings.cliPathSettings": "配置 CLI 路径",
+  "settings.cliPathModal.title": "CLI 路径设置",
+  "settings.cliPathModal.placeholder": "CLI 可执行文件或脚本的路径",
+  "settings.cliPathModal.windowsNote": "在 PowerShell 中运行:\nGet-Command gemini\n从显示的路径（如 ...\\npm\\gemini.ps1）\n导航到 node_modules:\n...\\npm\\node_modules\\@google\\gemini-cli\\dist\\index.js",
+  "settings.cliPathModal.unixNote": "在终端中运行以下命令查找路径:\nwhich gemini",
+  "settings.cliPathModal.clear": "清除",
+  "settings.cliPathModal.fileNotFound": "文件未找到。请检查路径。",
+  "settings.cliPathModal.invalidChars": "路径包含无效字符。",
+  "settings.cliPathSaved": "CLI 路径已保存",
+  "settings.cliPathCleared": "CLI 路径已清除",
 
   // Settings - Workspace
   "settings.workspaceFolder": "工作区文件夹",

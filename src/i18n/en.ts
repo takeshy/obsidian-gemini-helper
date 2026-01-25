@@ -42,6 +42,16 @@ export const en = {
   "settings.cliLimitation1": "Vault write operations are not available (read and search only)",
   "settings.cliLimitation2": "Semantic search is not available",
   "settings.cliLimitation3": "Web search is not available",
+  "settings.cliPathSettings": "Configure CLI path",
+  "settings.cliPathModal.title": "CLI path settings",
+  "settings.cliPathModal.placeholder": "Path to CLI executable or script",
+  "settings.cliPathModal.windowsNote": "Run in PowerShell:\nGet-Command gemini\nFrom the displayed path (e.g. ...\\npm\\gemini.ps1),\nnavigate to node_modules:\n...\\npm\\node_modules\\@google\\gemini-cli\\dist\\index.js",
+  "settings.cliPathModal.unixNote": "Run in terminal to find the path:\nwhich gemini",
+  "settings.cliPathModal.clear": "Clear",
+  "settings.cliPathModal.fileNotFound": "File not found. Please check the path.",
+  "settings.cliPathModal.invalidChars": "Path contains invalid characters.",
+  "settings.cliPathSaved": "CLI path saved",
+  "settings.cliPathCleared": "CLI path cleared",
 
   // Settings - Workspace
   "settings.workspaceFolder": "Workspace folder",

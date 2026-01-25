@@ -42,6 +42,16 @@ export const ja: Record<string, string> = {
   "settings.cliLimitation1": "Vaultへの書き込み操作は利用できません（読み取りと検索のみ）",
   "settings.cliLimitation2": "セマンティック検索は利用できません",
   "settings.cliLimitation3": "ウェブ検索は利用できません",
+  "settings.cliPathSettings": "CLIパスを設定",
+  "settings.cliPathModal.title": "CLIパス設定",
+  "settings.cliPathModal.placeholder": "CLIの実行ファイルまたはスクリプトへのパス",
+  "settings.cliPathModal.windowsNote": "PowerShellで実行:\nGet-Command gemini\n表示されたパス（例: ...\\npm\\gemini.ps1）から\nnode_modulesに移動:\n...\\npm\\node_modules\\@google\\gemini-cli\\dist\\index.js",
+  "settings.cliPathModal.unixNote": "ターミナルで以下を実行してパスを確認:\nwhich gemini",
+  "settings.cliPathModal.clear": "クリア",
+  "settings.cliPathModal.fileNotFound": "ファイルが見つかりません。パスを確認してください。",
+  "settings.cliPathModal.invalidChars": "パスに無効な文字が含まれています。",
+  "settings.cliPathSaved": "CLIパスを保存しました",
+  "settings.cliPathCleared": "CLIパスをクリアしました",
 
   // Settings - Workspace
   "settings.workspaceFolder": "ワークスペースフォルダ",

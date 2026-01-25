@@ -42,6 +42,16 @@ export const fr: Record<string, string> = {
   "settings.cliLimitation1": "Les opérations d'écriture dans le vault ne sont pas disponibles (lecture et recherche uniquement)",
   "settings.cliLimitation2": "La recherche sémantique n'est pas disponible",
   "settings.cliLimitation3": "La recherche web n'est pas disponible",
+  "settings.cliPathSettings": "Configurer le chemin CLI",
+  "settings.cliPathModal.title": "Paramètres du chemin CLI",
+  "settings.cliPathModal.placeholder": "Chemin vers l'exécutable ou le script CLI",
+  "settings.cliPathModal.windowsNote": "Exécutez dans PowerShell :\nGet-Command gemini\nDepuis le chemin affiché (ex. ...\\npm\\gemini.ps1),\nnaviguez vers node_modules :\n...\\npm\\node_modules\\@google\\gemini-cli\\dist\\index.js",
+  "settings.cliPathModal.unixNote": "Exécutez dans le terminal pour trouver le chemin :\nwhich gemini",
+  "settings.cliPathModal.clear": "Effacer",
+  "settings.cliPathModal.fileNotFound": "Fichier introuvable. Veuillez vérifier le chemin.",
+  "settings.cliPathModal.invalidChars": "Le chemin contient des caractères invalides.",
+  "settings.cliPathSaved": "Chemin CLI enregistré",
+  "settings.cliPathCleared": "Chemin CLI effacé",
 
   // Settings - Workspace
   "settings.workspaceFolder": "Dossier de l'espace de travail",

@@ -433,6 +433,25 @@ npm run build
 
 **Limitações do CLI:** Operações no vault somente leitura, sem busca semântica/web
 
+**Caminho CLI personalizado:** Se a detecção automática do CLI falhar, clique no ícone de engrenagem (⚙️) ao lado do botão Verify para especificar manualmente o caminho do CLI.
+
+<details>
+<summary><b>Windows: Como encontrar o caminho do CLI</b></summary>
+
+1. Abra o PowerShell e execute:
+   ```powershell
+   Get-Command gemini
+   ```
+2. Isso mostra o caminho do script (ex: `C:\Users\YourName\AppData\Roaming\npm\gemini.ps1`)
+3. Navegue da pasta `npm` até o `index.js` real:
+   ```
+   C:\Users\YourName\AppData\Roaming\npm\node_modules\@google\gemini-cli\dist\index.js
+   ```
+4. Insira este caminho completo nas configurações de caminho do CLI
+
+Para Claude CLI, use `Get-Command claude` e navegue até `node_modules\@anthropic-ai\claude-code\dist\index.js`.
+</details>
+
 > [!TIP]
 > **Dica do Claude CLI:** As sessões de chat do Gemini Helper são armazenadas localmente. Você pode continuar conversas fora do Obsidian executando `claude --resume` no diretório do seu vault para ver e retomar sessões anteriores.
 

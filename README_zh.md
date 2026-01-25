@@ -433,6 +433,25 @@ npm run build
 
 **CLI 限制：** 仅支持只读仓库操作，不支持语义搜索/网页搜索
 
+**自定义 CLI 路径：** 如果 CLI 自动检测失败，点击 Verify 按钮旁边的齿轮图标（⚙️）手动指定 CLI 路径。
+
+<details>
+<summary><b>Windows：如何查找 CLI 路径</b></summary>
+
+1. 打开 PowerShell 并运行：
+   ```powershell
+   Get-Command gemini
+   ```
+2. 这会显示脚本路径（例如：`C:\Users\YourName\AppData\Roaming\npm\gemini.ps1`）
+3. 从 `npm` 文件夹导航到实际的 `index.js`：
+   ```
+   C:\Users\YourName\AppData\Roaming\npm\node_modules\@google\gemini-cli\dist\index.js
+   ```
+4. 在 CLI 路径设置中输入此完整路径
+
+对于 Claude CLI，使用 `Get-Command claude` 并导航到 `node_modules\@anthropic-ai\claude-code\dist\index.js`。
+</details>
+
 > [!TIP]
 > **Claude CLI 技巧：** 来自 Gemini Helper 的聊天会话会本地存储。您可以在 Obsidian 之外继续对话，方法是在您的仓库目录中运行 `claude --resume` 来查看和恢复之前的会话。
 

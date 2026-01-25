@@ -531,4 +531,35 @@ export const fr: Record<string, string> = {
   "workflow.execution.failed": "Échoué",
   "workflow.execution.notExecutedYet": "Pas encore exécuté",
   "workflow.execution.noData": "Aucune donnée disponible",
+
+  // HTML Preview Modal
+  "htmlPreview.title": "Aperçu de l'infographie",
+  "htmlPreview.copyCode": "Copier le code",
+
+  // AI Workflow Modal
+  "aiWorkflow.confirmChanges": "Confirmer les modifications du flux de travail",
+  "aiWorkflow.aiExplanation": "Explication de l'IA",
+  "aiWorkflow.workflowName": "Nom du flux de travail :",
+  "aiWorkflow.outputPath": "Chemin de sortie :",
+  "aiWorkflow.currentWorkflow": "Flux de travail actuel",
+  "aiWorkflow.model": "Modèle :",
+  "aiWorkflow.createTitle": "Créer un flux de travail avec l'IA",
+  "aiWorkflow.modifyTitle": "Modifier le flux de travail avec l'IA",
+  "aiWorkflow.describeCreate": "Décrivez ce que ce flux de travail doit faire :",
+  "aiWorkflow.describeModify": "Décrivez les modifications souhaitées :",
+  "aiWorkflow.placeholderCreate": "ex., Créer un flux de travail qui lit une note, la résume avec l'IA et enregistre le résumé dans un nouveau fichier",
+  "aiWorkflow.placeholderModify": "ex., Ajouter une boîte de dialogue de confirmation avant d'écrire le fichier",
+  "aiWorkflow.mentionHint": "Conseil : tapez @ pour insérer des références de fichiers. Le contenu du fichier sera intégré lors de la génération.",
+  "aiWorkflow.namePlaceholder": "Mon flux de travail",
+  "aiWorkflow.pathHint": "Utilisez {{name}} pour le nom du flux de travail. L'extension .md est ajoutée automatiquement.",
+  "aiWorkflow.confirmCheckbox": "Confirmer les modifications avant d'appliquer",
+  "aiWorkflow.generate": "Générer",
+  "aiWorkflow.modify": "Modifier",
+  "aiWorkflow.enterName": "Veuillez entrer un nom de flux de travail",
+  "aiWorkflow.enterDescription": "Veuillez décrire ce que le flux de travail doit faire",
+  "aiWorkflow.selectModel": "Veuillez sélectionner un modèle",
+  "aiWorkflow.apiKeyNotConfigured": "La clé API n'est pas configurée",
+
+  // Edit History Modal
+  "editHistoryModal.notInitialized": "Le gestionnaire d'historique des modifications n'est pas initialisé",
 };

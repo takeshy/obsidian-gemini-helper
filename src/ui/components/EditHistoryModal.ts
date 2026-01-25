@@ -207,7 +207,7 @@ export class EditHistoryModal extends Modal {
 
     const historyManager = getEditHistoryManager();
     if (!historyManager) {
-      contentEl.createEl("p", { text: "Edit history manager not initialized" });
+      contentEl.createEl("p", { text: t("editHistoryModal.notInitialized") });
       return;
     }
 

@@ -667,4 +667,35 @@ export const ja: Record<string, string> = {
 
   // Input - MCP tool hint
   "input.mcpToolHint": "({{count}}個のツール: {{tools}})",
+
+  // HTML Preview Modal
+  "htmlPreview.title": "インフォグラフィックプレビュー",
+  "htmlPreview.copyCode": "コードをコピー",
+
+  // AI Workflow Modal
+  "aiWorkflow.confirmChanges": "ワークフローの変更を確認",
+  "aiWorkflow.aiExplanation": "AIの説明",
+  "aiWorkflow.workflowName": "ワークフロー名:",
+  "aiWorkflow.outputPath": "出力パス:",
+  "aiWorkflow.currentWorkflow": "現在のワークフロー",
+  "aiWorkflow.model": "モデル:",
+  "aiWorkflow.createTitle": "AIでワークフローを作成",
+  "aiWorkflow.modifyTitle": "AIでワークフローを変更",
+  "aiWorkflow.describeCreate": "このワークフローの動作を説明してください:",
+  "aiWorkflow.describeModify": "希望する変更を説明してください:",
+  "aiWorkflow.placeholderCreate": "例: ノートを読み込み、AIで要約し、新しいファイルに保存するワークフロー",
+  "aiWorkflow.placeholderModify": "例: ファイル書き込み前に確認ダイアログを追加",
+  "aiWorkflow.mentionHint": "ヒント: @を入力してファイル参照を挿入できます。生成時にファイル内容が埋め込まれます。",
+  "aiWorkflow.namePlaceholder": "マイワークフロー",
+  "aiWorkflow.pathHint": "{{name}}をワークフロー名に使用できます。.md拡張子は自動的に追加されます。",
+  "aiWorkflow.confirmCheckbox": "適用前に変更を確認",
+  "aiWorkflow.generate": "生成",
+  "aiWorkflow.modify": "変更",
+  "aiWorkflow.enterName": "ワークフロー名を入力してください",
+  "aiWorkflow.enterDescription": "ワークフローの動作を説明してください",
+  "aiWorkflow.selectModel": "モデルを選択してください",
+  "aiWorkflow.apiKeyNotConfigured": "APIキーが設定されていません",
+
+  // Edit History Modal
+  "editHistoryModal.notInitialized": "編集履歴マネージャーが初期化されていません",
 };

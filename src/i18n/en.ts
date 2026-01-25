@@ -676,6 +676,37 @@ export const en = {
 
   // Input - MCP tool hint
   "input.mcpToolHint": "({{count}} tools: {{tools}})",
+
+  // HTML Preview Modal
+  "htmlPreview.title": "Infographic preview",
+  "htmlPreview.copyCode": "Copy code",
+
+  // AI Workflow Modal
+  "aiWorkflow.confirmChanges": "Confirm workflow changes",
+  "aiWorkflow.aiExplanation": "AI explanation",
+  "aiWorkflow.workflowName": "Workflow name:",
+  "aiWorkflow.outputPath": "Output path:",
+  "aiWorkflow.currentWorkflow": "Current workflow",
+  "aiWorkflow.model": "Model:",
+  "aiWorkflow.createTitle": "Create workflow with AI",
+  "aiWorkflow.modifyTitle": "Modify workflow with AI",
+  "aiWorkflow.describeCreate": "Describe what this workflow should do:",
+  "aiWorkflow.describeModify": "Describe the modifications you want:",
+  "aiWorkflow.placeholderCreate": "E.g., create a workflow that reads a note, summarizes it with AI, and saves the summary to a new file",
+  "aiWorkflow.placeholderModify": "E.g., add a confirmation dialog before writing the file",
+  "aiWorkflow.mentionHint": "Tip: type @ to insert file references. The file content will be embedded when generating.",
+  "aiWorkflow.namePlaceholder": "My workflow",
+  "aiWorkflow.pathHint": "Use {{name}} for workflow name. .md extension added automatically.",
+  "aiWorkflow.confirmCheckbox": "Confirm changes before applying",
+  "aiWorkflow.generate": "Generate",
+  "aiWorkflow.modify": "Modify",
+  "aiWorkflow.enterName": "Please enter a workflow name",
+  "aiWorkflow.enterDescription": "Please describe what you want the workflow to do",
+  "aiWorkflow.selectModel": "Please select a model",
+  "aiWorkflow.apiKeyNotConfigured": "API key is not configured",
+
+  // Edit History Modal
+  "editHistoryModal.notInitialized": "Edit history manager not initialized",
 };
 
 export type TranslationKey = keyof typeof en;

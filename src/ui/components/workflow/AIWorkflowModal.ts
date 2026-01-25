@@ -81,13 +81,13 @@ class WorkflowConfirmModal extends Modal {
 
     // Drag handle with title
     const dragHandle = contentEl.createDiv({ cls: "modal-drag-handle" });
-    dragHandle.createEl("h2", { text: "Confirm workflow changes" });
+    dragHandle.createEl("h2", { text: t("aiWorkflow.confirmChanges") });
     this.setupDragHandle(dragHandle, modalEl);
 
     // Explanation section (if available)
     if (this.explanation) {
       const explanationContainer = contentEl.createDiv({ cls: "ai-workflow-explanation" });
-      explanationContainer.createEl("h3", { text: "AI explanation" });
+      explanationContainer.createEl("h3", { text: t("aiWorkflow.aiExplanation") });
       explanationContainer.createEl("p", { text: this.explanation });
     }
 
@@ -321,8 +321,8 @@ export class AIWorkflowModal extends Modal {
     const dragHandle = contentEl.createDiv({ cls: "modal-drag-handle" });
     const title =
       this.mode === "create"
-        ? "Create Workflow with AI"
-        : "Modify Workflow with AI";
+        ? t("aiWorkflow.createTitle")
+        : t("aiWorkflow.modifyTitle");
     dragHandle.createEl("h2", { text: title });
     this.setupDrag(dragHandle, modalEl);
 
@@ -333,16 +333,16 @@ export class AIWorkflowModal extends Modal {
     if (this.mode === "create") {
       // Name input
       const nameContainer = contentEl.createDiv({ cls: "ai-workflow-input-row" });
-      nameContainer.createEl("label", { text: "Workflow name:" });
+      nameContainer.createEl("label", { text: t("aiWorkflow.workflowName") });
       this.nameInputEl = nameContainer.createEl("input", {
         type: "text",
         cls: "ai-workflow-name-input",
-        attr: { placeholder: "My workflow" },
+        attr: { placeholder: t("aiWorkflow.namePlaceholder") },
       });
 
       // Output path input
       const pathContainer = contentEl.createDiv({ cls: "ai-workflow-input-row" });
-      pathContainer.createEl("label", { text: "Output path:" });
+      pathContainer.createEl("label", { text: t("aiWorkflow.outputPath") });
       const defaultPath = this.defaultOutputPath || "workflows/{{name}}";
       this.outputPathEl = pathContainer.createEl("input", {
         type: "text",
@@ -352,15 +352,15 @@ export class AIWorkflowModal extends Modal {
       });
       pathContainer.createEl("div", {
         cls: "ai-workflow-hint",
-        text: "Use {{name}} for workflow name. .md extension added automatically.",
+        text: t("aiWorkflow.pathHint"),
       });
     }
 
     // Description label
     const descLabel =
       this.mode === "create"
-        ? "Describe what this workflow should do:"
-        : "Describe the modifications you want:";
+        ? t("aiWorkflow.describeCreate")
+        : t("aiWorkflow.describeModify");
 
     contentEl.createEl("label", {
       text: descLabel,
@@ -381,8 +381,8 @@ export class AIWorkflowModal extends Modal {
       attr: {
         placeholder:
           this.mode === "create"
-            ? "e.g., Create a workflow that reads a note, summarizes it with AI, and saves the summary to a new file"
-            : "e.g., Add a confirmation dialog before writing the file",
+            ? t("aiWorkflow.placeholderCreate")
+            : t("aiWorkflow.placeholderModify"),
         rows: "6",
       },
     });
@@ -393,7 +393,7 @@ export class AIWorkflowModal extends Modal {
     // Hint for @ mention
     contentEl.createEl("div", {
       cls: "ai-workflow-hint",
-      text: "Tip: type @ to insert file references. The file content will be embedded when generating.",
+      text: t("aiWorkflow.mentionHint"),
     });
 
     // File attachment section
@@ -432,7 +432,7 @@ export class AIWorkflowModal extends Modal {
       const details = contentEl.createEl("details", {
         cls: "ai-workflow-existing",
       });
-      details.createEl("summary", { text: "Current workflow" });
+      details.createEl("summary", { text: t("aiWorkflow.currentWorkflow") });
       details.createEl("pre", {
         text: this.existingYaml,
         cls: "ai-workflow-yaml-preview",
@@ -441,7 +441,7 @@ export class AIWorkflowModal extends Modal {
 
     // Model selection row
     const modelContainer = contentEl.createDiv({ cls: "ai-workflow-model-row" });
-    modelContainer.createEl("label", { text: "Model:" });
+    modelContainer.createEl("label", { text: t("aiWorkflow.model") });
 
     this.modelSelect = modelContainer.createEl("select", {
       cls: "ai-workflow-model-select",
@@ -486,7 +486,7 @@ export class AIWorkflowModal extends Modal {
       });
       this.confirmCheckbox.checked = true; // Default to checked
       confirmContainer.createEl("label", {
-        text: "Confirm changes before applying",
+        text: t("aiWorkflow.confirmCheckbox"),
         attr: { for: "ai-workflow-confirm-checkbox" },
       });
 
@@ -515,14 +515,14 @@ export class AIWorkflowModal extends Modal {
     // Buttons
     const buttonContainer = contentEl.createDiv({ cls: "ai-workflow-buttons" });
 
-    const cancelBtn = buttonContainer.createEl("button", { text: "Cancel" });
+    const cancelBtn = buttonContainer.createEl("button", { text: t("common.cancel") });
     cancelBtn.addEventListener("click", () => {
       this.resolvePromise(null);
       this.close();
     });
 
     this.generateBtn = buttonContainer.createEl("button", {
-      text: this.mode === "create" ? "Generate" : "Modify",
+      text: this.mode === "create" ? t("aiWorkflow.generate") : t("aiWorkflow.modify"),
       cls: "mod-cta",
     });
     this.generateBtn.addEventListener("click", () => {
@@ -603,20 +603,20 @@ export class AIWorkflowModal extends Modal {
     if (this.mode === "create") {
       const name = this.nameInputEl?.value?.trim();
       if (!name) {
-        new Notice("Please enter a workflow name");
+        new Notice(t("aiWorkflow.enterName"));
         return;
       }
     }
 
     const description = this.descriptionEl?.value?.trim();
     if (!description) {
-      new Notice("Please describe what you want the workflow to do");
+      new Notice(t("aiWorkflow.enterDescription"));
       return;
     }
 
     const selectedModel = this.modelSelect?.value as ModelType;
     if (!selectedModel) {
-      new Notice("Please select a model");
+      new Notice(t("aiWorkflow.selectModel"));
       return;
     }
 
@@ -627,7 +627,7 @@ export class AIWorkflowModal extends Modal {
 
     // Check API key (skip for CLI model)
     if (!isCliModel && !this.plugin.settings.googleApiKey) {
-      new Notice("API key is not configured");
+      new Notice(t("aiWorkflow.apiKeyNotConfigured"));
       return;
     }
 

@@ -531,4 +531,35 @@ export const ko: Record<string, string> = {
   "workflow.execution.failed": "실패",
   "workflow.execution.notExecutedYet": "아직 실행되지 않음",
   "workflow.execution.noData": "사용 가능한 데이터 없음",
+
+  // HTML Preview Modal
+  "htmlPreview.title": "인포그래픽 미리보기",
+  "htmlPreview.copyCode": "코드 복사",
+
+  // AI Workflow Modal
+  "aiWorkflow.confirmChanges": "워크플로우 변경 확인",
+  "aiWorkflow.aiExplanation": "AI 설명",
+  "aiWorkflow.workflowName": "워크플로우 이름:",
+  "aiWorkflow.outputPath": "출력 경로:",
+  "aiWorkflow.currentWorkflow": "현재 워크플로우",
+  "aiWorkflow.model": "모델:",
+  "aiWorkflow.createTitle": "AI로 워크플로우 생성",
+  "aiWorkflow.modifyTitle": "AI로 워크플로우 수정",
+  "aiWorkflow.describeCreate": "이 워크플로우가 수행할 작업을 설명하세요:",
+  "aiWorkflow.describeModify": "원하는 수정 사항을 설명하세요:",
+  "aiWorkflow.placeholderCreate": "예: 노트를 읽고 AI로 요약한 후 새 파일에 요약을 저장하는 워크플로우 생성",
+  "aiWorkflow.placeholderModify": "예: 파일 쓰기 전에 확인 대화상자 추가",
+  "aiWorkflow.mentionHint": "팁: @를 입력하여 파일 참조를 삽입하세요. 생성 시 파일 내용이 포함됩니다.",
+  "aiWorkflow.namePlaceholder": "내 워크플로우",
+  "aiWorkflow.pathHint": "워크플로우 이름에 {{name}}을 사용하세요. .md 확장자가 자동으로 추가됩니다.",
+  "aiWorkflow.confirmCheckbox": "적용 전 변경 사항 확인",
+  "aiWorkflow.generate": "생성",
+  "aiWorkflow.modify": "수정",
+  "aiWorkflow.enterName": "워크플로우 이름을 입력하세요",
+  "aiWorkflow.enterDescription": "워크플로우가 수행할 작업을 설명하세요",
+  "aiWorkflow.selectModel": "모델을 선택하세요",
+  "aiWorkflow.apiKeyNotConfigured": "API 키가 구성되지 않았습니다",
+
+  // Edit History Modal
+  "editHistoryModal.notInitialized": "편집 기록 관리자가 초기화되지 않았습니다",
 };

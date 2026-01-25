@@ -531,4 +531,35 @@ export const es: Record<string, string> = {
   "workflow.execution.failed": "Fallido",
   "workflow.execution.notExecutedYet": "Aún no ejecutado",
   "workflow.execution.noData": "No hay datos disponibles",
+
+  // HTML Preview Modal
+  "htmlPreview.title": "Vista previa de infografía",
+  "htmlPreview.copyCode": "Copiar código",
+
+  // AI Workflow Modal
+  "aiWorkflow.confirmChanges": "Confirmar cambios del flujo de trabajo",
+  "aiWorkflow.aiExplanation": "Explicación de IA",
+  "aiWorkflow.workflowName": "Nombre del flujo de trabajo:",
+  "aiWorkflow.outputPath": "Ruta de salida:",
+  "aiWorkflow.currentWorkflow": "Flujo de trabajo actual",
+  "aiWorkflow.model": "Modelo:",
+  "aiWorkflow.createTitle": "Crear flujo de trabajo con IA",
+  "aiWorkflow.modifyTitle": "Modificar flujo de trabajo con IA",
+  "aiWorkflow.describeCreate": "Describe qué debe hacer este flujo de trabajo:",
+  "aiWorkflow.describeModify": "Describe las modificaciones que deseas:",
+  "aiWorkflow.placeholderCreate": "ej., Crear un flujo de trabajo que lea una nota, la resuma con IA y guarde el resumen en un nuevo archivo",
+  "aiWorkflow.placeholderModify": "ej., Agregar un diálogo de confirmación antes de escribir el archivo",
+  "aiWorkflow.mentionHint": "Consejo: escribe @ para insertar referencias de archivos. El contenido del archivo se incrustará al generar.",
+  "aiWorkflow.namePlaceholder": "Mi flujo de trabajo",
+  "aiWorkflow.pathHint": "Usa {{name}} para el nombre del flujo de trabajo. La extensión .md se agrega automáticamente.",
+  "aiWorkflow.confirmCheckbox": "Confirmar cambios antes de aplicar",
+  "aiWorkflow.generate": "Generar",
+  "aiWorkflow.modify": "Modificar",
+  "aiWorkflow.enterName": "Por favor, ingresa un nombre para el flujo de trabajo",
+  "aiWorkflow.enterDescription": "Por favor, describe qué quieres que haga el flujo de trabajo",
+  "aiWorkflow.selectModel": "Por favor, selecciona un modelo",
+  "aiWorkflow.apiKeyNotConfigured": "La clave API no está configurada",
+
+  // Edit History Modal
+  "editHistoryModal.notInitialized": "El gestor de historial de edición no está inicializado",
 };

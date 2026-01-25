@@ -531,4 +531,35 @@ export const de: Record<string, string> = {
   "workflow.execution.failed": "Fehlgeschlagen",
   "workflow.execution.notExecutedYet": "Noch nicht ausgeführt",
   "workflow.execution.noData": "Keine Daten verfügbar",
+
+  // HTML Preview Modal
+  "htmlPreview.title": "Infografik-Vorschau",
+  "htmlPreview.copyCode": "Code kopieren",
+
+  // AI Workflow Modal
+  "aiWorkflow.confirmChanges": "Workflow-Änderungen bestätigen",
+  "aiWorkflow.aiExplanation": "KI-Erklärung",
+  "aiWorkflow.workflowName": "Workflow-Name:",
+  "aiWorkflow.outputPath": "Ausgabepfad:",
+  "aiWorkflow.currentWorkflow": "Aktueller Workflow",
+  "aiWorkflow.model": "Modell:",
+  "aiWorkflow.createTitle": "Workflow mit KI erstellen",
+  "aiWorkflow.modifyTitle": "Workflow mit KI ändern",
+  "aiWorkflow.describeCreate": "Beschreiben Sie, was dieser Workflow tun soll:",
+  "aiWorkflow.describeModify": "Beschreiben Sie die gewünschten Änderungen:",
+  "aiWorkflow.placeholderCreate": "z.B. Erstelle einen Workflow, der eine Notiz liest, sie mit KI zusammenfasst und die Zusammenfassung in einer neuen Datei speichert",
+  "aiWorkflow.placeholderModify": "z.B. Einen Bestätigungsdialog vor dem Schreiben der Datei hinzufügen",
+  "aiWorkflow.mentionHint": "Tipp: @ eingeben, um Dateireferenzen einzufügen. Der Dateiinhalt wird bei der Generierung eingebettet.",
+  "aiWorkflow.namePlaceholder": "Mein Workflow",
+  "aiWorkflow.pathHint": "{{name}} für den Workflow-Namen verwenden. .md-Erweiterung wird automatisch hinzugefügt.",
+  "aiWorkflow.confirmCheckbox": "Änderungen vor dem Anwenden bestätigen",
+  "aiWorkflow.generate": "Generieren",
+  "aiWorkflow.modify": "Ändern",
+  "aiWorkflow.enterName": "Bitte geben Sie einen Workflow-Namen ein",
+  "aiWorkflow.enterDescription": "Bitte beschreiben Sie, was der Workflow tun soll",
+  "aiWorkflow.selectModel": "Bitte wählen Sie ein Modell",
+  "aiWorkflow.apiKeyNotConfigured": "API-Schlüssel ist nicht konfiguriert",
+
+  // Edit History Modal
+  "editHistoryModal.notInitialized": "Bearbeitungsverlauf-Manager nicht initialisiert",
 };

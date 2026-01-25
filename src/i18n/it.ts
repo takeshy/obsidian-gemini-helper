@@ -531,4 +531,35 @@ export const it: Record<string, string> = {
   "workflow.execution.failed": "Fallito",
   "workflow.execution.notExecutedYet": "Non ancora eseguito",
   "workflow.execution.noData": "Nessun dato disponibile",
+
+  // HTML Preview Modal
+  "htmlPreview.title": "Anteprima infografica",
+  "htmlPreview.copyCode": "Copia codice",
+
+  // AI Workflow Modal
+  "aiWorkflow.confirmChanges": "Conferma modifiche al flusso di lavoro",
+  "aiWorkflow.aiExplanation": "Spiegazione IA",
+  "aiWorkflow.workflowName": "Nome flusso di lavoro:",
+  "aiWorkflow.outputPath": "Percorso di output:",
+  "aiWorkflow.currentWorkflow": "Flusso di lavoro attuale",
+  "aiWorkflow.model": "Modello:",
+  "aiWorkflow.createTitle": "Crea flusso di lavoro con IA",
+  "aiWorkflow.modifyTitle": "Modifica flusso di lavoro con IA",
+  "aiWorkflow.describeCreate": "Descrivi cosa deve fare questo flusso di lavoro:",
+  "aiWorkflow.describeModify": "Descrivi le modifiche desiderate:",
+  "aiWorkflow.placeholderCreate": "es., Crea un flusso di lavoro che legga una nota, la riassuma con l'IA e salvi il riassunto in un nuovo file",
+  "aiWorkflow.placeholderModify": "es., Aggiungi una finestra di conferma prima di scrivere il file",
+  "aiWorkflow.mentionHint": "Suggerimento: digita @ per inserire riferimenti a file. Il contenuto del file sarà incorporato durante la generazione.",
+  "aiWorkflow.namePlaceholder": "Il mio flusso di lavoro",
+  "aiWorkflow.pathHint": "Usa {{name}} per il nome del flusso di lavoro. L'estensione .md viene aggiunta automaticamente.",
+  "aiWorkflow.confirmCheckbox": "Conferma le modifiche prima di applicare",
+  "aiWorkflow.generate": "Genera",
+  "aiWorkflow.modify": "Modifica",
+  "aiWorkflow.enterName": "Inserisci un nome per il flusso di lavoro",
+  "aiWorkflow.enterDescription": "Descrivi cosa vuoi che faccia il flusso di lavoro",
+  "aiWorkflow.selectModel": "Seleziona un modello",
+  "aiWorkflow.apiKeyNotConfigured": "Chiave API non configurata",
+
+  // Edit History Modal
+  "editHistoryModal.notInitialized": "Gestore cronologia modifiche non inizializzato",
 };

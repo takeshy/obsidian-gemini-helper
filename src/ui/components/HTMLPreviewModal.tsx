@@ -1,4 +1,5 @@
 import { Modal, App, Notice, Platform } from "obsidian";
+import { t } from "src/i18n";
 
 // Sanitize filename to remove characters not allowed in file systems
 function sanitizeFileName(name: string): string {
@@ -48,12 +49,12 @@ export class HTMLPreviewModal extends Modal {
     // Header with actions (also serves as drag handle)
     const header = contentEl.createDiv({ cls: "gemini-helper-html-preview-header gemini-helper-drag-handle" });
 
-    header.createEl("h3", { text: "Infographic preview" });
+    header.createEl("h3", { text: t("htmlPreview.title") });
 
     const actions = header.createDiv({ cls: "gemini-helper-html-preview-actions" });
 
     // Copy HTML button
-    const copyBtn = actions.createEl("button", { text: "Copy code", cls: "mod-cta" });
+    const copyBtn = actions.createEl("button", { text: t("htmlPreview.copyCode"), cls: "mod-cta" });
     copyBtn.addEventListener("click", () => {
       void navigator.clipboard.writeText(this.htmlContent).then(
         () => new Notice("HTML copied to clipboard"),
@@ -62,13 +63,13 @@ export class HTMLPreviewModal extends Modal {
     });
 
     // Save button
-    const saveBtn = actions.createEl("button", { text: "Save" });
+    const saveBtn = actions.createEl("button", { text: t("common.save") });
     saveBtn.addEventListener("click", () => {
       void this.saveHtml();
     });
 
     // Close button
-    const closeBtn = actions.createEl("button", { text: "Close" });
+    const closeBtn = actions.createEl("button", { text: t("common.close") });
     closeBtn.addEventListener("click", () => this.close());
 
     // iframe container

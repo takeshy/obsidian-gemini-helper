@@ -531,4 +531,35 @@ export const zh: Record<string, string> = {
   "workflow.execution.failed": "失败",
   "workflow.execution.notExecutedYet": "尚未执行",
   "workflow.execution.noData": "无可用数据",
+
+  // HTML Preview Modal
+  "htmlPreview.title": "信息图预览",
+  "htmlPreview.copyCode": "复制代码",
+
+  // AI Workflow Modal
+  "aiWorkflow.confirmChanges": "确认工作流更改",
+  "aiWorkflow.aiExplanation": "AI 说明",
+  "aiWorkflow.workflowName": "工作流名称：",
+  "aiWorkflow.outputPath": "输出路径：",
+  "aiWorkflow.currentWorkflow": "当前工作流",
+  "aiWorkflow.model": "模型：",
+  "aiWorkflow.createTitle": "使用 AI 创建工作流",
+  "aiWorkflow.modifyTitle": "使用 AI 修改工作流",
+  "aiWorkflow.describeCreate": "描述此工作流应执行的操作：",
+  "aiWorkflow.describeModify": "描述您想要的修改：",
+  "aiWorkflow.placeholderCreate": "例如：创建一个读取笔记、使用 AI 进行总结并将摘要保存到新文件的工作流",
+  "aiWorkflow.placeholderModify": "例如：在写入文件前添加确认对话框",
+  "aiWorkflow.mentionHint": "提示：输入 @ 插入文件引用。生成时将嵌入文件内容。",
+  "aiWorkflow.namePlaceholder": "我的工作流",
+  "aiWorkflow.pathHint": "使用 {{name}} 作为工作流名称。.md 扩展名将自动添加。",
+  "aiWorkflow.confirmCheckbox": "应用前确认更改",
+  "aiWorkflow.generate": "生成",
+  "aiWorkflow.modify": "修改",
+  "aiWorkflow.enterName": "请输入工作流名称",
+  "aiWorkflow.enterDescription": "请描述您希望工作流执行的操作",
+  "aiWorkflow.selectModel": "请选择模型",
+  "aiWorkflow.apiKeyNotConfigured": "API 密钥未配置",
+
+  // Edit History Modal
+  "editHistoryModal.notInitialized": "编辑历史管理器未初始化",
 };

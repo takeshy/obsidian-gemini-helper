@@ -2,6 +2,7 @@ import { App, Modal, Setting, TFile } from "obsidian";
 import { SidebarNode, WorkflowNodeType } from "src/workflow/types";
 import { getAvailableModels, CLI_MODEL, CLAUDE_CLI_MODEL, CODEX_CLI_MODEL } from "src/types";
 import type { GeminiHelperPlugin } from "src/plugin";
+import { t, TranslationKey } from "src/i18n";
 
 // @ path autocomplete helper
 interface PathSuggestion {
@@ -54,31 +55,34 @@ async function expandPathReferences(app: App, text: string): Promise<string> {
   return result;
 }
 
-const NODE_TYPE_LABELS: Record<WorkflowNodeType, string> = {
-  variable: "Variable",
-  set: "Set",
-  if: "If",
-  while: "While",
-  command: "Command",
-  http: "HTTP",
-  json: "JSON",
-  note: "Note",
-  "note-read": "Note Read",
-  "note-search": "Note Search",
-  "note-list": "Note List",
-  "folder-list": "Folder List",
-  open: "Open",
-  dialog: "Dialog",
-  "prompt-file": "Prompt File",
-  "prompt-selection": "Prompt Selection",
-  "file-explorer": "File Explorer",
-  "file-save": "File Save",
-  workflow: "Workflow",
-  "rag-sync": "RAG Sync",
-  mcp: "MCP",
-  "obsidian-command": "Obsidian Command",
-  sleep: "Sleep",
-};
+function getNodeTypeLabel(type: WorkflowNodeType): string {
+  const keyMap: Record<WorkflowNodeType, TranslationKey> = {
+    variable: "workflow.nodeType.variable",
+    set: "workflow.nodeType.set",
+    if: "workflow.nodeType.if",
+    while: "workflow.nodeType.while",
+    command: "workflow.nodeType.command",
+    http: "workflow.nodeType.http",
+    json: "workflow.nodeType.json",
+    note: "workflow.nodeType.note",
+    "note-read": "workflow.nodeType.noteRead",
+    "note-search": "workflow.nodeType.noteSearch",
+    "note-list": "workflow.nodeType.noteList",
+    "folder-list": "workflow.nodeType.folderList",
+    open: "workflow.nodeType.open",
+    dialog: "workflow.nodeType.dialog",
+    "prompt-file": "workflow.nodeType.promptFile",
+    "prompt-selection": "workflow.nodeType.promptSelection",
+    "file-explorer": "workflow.nodeType.fileExplorer",
+    "file-save": "workflow.nodeType.fileSave",
+    workflow: "workflow.nodeType.workflow",
+    "rag-sync": "workflow.nodeType.ragSync",
+    mcp: "workflow.nodeType.mcp",
+    "obsidian-command": "workflow.nodeType.obsidianCommand",
+    sleep: "workflow.nodeType.sleep",
+  };
+  return t(keyMap[type]);
+}
 
 export class NodeEditorModal extends Modal {
   private node: SidebarNode;
@@ -114,7 +118,7 @@ export class NodeEditorModal extends Modal {
     // Drag handle with title
     const dragHandle = contentEl.createDiv({ cls: "modal-drag-handle" });
     dragHandle.createEl("h2", {
-      text: `Edit ${NODE_TYPE_LABELS[this.node.type]} node`,
+      text: t("nodeEditor.editTitle", { type: getNodeTypeLabel(this.node.type) }),
     });
     this.setupDragHandle(dragHandle, modalEl);
 
@@ -122,10 +126,10 @@ export class NodeEditorModal extends Modal {
     const scrollContainer = contentEl.createDiv({ cls: "workflow-node-editor-scroll" });
 
     new Setting(scrollContainer)
-      .setName("Node type")
+      .setName(t("nodeEditor.nodeType"))
       .setDesc(`ID: ${this.node.id}`)
       .addText((text) => {
-        text.setValue(NODE_TYPE_LABELS[this.node.type]);
+        text.setValue(getNodeTypeLabel(this.node.type));
         text.setDisabled(true);
       });
 
@@ -135,12 +139,12 @@ export class NodeEditorModal extends Modal {
 
     const saveBtn = buttonContainer.createEl("button", {
       cls: "mod-cta",
-      text: "Save",
+      text: t("nodeEditor.save"),
     });
     saveBtn.addEventListener("click", () => void this.save());
 
     const cancelBtn = buttonContainer.createEl("button", {
-      text: "Cancel",
+      text: t("common.cancel"),
     });
     cancelBtn.addEventListener("click", () => this.close());
   }
@@ -193,8 +197,8 @@ export class NodeEditorModal extends Modal {
     switch (this.node.type) {
       case "variable":
       case "set":
-        this.addTextField(container, "name", "Variable Name", "Enter variable name");
-        this.addTextArea(container, "value", "Value", "Enter value or expression (e.g., {{var}} + 1, @file.md)", true);
+        this.addTextField(container, "name", t("nodeEditor.variableName"), t("nodeEditor.variableName.placeholder"));
+        this.addTextArea(container, "value", t("nodeEditor.value"), t("nodeEditor.value.placeholder"), true);
         break;
 
       case "if":
@@ -202,13 +206,13 @@ export class NodeEditorModal extends Modal {
         this.addTextArea(
           container,
           "condition",
-          "Condition",
-          'e.g., {{counter}} < 10, {{status}} == "end"'
+          t("nodeEditor.condition"),
+          t("nodeEditor.condition.placeholder")
         );
         break;
 
       case "command": {
-        this.addTextArea(container, "prompt", "Prompt", "Enter prompt template (supports {{variables}}, @file.md)", true);
+        this.addTextArea(container, "prompt", t("nodeEditor.prompt"), t("nodeEditor.prompt.placeholder"), true);
 
         // Build model options based on API plan
         const cliConfig = this.plugin.settings.cliConfig;
@@ -216,7 +220,7 @@ export class NodeEditorModal extends Modal {
         const availableModels = getAvailableModels(apiPlan);
 
         const modelOptions: Array<{ value: string; label: string }> = [
-          { value: "", label: "Use current model" },
+          { value: "", label: t("nodeEditor.useCurrentModel") },
         ];
 
         // Add models based on plan
@@ -238,16 +242,16 @@ export class NodeEditorModal extends Modal {
         // Search options (RAG)
         const ragSettingNames = Object.keys(this.plugin.workspaceState.ragSettings || {});
         const searchOptions = [
-          { value: "__none__", label: "None" },
-          { value: "__websearch__", label: "Web search" },
-          ...ragSettingNames.map(name => ({ value: name, label: `Semantic search: ${name}` })),
+          { value: "__none__", label: t("nodeEditor.searchNone") },
+          { value: "__websearch__", label: t("nodeEditor.webSearch") },
+          ...ragSettingNames.map(name => ({ value: name, label: t("nodeEditor.semanticSearch", { name }) })),
         ];
 
         // Vault tools options
         const vaultToolOptions = [
-          { value: "all", label: "All (search + read/write)" },
-          { value: "noSearch", label: "No search (read/write only)" },
-          { value: "none", label: "None" },
+          { value: "all", label: t("nodeEditor.vaultToolsAll") },
+          { value: "noSearch", label: t("nodeEditor.vaultToolsNoSearch") },
+          { value: "none", label: t("nodeEditor.vaultToolsNone") },
         ];
 
         const isCliModel = (model: string) => model === "gemini-cli" || model === "claude-cli" || model === "codex-cli";
@@ -257,7 +261,7 @@ export class NodeEditorModal extends Modal {
         const mcpCheckboxes: Array<{ name: string; checkbox: HTMLInputElement }> = [];
 
         // Model dropdown
-        new Setting(container).setName("Model").addDropdown((dropdown) => {
+        new Setting(container).setName(t("nodeEditor.model")).addDropdown((dropdown) => {
           for (const opt of modelOptions) {
             dropdown.addOption(opt.value, opt.label);
           }
@@ -293,7 +297,7 @@ export class NodeEditorModal extends Modal {
 
         // Search dropdown
         const initialModel = this.editedProperties["model"] || "";
-        new Setting(container).setName("Search").addDropdown((dropdown) => {
+        new Setting(container).setName(t("nodeEditor.search")).addDropdown((dropdown) => {
           searchDropdown = dropdown.selectEl;
           for (const opt of searchOptions) {
             dropdown.addOption(opt.value, opt.label);
@@ -311,7 +315,7 @@ export class NodeEditorModal extends Modal {
         });
 
         // Vault Tools dropdown
-        new Setting(container).setName("Vault tools").addDropdown((dropdown) => {
+        new Setting(container).setName(t("nodeEditor.vaultTools")).addDropdown((dropdown) => {
           vaultToolDropdown = dropdown.selectEl;
           for (const opt of vaultToolOptions) {
             dropdown.addOption(opt.value, opt.label);
@@ -333,7 +337,7 @@ export class NodeEditorModal extends Modal {
         if (mcpServers.length > 0) {
           const enabledMcpServers = (this.editedProperties["mcpServers"] || "").split(",").filter(s => s.trim());
 
-          const mcpSetting = new Setting(container).setName("Mcp servers");
+          const mcpSetting = new Setting(container).setName(t("nodeEditor.mcpServers"));
           const mcpContainer = mcpSetting.settingEl.createDiv({ cls: "workflow-mcp-checkboxes" });
 
           for (const server of mcpServers) {
@@ -354,153 +358,153 @@ export class NodeEditorModal extends Modal {
           }
         }
 
-        this.addTextField(container, "attachments", "Attachments", "Variable names with file data (comma-separated)");
-        this.addTextField(container, "saveTo", "Save To", "Variable name to store text result");
-        this.addTextField(container, "saveImageTo", "Save Image To", "Variable name to store generated image (for image models)");
+        this.addTextField(container, "attachments", t("nodeEditor.attachments"), t("nodeEditor.attachments.placeholder"));
+        this.addTextField(container, "saveTo", t("nodeEditor.saveTo"), t("nodeEditor.saveTo.placeholder"));
+        this.addTextField(container, "saveImageTo", t("nodeEditor.saveImageTo"), t("nodeEditor.saveImageTo.placeholder"));
         break;
       }
 
       case "http":
-        this.addTextField(container, "url", "URL", "https://api.example.com/endpoint");
-        this.addDropdown(container, "method", "Method", ["GET", "POST", "PUT", "DELETE", "PATCH"]);
-        this.addDropdown(container, "contentType", "Content Type", ["json", "form-data", "text"], "json: JSON body, form-data: multipart/form-data, text: plain text");
-        this.addTextArea(container, "headers", "Headers (JSON)", '{"Authorization": "Bearer {{token}}"}');
-        this.addTextArea(container, "body", "Body", '{"key": "{{value}}"}\nFor form-data: {"file:filename.html": "{{content}}"}');
-        this.addTextField(container, "saveTo", "Save To", "Variable name to store response");
-        this.addTextField(container, "saveStatus", "Save Status To", "Variable name to store HTTP status code");
-        this.addDropdown(container, "throwOnError", "Throw on Error", ["false", "true"], "Throw error on 4xx/5xx responses");
+        this.addTextField(container, "url", t("nodeEditor.url"), t("nodeEditor.url.placeholder"));
+        this.addDropdown(container, "method", t("nodeEditor.method"), ["GET", "POST", "PUT", "DELETE", "PATCH"]);
+        this.addDropdown(container, "contentType", t("nodeEditor.contentType"), ["json", "form-data", "text"], t("nodeEditor.contentType.desc"));
+        this.addTextArea(container, "headers", t("nodeEditor.headers"), t("nodeEditor.headers.placeholder"));
+        this.addTextArea(container, "body", t("nodeEditor.body"), t("nodeEditor.body.placeholder"));
+        this.addTextField(container, "saveTo", t("nodeEditor.saveTo"), t("nodeEditor.saveTo.placeholder"));
+        this.addTextField(container, "saveStatus", t("nodeEditor.saveStatus"), t("nodeEditor.saveStatus.placeholder"));
+        this.addDropdown(container, "throwOnError", t("nodeEditor.throwOnError"), ["false", "true"], t("nodeEditor.throwOnError.desc"));
         break;
 
       case "json":
-        this.addTextField(container, "source", "Source Variable", "Variable containing JSON string");
-        this.addTextField(container, "saveTo", "Save To", "Variable name to store parsed object");
+        this.addTextField(container, "source", t("nodeEditor.sourceVariable"), t("nodeEditor.sourceVariable.placeholder"));
+        this.addTextField(container, "saveTo", t("nodeEditor.saveTo"), t("nodeEditor.saveTo.placeholder"));
         break;
 
       case "note":
-        this.addTextField(container, "path", "Note Path", "Path to the note file (e.g., output/result.md)");
-        this.addTextArea(container, "content", "Content", "Content to write (supports {{variables}}, @file.md)", true);
-        this.addDropdown(container, "mode", "Mode", ["overwrite", "append", "create"], "overwrite: replace file, append: add to end, create: only if not exists");
-        this.addDropdown(container, "confirm", "Confirm before writing", ["true", "false"], "true: show confirmation dialog, false: write immediately");
+        this.addTextField(container, "path", t("nodeEditor.notePath"), t("nodeEditor.notePath.placeholder"));
+        this.addTextArea(container, "content", t("nodeEditor.content"), t("nodeEditor.content.placeholder"), true);
+        this.addDropdown(container, "mode", t("nodeEditor.mode"), ["overwrite", "append", "create"], t("nodeEditor.mode.desc"));
+        this.addDropdown(container, "confirm", t("nodeEditor.confirm"), ["true", "false"], t("nodeEditor.confirm.desc"));
         break;
 
       case "note-read":
-        this.addTextField(container, "path", "Note Path", "Path to the note file to read");
-        this.addTextField(container, "saveTo", "Save To", "Variable name to store the note content");
+        this.addTextField(container, "path", t("nodeEditor.notePathRead"), t("nodeEditor.notePathRead.placeholder"));
+        this.addTextField(container, "saveTo", t("nodeEditor.saveTo"), t("nodeEditor.saveTo.noteContent"));
         break;
 
       case "note-search":
-        this.addTextField(container, "query", "Search Query", "Text to search for");
-        this.addDropdown(container, "searchContent", "Search Type", ["false", "true"], "false: search file names, true: search file contents");
-        this.addTextField(container, "limit", "Limit", "Maximum number of results (default: 10)");
-        this.addTextField(container, "saveTo", "Save To", "Variable name to store search results (JSON array)");
+        this.addTextField(container, "query", t("nodeEditor.searchQuery"), t("nodeEditor.searchQuery.placeholder"));
+        this.addDropdown(container, "searchContent", t("nodeEditor.searchType"), ["false", "true"], t("nodeEditor.searchType.desc"));
+        this.addTextField(container, "limit", t("nodeEditor.limit"), t("nodeEditor.limit.placeholder"));
+        this.addTextField(container, "saveTo", t("nodeEditor.saveTo"), t("nodeEditor.saveTo.searchResults"));
         break;
 
       case "note-list":
-        this.addTextField(container, "folder", "Folder", "Folder path to list (empty for root)");
-        this.addDropdown(container, "recursive", "Recursive", ["false", "true"], "Include subfolders");
-        this.addTextField(container, "tags", "Tags", "Filter by tags (comma-separated, e.g., project, todo)");
-        this.addDropdown(container, "tagMatch", "Tag Match", ["any", "all"], "any: match any tag, all: match all tags");
-        this.addTextField(container, "createdWithin", "Created Within", "e.g., 7d (7 days), 30m (30 min), 2h (2 hours)");
-        this.addTextField(container, "modifiedWithin", "Modified Within", "e.g., 1d (1 day), 60m (60 min)");
-        this.addDropdown(container, "sortBy", "Sort By", ["", "modified", "created", "name"], "Sort order for results");
-        this.addDropdown(container, "sortOrder", "Sort Order", ["desc", "asc"], "Descending or ascending");
-        this.addTextField(container, "limit", "Limit", "Maximum number of notes (default: 50)");
-        this.addTextField(container, "saveTo", "Save To", "Variable name to store note list (JSON)");
+        this.addTextField(container, "folder", t("nodeEditor.folder"), t("nodeEditor.folder.placeholder"));
+        this.addDropdown(container, "recursive", t("nodeEditor.recursive"), ["false", "true"], t("nodeEditor.recursive.desc"));
+        this.addTextField(container, "tags", t("nodeEditor.tags"), t("nodeEditor.tags.placeholder"));
+        this.addDropdown(container, "tagMatch", t("nodeEditor.tagMatch"), ["any", "all"], t("nodeEditor.tagMatch.desc"));
+        this.addTextField(container, "createdWithin", t("nodeEditor.createdWithin"), t("nodeEditor.createdWithin.placeholder"));
+        this.addTextField(container, "modifiedWithin", t("nodeEditor.modifiedWithin"), t("nodeEditor.modifiedWithin.placeholder"));
+        this.addDropdown(container, "sortBy", t("nodeEditor.sortBy"), ["", "modified", "created", "name"], t("nodeEditor.sortBy.desc"));
+        this.addDropdown(container, "sortOrder", t("nodeEditor.sortOrder"), ["desc", "asc"], t("nodeEditor.sortOrder.desc"));
+        this.addTextField(container, "limit", t("nodeEditor.limit"), t("nodeEditor.limit.notes"));
+        this.addTextField(container, "saveTo", t("nodeEditor.saveTo"), t("nodeEditor.saveTo.noteList"));
         break;
 
       case "folder-list":
-        this.addTextField(container, "folder", "Parent Folder", "Parent folder path (empty for all folders)");
-        this.addTextField(container, "saveTo", "Save To", "Variable name to store folder list (JSON)");
+        this.addTextField(container, "folder", t("nodeEditor.parentFolder"), t("nodeEditor.parentFolder.placeholder"));
+        this.addTextField(container, "saveTo", t("nodeEditor.saveTo"), t("nodeEditor.saveTo.folderList"));
         break;
 
       case "open":
-        this.addTextField(container, "path", "File Path", "Path to the file to open (supports {{variables}})");
+        this.addTextField(container, "path", t("nodeEditor.filePath"), t("nodeEditor.filePath.placeholder"));
         break;
 
       case "dialog":
-        this.addTextField(container, "title", "Title", "Dialog title");
-        this.addTextArea(container, "message", "Message", "Message to display (supports @file.md)", true);
-        this.addDropdown(container, "markdown", "Render Markdown", ["false", "true"], "Render message as Markdown");
-        this.addTextField(container, "options", "Options", "Comma-separated list of checkbox options (optional)");
-        this.addDropdown(container, "multiSelect", "Selection Mode", ["false", "true"], "Single select / Multi select");
-        this.addTextField(container, "inputTitle", "Input Title", "Text input label (leave empty to hide input field)");
-        this.addDropdown(container, "multiline", "Input Type", ["false", "true"], "Single line / Multi-line text area");
-        this.addTextField(container, "defaults", "Defaults", 'JSON: {"input": "text", "selected": ["opt1"]}');
-        this.addTextField(container, "button1", "Button 1", "Primary button label (default: OK)");
-        this.addTextField(container, "button2", "Button 2", "Secondary button label (optional, for confirm dialogs)");
-        this.addTextField(container, "saveTo", "Save To", "Variable name to store result (JSON)");
+        this.addTextField(container, "title", t("nodeEditor.title"), t("nodeEditor.title.placeholder"));
+        this.addTextArea(container, "message", t("nodeEditor.message"), t("nodeEditor.message.placeholder"), true);
+        this.addDropdown(container, "markdown", t("nodeEditor.renderMarkdown"), ["false", "true"], t("nodeEditor.renderMarkdown.desc"));
+        this.addTextField(container, "options", t("nodeEditor.options"), t("nodeEditor.options.placeholder"));
+        this.addDropdown(container, "multiSelect", t("nodeEditor.selectionMode"), ["false", "true"], t("nodeEditor.selectionMode.desc"));
+        this.addTextField(container, "inputTitle", t("nodeEditor.inputTitle"), t("nodeEditor.inputTitle.placeholder"));
+        this.addDropdown(container, "multiline", t("nodeEditor.inputType"), ["false", "true"], t("nodeEditor.inputType.desc"));
+        this.addTextField(container, "defaults", t("nodeEditor.defaults"), t("nodeEditor.defaults.placeholder"));
+        this.addTextField(container, "button1", t("nodeEditor.button1"), t("nodeEditor.button1.placeholder"));
+        this.addTextField(container, "button2", t("nodeEditor.button2"), t("nodeEditor.button2.placeholder"));
+        this.addTextField(container, "saveTo", t("nodeEditor.saveTo"), t("nodeEditor.saveTo.dialogResult"));
         break;
 
       case "prompt-file":
-        this.addTextField(container, "title", "Dialog Title", "Select a file");
-        this.addTextField(container, "saveTo", "Save Content To", "Variable name for file content");
-        this.addTextField(container, "saveFileTo", "Save File Info To", "Variable name for file info (path, basename, name, extension)");
+        this.addTextField(container, "title", t("nodeEditor.dialogTitle"), t("nodeEditor.dialogTitle.file"));
+        this.addTextField(container, "saveTo", t("nodeEditor.saveContentTo"), t("nodeEditor.saveContentTo.placeholder"));
+        this.addTextField(container, "saveFileTo", t("nodeEditor.saveFileTo"), t("nodeEditor.saveFileTo.placeholder"));
         break;
 
       case "prompt-selection":
-        this.addTextField(container, "title", "Dialog Title", "Select text");
-        this.addTextField(container, "saveTo", "Save Text To", "Variable name for selected text");
-        this.addTextField(container, "saveSelectionTo", "Save Selection To", "Variable name for selection object");
+        this.addTextField(container, "title", t("nodeEditor.dialogTitle"), t("nodeEditor.dialogTitle.selection"));
+        this.addTextField(container, "saveTo", t("nodeEditor.saveTextTo"), t("nodeEditor.saveTextTo.placeholder"));
+        this.addTextField(container, "saveSelectionTo", t("nodeEditor.saveSelectionTo"), t("nodeEditor.saveSelectionTo.placeholder"));
         break;
 
       case "file-explorer":
-        this.addDropdown(container, "mode", "Mode", ["select", "create"], "select: Pick existing file, create: Enter new path");
-        this.addTextField(container, "title", "Dialog Title", "Select a file");
-        this.addTextField(container, "extensions", "Extensions", "Allowed extensions (e.g., md,pdf,png)");
-        this.addTextField(container, "default", "Default Path", "Default path or folder");
-        this.addTextField(container, "saveTo", "Save Data To", "Variable for file data JSON (with content)");
-        this.addTextField(container, "savePathTo", "Save Path To", "Variable for file path only");
+        this.addDropdown(container, "mode", t("nodeEditor.fileExplorerMode"), ["select", "create"], t("nodeEditor.fileExplorerMode.desc"));
+        this.addTextField(container, "title", t("nodeEditor.dialogTitle"), t("nodeEditor.dialogTitle.file"));
+        this.addTextField(container, "extensions", t("nodeEditor.extensions"), t("nodeEditor.extensions.placeholder"));
+        this.addTextField(container, "default", t("nodeEditor.defaultPath"), t("nodeEditor.defaultPath.placeholder"));
+        this.addTextField(container, "saveTo", t("nodeEditor.saveDataTo"), t("nodeEditor.saveDataTo.placeholder"));
+        this.addTextField(container, "savePathTo", t("nodeEditor.savePathTo"), t("nodeEditor.savePathTo.placeholder"));
         break;
 
       case "workflow":
-        this.addTextField(container, "path", "Workflow Path", "Path to workflow file");
-        this.addTextField(container, "name", "Workflow Name", "Name of workflow (if file has multiple)");
-        this.addTextArea(container, "input", "Input Variables", 'JSON mapping: {"subVar": "{{parentVar}}"}');
-        this.addTextArea(container, "output", "Output Variables", 'JSON mapping: {"parentVar": "subVar"}');
-        this.addTextField(container, "prefix", "Prefix", "Prefix for imported variables");
+        this.addTextField(container, "path", t("nodeEditor.workflowPath"), t("nodeEditor.workflowPath.placeholder"));
+        this.addTextField(container, "name", t("nodeEditor.workflowName"), t("nodeEditor.workflowName.placeholder"));
+        this.addTextArea(container, "input", t("nodeEditor.inputVariables"), t("nodeEditor.inputVariables.placeholder"));
+        this.addTextArea(container, "output", t("nodeEditor.outputVariables"), t("nodeEditor.outputVariables.placeholder"));
+        this.addTextField(container, "prefix", t("nodeEditor.prefix"), t("nodeEditor.prefix.placeholder"));
         break;
 
       case "rag-sync": {
-        this.addTextField(container, "path", "Note Path", "Path to note to sync (supports {{variables}})");
+        this.addTextField(container, "path", t("nodeEditor.ragNotePath"), t("nodeEditor.ragNotePath.placeholder"));
         const ragNames = Object.keys(this.plugin.workspaceState.ragSettings || {});
-        this.addLabeledDropdown(container, "ragSetting", "RAG Setting", [
-          { value: "", label: "Select RAG setting" },
+        this.addLabeledDropdown(container, "ragSetting", t("nodeEditor.ragSetting"), [
+          { value: "", label: t("nodeEditor.ragSetting.select") },
           ...ragNames.map((name: string) => ({ value: name, label: name })),
         ]);
-        this.addTextField(container, "saveTo", "Save To", "Variable name to store result (optional)");
+        this.addTextField(container, "saveTo", t("nodeEditor.saveTo"), t("nodeEditor.saveTo.ragResult"));
         break;
       }
 
       case "file-save":
-        this.addTextField(container, "source", "Source Variable", "Variable containing FileExplorerData (e.g., from file-explorer or saveImageTo)");
-        this.addTextField(container, "path", "Save Path", "Path to save the file (without extension if auto-detected)");
-        this.addTextField(container, "savePathTo", "Save Path To", "Variable to store final file path (optional)");
+        this.addTextField(container, "source", t("nodeEditor.fileSaveSource"), t("nodeEditor.fileSaveSource.placeholder"));
+        this.addTextField(container, "path", t("nodeEditor.fileSavePath"), t("nodeEditor.fileSavePath.placeholder"));
+        this.addTextField(container, "savePathTo", t("nodeEditor.fileSavePathTo"), t("nodeEditor.fileSavePathTo.placeholder"));
         break;
 
       case "mcp":
-        this.addTextField(container, "url", "URL", "MCP server endpoint URL (e.g., http://localhost:8080)");
-        this.addTextField(container, "tool", "Tool", "Tool name to call on the MCP server");
-        this.addTextArea(container, "args", "Arguments", "JSON object with tool arguments (supports {{variables}})");
-        this.addTextArea(container, "headers", "Headers", "JSON object with HTTP headers (e.g., for authentication)");
-        this.addTextField(container, "saveTo", "Save To", "Variable name to store result (optional)");
+        this.addTextField(container, "url", t("nodeEditor.mcpUrl"), t("nodeEditor.mcpUrl.placeholder"));
+        this.addTextField(container, "tool", t("nodeEditor.mcpTool"), t("nodeEditor.mcpTool.placeholder"));
+        this.addTextArea(container, "args", t("nodeEditor.mcpArgs"), t("nodeEditor.mcpArgs.placeholder"));
+        this.addTextArea(container, "headers", t("nodeEditor.mcpHeaders"), t("nodeEditor.mcpHeaders.placeholder"));
+        this.addTextField(container, "saveTo", t("nodeEditor.saveTo"), t("nodeEditor.saveTo.mcpResult"));
         break;
 
       case "obsidian-command":
-        this.addTextField(container, "command", "Command ID", "Obsidian command ID (e.g., editor:toggle-fold, app:reload)");
-        this.addTextField(container, "path", "File Path", "File to open before command (optional, tab closes after)");
-        this.addTextField(container, "saveTo", "Save To", "Variable name to store execution result (optional)");
+        this.addTextField(container, "command", t("nodeEditor.commandId"), t("nodeEditor.commandId.placeholder"));
+        this.addTextField(container, "path", t("nodeEditor.commandFilePath"), t("nodeEditor.commandFilePath.placeholder"));
+        this.addTextField(container, "saveTo", t("nodeEditor.saveTo"), t("nodeEditor.saveTo.commandResult"));
         break;
 
       case "sleep":
-        this.addTextField(container, "duration", "Duration (ms)", "Sleep duration in milliseconds (e.g., 1000 for 1 second)");
+        this.addTextField(container, "duration", t("nodeEditor.duration"), t("nodeEditor.duration.placeholder"));
         break;
     }
 
     if (isConditional) {
-      this.addLinkField(container, "trueNext", "True Next", "Next node ID for true branch");
-      this.addLinkField(container, "falseNext", "False Next", "Next node ID for false branch (optional)");
+      this.addLinkField(container, "trueNext", t("nodeEditor.trueNext"), t("nodeEditor.trueNext.placeholder"));
+      this.addLinkField(container, "falseNext", t("nodeEditor.falseNext"), t("nodeEditor.falseNext.placeholder"));
     } else {
-      this.addLinkField(container, "next", "Next Node", "Optional next node ID");
+      this.addLinkField(container, "next", t("nodeEditor.nextNode"), t("nodeEditor.nextNode.placeholder"));
     }
   }
 

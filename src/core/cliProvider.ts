@@ -908,6 +908,7 @@ export async function verifyCli(customPath?: string): Promise<CliVerifyResult> {
       const proc = spawn(command, args, {
         stdio: ["pipe", "pipe", "pipe"],
         shell: false,
+        env: typeof process !== "undefined" ? process.env : undefined,
       });
 
       let stderr = "";

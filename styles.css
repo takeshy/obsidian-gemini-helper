@@ -4007,6 +4007,55 @@
   position: relative;
 }
 
+/* Mobile: Node Editor Modal */
+.is-mobile .workflow-node-editor-modal {
+  min-width: unset;
+  width: 95vw;
+  max-width: 95vw;
+  padding: 12px;
+}
+
+.is-mobile .workflow-node-editor-modal .modal-drag-handle h2 {
+  font-size: 16px;
+}
+
+.is-mobile .workflow-node-editor-modal .setting-item {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.is-mobile .workflow-node-editor-modal .setting-item-info {
+  padding-bottom: 4px;
+}
+
+.is-mobile .workflow-node-editor-modal .setting-item-control {
+  justify-content: stretch;
+}
+
+.is-mobile .workflow-node-editor-modal .setting-item-control input[type="text"],
+.is-mobile .workflow-node-editor-modal .setting-item-control textarea,
+.is-mobile .workflow-node-editor-modal .setting-item-control select {
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+  box-sizing: border-box;
+}
+
+.is-mobile .workflow-node-editor-modal .workflow-node-editor-textarea {
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+.is-mobile .workflow-node-editor-modal .workflow-modal-buttons {
+  flex-direction: column;
+  gap: 8px;
+}
+
+.is-mobile .workflow-node-editor-modal .workflow-modal-buttons button {
+  width: 100%;
+  padding: 12px;
+}
+
 /* ===============================================
    Encryption UI Styles
    =============================================== */

@@ -42,6 +42,16 @@ export const ko: Record<string, string> = {
   "settings.cliLimitation1": "볼트 쓰기 작업을 사용할 수 없음 (읽기 및 검색만 가능)",
   "settings.cliLimitation2": "시맨틱 검색을 사용할 수 없음",
   "settings.cliLimitation3": "웹 검색을 사용할 수 없음",
+  "settings.cliPathSettings": "CLI 경로 설정",
+  "settings.cliPathModal.title": "CLI 경로 설정",
+  "settings.cliPathModal.placeholder": "CLI 실행 파일 또는 스크립트 경로",
+  "settings.cliPathModal.windowsNote": "PowerShell에서 실행:\nGet-Command gemini\n표시된 경로(예: ...\\npm\\gemini.ps1)에서\nnode_modules로 이동:\n...\\npm\\node_modules\\@google\\gemini-cli\\dist\\index.js",
+  "settings.cliPathModal.unixNote": "터미널에서 다음을 실행하여 경로 확인:\nwhich gemini",
+  "settings.cliPathModal.clear": "지우기",
+  "settings.cliPathModal.fileNotFound": "파일을 찾을 수 없습니다. 경로를 확인해 주세요.",
+  "settings.cliPathModal.invalidChars": "경로에 잘못된 문자가 포함되어 있습니다.",
+  "settings.cliPathSaved": "CLI 경로가 저장되었습니다",
+  "settings.cliPathCleared": "CLI 경로가 지워졌습니다",
 
   // Settings - Workspace
   "settings.workspaceFolder": "워크스페이스 폴더",

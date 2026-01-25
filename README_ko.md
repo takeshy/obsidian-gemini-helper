@@ -433,6 +433,25 @@ npm run build
 
 **CLI 제한 사항:** 읽기 전용 vault 작업, semantic/web search 없음
 
+**사용자 지정 CLI 경로:** 자동 CLI 감지가 실패하면 Verify 버튼 옆의 톱니바퀴 아이콘(⚙️)을 클릭하여 CLI 경로를 수동으로 지정할 수 있습니다.
+
+<details>
+<summary><b>Windows: CLI 경로 찾는 방법</b></summary>
+
+1. PowerShell을 열고 실행:
+   ```powershell
+   Get-Command gemini
+   ```
+2. 스크립트 경로가 표시됩니다 (예: `C:\Users\YourName\AppData\Roaming\npm\gemini.ps1`)
+3. `npm` 폴더에서 실제 `index.js`로 이동:
+   ```
+   C:\Users\YourName\AppData\Roaming\npm\node_modules\@google\gemini-cli\dist\index.js
+   ```
+4. CLI 경로 설정에 이 전체 경로를 입력
+
+Claude CLI의 경우, `Get-Command claude`를 사용하고 `node_modules\@anthropic-ai\claude-code\dist\index.js`로 이동하세요.
+</details>
+
 > [!TIP]
 > **Claude CLI 팁:** Gemini Helper의 채팅 세션은 로컬에 저장됩니다. Obsidian 외부에서 대화를 계속하려면 vault 디렉토리에서 `claude --resume`을 실행하여 이전 세션을 확인하고 재개할 수 있습니다.
 

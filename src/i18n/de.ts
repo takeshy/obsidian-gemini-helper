@@ -42,6 +42,16 @@ export const de: Record<string, string> = {
   "settings.cliLimitation1": "Vault-Schreiboperationen sind nicht verfügbar (nur Lesen und Suchen)",
   "settings.cliLimitation2": "Semantische Suche ist nicht verfügbar",
   "settings.cliLimitation3": "Websuche ist nicht verfügbar",
+  "settings.cliPathSettings": "CLI-Pfad konfigurieren",
+  "settings.cliPathModal.title": "CLI-Pfad-Einstellungen",
+  "settings.cliPathModal.placeholder": "Pfad zur CLI-Ausführungsdatei oder zum Skript",
+  "settings.cliPathModal.windowsNote": "In PowerShell ausführen:\nGet-Command gemini\nVom angezeigten Pfad (z.B. ...\\npm\\gemini.ps1)\nzu node_modules navigieren:\n...\\npm\\node_modules\\@google\\gemini-cli\\dist\\index.js",
+  "settings.cliPathModal.unixNote": "Führen Sie im Terminal aus, um den Pfad zu finden:\nwhich gemini",
+  "settings.cliPathModal.clear": "Löschen",
+  "settings.cliPathModal.fileNotFound": "Datei nicht gefunden. Bitte überprüfen Sie den Pfad.",
+  "settings.cliPathModal.invalidChars": "Pfad enthält ungültige Zeichen.",
+  "settings.cliPathSaved": "CLI-Pfad gespeichert",
+  "settings.cliPathCleared": "CLI-Pfad gelöscht",
 
   // Settings - Workspace
   "settings.workspaceFolder": "Arbeitsbereichsordner",

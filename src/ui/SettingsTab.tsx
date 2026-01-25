@@ -10,7 +10,7 @@ import {
 } from "obsidian";
 import type { GeminiHelperPlugin } from "src/plugin";
 import { getFileSearchManager } from "src/core/fileSearch";
-import { verifyCli, verifyClaudeCli, verifyCodexCli } from "src/core/cliProvider";
+import { verifyCli, verifyClaudeCli, verifyCodexCli, isWindows, validateCliPath } from "src/core/cliProvider";
 import { McpClient } from "src/core/mcpClient";
 import { clearMcpToolsCache } from "src/core/mcpTools";
 import { formatError } from "src/utils/error";
@@ -153,6 +153,106 @@ class ConfirmModal extends Modal {
       this.resolver = resolve;
       this.open();
     });
+  }
+}
+
+// Modal for CLI path configuration
+type CliType = "gemini" | "claude" | "codex";
+
+class CliPathModal extends Modal {
+  private cliType: CliType;
+  private currentPath: string;
+  private onSave: (path: string | undefined) => void | Promise<void>;
+
+  constructor(
+    app: App,
+    cliType: CliType,
+    currentPath: string | undefined,
+    onSave: (path: string | undefined) => void | Promise<void>
+  ) {
+    super(app);
+    this.cliType = cliType;
+    this.currentPath = currentPath || "";
+    this.onSave = onSave;
+  }
+
+  onOpen() {
+    const { contentEl } = this;
+    contentEl.addClass("gemini-helper-cli-path-modal");
+    contentEl.createEl("h2", { text: t("settings.cliPathModal.title") });
+
+    const cliName = this.cliType === "gemini" ? "Gemini" : this.cliType === "claude" ? "Claude" : "Codex";
+
+    new Setting(contentEl)
+      .setName(cliName + " CLI")
+      .addText((text) => {
+        text
+          .setPlaceholder(t("settings.cliPathModal.placeholder"))
+          .setValue(this.currentPath)
+          .onChange((value) => {
+            this.currentPath = value;
+          });
+        text.inputEl.addClass("gemini-helper-cli-path-input");
+        text.inputEl.addEventListener("keydown", (e) => {
+          if (e.key === "Enter") {
+            e.preventDefault();
+            this.save();
+          }
+        });
+      });
+
+    // Show OS-specific help note
+    const noteEl = contentEl.createDiv({ cls: "gemini-helper-cli-path-note" });
+    noteEl.textContent = isWindows()
+      ? t("settings.cliPathModal.windowsNote")
+      : t("settings.cliPathModal.unixNote");
+
+    new Setting(contentEl)
+      .addButton((btn) =>
+        btn.setButtonText(t("settings.cliPathModal.clear")).onClick(() => {
+          void this.clear();
+        })
+      )
+      .addButton((btn) =>
+        btn.setButtonText(t("common.cancel")).onClick(() => {
+          this.close();
+        })
+      )
+      .addButton((btn) =>
+        btn
+          .setButtonText(t("common.save"))
+          .setCta()
+          .onClick(() => {
+            this.save();
+          })
+      );
+  }
+
+  private save() {
+    const path = this.currentPath.trim();
+    if (path) {
+      const result = validateCliPath(path);
+      if (!result.valid) {
+        if (result.reason === "file_not_found") {
+          new Notice(t("settings.cliPathModal.fileNotFound"));
+        } else {
+          new Notice(t("settings.cliPathModal.invalidChars"));
+        }
+        return;
+      }
+    }
+    void this.onSave(path || undefined);
+    this.close();
+  }
+
+  private async clear() {
+    await this.onSave(undefined);
+    this.close();
+  }
+
+  onClose() {
+    const { contentEl } = this;
+    contentEl.empty();
   }
 }
 
@@ -1087,7 +1187,9 @@ export class SettingsTab extends PluginSettingTab {
     // Gemini CLI row
     this.createCliVerifyRow(containerEl, {
       name: "Gemini CLI",
+      cliType: "gemini",
       isVerified: !!cliConfig.cliVerified,
+      customPath: cliConfig.geminiCliPath,
       installCmd: "npm install -g @google/gemini-cli",
       onVerify: (statusEl) => this.handleVerifyCli(statusEl),
       onDisable: async () => {
@@ -1101,7 +1203,9 @@ export class SettingsTab extends PluginSettingTab {
     // Claude CLI row
     this.createCliVerifyRow(containerEl, {
       name: "Claude CLI",
+      cliType: "claude",
       isVerified: !!cliConfig.claudeCliVerified,
+      customPath: cliConfig.claudeCliPath,
       installCmd: "npm install -g @anthropic-ai/claude-code",
       onVerify: (statusEl) => this.handleVerifyClaudeCli(statusEl),
       onDisable: async () => {
@@ -1115,7 +1219,9 @@ export class SettingsTab extends PluginSettingTab {
     // Codex CLI row
     this.createCliVerifyRow(containerEl, {
       name: "Codex CLI",
+      cliType: "codex",
       isVerified: !!cliConfig.codexCliVerified,
+      customPath: cliConfig.codexCliPath,
       installCmd: "npm install -g @openai/codex",
       onVerify: (statusEl) => this.handleVerifyCodexCli(statusEl),
       onDisable: async () => {
@@ -1141,7 +1247,9 @@ export class SettingsTab extends PluginSettingTab {
     containerEl: HTMLElement,
     options: {
       name: string;
+      cliType: CliType;
       isVerified: boolean;
+      customPath?: string;
       installCmd: string;
       onVerify: (statusEl: HTMLElement) => Promise<void>;
       onDisable: () => Promise<void>;
@@ -1173,6 +1281,43 @@ export class SettingsTab extends PluginSettingTab {
           .onClick(() => void options.onVerify(statusEl))
       );
     }
+
+    // Add settings button (gear icon)
+    setting.addExtraButton((button) =>
+      button
+        .setIcon("settings")
+        .setTooltip(t("settings.cliPathSettings"))
+        .onClick(() => {
+          this.openCliPathModal(options.cliType, options.customPath);
+        })
+    );
+  }
+
+  private openCliPathModal(cliType: CliType, currentPath?: string): void {
+    new CliPathModal(
+      this.app,
+      cliType,
+      currentPath,
+      async (path: string | undefined) => {
+        const cliConfig = this.plugin.settings.cliConfig;
+        const pathKey = cliType === "gemini" ? "geminiCliPath" :
+                        cliType === "claude" ? "claudeCliPath" : "codexCliPath";
+
+        if (path) {
+          this.plugin.settings.cliConfig = { ...cliConfig, [pathKey]: path };
+          await this.plugin.saveSettings();
+          new Notice(t("settings.cliPathSaved"));
+        } else {
+          // Clear the path
+          const newConfig = { ...cliConfig };
+          delete newConfig[pathKey];
+          this.plugin.settings.cliConfig = newConfig;
+          await this.plugin.saveSettings();
+          new Notice(t("settings.cliPathCleared"));
+        }
+        this.display();
+      }
+    ).open();
   }
 
   private async handleVerifyCli(statusEl: HTMLElement): Promise<void> {
@@ -1181,7 +1326,8 @@ export class SettingsTab extends PluginSettingTab {
     statusEl.setText(t("settings.cliVerifyingCli"));
 
     try {
-      const result = await verifyCli();
+      const customPath = this.plugin.settings.cliConfig.geminiCliPath;
+      const result = await verifyCli(customPath);
 
       if (!result.success) {
         statusEl.addClass("gemini-helper-cli-status--error");
@@ -1233,7 +1379,8 @@ export class SettingsTab extends PluginSettingTab {
     statusEl.setText(t("settings.cliVerifying"));
 
     try {
-      const result = await verifyClaudeCli();
+      const customPath = this.plugin.settings.cliConfig.claudeCliPath;
+      const result = await verifyClaudeCli(customPath);
 
       if (!result.success) {
         statusEl.addClass("gemini-helper-cli-status--error");
@@ -1285,7 +1432,8 @@ export class SettingsTab extends PluginSettingTab {
     statusEl.setText(t("settings.cliVerifying"));
 
     try {
-      const result = await verifyCodexCli();
+      const customPath = this.plugin.settings.cliConfig.codexCliPath;
+      const result = await verifyCodexCli(customPath);
 
       if (!result.success) {
         statusEl.addClass("gemini-helper-cli-status--error");

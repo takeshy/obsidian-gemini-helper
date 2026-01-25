@@ -219,6 +219,9 @@ export interface CliProviderConfig {
   cliVerified?: boolean;        // Whether Gemini CLI has been verified
   claudeCliVerified?: boolean;  // Whether Claude CLI has been verified
   codexCliVerified?: boolean;   // Whether Codex CLI has been verified
+  geminiCliPath?: string;       // Custom path for Gemini CLI
+  claudeCliPath?: string;       // Custom path for Claude CLI
+  codexCliPath?: string;        // Custom path for Codex CLI
 }
 
 export const DEFAULT_CLI_CONFIG: CliProviderConfig = {

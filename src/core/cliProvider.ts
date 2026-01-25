@@ -34,9 +34,47 @@ function getChildProcess(): typeof import("child_process") {
 /**
  * Check if running on Windows (only evaluated on desktop)
  */
-function isWindows(): boolean {
+export function isWindows(): boolean {
   if (Platform.isMobile) return false;
   return typeof process !== "undefined" && process.platform === "win32";
+}
+
+/**
+ * Result of CLI path validation
+ */
+export type CliPathValidationResult =
+  | { valid: true }
+  | { valid: false; reason: "invalid_chars" | "file_not_found" };
+
+/**
+ * Validate custom CLI path for security
+ * - Must not contain shell metacharacters
+ * - Must exist as a file
+ */
+export function validateCliPath(path: string): CliPathValidationResult {
+  // Check for shell metacharacters that could be used for injection
+  const dangerousChars = /[;&|`$(){}[\]<>!#*?\\'"]/;
+  // Allow backslash on Windows for path separators
+  if (isWindows()) {
+    const dangerousCharsWindows = /[;&|`$(){}[\]<>!#*?'"]/;
+    if (dangerousCharsWindows.test(path.replace(/\\/g, ""))) {
+      return { valid: false, reason: "invalid_chars" };
+    }
+  } else if (dangerousChars.test(path)) {
+    return { valid: false, reason: "invalid_chars" };
+  }
+
+  // Verify file exists
+  if (!fileExistsSync(path)) {
+    return { valid: false, reason: "file_not_found" };
+  }
+
+  return { valid: true };
+}
+
+// Internal function for backward compatibility
+function validateCustomPath(path: string): boolean {
+  return validateCliPath(path).valid;
 }
 
 /**
@@ -45,8 +83,21 @@ function isWindows(): boolean {
  *
  * On Windows, we must find the actual .js script and run it with node,
  * because npm creates .cmd wrapper scripts that require shell: true.
+ *
+ * @param args - Command line arguments to pass to the CLI
+ * @param customPath - Optional custom path to the CLI script/executable
  */
-function resolveGeminiCommand(args: string[]): { command: string; args: string[] } {
+function resolveGeminiCommand(args: string[], customPath?: string): { command: string; args: string[] } {
+  // If custom path is specified, validate and use it
+  if (customPath && validateCustomPath(customPath)) {
+    if (isWindows()) {
+      // On Windows, run with node
+      return { command: "node", args: [customPath, ...args] };
+    }
+    // Non-Windows: execute directly
+    return { command: customPath, args };
+  }
+
   // On Windows, find the npm package script (required because .cmd scripts need shell: true)
   if (isWindows()) {
     const scriptPath = findWindowsNpmScript("@google\\gemini-cli\\dist\\index.js");
@@ -165,8 +216,25 @@ function findWindowsNpmScript(packagePath: string): string | undefined {
  *
  * On Windows, we must find the actual .js script and run it with node,
  * because npm creates .cmd wrapper scripts that require shell: true.
+ *
+ * @param args - Command line arguments to pass to the CLI
+ * @param customPath - Optional custom path to the CLI script/executable
  */
-function resolveClaudeCommand(args: string[]): { command: string; args: string[] } {
+function resolveClaudeCommand(args: string[], customPath?: string): { command: string; args: string[] } {
+  // If custom path is specified, validate and use it
+  if (customPath && validateCustomPath(customPath)) {
+    if (isWindows()) {
+      // Check if it's an .exe file
+      if (customPath.toLowerCase().endsWith(".exe")) {
+        return { command: customPath, args };
+      }
+      // Otherwise, run with node
+      return { command: "node", args: [customPath, ...args] };
+    }
+    // Non-Windows: execute directly
+    return { command: customPath, args };
+  }
+
   // On Windows, find the npm package script or standalone exe
   if (isWindows() && typeof process !== "undefined") {
     // First, try to find the npm package script
@@ -243,8 +311,21 @@ function formatWindowsClaudeCliError(message: string | undefined): string | unde
  *
  * On Windows, we must find the actual .js script and run it with node,
  * because npm creates .cmd wrapper scripts that require shell: true.
+ *
+ * @param args - Command line arguments to pass to the CLI
+ * @param customPath - Optional custom path to the CLI script/executable
  */
-function resolveCodexCommand(args: string[]): { command: string; args: string[] } {
+function resolveCodexCommand(args: string[], customPath?: string): { command: string; args: string[] } {
+  // If custom path is specified, validate and use it
+  if (customPath && validateCustomPath(customPath)) {
+    if (isWindows()) {
+      // On Windows, run with node
+      return { command: "node", args: [customPath, ...args] };
+    }
+    // Non-Windows: execute directly
+    return { command: customPath, args };
+  }
+
   // On Windows, find the npm package script (required because .cmd scripts need shell: true)
   if (isWindows()) {
     const scriptPath = findWindowsNpmScript("@openai\\codex\\bin\\codex.js");
@@ -810,8 +891,9 @@ export interface CliVerifyResult {
 
 /**
  * Verify Gemini CLI installation and login status
+ * @param customPath - Optional custom path to the CLI script/executable
  */
-export async function verifyCli(): Promise<CliVerifyResult> {
+export async function verifyCli(customPath?: string): Promise<CliVerifyResult> {
   if (Platform.isMobile) {
     return { success: false, stage: "version", error: "CLI not available on mobile" };
   }
@@ -822,7 +904,7 @@ export async function verifyCli(): Promise<CliVerifyResult> {
   // Step 1: Check if CLI exists (--version)
   const versionCheck = await new Promise<{ success: boolean; error?: string }>((resolve) => {
     try {
-      const { command, args } = resolveGeminiCommand(["--version"]);
+      const { command, args } = resolveGeminiCommand(["--version"], customPath);
       const proc = spawn(command, args, {
         stdio: ["pipe", "pipe", "pipe"],
         shell: false,
@@ -861,7 +943,7 @@ export async function verifyCli(): Promise<CliVerifyResult> {
   // Step 2: Check if logged in (run a simple prompt)
   const loginCheck = await new Promise<{ success: boolean; error?: string }>((resolve) => {
     try {
-      const { command, args } = resolveGeminiCommand(["-p", "Hello"]);
+      const { command, args } = resolveGeminiCommand(["-p", "Hello"], customPath);
       const proc = spawn(command, args, {
         stdio: ["pipe", "pipe", "pipe"],
         shell: false,
@@ -902,8 +984,9 @@ export async function verifyCli(): Promise<CliVerifyResult> {
 
 /**
  * Verify Claude CLI installation and login status
+ * @param customPath - Optional custom path to the CLI script/executable
  */
-export async function verifyClaudeCli(): Promise<CliVerifyResult> {
+export async function verifyClaudeCli(customPath?: string): Promise<CliVerifyResult> {
   if (Platform.isMobile) {
     return { success: false, stage: "version", error: "CLI not available on mobile" };
   }
@@ -914,7 +997,7 @@ export async function verifyClaudeCli(): Promise<CliVerifyResult> {
   // Step 1: Check if CLI exists (--version)
   const versionCheck = await new Promise<{ success: boolean; error?: string }>((resolve) => {
     try {
-      const { command, args } = resolveClaudeCommand(["--version"]);
+      const { command, args } = resolveClaudeCommand(["--version"], customPath);
       const proc = spawn(command, args, {
         stdio: ["pipe", "pipe", "pipe"],
         shell: false,
@@ -957,7 +1040,7 @@ export async function verifyClaudeCli(): Promise<CliVerifyResult> {
   // Step 2: Check if logged in (run a simple prompt)
   const loginCheck = await new Promise<{ success: boolean; error?: string }>((resolve) => {
     try {
-      const { command, args } = resolveClaudeCommand(["-p", "Hello", "--output-format", "text"]);
+      const { command, args } = resolveClaudeCommand(["-p", "Hello", "--output-format", "text"], customPath);
       const proc = spawn(command, args, {
         stdio: ["pipe", "pipe", "pipe"],
         shell: false,
@@ -1007,8 +1090,9 @@ export async function verifyClaudeCli(): Promise<CliVerifyResult> {
 
 /**
  * Verify Codex CLI installation and login status
+ * @param customPath - Optional custom path to the CLI script/executable
  */
-export async function verifyCodexCli(): Promise<CliVerifyResult> {
+export async function verifyCodexCli(customPath?: string): Promise<CliVerifyResult> {
   if (Platform.isMobile) {
     return { success: false, stage: "version", error: "CLI not available on mobile" };
   }
@@ -1019,7 +1103,7 @@ export async function verifyCodexCli(): Promise<CliVerifyResult> {
   // Step 1: Check if CLI exists (--version)
   const versionCheck = await new Promise<{ success: boolean; error?: string }>((resolve) => {
     try {
-      const { command, args } = resolveCodexCommand(["--version"]);
+      const { command, args } = resolveCodexCommand(["--version"], customPath);
       const proc = spawn(command, args, {
         stdio: ["pipe", "pipe", "pipe"],
         shell: false,
@@ -1062,7 +1146,7 @@ export async function verifyCodexCli(): Promise<CliVerifyResult> {
   // Step 2: Check if logged in (run a simple prompt)
   const loginCheck = await new Promise<{ success: boolean; error?: string }>((resolve) => {
     try {
-      const { command, args } = resolveCodexCommand(["exec", "Hello", "--json", "--skip-git-repo-check"]);
+      const { command, args } = resolveCodexCommand(["exec", "Hello", "--json", "--skip-git-repo-check"], customPath);
       const proc = spawn(command, args, {
         stdio: ["pipe", "pipe", "pipe"],
         shell: false,

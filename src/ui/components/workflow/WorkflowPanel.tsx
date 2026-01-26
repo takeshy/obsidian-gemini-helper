@@ -674,7 +674,12 @@ ${result.nodes.map(node => {
         await plugin.app.vault.modify(workflowFile, newContent);
       }
 
-      await saveWorkflow(result.nodes);
+      // Use result.name directly instead of saveWorkflow() because
+      // setWorkflowName() is async and workflowName state may not be updated yet
+      await saveToCodeBlock(plugin.app, workflowFile, {
+        name: result.name,
+        nodes: result.nodes,
+      }, currentWorkflowIndex);
       new Notice(t("workflow.modifiedSuccessfully"));
     }
   };

@@ -2155,6 +2155,8 @@
   border: 1px solid var(--background-modifier-border);
   border-radius: 6px;
   padding: 12px;
+  user-select: text;
+  -webkit-user-select: text;
 }
 
 .workflow-detail-header {
@@ -2252,11 +2254,17 @@
   overflow-x: auto;
   white-space: pre-wrap;
   word-break: break-all;
+  user-select: text;
+  -webkit-user-select: text;
+  cursor: text;
 }
 
 .workflow-step-pre-scrollable {
   max-height: 300px;
   overflow-y: auto;
+  user-select: text;
+  -webkit-user-select: text;
+  cursor: text;
 }
 
 .workflow-btn-disabled {
@@ -5713,6 +5721,8 @@
   background: var(--background-primary-alt);
   border: 1px solid var(--background-modifier-border);
   border-radius: 4px;
+  user-select: text;
+  -webkit-user-select: text;
 }
 
 .workflow-execution-node-detail.workflow-step-success {
@@ -5741,6 +5751,8 @@
   font-size: 12px;
   color: var(--text-normal);
   white-space: pre-wrap;
+  user-select: text;
+  -webkit-user-select: text;
 }
 
 .workflow-execution-status {

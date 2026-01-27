@@ -746,7 +746,7 @@ export const en = {
   "nodeEditor.headers.placeholder": "{\"Authorization\": \"Bearer {{token}}\"}",
   "nodeEditor.body": "Body",
   "nodeEditor.body.placeholder": "{\"key\": \"{{value}}\"}\nFor form-data: {\"file:filename.html\": \"{{content}}\"}",
-  "nodeEditor.saveTo.httpResponse": "Variable name (auto-detects binary from Content-Type)",
+  "nodeEditor.saveTo.httpResponse": "Variable name (auto-detects binary from content-type)",
   "nodeEditor.saveStatus": "Save status to",
   "nodeEditor.saveStatus.placeholder": "Variable name to store HTTP status code",
   "nodeEditor.throwOnError": "Throw on error",

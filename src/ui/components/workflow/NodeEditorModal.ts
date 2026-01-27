@@ -370,7 +370,7 @@ export class NodeEditorModal extends Modal {
         this.addDropdown(container, "contentType", t("nodeEditor.contentType"), ["json", "form-data", "text"], t("nodeEditor.contentType.desc"));
         this.addTextArea(container, "headers", t("nodeEditor.headers"), t("nodeEditor.headers.placeholder"));
         this.addTextArea(container, "body", t("nodeEditor.body"), t("nodeEditor.body.placeholder"));
-        this.addTextField(container, "saveTo", t("nodeEditor.saveTo"), t("nodeEditor.saveTo.placeholder"));
+        this.addTextField(container, "saveTo", t("nodeEditor.saveTo"), t("nodeEditor.saveTo.httpResponse"));
         this.addTextField(container, "saveStatus", t("nodeEditor.saveStatus"), t("nodeEditor.saveStatus.placeholder"));
         this.addDropdown(container, "throwOnError", t("nodeEditor.throwOnError"), ["false", "true"], t("nodeEditor.throwOnError.desc"));
         break;

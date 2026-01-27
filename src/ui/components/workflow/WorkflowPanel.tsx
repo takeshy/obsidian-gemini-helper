@@ -144,7 +144,7 @@ function getDefaultProperties(type: WorkflowNodeType): Record<string, string> {
     case "command":
       return { prompt: "", model: "", ragSetting: "__none__", attachments: "", saveTo: "" };
     case "http":
-      return { url: "", method: "POST", saveTo: "" };
+      return { url: "", method: "GET", saveTo: "" };
     case "json":
       return { source: "", saveTo: "" };
     case "note":

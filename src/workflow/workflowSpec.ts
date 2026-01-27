@@ -104,7 +104,7 @@ Execute LLM prompt.
 ### 6. http
 Make HTTP request.
 - **url** (required): Request URL (supports {{variables}})
-- **method** (optional): GET, POST, PUT, DELETE, PATCH (default: POST)
+- **method** (optional): GET, POST, PUT, DELETE, PATCH (default: GET)
 - **contentType** (optional): "json", "form-data", "text" (default: "json")
 - **headers** (optional): JSON headers
 - **body** (optional): Request body (supports {{variables}})
@@ -112,6 +112,8 @@ Make HTTP request.
   - For "form-data": JSON object. FileExplorerData is auto-detected and sent as binary.
   - For "text": Plain text
 - **saveTo** (optional): Variable name for response
+  - Text responses (text/*, application/json, etc.): Saved as string
+  - Binary responses (image/*, audio/*, video/*, application/pdf, etc.): Saved as FileExplorerData JSON (use with file-save node)
 - **saveStatus** (optional): Variable name for HTTP status code
 - **throwOnError** (optional): "true" to throw on 4xx/5xx
 
@@ -129,6 +131,18 @@ Make HTTP request.
   contentType: form-data
   body: '{"file": "{{fileData}}"}'
   saveTo: response
+\`\`\`
+
+**binary download example** (download image and save to vault):
+\`\`\`yaml
+- id: download-image
+  type: http
+  url: "https://example.com/image.png"
+  saveTo: imageData
+- id: save-image
+  type: file-save
+  source: imageData
+  path: "attachments/downloaded"
 \`\`\`
 
 ### 7. json

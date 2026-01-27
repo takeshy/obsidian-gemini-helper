@@ -11,6 +11,7 @@ export interface WorkflowGenerationResult {
  */
 export class WorkflowGenerationModal extends Modal {
   private request: string;
+  private modelDisplayName: string;
   private thinkingContainerEl: HTMLElement | null = null;
   private statusEl: HTMLElement | null = null;
   private cancelBtn: HTMLButtonElement | null = null;
@@ -24,13 +25,15 @@ export class WorkflowGenerationModal extends Modal {
     request: string,
     abortController: AbortController,
     onCancel: () => void,
-    executionStepsCount = 0
+    executionStepsCount = 0,
+    modelDisplayName = ""
   ) {
     super(app);
     this.request = request;
     this.abortController = abortController;
     this.onCancel = onCancel;
     this.executionStepsCount = executionStepsCount;
+    this.modelDisplayName = modelDisplayName;
   }
 
   onOpen(): void {
@@ -50,7 +53,14 @@ export class WorkflowGenerationModal extends Modal {
 
     // Drag handle with title
     const dragHandle = contentEl.createDiv({ cls: "modal-drag-handle" });
-    dragHandle.createEl("h2", { text: t("workflow.generation.title") });
+    const titleEl = dragHandle.createEl("h2", { text: t("workflow.generation.title") });
+    // Show model name in title if available
+    if (this.modelDisplayName) {
+      titleEl.createSpan({
+        cls: "workflow-generation-model-badge",
+        text: this.modelDisplayName,
+      });
+    }
     this.setupDragHandle(dragHandle, modalEl);
 
     // User's request section

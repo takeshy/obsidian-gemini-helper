@@ -4737,6 +4737,17 @@
   margin: 0;
 }
 
+.workflow-generation-model-badge {
+  margin-left: 8px;
+  padding: 2px 8px;
+  font-size: 0.75em;
+  font-weight: normal;
+  background: var(--background-modifier-success);
+  color: var(--text-on-accent);
+  border-radius: 4px;
+  vertical-align: middle;
+}
+
 .workflow-generation-request {
   margin-bottom: 16px;
   padding: 12px;

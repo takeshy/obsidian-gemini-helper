@@ -1013,24 +1013,6 @@ export async function handleHttpNode(
     throw new Error(`HTTP request failed: ${method} ${url} - ${errorMessage}`);
   }
 
-  // Get response text
-  const responseText = response.text;
-
-  // Try to parse as JSON for better handling
-  let responseData: string;
-  try {
-    const jsonData = JSON.parse(responseText);
-    responseData = JSON.stringify(jsonData);
-  } catch {
-    responseData = responseText;
-  }
-
-  // Save response to variable if specified
-  const saveTo = node.properties["saveTo"];
-  if (saveTo) {
-    context.variables.set(saveTo, responseData);
-  }
-
   // Save status code if specified
   const saveStatus = node.properties["saveStatus"];
   if (saveStatus) {
@@ -1039,8 +1021,133 @@ export async function handleHttpNode(
 
   // Throw error if response is not ok and throwOnError is set
   if (response.status >= 400 && node.properties["throwOnError"] === "true") {
+    const responseText = response.text;
     throw new Error(`HTTP ${response.status} ${method} ${url}: ${responseText}`);
   }
+
+  // Auto-detect response type from Content-Type header
+  const contentTypeHeader = response.headers["content-type"] || "application/octet-stream";
+  const mimeType = contentTypeHeader.split(";")[0].trim();
+  const isBinary = isBinaryMimeType(mimeType);
+  const saveTo = node.properties["saveTo"];
+
+  if (isBinary) {
+    // Handle binary response - save as FileExplorerData format
+    if (saveTo) {
+      // Extract filename and extension from URL
+      let basename = "download";
+      let extension = "";
+      try {
+        const urlPath = new URL(url).pathname;
+        const urlBasename = urlPath.split("/").pop();
+        if (urlBasename && urlBasename.includes(".")) {
+          basename = urlBasename;
+          extension = urlBasename.split(".").pop() || "";
+        }
+      } catch {
+        // URL parsing failed, use defaults
+      }
+
+      // If no extension from URL, try to derive from MIME type
+      if (!extension) {
+        extension = getMimeExtension(mimeType);
+        if (extension) {
+          basename = `download.${extension}`;
+        }
+      }
+
+      const name = basename.includes(".") ? basename.substring(0, basename.lastIndexOf(".")) : basename;
+
+      // Convert ArrayBuffer to Base64
+      const arrayBuffer = response.arrayBuffer;
+      const base64Data = arrayBufferToBase64(arrayBuffer);
+
+      // Create FileExplorerData structure
+      const fileData: FileExplorerData = {
+        path: "",
+        basename,
+        name,
+        extension,
+        mimeType,
+        contentType: "binary",
+        data: base64Data,
+      };
+
+      context.variables.set(saveTo, JSON.stringify(fileData));
+    }
+  } else {
+    // Handle text response
+    const responseText = response.text;
+
+    // Try to parse as JSON for better handling
+    let responseData: string;
+    try {
+      const jsonData = JSON.parse(responseText);
+      responseData = JSON.stringify(jsonData);
+    } catch {
+      responseData = responseText;
+    }
+
+    // Save response to variable if specified
+    if (saveTo) {
+      context.variables.set(saveTo, responseData);
+    }
+  }
+}
+
+// Helper function to determine if MIME type is binary
+function isBinaryMimeType(mimeType: string): boolean {
+  // Text types
+  if (mimeType.startsWith("text/")) return false;
+  if (mimeType === "application/json") return false;
+  if (mimeType === "application/xml") return false;
+  if (mimeType === "application/javascript") return false;
+  if (mimeType.endsWith("+xml")) return false;
+  if (mimeType.endsWith("+json")) return false;
+
+  // Binary types
+  if (mimeType.startsWith("image/")) return true;
+  if (mimeType.startsWith("audio/")) return true;
+  if (mimeType.startsWith("video/")) return true;
+  if (mimeType === "application/pdf") return true;
+  if (mimeType === "application/zip") return true;
+  if (mimeType === "application/x-zip-compressed") return true;
+  if (mimeType === "application/octet-stream") return true;
+  if (mimeType === "application/gzip") return true;
+  if (mimeType === "application/x-tar") return true;
+
+  // Default to text for unknown types
+  return false;
+}
+
+// Helper function to get file extension from MIME type
+function getMimeExtension(mimeType: string): string {
+  const mimeToExt: Record<string, string> = {
+    "image/png": "png",
+    "image/jpeg": "jpg",
+    "image/jpg": "jpg",
+    "image/gif": "gif",
+    "image/webp": "webp",
+    "image/svg+xml": "svg",
+    "image/bmp": "bmp",
+    "image/tiff": "tiff",
+    "application/pdf": "pdf",
+    "application/zip": "zip",
+    "application/x-zip-compressed": "zip",
+    "application/octet-stream": "bin",
+    "audio/mpeg": "mp3",
+    "audio/wav": "wav",
+    "audio/ogg": "ogg",
+    "video/mp4": "mp4",
+    "video/webm": "webm",
+    "text/plain": "txt",
+    "text/html": "html",
+    "text/css": "css",
+    "text/javascript": "js",
+    "application/json": "json",
+    "application/xml": "xml",
+  };
+  return mimeToExt[mimeType] || "";
 }
 
 // Handle JSON parse node - parse string to JSON object

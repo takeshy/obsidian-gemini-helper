@@ -644,6 +644,9 @@ export class AIWorkflowModal extends Modal {
     // Resolve @ mentions (embed file content, selection, etc.)
     const { resolved: resolvedDescription, mentions: resolvedMentions } = await this.resolveMentions(description);
 
+    // Get model display name from select element
+    const modelDisplayName = this.modelSelect?.options[this.modelSelect.selectedIndex]?.text || selectedModel;
+
     // Close input modal and start generation flow
     this.close();
 
@@ -663,6 +666,7 @@ export class AIWorkflowModal extends Modal {
       isCliModel,
       resolvedMentions,
       workflowPath,
+      modelDisplayName,
       undefined,  // previousYaml
       [],         // requestHistory
       this.selectedExecutionSteps.length > 0 ? this.selectedExecutionSteps : undefined
@@ -680,6 +684,7 @@ export class AIWorkflowModal extends Modal {
     isCliModel: boolean,
     resolvedMentions: ResolvedMention[],
     workflowPath: string | undefined,
+    modelDisplayName: string,
     previousYaml?: string,
     requestHistory: string[] = [],
     selectedExecutionSteps?: import("src/workflow/types").ExecutionStep[]
@@ -695,7 +700,8 @@ export class AIWorkflowModal extends Modal {
       currentRequest,
       abortController,
       () => { generationCancelled = true; },
-      selectedExecutionSteps?.length ?? 0
+      selectedExecutionSteps?.length ?? 0,
+      modelDisplayName
     );
     generationModal.open();
 
@@ -847,6 +853,7 @@ export class AIWorkflowModal extends Modal {
             isCliModel,
             resolvedMentions,
             workflowPath,     // Workflow path for execution history
+            modelDisplayName,
             result.yaml,      // Previous YAML for reference
             updatedHistory,   // Accumulated request history
             selectedExecutionSteps  // Keep original execution steps for context
@@ -882,6 +889,7 @@ export class AIWorkflowModal extends Modal {
           isCliModel,
           resolvedMentions,
           workflowPath,     // Workflow path for execution history
+          modelDisplayName,
           result.yaml,      // Previous YAML for reference
           updatedHistory,   // Accumulated request history
           selectedExecutionSteps  // Keep original execution steps for context

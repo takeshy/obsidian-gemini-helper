@@ -737,6 +737,7 @@ export const ja: Record<string, string> = {
   "nodeEditor.headers.placeholder": "{\"Authorization\": \"Bearer {{token}}\"}",
   "nodeEditor.body": "ボディ",
   "nodeEditor.body.placeholder": "{\"key\": \"{{value}}\"}\nform-data: {\"file:filename.html\": \"{{content}}\"}",
+  "nodeEditor.saveTo.httpResponse": "変数名（Content-Typeからバイナリを自動判定）",
   "nodeEditor.saveStatus": "ステータス保存先",
   "nodeEditor.saveStatus.placeholder": "HTTPステータスコードを保存する変数名",
   "nodeEditor.throwOnError": "エラー時に例外",

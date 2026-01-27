@@ -229,15 +229,29 @@ export class FileSearchManager {
     return operation?.name ?? null;
   }
 
-  // Delete a file from the store
-  async deleteFileFromStore(fileId: string): Promise<void> {
+  // Delete a file from the store by displayName (file path)
+  async deleteFileFromStore(displayName: string): Promise<void> {
     if (!this.storeName) {
       throw new Error("No File Search Store configured");
     }
 
     try {
-      // Try to delete the file using the files API
-      await this.ai.files.delete({ name: fileId });
+      // List documents in the store and find the one with matching displayName
+      const pager = await this.ai.fileSearchStores.documents.list({
+        parent: this.storeName,
+        config: { pageSize: 20 }
+      });
+
+      for await (const doc of pager) {
+        if (doc.displayName === displayName && doc.name) {
+          // Delete the document
+          await this.ai.fileSearchStores.documents.delete({
+            name: doc.name,
+            config: { force: true }
+          });
+          return;
+        }
+      }
     } catch {
       // File deletion might not be supported or file already deleted
     }
@@ -287,38 +301,70 @@ export class FileSearchManager {
       // Create a set of current file paths
       const currentFilePaths = new Set(eligibleFiles.map((f) => f.path));
 
-      // Find deleted files (in sync state but not in vault)
-      const deletedPaths = Object.keys(currentSyncState.files).filter(
+      // Get all documents from the store and find orphaned/duplicate ones
+      const docsToDelete: Array<{ name: string; displayName: string }> = [];
+      // Map of displayName -> all document names (for deletion before re-upload)
+      const existingDocsByPath = new Map<string, string[]>();
+
+      try {
+        const pager = await this.ai.fileSearchStores.documents.list({
+          parent: this.storeName,
+          config: { pageSize: 20 }
+        });
+
+        for await (const doc of pager) {
+          if (doc.displayName && doc.name) {
+            // Check if this document's displayName exists in vault
+            if (!currentFilePaths.has(doc.displayName)) {
+              // Orphaned - not in vault
+              docsToDelete.push({ name: doc.name, displayName: doc.displayName });
+            } else {
+              // Track all documents for this path (for deletion before re-upload)
+              const existing = existingDocsByPath.get(doc.displayName) || [];
+              existing.push(doc.name);
+              existingDocsByPath.set(doc.displayName, existing);
+            }
+          }
+        }
+      } catch {
+        // If listing fails, continue without store-based cleanup
+      }
+
+      // Also find files in sync state but not in vault (for sync state cleanup)
+      const deletedFromSyncState = Object.keys(currentSyncState.files).filter(
         (path) => !currentFilePaths.has(path)
       );
 
       const totalOperations =
-        eligibleFiles.length + deletedPaths.length;
+        eligibleFiles.length + docsToDelete.length;
       let currentOperation = 0;
 
-      // Process deletions first
-      for (const deletedPath of deletedPaths) {
+      // Process deletions first - delete orphaned and duplicate documents from store
+      for (const docToDelete of docsToDelete) {
         currentOperation++;
         onProgress?.(
           currentOperation,
           totalOperations,
-          deletedPath,
+          docToDelete.displayName,
           "delete"
         );
 
-        const fileInfo = currentSyncState.files[deletedPath];
-        if (fileInfo?.fileId) {
-          try {
-            await this.deleteFileFromStore(fileInfo.fileId);
-            result.deleted.push(deletedPath);
-          } catch (error) {
-            result.errors.push({
-              path: deletedPath,
-              error: `Delete failed: ${formatError(error)}`,
-            });
-          }
+        try {
+          await this.ai.fileSearchStores.documents.delete({
+            name: docToDelete.name,
+            config: { force: true }
+          });
+          result.deleted.push(docToDelete.displayName);
+        } catch (error) {
+          result.errors.push({
+            path: docToDelete.displayName,
+            error: `Delete failed: ${formatError(error)}`,
+          });
         }
-        // Remove from sync state regardless of API success
+      }
+
+      // Clean up sync state for files not in vault
+      for (const deletedPath of deletedFromSyncState) {
         delete result.newSyncState.files[deletedPath];
       }
 
@@ -342,11 +388,28 @@ export class FileSearchManager {
       const filesToUpload = filesToProcess.filter(f => f.needsUpload);
       const filesToSkip = filesToProcess.filter(f => !f.needsUpload);
 
-      // Process skipped files
+      // Process skipped files - but still delete duplicates if they exist
       for (const { file } of filesToSkip) {
         currentOperation++;
         onProgress?.(currentOperation, totalOperations, file.path, "skip");
         result.skipped.push(file.path);
+
+        // Delete duplicate documents (keep only one) for skipped files too
+        const existingDocs = existingDocsByPath.get(file.path);
+        if (existingDocs && existingDocs.length > 1) {
+          // Delete all except the first one
+          for (let i = 1; i < existingDocs.length; i++) {
+            try {
+              await this.ai.fileSearchStores.documents.delete({
+                name: existingDocs[i],
+                config: { force: true }
+              });
+              result.deleted.push(file.path);
+            } catch {
+              // Ignore deletion errors
+            }
+          }
+        }
       }
 
       // Parallel upload with concurrency limit
@@ -358,6 +421,21 @@ export class FileSearchManager {
         onProgress?.(currentOperation, totalOperations, item.file.path, "upload");
 
         try {
+          // Delete existing documents with the same displayName before uploading
+          const existingDocs = existingDocsByPath.get(item.file.path);
+          if (existingDocs && existingDocs.length > 0) {
+            for (const docName of existingDocs) {
+              try {
+                await this.ai.fileSearchStores.documents.delete({
+                  name: docName,
+                  config: { force: true }
+                });
+              } catch {
+                // Ignore deletion errors
+              }
+            }
+          }
+
           const fileId = await this.uploadFile(item.file);
 
           result.uploaded.push(item.file.path);

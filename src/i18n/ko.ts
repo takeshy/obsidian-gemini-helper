@@ -702,6 +702,8 @@ export const ko: Record<string, string> = {
   "nodeEditor.prefix.placeholder": "가져온 변수의 접두사",
   "nodeEditor.ragNotePath": "노트 경로",
   "nodeEditor.ragNotePath.placeholder": "동기화할 노트 경로 ({{variables}} 지원)",
+  "nodeEditor.ragOldPath": "이전 경로 (이름 변경용)",
+  "nodeEditor.ragOldPath.placeholder": "스토어에서 삭제할 이전 경로 (선택 사항, {{variables}} 지원)",
   "nodeEditor.ragSetting": "RAG 설정",
   "nodeEditor.ragSetting.select": "RAG 설정 선택",
   "nodeEditor.saveTo.ragResult": "결과를 저장할 변수 이름 (선택 사항)",

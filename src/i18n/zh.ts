@@ -702,6 +702,8 @@ export const zh: Record<string, string> = {
   "nodeEditor.prefix.placeholder": "导入变量的前缀",
   "nodeEditor.ragNotePath": "笔记路径",
   "nodeEditor.ragNotePath.placeholder": "要同步的笔记路径（支持 {{variables}}）",
+  "nodeEditor.ragOldPath": "旧路径（用于重命名）",
+  "nodeEditor.ragOldPath.placeholder": "要从存储中删除的旧路径（可选，支持 {{variables}}）",
   "nodeEditor.ragSetting": "RAG 设置",
   "nodeEditor.ragSetting.select": "选择 RAG 设置",
   "nodeEditor.saveTo.ragResult": "用于存储结果的变量名（可选）",

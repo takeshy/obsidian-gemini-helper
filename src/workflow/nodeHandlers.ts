@@ -2184,6 +2184,8 @@ export async function handleWorkflowNode(
 }
 
 // Handle rag-sync node - sync a note to RAG store
+// Supports oldPath for rename scenarios: deletes old path entry before uploading new
+// If only oldPath is specified (no path), performs delete only
 export async function handleRagSyncNode(
   node: WorkflowNode,
   context: ExecutionContext,
@@ -2191,27 +2193,27 @@ export async function handleRagSyncNode(
   plugin: GeminiHelperPlugin
 ): Promise<void> {
   const pathRaw = node.properties["path"] || "";
+  const oldPathRaw = node.properties["oldPath"] || "";
   const ragSettingName = replaceVariables(node.properties["ragSetting"] || "", context);
   const saveTo = node.properties["saveTo"];
 
-  if (!pathRaw.trim()) {
-    throw new Error("rag-sync node missing 'path' property");
+  const hasPath = pathRaw.trim().length > 0;
+  const hasOldPath = oldPathRaw.trim().length > 0;
+
+  if (!hasPath && !hasOldPath) {
+    throw new Error("rag-sync node requires 'path' or 'oldPath' property");
   }
 
   if (!ragSettingName.trim()) {
     throw new Error("rag-sync node missing 'ragSetting' property");
   }
 
-  const path = replaceVariables(pathRaw, context);
+  const path = hasPath ? replaceVariables(pathRaw, context) : null;
+  const oldPath = hasOldPath ? replaceVariables(oldPathRaw, context) : null;
 
   // Ensure .md extension
-  const notePath = path.endsWith(".md") ? path : `${path}.md`;
-
-  // Get the file
-  const file = app.vault.getAbstractFileByPath(notePath);
-  if (!(file instanceof TFile)) {
-    throw new Error(`Note not found: ${notePath}`);
-  }
+  const notePath = path ? (path.endsWith(".md") ? path : `${path}.md`) : null;
+  const oldNotePath = oldPath ? (oldPath.endsWith(".md") ? oldPath : `${oldPath}.md`) : null;
 
   // Get RAG setting
   const workspaceState = plugin.workspaceState;
@@ -2232,6 +2234,47 @@ export async function handleRagSyncNode(
 
   // Set the store name
   fileSearchManager.setStoreName(ragSetting.storeId);
+
+  // If oldPath is specified, delete the old file from store
+  let deletedOldPath = false;
+  if (oldNotePath && ragSetting.files[oldNotePath]) {
+    try {
+      // Delete by displayName (file path) from the store
+      await fileSearchManager.deleteFileFromStore(oldNotePath);
+      deletedOldPath = true;
+    } catch {
+      // Ignore deletion errors - file may already be deleted
+    }
+    // Remove old path from sync state
+    delete ragSetting.files[oldNotePath];
+  }
+
+  // If no path specified, this is delete-only mode
+  if (!notePath) {
+    // Save the updated workspace state
+    workspaceState.ragSettings[ragSettingName] = ragSetting;
+    await plugin.saveWorkspaceState();
+
+    // Set result if saveTo is specified
+    if (saveTo) {
+      context.variables.set(saveTo, JSON.stringify({
+        path: null,
+        oldPath: oldNotePath,
+        deletedOldPath,
+        fileId: null,
+        ragSetting: ragSettingName,
+        syncedAt: Date.now(),
+        mode: "delete",
+      }));
+    }
+    return;
+  }
+
+  // Get the file for upload
+  const file = app.vault.getAbstractFileByPath(notePath);
+  if (!(file instanceof TFile)) {
+    throw new Error(`Note not found: ${notePath}`);
+  }
 
   // Read file content and calculate checksum
   const content = await app.vault.read(file);
@@ -2259,9 +2302,12 @@ export async function handleRagSyncNode(
   if (saveTo) {
     context.variables.set(saveTo, JSON.stringify({
       path: notePath,
+      oldPath: oldNotePath,
+      deletedOldPath,
       fileId,
       ragSetting: ragSettingName,
       syncedAt: Date.now(),
+      mode: oldNotePath ? "rename" : "sync",
     }));
   }
 }

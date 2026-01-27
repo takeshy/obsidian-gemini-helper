@@ -702,6 +702,8 @@ export const es: Record<string, string> = {
   "nodeEditor.prefix.placeholder": "Prefijo para variables importadas",
   "nodeEditor.ragNotePath": "Ruta de nota",
   "nodeEditor.ragNotePath.placeholder": "Ruta a nota a sincronizar (soporta {{variables}})",
+  "nodeEditor.ragOldPath": "Ruta anterior (para renombrar)",
+  "nodeEditor.ragOldPath.placeholder": "Ruta anterior a eliminar del almacén (opcional, soporta {{variables}})",
   "nodeEditor.ragSetting": "Configuración RAG",
   "nodeEditor.ragSetting.select": "Seleccionar configuración RAG",
   "nodeEditor.saveTo.ragResult": "Nombre de variable para almacenar resultado (opcional)",

@@ -258,12 +258,18 @@ Execute sub-workflow.
 - **prefix** (optional): Prefix for all imported variables
 
 ### 18. rag-sync
-Sync a note to RAG (File Search) store.
-- **path** (required): Note path to sync (supports {{variables}})
+Sync a note to RAG (File Search) store, or delete from store.
+- **path** (optional): Note path to sync (supports {{variables}}). Required unless using oldPath for delete-only.
 - **ragSetting** (required): RAG setting name to use
-- **saveTo** (optional): Variable for result (JSON with path, fileId, ragSetting, syncedAt)
+- **oldPath** (optional): Old file path to delete from store. Supports {{variables}}. If only oldPath is specified (no path), performs delete only.
+- **saveTo** (optional): Variable for result (JSON with path, oldPath, deletedOldPath, fileId, ragSetting, syncedAt, mode)
 
-**Use case**: After modifying a note with the \`note\` node, use \`rag-sync\` to update the RAG store with the new content.
+**Modes**:
+- **sync**: path only - uploads file to RAG store
+- **rename**: path + oldPath - deletes old path, uploads new path
+- **delete**: oldPath only - deletes from RAG store without uploading
+
+**Use case 1**: After modifying a note with the \`note\` node, use \`rag-sync\` to update the RAG store with the new content.
 
 **Example**:
 \`\`\`yaml
@@ -277,6 +283,37 @@ Sync a note to RAG (File Search) store.
   type: rag-sync
   path: "{{notePath}}"
   ragSetting: "my-rag-store"
+\`\`\`
+
+**Use case 2**: Handle file rename/move events by deleting old path and uploading with new path.
+
+**Example with rename event trigger**:
+\`\`\`yaml
+name: rag-rename-handler
+trigger:
+  events: [rename]
+  filePattern: "Notes/**/*.md"
+nodes:
+  - id: sync-renamed
+    type: rag-sync
+    path: "{{__eventFilePath__}}"
+    oldPath: "{{__eventOldPath__}}"
+    ragSetting: "my-rag-store"
+\`\`\`
+
+**Use case 3**: Handle file delete events by removing from RAG store.
+
+**Example with delete event trigger**:
+\`\`\`yaml
+name: rag-delete-handler
+trigger:
+  events: [delete]
+  filePattern: "Notes/**/*.md"
+nodes:
+  - id: delete-from-rag
+    type: rag-sync
+    oldPath: "{{__eventFilePath__}}"
+    ragSetting: "my-rag-store"
 \`\`\`
 
 ### 19. file-explorer

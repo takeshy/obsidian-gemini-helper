@@ -649,8 +649,8 @@ export const en = {
 
   // MCP Server Settings
   "settings.mcpServers": "Mcp servers",
-  "settings.mcpServers.desc": "Configure external mcp (model context protocol) servers for additional tools in chat",
-  "settings.mcpServersIntro": "Mcp servers provide additional tools that can be used during chat. Add servers to enable their tools.",
+  "settings.mcpServers.desc": "Configure external mcp (model context protocol) servers for additional tools",
+  "settings.mcpServersIntro": "Mcp servers provide additional tools. Add servers to enable their tools.",
   "settings.addMcpServer": "Add server",
   "settings.mcpServerName": "Server name",
   "settings.mcpServerName.placeholder": "My mcp server",
@@ -847,6 +847,8 @@ export const en = {
   "nodeEditor.prefix.placeholder": "Prefix for imported variables",
   "nodeEditor.ragNotePath": "Note path",
   "nodeEditor.ragNotePath.placeholder": "Path to note to sync (supports {{variables}})",
+  "nodeEditor.ragOldPath": "Old path (for rename)",
+  "nodeEditor.ragOldPath.placeholder": "Previous path to delete from store (optional, supports {{variables}})",
   "nodeEditor.ragSetting": "Rag setting",
   "nodeEditor.ragSetting.select": "Select rag setting",
   "nodeEditor.saveTo.ragResult": "Variable name to store result (optional)",

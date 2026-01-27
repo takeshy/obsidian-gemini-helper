@@ -466,6 +466,7 @@ export class NodeEditorModal extends Modal {
 
       case "rag-sync": {
         this.addTextField(container, "path", t("nodeEditor.ragNotePath"), t("nodeEditor.ragNotePath.placeholder"));
+        this.addTextField(container, "oldPath", t("nodeEditor.ragOldPath"), t("nodeEditor.ragOldPath.placeholder"));
         const ragNames = Object.keys(this.plugin.workspaceState.ragSettings || {});
         this.addLabeledDropdown(container, "ragSetting", t("nodeEditor.ragSetting"), [
           { value: "", label: t("nodeEditor.ragSetting.select") },

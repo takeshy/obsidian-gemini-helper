@@ -640,8 +640,8 @@ export const ja: Record<string, string> = {
 
   // MCP Server Settings
   "settings.mcpServers": "MCPサーバー",
-  "settings.mcpServers.desc": "チャットで追加ツールを使用するための外部MCP（Model Context Protocol）サーバーを設定",
-  "settings.mcpServersIntro": "MCPサーバーはチャット中に使用できる追加ツールを提供します。サーバーを追加してツールを有効にしてください。",
+  "settings.mcpServers.desc": "追加ツールを使用するための外部MCP（Model Context Protocol）サーバーを設定",
+  "settings.mcpServersIntro": "MCPサーバーは追加ツールを提供します。サーバーを追加してツールを有効にしてください。",
   "settings.addMcpServer": "サーバーを追加",
   "settings.mcpServerName": "サーバー名",
   "settings.mcpServerName.placeholder": "My MCP Server",
@@ -838,6 +838,8 @@ export const ja: Record<string, string> = {
   "nodeEditor.prefix.placeholder": "インポートする変数のプレフィックス",
   "nodeEditor.ragNotePath": "ノートパス",
   "nodeEditor.ragNotePath.placeholder": "同期するノートへのパス（{{変数}}対応）",
+  "nodeEditor.ragOldPath": "旧パス（リネーム用）",
+  "nodeEditor.ragOldPath.placeholder": "ストアから削除する旧パス（任意、{{変数}}対応）",
   "nodeEditor.ragSetting": "RAG設定",
   "nodeEditor.ragSetting.select": "RAG設定を選択",
   "nodeEditor.saveTo.ragResult": "結果を保存する変数名（任意）",

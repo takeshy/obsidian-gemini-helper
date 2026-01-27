@@ -702,6 +702,8 @@ export const pt: Record<string, string> = {
   "nodeEditor.prefix.placeholder": "Prefixo para variáveis importadas",
   "nodeEditor.ragNotePath": "Caminho da nota",
   "nodeEditor.ragNotePath.placeholder": "Caminho para nota a sincronizar (suporta {{variables}})",
+  "nodeEditor.ragOldPath": "Caminho antigo (para renomear)",
+  "nodeEditor.ragOldPath.placeholder": "Caminho anterior a eliminar do store (opcional, suporta {{variables}})",
   "nodeEditor.ragSetting": "Configuração RAG",
   "nodeEditor.ragSetting.select": "Selecionar configuração RAG",
   "nodeEditor.saveTo.ragResult": "Nome da variável para armazenar resultado (opcional)",

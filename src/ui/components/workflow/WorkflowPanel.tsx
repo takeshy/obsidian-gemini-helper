@@ -170,7 +170,7 @@ function getDefaultProperties(type: WorkflowNodeType): Record<string, string> {
     case "workflow":
       return { path: "", name: "", input: "", output: "", prefix: "" };
     case "rag-sync":
-      return { path: "", ragSetting: "", saveTo: "" };
+      return { path: "", oldPath: "", ragSetting: "", saveTo: "" };
     case "file-save":
       return { source: "", path: "", savePathTo: "" };
     case "mcp":

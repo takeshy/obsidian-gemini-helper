@@ -14,12 +14,13 @@ import {
   type SlashCommand,
   type ObsidianEventType,
   type WorkflowEventTrigger,
+  type McpAppInfo,
   DEFAULT_SETTINGS,
-  DEFAULT_MODEL,
   DEFAULT_WORKSPACE_STATE,
   DEFAULT_RAG_SETTING,
   DEFAULT_RAG_STATE,
   isModelAllowedForPlan,
+  getDefaultModelForPlan,
 } from "src/types";
 import { initGeminiClient, resetGeminiClient, getGeminiClient } from "src/core/gemini";
 import { WorkflowExecutor } from "src/workflow/executor";
@@ -32,6 +33,7 @@ import { promptForSelection } from "src/ui/components/workflow/SelectionPromptMo
 import { promptForValue } from "src/ui/components/workflow/ValuePromptModal";
 import { WorkflowSelectorModal } from "src/ui/components/workflow/WorkflowSelectorModal";
 import { WorkflowExecutionModal } from "src/ui/components/workflow/WorkflowExecutionModal";
+import { showMcpApp } from "src/ui/components/workflow/McpAppModal";
 import {
   initFileSearchManager,
   resetFileSearchManager,
@@ -734,6 +736,12 @@ export class GeminiHelperPlugin extends Plugin {
           // Prompt for password
           return this.promptForPassword();
         },
+        showMcpApp: async (mcpApp: McpAppInfo) => {
+          // Only show MCP App UI if execution modal is displayed
+          if (executionModal) {
+            await showMcpApp(this.app, mcpApp);
+          }
+        },
       };
 
       await executor.execute(
@@ -1087,6 +1095,9 @@ export class GeminiHelperPlugin extends Plugin {
             await this.app.workspace.getLeaf().openFile(noteFile);
           }
         },
+        showMcpApp: async () => {
+          // Event-triggered workflows don't show execution modal, skip MCP App UI
+        },
       };
 
       await executor.execute(
@@ -1353,32 +1364,33 @@ export class GeminiHelperPlugin extends Plugin {
 
   // Get selected model
   getSelectedModel(): ModelType {
-    const selected = this.workspaceState.selectedModel || DEFAULT_MODEL;
+    const defaultModel = getDefaultModelForPlan(this.settings.apiPlan);
+    const selected = this.workspaceState.selectedModel || defaultModel;
 
     // CLI models are only allowed on desktop if verified
     const cliConfig = this.settings.cliConfig;
     if (selected === "gemini-cli") {
       if (Platform.isMobile || !cliConfig?.cliVerified) {
-        return DEFAULT_MODEL;
+        return defaultModel;
       }
       return selected;
     }
     if (selected === "claude-cli") {
       if (Platform.isMobile || !cliConfig?.claudeCliVerified) {
-        return DEFAULT_MODEL;
+        return defaultModel;
       }
       return selected;
     }
     if (selected === "codex-cli") {
       if (Platform.isMobile || !cliConfig?.codexCliVerified) {
-        return DEFAULT_MODEL;
+        return defaultModel;
       }
       return selected;
     }
 
     return isModelAllowedForPlan(this.settings.apiPlan, selected)
       ? selected
-      : DEFAULT_MODEL;
+      : defaultModel;
   }
 
   // Create a new RAG setting
@@ -1557,7 +1569,7 @@ export class GeminiHelperPlugin extends Plugin {
   }
 
   private initializeClients() {
-    initGeminiClient(this.settings.googleApiKey, DEFAULT_MODEL);
+    initGeminiClient(this.settings.googleApiKey, getDefaultModelForPlan(this.settings.apiPlan));
     initFileSearchManager(this.settings.googleApiKey, this.app);
 
     // Initialize CLI provider manager

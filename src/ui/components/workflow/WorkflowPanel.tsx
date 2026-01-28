@@ -17,6 +17,7 @@ import { promptForValue } from "./ValuePromptModal";
 import { promptForSelection } from "./SelectionPromptModal";
 import { promptForConfirmation } from "./EditConfirmationModal";
 import { promptForDialog } from "./DialogPromptModal";
+import { showMcpApp } from "./McpAppModal";
 import { WorkflowSelectorModal } from "./WorkflowSelectorModal";
 import { t } from "src/i18n";
 import { openWorkflowAsCanvas } from "src/utils/workflowToCanvas";
@@ -339,6 +340,7 @@ export default function WorkflowPanel({ plugin }: WorkflowPanelProps) {
   const [enabledHotkeys, setEnabledHotkeys] = useState<string[]>(plugin.settings.enabledWorkflowHotkeys);
   const [eventTriggers, setEventTriggers] = useState<WorkflowEventTrigger[]>(plugin.settings.enabledWorkflowEventTriggers);
   const addBtnRef = useRef<HTMLButtonElement>(null);
+  const executionModalRef = useRef<WorkflowExecutionModal | null>(null);
 
   // Load workflow from active file
   const loadWorkflow = useCallback(async () => {
@@ -804,7 +806,6 @@ ${result.nodes.map(node => {
 
     // Create abort controller for stopping workflow
     const abortController = new AbortController();
-    let executionModal: WorkflowExecutionModal | null = null;
 
     try {
       const content = await plugin.app.vault.read(workflowFile);
@@ -832,7 +833,7 @@ ${result.nodes.map(node => {
       // In panel mode, users must use prompt-file to select a file
 
       // Create execution modal to show progress
-      executionModal = new WorkflowExecutionModal(
+      executionModalRef.current = new WorkflowExecutionModal(
         plugin.app,
         workflow,
         workflowName || workflowFile.basename,
@@ -842,7 +843,7 @@ ${result.nodes.map(node => {
           setIsRunning(false);
         }
       );
-      executionModal.open();
+      executionModalRef.current.open();
 
       // Create prompt callbacks
       const promptCallbacks: PromptCallbacks = {
@@ -871,6 +872,16 @@ ${result.nodes.map(node => {
           // Prompt for password
           return promptForPassword(plugin.app);
         },
+        showMcpApp: async (mcpApp) => {
+          // Only show MCP App UI if execution modal is displayed
+          if (executionModalRef.current) {
+            await showMcpApp(plugin.app, mcpApp);
+          }
+        },
+        onThinking: (nodeId, thinking) => {
+          // Stream thinking content to the progress modal
+          executionModalRef.current?.updateThinking(nodeId, thinking);
+        },
       };
 
       await executor.execute(
@@ -878,7 +889,7 @@ ${result.nodes.map(node => {
         input,
         (log) => {
           // Update execution modal with progress
-          executionModal?.updateFromLog(log);
+          executionModalRef.current?.updateFromLog(log);
         },
         {
           workflowPath: workflowFile.path,
@@ -890,18 +901,19 @@ ${result.nodes.map(node => {
       );
 
       // Mark execution as complete
-      executionModal?.setComplete(true);
+      executionModalRef.current?.setComplete(true);
       new Notice(t("workflow.completedSuccessfully"));
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       // Always mark modal as complete (failed state)
-      executionModal?.setComplete(false);
+      executionModalRef.current?.setComplete(false);
       // Don't show error notice if it was just stopped
       if (message !== "Workflow execution was stopped") {
         new Notice(t("workflow.failed", { message }));
       }
     } finally {
       setIsRunning(false);
+      executionModalRef.current = null;
     }
   };
 
@@ -1248,10 +1260,16 @@ ${result.nodes.map(node => {
       <div className="workflow-sidebar-footer">
         <button
           className="workflow-sidebar-run-btn mod-cta"
-          onClick={() => void runWorkflow()}
-          disabled={isRunning || nodes.length === 0}
+          onClick={() => {
+            if (isRunning && executionModalRef.current) {
+              executionModalRef.current.open();
+            } else {
+              void runWorkflow();
+            }
+          }}
+          disabled={nodes.length === 0}
         >
-          {isRunning ? t("workflow.running") : t("workflow.run")}
+          {isRunning ? t("workflow.showProgress") : t("workflow.run")}
         </button>
         <button
           className="workflow-sidebar-history-btn"

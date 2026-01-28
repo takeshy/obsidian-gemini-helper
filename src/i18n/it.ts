@@ -344,6 +344,7 @@ export const it: Record<string, string> = {
   "workflow.branchEnd": "(fine)",
   "workflow.run": "Esegui",
   "workflow.running": "Esecuzione...",
+  "workflow.showProgress": "Mostra avanzamento",
   "workflow.history": "Cronologia",
   "workflow.mustHaveNameForHotkey": "Il flusso di lavoro deve avere un nome per abilitare la scorciatoia",
   "workflow.hotkeyDisabled": "Scorciatoia disabilitata (ricarica il plugin per deregistrare completamente)",
@@ -474,6 +475,8 @@ export const it: Record<string, string> = {
   "workflowModal.encryptedHistoryNeedsPassword": "La cronologia di esecuzione è crittografata. Inserisci la password per visualizzarla.",
   "workflowModal.empty": "(vuoto)",
   "workflowModal.circularReference": "(riferimento circolare)",
+  "workflowModal.deleteSelected": "Elimina ({{count}})",
+  "workflowModal.deletedRecords": "Record selezionati eliminati",
 
   // Commands
   "command.runWorkflow": "Esegui workflow",
@@ -735,4 +738,15 @@ export const it: Record<string, string> = {
   "nodeEditor.falseNext.placeholder": "ID nodo successivo per ramo falso (opzionale)",
   "nodeEditor.nextNode": "Nodo successivo",
   "nodeEditor.nextNode.placeholder": "ID nodo successivo opzionale",
+
+  // MCP Apps
+  "mcpApp.loading": "Caricamento MCP App...",
+  "mcpApp.resourceNotFound": "Risorsa UI non trovata",
+  "mcpApp.fetchError": "Impossibile recuperare la risorsa UI",
+  "mcpApp.title": "MCP App",
+  "mcpApp.openUI": "Apri UI",
+  "mcpApp.expand": "Espandi",
+  "mcpApp.collapse": "Comprimi",
+  "mcpApp.error": "Errore MCP App",
+  "mcpApp.decodeError": "Impossibile decodificare il contenuto binario",
 };

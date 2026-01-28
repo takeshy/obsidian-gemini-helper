@@ -2,7 +2,7 @@
 // Reference: https://modelcontextprotocol.io/specification/2025-03-26/basic/transports#streamable-http
 
 import { requestUrl } from "obsidian";
-import type { McpServerConfig, McpToolInfo } from "../types";
+import type { McpServerConfig, McpToolInfo, McpAppResult, McpAppUiResource } from "../types";
 
 // JSON-RPC types
 interface JsonRpcRequest {
@@ -45,8 +45,28 @@ interface McpToolCallResult {
     text?: string;
     data?: string;
     mimeType?: string;
+    resource?: {
+      uri: string;
+      mimeType?: string;
+      text?: string;
+    };
   }>;
   isError?: boolean;
+  _meta?: {
+    ui?: {
+      resourceUri: string;
+    };
+  };
+}
+
+// MCP resource read result
+interface McpResourceReadResult {
+  contents: Array<{
+    uri: string;
+    mimeType?: string;
+    text?: string;
+    blob?: string;  // Base64 encoded binary
+  }>;
 }
 
 /**
@@ -221,17 +241,10 @@ export class McpClient {
   }
 
   /**
-   * Call a tool on the MCP server
+   * Call a tool on the MCP server (returns text content only)
    */
   async callTool(toolName: string, args?: Record<string, unknown>): Promise<string> {
-    if (!this.initialized) {
-      await this.initialize();
-    }
-
-    const result = await this.sendRequest("tools/call", {
-      name: toolName,
-      arguments: args || {},
-    }) as McpToolCallResult;
+    const result = await this.callToolRaw(toolName, args);
 
     // Extract text content from the result (handle missing content)
     const content = result?.content || [];
@@ -244,6 +257,73 @@ export class McpClient {
     }
 
     return textContents.join("\n");
+  }
+
+  /**
+   * Call a tool on the MCP server (returns full result with UI metadata)
+   */
+  async callToolRaw(toolName: string, args?: Record<string, unknown>): Promise<McpToolCallResult> {
+    if (!this.initialized) {
+      await this.initialize();
+    }
+
+    const result = await this.sendRequest("tools/call", {
+      name: toolName,
+      arguments: args || {},
+    }) as McpToolCallResult;
+
+    return result;
+  }
+
+  /**
+   * Call a tool and return MCP Apps result if available
+   */
+  async callToolWithUi(toolName: string, args?: Record<string, unknown>): Promise<McpAppResult> {
+    const result = await this.callToolRaw(toolName, args);
+
+    const appResult: McpAppResult = {
+      content: result.content?.map(c => ({
+        type: c.type,
+        text: c.text,
+        data: c.data,
+        mimeType: c.mimeType,
+        resource: c.resource,
+      })) || [],
+      isError: result.isError,
+      _meta: result._meta,
+    };
+
+    return appResult;
+  }
+
+  /**
+   * Read a resource from the MCP server (for ui:// resources)
+   */
+  async readResource(uri: string): Promise<McpAppUiResource | null> {
+    if (!this.initialized) {
+      await this.initialize();
+    }
+
+    try {
+      const result = await this.sendRequest("resources/read", {
+        uri,
+      }) as McpResourceReadResult;
+
+      if (result.contents && result.contents.length > 0) {
+        const content = result.contents[0];
+        return {
+          uri: content.uri,
+          mimeType: content.mimeType || "text/html",
+          text: content.text,
+          blob: content.blob,
+        };
+      }
+
+      return null;
+    } catch (error) {
+      console.error(`Failed to read resource ${uri}:`, error);
+      return null;
+    }
   }
 
   /**

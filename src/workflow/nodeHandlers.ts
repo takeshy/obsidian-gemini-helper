@@ -4,7 +4,7 @@ import { getGeminiClient } from "../core/gemini";
 import { getFileSearchManager } from "../core/fileSearch";
 import { getEditHistoryManager } from "../core/editHistory";
 import { CliProviderManager } from "../core/cliProvider";
-import { isImageGenerationModel, type ModelType, type ToolDefinition } from "../types";
+import { isImageGenerationModel, type ModelType, type ToolDefinition, type McpAppInfo } from "../types";
 import { McpClient } from "../core/mcpClient";
 import { isEncryptedFile, decryptFileContent } from "../core/crypto";
 import { cryptoCache } from "../core/cryptoCache";
@@ -424,8 +424,11 @@ export async function handleCommandNode(
   node: WorkflowNode,
   context: ExecutionContext,
   app: App,
-  plugin: GeminiHelperPlugin
-): Promise<void> {
+  plugin: GeminiHelperPlugin,
+  promptCallbacks?: PromptCallbacks
+): Promise<McpAppInfo | undefined> {
+  // Track collected MCP App info from tool executions
+  let collectedMcpAppInfo: McpAppInfo | undefined;
   const promptTemplate = node.properties["prompt"];
   if (!promptTemplate) {
     throw new Error("Command node missing 'prompt' property");
@@ -670,7 +673,18 @@ Please revise the output based on the user's feedback above.`;
       toolExecutor = async (name: string, args: Record<string, unknown>) => {
         // MCP tools start with "mcp_"
         if (name.startsWith("mcp_") && mcpToolExecutor) {
-          return await mcpToolExecutor.execute(name, args);
+          const mcpResult = await mcpToolExecutor.execute(name, args);
+          // Show MCP App UI if available and collect the info
+          if (mcpResult.mcpApp) {
+            collectedMcpAppInfo = mcpResult.mcpApp;
+            if (promptCallbacks?.showMcpApp) {
+              await promptCallbacks.showMcpApp(mcpResult.mcpApp);
+            }
+          }
+          if (mcpResult.error) {
+            return { error: mcpResult.error };
+          }
+          return { result: mcpResult.result };
         }
         // Otherwise use Obsidian tool executor
         return await obsidianToolExecutor(name, args);
@@ -688,7 +702,18 @@ Please revise the output based on the user's feedback above.`;
         mcpToolExecutor = createMcpToolExecutor(mcpTools);
         toolExecutor = async (name: string, args: Record<string, unknown>) => {
           if (mcpToolExecutor) {
-            return await mcpToolExecutor.execute(name, args);
+            const mcpResult = await mcpToolExecutor.execute(name, args);
+            // Show MCP App UI if available and collect the info
+            if (mcpResult.mcpApp) {
+              collectedMcpAppInfo = mcpResult.mcpApp;
+              if (promptCallbacks?.showMcpApp) {
+                await promptCallbacks.showMcpApp(mcpResult.mcpApp);
+              }
+            }
+            if (mcpResult.error) {
+              return { error: mcpResult.error };
+            }
+            return { result: mcpResult.result };
           }
           return { error: `Unknown tool: ${name}` };
         };
@@ -720,9 +745,14 @@ Please revise the output based on the user's feedback above.`;
         undefined // No options
       );
 
+  let thinkingContent = "";
   for await (const chunk of stream) {
     if (chunk.type === "text") {
       fullResponse += chunk.content;
+    } else if (chunk.type === "thinking") {
+      thinkingContent += chunk.content || "";
+      // Stream thinking content to the progress modal
+      promptCallbacks?.onThinking?.(node.id, thinkingContent);
     } else if (chunk.type === "image_generated" && chunk.generatedImage) {
       generatedImages.push(chunk.generatedImage);
     } else if (chunk.type === "error") {
@@ -778,6 +808,9 @@ Please revise the output based on the user's feedback above.`;
       context.variables.set(saveImageTo, JSON.stringify(imageDataList));
     }
   }
+
+  // Return collected MCP App info if any
+  return collectedMcpAppInfo;
 }
 
 // Increment a numeric variable (useful for loop counters)
@@ -2563,17 +2596,19 @@ export async function handleObsidianCommandNode(
 }
 
 // Handle MCP node - call remote MCP server tool via HTTP
+// Returns McpAppInfo if the tool returned UI metadata
 export async function handleMcpNode(
   node: WorkflowNode,
   context: ExecutionContext,
   _app: App,
   _plugin: GeminiHelperPlugin
-): Promise<void> {
+): Promise<McpAppInfo | undefined> {
   const url = replaceVariables(node.properties["url"] || "", context);
   const toolName = replaceVariables(node.properties["tool"] || "", context);
   const argsStr = node.properties["args"] || "";
   const headersStr = node.properties["headers"] || "";
   const saveTo = node.properties["saveTo"];
+  const saveUiTo = node.properties["saveUiTo"];  // Optional: save MCP Apps UI info
 
   if (!url) {
     throw new Error("MCP node missing 'url' property");
@@ -2612,18 +2647,50 @@ export async function handleMcpNode(
     enabled: true,
   });
 
+  let mcpAppInfo: McpAppInfo | undefined;
+
   try {
-    // Call the tool
-    const result = await client.callTool(toolName, args);
+    // Call the tool with UI support
+    const appResult = await client.callToolWithUi(toolName, args);
+
+    // Extract text content for the result
+    const textContents = appResult.content
+      .filter(c => c.type === "text" && c.text)
+      .map(c => c.text!);
+
+    if (appResult.isError) {
+      throw new Error(`MCP tool execution failed: ${textContents.join("\n")}`);
+    }
+
+    const result = textContents.join("\n");
 
     // Save result to variable if specified
     if (saveTo) {
       context.variables.set(saveTo, result);
     }
+
+    // Build MCP Apps UI info if available
+    if (appResult._meta?.ui?.resourceUri) {
+      // Fetch the UI resource
+      const uiResource = await client.readResource(appResult._meta.ui.resourceUri);
+      mcpAppInfo = {
+        serverUrl: url,
+        serverHeaders: headers,
+        toolResult: appResult,
+        uiResource,
+      };
+
+      // Save to variable if saveUiTo is specified
+      if (saveUiTo) {
+        context.variables.set(saveUiTo, JSON.stringify(mcpAppInfo));
+      }
+    }
   } finally {
     // Close the client connection
     await client.close();
   }
+
+  return mcpAppInfo;
 }
 
 // Handle sleep node - pause execution for specified duration

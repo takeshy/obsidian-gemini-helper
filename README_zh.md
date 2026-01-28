@@ -231,6 +231,28 @@ MCP（Model Context Protocol）服务器提供额外的工具，扩展 AI 在 Va
 
 **工具提示：** 连接测试成功后，可用工具名称会被保存，并在设置和聊天界面中显示以供参考。
 
+### MCP Apps（交互式 UI）
+
+一些 MCP 工具返回交互式 UI，允许您以可视化方式与工具结果进行交互。此功能基于 [MCP Apps 规范](https://github.com/anthropics/anthropic-cookbook/tree/main/misc/mcp_apps)。
+
+![MCP Apps](docs/images/mcp_apps.png)
+
+**工作原理：**
+
+- 当 MCP 工具在响应元数据中返回 `ui://` 资源 URI 时，插件会获取并渲染 HTML 内容
+- UI 在沙盒 iframe 中显示以确保安全（`sandbox="allow-scripts allow-forms"`）
+- 交互式应用可以通过 JSON-RPC 桥接调用其他 MCP 工具并更新上下文
+
+**在聊天中：**
+- MCP Apps 在助手消息中内联显示，带有展开/折叠按钮
+- 点击 ⊕ 展开为全屏，⊖ 折叠
+
+**在工作流中：**
+- MCP Apps 在工作流执行期间以模态对话框形式显示
+- 工作流会暂停以允许用户交互，然后在关闭模态框后继续
+
+> **安全性：** 所有 MCP App 内容都在具有受限权限的沙盒 iframe 中运行。iframe 无法访问父页面的 DOM、Cookie 或本地存储。仅启用 `allow-scripts` 和 `allow-forms`。
+
 ---
 
 # 工作流构建器

@@ -1,10 +1,11 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { type App, MarkdownRenderer, Component, Notice, Platform } from "obsidian";
 import { Copy, Check, CheckCircle, XCircle, Download, Eye, Layout } from "lucide-react";
 import type { Message, ToolCall } from "src/types";
 import { AVAILABLE_MODELS } from "src/types";
 import { HTMLPreviewModal, extractHtmlFromCodeBlock } from "./HTMLPreviewModal";
 import { hasMermaidFlowchart, convertMessageMermaidToCanvas } from "src/utils/mermaidToCanvas";
+import { McpAppRenderer } from "./McpAppRenderer";
 import { t } from "src/i18n";
 
 interface MessageBubbleProps {
@@ -28,8 +29,22 @@ export default function MessageBubble({
 }: MessageBubbleProps) {
   const isUser = message.role === "user";
   const [copied, setCopied] = useState(false);
+  const [expandedMcpApps, setExpandedMcpApps] = useState<Set<number>>(new Set());
   const contentRef = useRef<HTMLDivElement>(null);
   const componentRef = useRef<Component | null>(null);
+
+  // Toggle MCP App expansion
+  const toggleMcpAppExpand = useCallback((index: number) => {
+    setExpandedMcpApps(prev => {
+      const next = new Set(prev);
+      if (next.has(index)) {
+        next.delete(index);
+      } else {
+        next.add(index);
+      }
+      return next;
+    });
+  }, []);
 
   // Render markdown content using Obsidian's MarkdownRenderer
   useEffect(() => {
@@ -535,6 +550,23 @@ export default function MessageBubble({
                 </button>
               </div>
             </div>
+          ))}
+        </div>
+      )}
+
+      {/* MCP Apps display */}
+      {message.mcpApps && message.mcpApps.length > 0 && (
+        <div className="gemini-helper-mcp-apps">
+          {message.mcpApps.map((mcpApp, index) => (
+            <McpAppRenderer
+              key={index}
+              serverUrl={mcpApp.serverUrl}
+              serverHeaders={mcpApp.serverHeaders}
+              toolResult={mcpApp.toolResult}
+              uiResource={mcpApp.uiResource}
+              expanded={expandedMcpApps.has(index)}
+              onToggleExpand={() => toggleMcpAppExpand(index)}
+            />
           ))}
         </div>
       )}

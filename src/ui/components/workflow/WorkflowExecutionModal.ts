@@ -1,5 +1,7 @@
 import { App, Modal } from "obsidian";
 import type { Workflow, WorkflowNode, ExecutionLog } from "src/workflow/types";
+import type { McpAppInfo } from "src/types";
+import { showMcpApp } from "./McpAppModal";
 import { t } from "src/i18n";
 
 type NodeStatus = "pending" | "running" | "completed" | "error";
@@ -19,6 +21,8 @@ interface NodeLogData {
   output?: unknown;
   message?: string;
   timestamp?: Date;
+  mcpAppInfo?: McpAppInfo;
+  thinking?: string;
 }
 
 /**
@@ -236,6 +240,16 @@ export class WorkflowExecutionModal extends Modal {
       return;
     }
 
+    // Thinking section (collapsible, shown during streaming)
+    if (logData.thinking) {
+      const thinkingSection = detailEl.createEl("details", { cls: "workflow-step-thinking" });
+      thinkingSection.setAttribute("open", "");  // Open by default during streaming
+      const summary = thinkingSection.createEl("summary", { cls: "workflow-step-thinking-summary" });
+      summary.textContent = `💭 ${t("message.thinking")}`;
+      const thinkingPre = thinkingSection.createEl("pre", { cls: "workflow-step-pre-scrollable" });
+      thinkingPre.textContent = logData.thinking;
+    }
+
     // Input section
     if (logData.input !== undefined) {
       const inputSection = detailEl.createDiv({ cls: "workflow-step-section" });
@@ -252,8 +266,24 @@ export class WorkflowExecutionModal extends Modal {
       outputPre.textContent = this.formatValue(logData.output);
     }
 
-    // If no input or output, show message
-    if (logData.input === undefined && logData.output === undefined) {
+    // MCP App section
+    if (logData.mcpAppInfo) {
+      const mcpAppSection = detailEl.createDiv({ cls: "workflow-step-section" });
+      mcpAppSection.createEl("strong", { text: t("mcpApp.title") });
+      const mcpAppBtn = mcpAppSection.createEl("button", {
+        text: `🖥️ ${t("mcpApp.openUI")}`,
+        cls: "workflow-step-mcp-app-btn",
+      });
+      mcpAppBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        if (logData.mcpAppInfo) {
+          void showMcpApp(this.app, logData.mcpAppInfo);
+        }
+      });
+    }
+
+    // If no input, output, thinking, or mcpApp, show message
+    if (logData.input === undefined && logData.output === undefined && !logData.mcpAppInfo && !logData.thinking) {
       if (logData.message) {
         const msgEl = detailEl.createDiv({ cls: "workflow-execution-detail-message" });
         msgEl.textContent = logData.message;
@@ -393,6 +423,7 @@ export class WorkflowExecutionModal extends Modal {
         output: log.output,
         message: log.message,
         timestamp: log.timestamp,
+        mcpAppInfo: log.mcpAppInfo,
       });
     }
 
@@ -402,6 +433,27 @@ export class WorkflowExecutionModal extends Modal {
     const nodeEl = this.nodeElements.get(nodeId);
     if (nodeEl) {
       nodeEl.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  }
+
+  /**
+   * Update thinking content for a node (called during streaming)
+   */
+  updateThinking(nodeId: string, thinking: string): void {
+    // Get or create log data for this node
+    let logData = this.nodeLogs.get(nodeId);
+    if (!logData) {
+      logData = {};
+      this.nodeLogs.set(nodeId, logData);
+    }
+    logData.thinking = thinking;
+
+    // Update detail section if expanded
+    if (this.expandedNodes.has(nodeId)) {
+      const wrapper = this.nodeElements.get(nodeId);
+      if (wrapper) {
+        this.renderNodeDetail(nodeId, wrapper);
+      }
     }
   }
 

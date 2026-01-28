@@ -231,6 +231,28 @@ MCP(Model Context Protocol) 서버는 Vault 작업 이외의 AI 기능을 확장
 
 **도구 힌트:** 연결 테스트 성공 후 사용 가능한 도구 이름이 저장되어 설정과 채팅 UI 모두에 표시됩니다.
 
+### MCP Apps (인터랙티브 UI)
+
+일부 MCP 도구는 도구 결과와 시각적으로 상호작용할 수 있는 인터랙티브 UI를 반환합니다. 이 기능은 [MCP Apps 사양](https://github.com/anthropics/anthropic-cookbook/tree/main/misc/mcp_apps)을 기반으로 합니다.
+
+![MCP Apps](docs/images/mcp_apps.png)
+
+**작동 방식:**
+
+- MCP 도구가 응답 메타데이터에서 `ui://` 리소스 URI를 반환하면, 플러그인이 HTML 콘텐츠를 가져와 렌더링합니다
+- UI는 보안을 위해 샌드박스된 iframe 내에 표시됩니다 (`sandbox="allow-scripts allow-forms"`)
+- 인터랙티브 앱은 JSON-RPC 브릿지를 통해 추가 MCP 도구를 호출하고 컨텍스트를 업데이트할 수 있습니다
+
+**채팅에서:**
+- MCP Apps는 어시스턴트 메시지 내에 인라인으로 표시되며 확장/축소 버튼이 있습니다
+- ⊕를 클릭하면 전체 화면으로 확장, ⊖를 클릭하면 축소
+
+**워크플로우에서:**
+- MCP Apps는 워크플로우 실행 중 모달 대화상자로 표시됩니다
+- 워크플로우는 사용자 상호작용을 위해 일시 중지되고, 모달이 닫히면 계속됩니다
+
+> **보안:** 모든 MCP App 콘텐츠는 제한된 권한으로 샌드박스된 iframe 내에서 실행됩니다. iframe은 상위 페이지의 DOM, 쿠키 또는 로컬 스토리지에 접근할 수 없습니다. `allow-scripts`와 `allow-forms`만 활성화됩니다.
+
 ---
 
 # Workflow Builder

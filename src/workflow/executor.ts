@@ -1,5 +1,6 @@
 import { App, TFile } from "obsidian";
 import type { GeminiHelperPlugin } from "../plugin";
+import type { McpAppInfo } from "../types";
 import {
   Workflow,
   WorkflowNode,
@@ -113,7 +114,8 @@ export class WorkflowExecutor {
       message: string,
       status: ExecutionLog["status"] = "info",
       input?: Record<string, unknown>,
-      output?: unknown
+      output?: unknown,
+      mcpAppInfo?: McpAppInfo
     ) => {
       const logEntry: ExecutionLog = {
         nodeId,
@@ -123,6 +125,7 @@ export class WorkflowExecutor {
         status,
         input,
         output,
+        mcpAppInfo,
       };
       context.logs.push(logEntry);
       onLog?.(logEntry);
@@ -166,7 +169,8 @@ export class WorkflowExecutor {
       input?: Record<string, unknown>,
       output?: unknown,
       status: "success" | "error" | "skipped" = "success",
-      error?: string
+      error?: string,
+      mcpAppInfo?: McpAppInfo
     ) => {
       if (historyRecord) {
         this.historyManager.addStep(
@@ -176,7 +180,8 @@ export class WorkflowExecutor {
           truncateBinaryData(input) as Record<string, unknown> | undefined,
           truncateBinaryData(output),
           status,
-          error
+          error,
+          mcpAppInfo
         );
       }
     };
@@ -377,7 +382,7 @@ export class WorkflowExecutor {
               mcpServers: node.properties["mcpServers"] || "(none)",
             };
 
-            await handleCommandNode(node, context, this.app, this.plugin);
+            const cmdMcpAppInfo = await handleCommandNode(node, context, this.app, this.plugin, promptCallbacks);
 
             const saveTo = node.properties["saveTo"];
             const cmdOutput = saveTo ? context.variables.get(saveTo) : undefined;
@@ -393,12 +398,13 @@ export class WorkflowExecutor {
                 `LLM completed, saved to ${saveTo}: ${preview}`,
                 "success",
                 cmdInput,
-                cmdOutput
+                cmdOutput,
+                cmdMcpAppInfo
               );
             } else {
-              log(node.id, node.type, `LLM completed`, "success", cmdInput, cmdOutput);
+              log(node.id, node.type, `LLM completed`, "success", cmdInput, cmdOutput, cmdMcpAppInfo);
             }
-            addHistoryStep(node.id, node.type, cmdInput, cmdOutput, "success");
+            addHistoryStep(node.id, node.type, cmdInput, cmdOutput, "success", undefined, cmdMcpAppInfo);
 
             // Push next nodes
             const cmdNextNodes = getNextNodes(workflow, node.id);
@@ -1017,7 +1023,12 @@ export class WorkflowExecutor {
               mcpInput.args = replaceVariables(node.properties["args"], context);
             }
 
-            await handleMcpNode(node, context, this.app, this.plugin);
+            const mcpAppInfo = await handleMcpNode(node, context, this.app, this.plugin);
+
+            // Show MCP App UI if available
+            if (mcpAppInfo && promptCallbacks?.showMcpApp) {
+              await promptCallbacks.showMcpApp(mcpAppInfo);
+            }
 
             const mcpSaveTo = node.properties["saveTo"];
             const mcpResult = mcpSaveTo ? context.variables.get(mcpSaveTo) : undefined;
@@ -1032,12 +1043,13 @@ export class WorkflowExecutor {
                 `MCP completed, saved to ${mcpSaveTo}: ${mcpPreview}`,
                 "success",
                 mcpInput,
-                mcpResult
+                mcpResult,
+                mcpAppInfo
               );
             } else {
-              log(node.id, node.type, `MCP completed`, "success", mcpInput, mcpResult);
+              log(node.id, node.type, `MCP completed`, "success", mcpInput, mcpResult, mcpAppInfo);
             }
-            addHistoryStep(node.id, node.type, mcpInput, mcpResult, "success");
+            addHistoryStep(node.id, node.type, mcpInput, mcpResult, "success", undefined, mcpAppInfo);
 
             // Push next nodes
             const mcpNextNodes = getNextNodes(workflow, node.id);

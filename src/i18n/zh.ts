@@ -344,6 +344,7 @@ export const zh: Record<string, string> = {
   "workflow.branchEnd": "(结束)",
   "workflow.run": "运行",
   "workflow.running": "运行中...",
+  "workflow.showProgress": "显示进度",
   "workflow.history": "历史",
   "workflow.mustHaveNameForHotkey": "工作流必须有名称才能启用热键",
   "workflow.hotkeyDisabled": "热键已禁用（重新加载插件以完全取消注册）",
@@ -474,6 +475,8 @@ export const zh: Record<string, string> = {
   "workflowModal.encryptedHistoryNeedsPassword": "执行历史已加密。请输入密码查看。",
   "workflowModal.empty": "（空）",
   "workflowModal.circularReference": "（循环引用）",
+  "workflowModal.deleteSelected": "删除 ({{count}})",
+  "workflowModal.deletedRecords": "已删除选中的记录",
 
   // Commands
   "command.runWorkflow": "运行工作流",
@@ -735,4 +738,15 @@ export const zh: Record<string, string> = {
   "nodeEditor.falseNext.placeholder": "false 分支的下一个节点 ID（可选）",
   "nodeEditor.nextNode": "下一个节点",
   "nodeEditor.nextNode.placeholder": "可选的下一个节点 ID",
+
+  // MCP Apps
+  "mcpApp.loading": "正在加载 MCP App...",
+  "mcpApp.resourceNotFound": "未找到 UI 资源",
+  "mcpApp.fetchError": "获取 UI 资源失败",
+  "mcpApp.title": "MCP App",
+  "mcpApp.openUI": "打开 UI",
+  "mcpApp.expand": "展开",
+  "mcpApp.collapse": "收起",
+  "mcpApp.error": "MCP App 错误",
+  "mcpApp.decodeError": "无法解码二进制内容",
 };

@@ -344,6 +344,7 @@ export const es: Record<string, string> = {
   "workflow.branchEnd": "(fin)",
   "workflow.run": "Ejecutar",
   "workflow.running": "Ejecutando...",
+  "workflow.showProgress": "Mostrar progreso",
   "workflow.history": "Historial",
   "workflow.mustHaveNameForHotkey": "El flujo de trabajo debe tener un nombre para habilitar el atajo",
   "workflow.hotkeyDisabled": "Atajo deshabilitado (recarga el plugin para desregistrar completamente)",
@@ -474,6 +475,8 @@ export const es: Record<string, string> = {
   "workflowModal.encryptedHistoryNeedsPassword": "El historial de ejecución está cifrado. Ingrese su contraseña para ver.",
   "workflowModal.empty": "(vacío)",
   "workflowModal.circularReference": "(referencia circular)",
+  "workflowModal.deleteSelected": "Eliminar ({{count}})",
+  "workflowModal.deletedRecords": "Registros seleccionados eliminados",
 
   // Commands
   "command.runWorkflow": "Ejecutar workflow",
@@ -735,4 +738,15 @@ export const es: Record<string, string> = {
   "nodeEditor.falseNext.placeholder": "ID del siguiente nodo para rama false (opcional)",
   "nodeEditor.nextNode": "Siguiente nodo",
   "nodeEditor.nextNode.placeholder": "ID del siguiente nodo opcional",
+
+  // MCP Apps
+  "mcpApp.loading": "Cargando MCP App...",
+  "mcpApp.resourceNotFound": "Recurso de UI no encontrado",
+  "mcpApp.fetchError": "Error al obtener recurso de UI",
+  "mcpApp.title": "MCP App",
+  "mcpApp.openUI": "Abrir UI",
+  "mcpApp.expand": "Expandir",
+  "mcpApp.collapse": "Contraer",
+  "mcpApp.error": "Error de MCP App",
+  "mcpApp.decodeError": "No se pudo decodificar el contenido binario",
 };

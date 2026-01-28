@@ -128,7 +128,11 @@ export class EditConfirmationModal extends Modal {
   }
 
   onOpen() {
-    const { contentEl, modalEl } = this;
+    const { contentEl, modalEl, containerEl } = this;
+
+    // Prevent closing on outside click
+    containerEl.setCssProps({ 'pointer-events': 'none' });
+    modalEl.setCssProps({ 'pointer-events': 'auto' });
 
     // Add modal classes for styling
     modalEl.addClass("gemini-helper-edit-confirm-modal");
@@ -485,7 +489,11 @@ export class DeleteConfirmationModal extends Modal {
   }
 
   onOpen() {
-    const { contentEl, modalEl } = this;
+    const { contentEl, modalEl, containerEl } = this;
+
+    // Prevent closing on outside click
+    containerEl.setCssProps({ 'pointer-events': 'none' });
+    modalEl.setCssProps({ 'pointer-events': 'auto' });
 
     // Add modal classes for styling
     modalEl.addClass("gemini-helper-delete-confirm-modal");
@@ -769,7 +777,11 @@ export class BulkEditConfirmationModal extends Modal {
   }
 
   onOpen() {
-    const { contentEl, modalEl } = this;
+    const { contentEl, modalEl, containerEl } = this;
+
+    // Prevent closing on outside click
+    containerEl.setCssProps({ 'pointer-events': 'none' });
+    modalEl.setCssProps({ 'pointer-events': 'auto' });
 
     modalEl.addClass("gemini-helper-bulk-confirm-modal");
     modalEl.addClass("gemini-helper-resizable-modal");
@@ -1148,7 +1160,11 @@ export class BulkDeleteConfirmationModal extends Modal {
   }
 
   onOpen() {
-    const { contentEl, modalEl } = this;
+    const { contentEl, modalEl, containerEl } = this;
+
+    // Prevent closing on outside click
+    containerEl.setCssProps({ 'pointer-events': 'none' });
+    modalEl.setCssProps({ 'pointer-events': 'auto' });
 
     modalEl.addClass("gemini-helper-bulk-confirm-modal");
     modalEl.addClass("gemini-helper-bulk-delete-modal");

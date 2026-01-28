@@ -4,6 +4,7 @@ import { ExecutionHistoryManager, formatDuration, EncryptionConfig } from "src/w
 import { openHistoryCanvas } from "src/workflow/historyCanvas";
 import { cryptoCache } from "src/core/cryptoCache";
 import { decryptPrivateKey } from "src/core/crypto";
+import { showMcpApp } from "./McpAppModal";
 import { t } from "src/i18n";
 import { globalEventEmitter } from "src/utils/EventEmitter";
 
@@ -17,6 +18,8 @@ export class HistoryModal extends Modal {
   private listEl: HTMLElement | null = null;
   private detailEl: HTMLElement | null = null;
   private historySavedHandler: ((path: string) => void) | null = null;
+  private checkedRecordIds: Set<string> = new Set();
+  private listHeaderEl: HTMLElement | null = null;
 
   constructor(app: App, workflowPath: string, workspaceFolder: string, encryptionConfig?: EncryptionConfig) {
     super(app);
@@ -127,13 +130,90 @@ export class HistoryModal extends Modal {
 
     // List panel
     const listPanel = container.createDiv({ cls: "workflow-history-list-panel" });
-    listPanel.createEl("h3", { text: t("workflowModal.runs") });
+
+    // List header with title and controls
+    this.listHeaderEl = listPanel.createDiv({ cls: "workflow-history-list-header" });
+    this.renderListHeader();
+
     this.listEl = listPanel.createDiv({ cls: "workflow-history-list" });
 
     // Detail panel
     const detailPanel = container.createDiv({ cls: "workflow-history-detail-panel" });
     detailPanel.createEl("h3", { text: t("workflowModal.details") });
     this.detailEl = detailPanel.createDiv({ cls: "workflow-history-detail" });
+  }
+
+  private renderListHeader(): void {
+    if (!this.listHeaderEl) return;
+    this.listHeaderEl.empty();
+
+    const titleRow = this.listHeaderEl.createDiv({ cls: "workflow-history-title-row" });
+    titleRow.createEl("h3", { text: t("workflowModal.runs") });
+
+    // Only show controls if there are records
+    if (this.records.length > 0) {
+      const controls = this.listHeaderEl.createDiv({ cls: "workflow-history-controls" });
+
+      // Select all checkbox
+      const selectAllLabel = controls.createEl("label", { cls: "workflow-history-select-all" });
+      const selectAllCheckbox = selectAllLabel.createEl("input", { type: "checkbox" });
+      selectAllCheckbox.checked = this.checkedRecordIds.size === this.records.length && this.records.length > 0;
+      selectAllCheckbox.indeterminate = this.checkedRecordIds.size > 0 && this.checkedRecordIds.size < this.records.length;
+      selectAllLabel.createSpan({ text: t("workflowModal.selectAll") });
+
+      selectAllCheckbox.addEventListener("change", () => {
+        if (selectAllCheckbox.checked) {
+          // Select all
+          this.records.forEach(r => this.checkedRecordIds.add(r.id));
+        } else {
+          // Deselect all
+          this.checkedRecordIds.clear();
+        }
+        this.renderListHeader();
+        this.renderList();
+      });
+
+      // Delete selected button
+      if (this.checkedRecordIds.size > 0) {
+        const deleteBtn = controls.createEl("button", {
+          text: t("workflowModal.deleteSelected", { count: this.checkedRecordIds.size }),
+          cls: "workflow-history-delete-selected-btn",
+        });
+        deleteBtn.addEventListener("click", () => {
+          void this.deleteSelectedRecords();
+        });
+      }
+    }
+  }
+
+  private async deleteSelectedRecords(): Promise<void> {
+    if (this.checkedRecordIds.size === 0) return;
+
+    const historyManager = this.getHistoryManager();
+
+    // Delete all checked records
+    for (const id of this.checkedRecordIds) {
+      await historyManager.deleteRecord(id);
+    }
+
+    // Update records list
+    this.records = this.records.filter(r => !this.checkedRecordIds.has(r.id));
+
+    // Clear selection if selected record was deleted
+    if (this.selectedRecord && this.checkedRecordIds.has(this.selectedRecord.id)) {
+      this.selectedRecord = null;
+      this.selectedRecordEncrypted = false;
+    }
+
+    // Clear checked IDs
+    this.checkedRecordIds.clear();
+
+    // Re-render
+    this.renderListHeader();
+    this.renderList();
+    this.renderDetail();
+
+    new Notice(t("workflowModal.deletedRecords"));
   }
 
   private async loadHistory(): Promise<void> {
@@ -163,16 +243,38 @@ export class HistoryModal extends Modal {
         item.addClass("is-selected");
       }
 
-      const statusDot = item.createSpan({ cls: "workflow-history-status" });
+      // Checkbox for selection
+      const checkbox = item.createEl("input", { type: "checkbox", cls: "workflow-history-checkbox" });
+      checkbox.checked = this.checkedRecordIds.has(record.id);
+      checkbox.addEventListener("click", (e) => {
+        e.stopPropagation();
+      });
+      checkbox.addEventListener("change", () => {
+        if (checkbox.checked) {
+          this.checkedRecordIds.add(record.id);
+        } else {
+          this.checkedRecordIds.delete(record.id);
+        }
+        this.renderListHeader();
+      });
+
+      // Content wrapper
+      const content = item.createDiv({ cls: "workflow-history-item-content" });
+
+      const statusDot = content.createSpan({ cls: "workflow-history-status" });
       statusDot.addClass(`workflow-status-${record.status}`);
 
-      const timeEl = item.createDiv({ cls: "workflow-history-time" });
+      const textContent = content.createDiv({ cls: "workflow-history-item-text" });
+
+      const timeEl = textContent.createDiv({ cls: "workflow-history-time" });
       timeEl.textContent = new Date(record.startTime).toLocaleString();
 
-      const durationEl = item.createDiv({ cls: "workflow-history-duration" });
+      const metaRow = textContent.createDiv({ cls: "workflow-history-meta" });
+
+      const durationEl = metaRow.createSpan({ cls: "workflow-history-duration" });
       durationEl.textContent = formatDuration(record.startTime, record.endTime);
 
-      const statusEl = item.createDiv({ cls: "workflow-history-status-text" });
+      const statusEl = metaRow.createSpan({ cls: "workflow-history-status-text" });
       statusEl.textContent = record.status;
 
       item.addEventListener("click", () => {
@@ -246,6 +348,22 @@ export class HistoryModal extends Modal {
       if (step.error) {
         const errorEl = stepEl.createDiv({ cls: "workflow-step-error" });
         errorEl.textContent = t("workflowModal.error", { error: step.error });
+      }
+
+      // MCP App button if available
+      if (step.mcpAppInfo) {
+        const mcpAppSection = stepEl.createDiv({ cls: "workflow-step-section" });
+        mcpAppSection.createEl("strong", { text: t("mcpApp.title") });
+        const mcpAppBtn = mcpAppSection.createEl("button", {
+          text: `🖥️ ${t("mcpApp.openUI")}`,
+          cls: "workflow-step-mcp-app-btn",
+        });
+        mcpAppBtn.addEventListener("click", (e) => {
+          e.stopPropagation();
+          if (step.mcpAppInfo) {
+            void showMcpApp(this.app, step.mcpAppInfo);
+          }
+        });
       }
     }
 

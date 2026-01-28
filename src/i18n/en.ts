@@ -352,6 +352,7 @@ export const en = {
   "workflow.branchEnd": "(end)",
   "workflow.run": "Run",
   "workflow.running": "Running...",
+  "workflow.showProgress": "Show progress",
   "workflow.history": "History",
   "workflow.mustHaveNameForHotkey": "Workflow must have a name to enable hotkey",
   "workflow.hotkeyDisabled": "Hotkey disabled (reload plugin to fully unregister)",
@@ -472,6 +473,8 @@ export const en = {
   "workflowModal.encryptedHistoryNeedsPassword": "Execution history is encrypted. Enter your password to view.",
   "workflowModal.empty": "(empty)",
   "workflowModal.circularReference": "(circular reference)",
+  "workflowModal.deleteSelected": "Delete ({{count}})",
+  "workflowModal.deletedRecords": "Deleted selected records",
 
   // Edit History Modal
   "editHistoryModal.title": "Edit history: {{file}}",
@@ -881,6 +884,17 @@ export const en = {
   "nodeEditor.falseNext.placeholder": "Next node ID for false branch (optional)",
   "nodeEditor.nextNode": "Next node",
   "nodeEditor.nextNode.placeholder": "Optional next node ID",
+
+  // MCP Apps
+  "mcpApp.loading": "Loading mcp app...",
+  "mcpApp.resourceNotFound": "UI resource not found",
+  "mcpApp.fetchError": "Failed to fetch UI resource",
+  "mcpApp.title": "Mcp app",
+  "mcpApp.openUI": "Open UI",
+  "mcpApp.expand": "Expand",
+  "mcpApp.collapse": "Collapse",
+  "mcpApp.error": "Mcp app error",
+  "mcpApp.decodeError": "Failed to decode binary content",
 };
 
 export type TranslationKey = keyof typeof en;

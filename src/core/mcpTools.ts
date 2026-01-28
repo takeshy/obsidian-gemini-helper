@@ -2,7 +2,7 @@
 // Fetches tools from configured MCP servers and executes them
 
 import { McpClient } from "./mcpClient";
-import type { McpServerConfig, McpToolInfo, ToolDefinition, ToolPropertyDefinition } from "../types";
+import type { McpServerConfig, McpToolInfo, ToolDefinition, ToolPropertyDefinition, McpAppInfo } from "../types";
 
 // Extended tool definition with MCP server info
 export interface McpToolDefinition extends ToolDefinition {
@@ -190,11 +190,20 @@ export function isMcpTool(tool: ToolDefinition): tool is McpToolDefinition {
 }
 
 /**
+ * Result from MCP tool execution
+ */
+export interface McpToolResult {
+  result?: string;
+  error?: string;
+  mcpApp?: McpAppInfo;  // MCP Apps UI info if available
+}
+
+/**
  * MCP tool executor with session management
  * Reuses MCP client connections for better performance
  */
 export interface McpToolExecutor {
-  execute: (toolName: string, args: Record<string, unknown>) => Promise<unknown>;
+  execute: (toolName: string, args: Record<string, unknown>) => Promise<McpToolResult>;
   cleanup: () => Promise<void>;
 }
 
@@ -227,7 +236,7 @@ export function createMcpToolExecutor(
     return client;
   };
 
-  const execute = async (toolName: string, args: Record<string, unknown>): Promise<unknown> => {
+  const execute = async (toolName: string, args: Record<string, unknown>): Promise<McpToolResult> => {
     const tool = toolMap.get(toolName);
     if (!tool) {
       return { error: `MCP tool not found: ${toolName}` };
@@ -235,8 +244,36 @@ export function createMcpToolExecutor(
 
     try {
       const client = await getClient(tool.mcpServer);
-      const result = await client.callTool(tool.mcpToolName, args);
-      return { result };
+      // Use callToolWithUi to get full result including UI metadata
+      const appResult = await client.callToolWithUi(tool.mcpToolName, args);
+
+      // Extract text content for the result
+      const textContents = appResult.content
+        .filter(c => c.type === "text" && c.text)
+        .map(c => c.text!);
+
+      if (appResult.isError) {
+        return { error: `MCP tool execution failed: ${textContents.join("\n")}` };
+      }
+
+      const result: McpToolResult = {
+        result: textContents.join("\n"),
+      };
+
+      // If the tool returned UI metadata, include it in the result
+      if (appResult._meta?.ui?.resourceUri) {
+        // Pre-fetch the UI resource
+        const uiResource = await client.readResource(appResult._meta.ui.resourceUri);
+
+        result.mcpApp = {
+          serverUrl: tool.mcpServer.url,
+          serverHeaders: tool.mcpServer.headers,
+          toolResult: appResult,
+          uiResource,
+        };
+      }
+
+      return result;
     } catch (error) {
       // On error, remove the client from pool to force reconnection on next call
       const key = getServerKey(tool.mcpServer);

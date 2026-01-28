@@ -599,7 +599,7 @@ export const ko: Record<string, string> = {
   "nodeEditor.url.placeholder": "https://api.example.com/endpoint",
   "nodeEditor.method": "메서드",
   "nodeEditor.contentType": "콘텐츠 유형",
-  "nodeEditor.contentType.desc": "json: JSON 본문, form-data: multipart/form-data, text: 일반 텍스트",
+  "nodeEditor.contentType.desc": "json: JSON 본문, form-data: multipart/form-data, text: 일반 텍스트, binary: FileExplorerData의 바이너리 데이터",
   "nodeEditor.headers": "헤더 (JSON)",
   "nodeEditor.headers.placeholder": "{\"Authorization\": \"Bearer {{token}}\"}",
   "nodeEditor.body": "본문",

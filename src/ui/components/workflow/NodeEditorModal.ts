@@ -367,7 +367,7 @@ export class NodeEditorModal extends Modal {
       case "http":
         this.addTextField(container, "url", t("nodeEditor.url"), t("nodeEditor.url.placeholder"));
         this.addDropdown(container, "method", t("nodeEditor.method"), ["GET", "POST", "PUT", "DELETE", "PATCH"]);
-        this.addDropdown(container, "contentType", t("nodeEditor.contentType"), ["json", "form-data", "text"], t("nodeEditor.contentType.desc"));
+        this.addDropdown(container, "contentType", t("nodeEditor.contentType"), ["json", "form-data", "text", "binary"], t("nodeEditor.contentType.desc"));
         this.addTextArea(container, "headers", t("nodeEditor.headers"), t("nodeEditor.headers.placeholder"));
         this.addTextArea(container, "body", t("nodeEditor.body"), t("nodeEditor.body.placeholder"));
         this.addTextField(container, "saveTo", t("nodeEditor.saveTo"), t("nodeEditor.saveTo.httpResponse"));

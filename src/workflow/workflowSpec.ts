@@ -118,9 +118,13 @@ Execute LLM prompt.
 Make HTTP request.
 - **url** (required): Request URL (supports {{variables}})
 - **method** (optional): GET, POST, PUT, DELETE, PATCH (default: GET)
-- **contentType** (optional): "json" (default), "form-data", "text"
+- **contentType** (optional): "json", "form-data", "text", "binary" (default: "json")
 - **headers** (optional): JSON headers
 - **body** (optional): Request body (supports {{variables}})
+  - For "json": JSON string
+  - For "form-data": JSON object. FileExplorerData is auto-detected and sent as binary.
+  - For "text": Plain text
+  - For "binary": FileExplorerData JSON (sends raw binary, uses mimeType as Content-Type)
 - **saveTo** (optional): Variable for response (text as string, binary as FileExplorerData)
 - **saveStatus** (optional): Variable for HTTP status code
 - **throwOnError** (optional): "true" to throw on 4xx/5xx

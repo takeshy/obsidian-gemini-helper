@@ -599,7 +599,7 @@ export const zh: Record<string, string> = {
   "nodeEditor.url.placeholder": "https://api.example.com/endpoint",
   "nodeEditor.method": "方法",
   "nodeEditor.contentType": "内容类型",
-  "nodeEditor.contentType.desc": "json：JSON 正文，form-data：multipart/form-data，text：纯文本",
+  "nodeEditor.contentType.desc": "json：JSON 正文，form-data：multipart/form-data，text：纯文本，binary：来自FileExplorerData的二进制数据",
   "nodeEditor.headers": "请求头（JSON）",
   "nodeEditor.headers.placeholder": "{\"Authorization\": \"Bearer {{token}}\"}",
   "nodeEditor.body": "正文",

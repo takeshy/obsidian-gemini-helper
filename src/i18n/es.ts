@@ -599,7 +599,7 @@ export const es: Record<string, string> = {
   "nodeEditor.url.placeholder": "https://api.example.com/endpoint",
   "nodeEditor.method": "Método",
   "nodeEditor.contentType": "Tipo de contenido",
-  "nodeEditor.contentType.desc": "json: cuerpo JSON, form-data: multipart/form-data, text: texto plano",
+  "nodeEditor.contentType.desc": "json: cuerpo JSON, form-data: multipart/form-data, text: texto plano, binary: datos binarios de FileExplorerData",
   "nodeEditor.headers": "Headers (JSON)",
   "nodeEditor.headers.placeholder": "{\"Authorization\": \"Bearer {{token}}\"}",
   "nodeEditor.body": "Cuerpo",

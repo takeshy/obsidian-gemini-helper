@@ -131,31 +131,31 @@ export class WorkflowExecutor {
       onLog?.(logEntry);
     };
 
-    // Truncate binary data for history logging (text is kept as-is)
-    const truncateBinaryData = (data: unknown): unknown => {
+    // Truncate large data for history logging to prevent UI freeze
+    const MAX_STRING_LENGTH = 1000;
+    const truncateLargeData = (data: unknown): unknown => {
       if (data === null || data === undefined) return data;
 
       if (typeof data === "string") {
-        // Check if it's Base64 data (binary) - long string with only Base64 chars
-        if (data.length > 1000 && /^[A-Za-z0-9+/=]+$/.test(data.substring(0, 100))) {
-          return `[Binary data: ${data.length} chars]`;
+        if (data.length > MAX_STRING_LENGTH) {
+          // Check if it's Base64 data (binary)
+          if (/^[A-Za-z0-9+/=]+$/.test(data.substring(0, 100))) {
+            return `[Binary data: ${data.length} chars]`;
+          }
+          // Truncate long text: show first 400 + ... + last 400
+          return `${data.substring(0, 400)}...[truncated ${data.length - 800} chars]...${data.substring(data.length - 400)}`;
         }
         return data;
       }
 
       if (Array.isArray(data)) {
-        return data.map((item) => truncateBinaryData(item));
+        return data.map((item) => truncateLargeData(item));
       }
 
       if (typeof data === "object") {
         const result: Record<string, unknown> = {};
         for (const [key, value] of Object.entries(data as Record<string, unknown>)) {
-          // Skip 'data' field in FileExplorerData (binary content)
-          if (key === "data" && typeof value === "string" && value.length > 1000) {
-            result[key] = `[Binary data: ${value.length} chars]`;
-          } else {
-            result[key] = truncateBinaryData(value);
-          }
+          result[key] = truncateLargeData(value);
         }
         return result;
       }
@@ -177,8 +177,8 @@ export class WorkflowExecutor {
           historyRecord,
           nodeId,
           nodeType,
-          truncateBinaryData(input) as Record<string, unknown> | undefined,
-          truncateBinaryData(output),
+          truncateLargeData(input) as Record<string, unknown> | undefined,
+          truncateLargeData(output),
           status,
           error,
           mcpAppInfo
@@ -418,14 +418,16 @@ export class WorkflowExecutor {
             const httpUrlTemplate = node.properties["url"] || "";
             const httpUrl = replaceVariables(httpUrlTemplate, context);
             const httpMethod = node.properties["method"] || "GET";
+            const httpContentType = node.properties["contentType"] || "json";
             log(node.id, node.type, `HTTP ${httpMethod} ${httpUrl}`, "info");
 
             const httpInput: Record<string, unknown> = {
               url: httpUrl,
               method: httpMethod,
+              contentType: httpContentType,
             };
             if (node.properties["headers"])
-              httpInput.headers = node.properties["headers"];
+              httpInput.headers = replaceVariables(node.properties["headers"], context);
             if (node.properties["body"])
               httpInput.body = replaceVariables(node.properties["body"], context);
 

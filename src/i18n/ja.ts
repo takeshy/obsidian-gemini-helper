@@ -735,7 +735,7 @@ export const ja: Record<string, string> = {
   "nodeEditor.url.placeholder": "https://api.example.com/endpoint",
   "nodeEditor.method": "メソッド",
   "nodeEditor.contentType": "コンテンツタイプ",
-  "nodeEditor.contentType.desc": "json: JSONボディ、form-data: multipart/form-data、text: プレーンテキスト",
+  "nodeEditor.contentType.desc": "json: JSONボディ、form-data: multipart/form-data、text: プレーンテキスト、binary: FileExplorerDataからのバイナリ",
   "nodeEditor.headers": "ヘッダー（JSON）",
   "nodeEditor.headers.placeholder": "{\"Authorization\": \"Bearer {{token}}\"}",
   "nodeEditor.body": "ボディ",

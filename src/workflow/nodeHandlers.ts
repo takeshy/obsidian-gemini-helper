@@ -949,7 +949,7 @@ export async function handleHttpNode(
 ): Promise<void> {
   const url = replaceVariables(node.properties["url"] || "", context);
   const method = (node.properties["method"] || "GET").toUpperCase();
-  const contentType = node.properties["contentType"] || "json"; // json, form-data, text
+  const contentType = node.properties["contentType"] || "json"; // json, form-data, text, binary
 
   if (!url) {
     throw new Error("HTTP node missing 'url' property");
@@ -1011,6 +1011,31 @@ export async function handleHttpNode(
       body = replaceVariables(bodyStr, context);
       if (!headers["Content-Type"]) {
         headers["Content-Type"] = "text/plain";
+      }
+    } else if (contentType === "binary") {
+      // Send FileExplorerData (JSON with base64 data) as raw binary
+      const replacedBody = replaceVariables(bodyStr, context);
+      try {
+        const fileData = JSON.parse(replacedBody);
+        if (fileData.data && fileData.contentType === "binary") {
+          // Decode base64 (using Uint8Array for mobile compatibility)
+          const binaryStr = atob(fileData.data);
+          const bytes = new Uint8Array(binaryStr.length);
+          for (let i = 0; i < binaryStr.length; i++) {
+            bytes[i] = binaryStr.charCodeAt(i);
+          }
+          body = bytes.buffer;
+          if (!headers["Content-Type"] && fileData.mimeType) {
+            headers["Content-Type"] = fileData.mimeType;
+          }
+        } else {
+          throw new Error("binary contentType requires FileExplorerData with binary content");
+        }
+      } catch (e) {
+        if (e instanceof Error && e.message.includes("FileExplorerData")) {
+          throw e;
+        }
+        throw new Error("binary contentType requires valid FileExplorerData JSON");
       }
     } else {
       // Default: JSON body
@@ -1488,7 +1513,20 @@ export async function handlePromptSelectionNode(
 }
 
 // Binary file extensions that should be read as binary and encoded as Base64
-const BINARY_EXTENSIONS = ["pdf", "png", "jpg", "jpeg", "gif", "webp", "bmp", "ico", "svg"];
+const BINARY_EXTENSIONS = [
+  // Images
+  "pdf", "png", "jpg", "jpeg", "gif", "webp", "bmp", "ico", "svg", "tiff", "tif",
+  // Video
+  "mp4", "mov", "avi", "mkv", "webm", "wmv", "flv", "m4v",
+  // Audio
+  "mp3", "wav", "ogg", "flac", "aac", "m4a", "wma",
+  // Archives
+  "zip", "rar", "7z", "tar", "gz", "bz2",
+  // Office documents
+  "docx", "xlsx", "pptx", "doc", "xls", "ppt", "odt", "ods", "odp",
+  // Other binary
+  "exe", "dll", "so", "dylib", "wasm", "ttf", "otf", "woff", "woff2", "eot",
+];
 
 // Check if a file extension is binary
 function isBinaryExtension(extension: string): boolean {
@@ -1498,10 +1536,19 @@ function isBinaryExtension(extension: string): boolean {
 // Get MIME type from file extension
 function getMimeType(extension: string): string {
   const mimeTypes: Record<string, string> = {
+    // Text
     md: "text/markdown",
     txt: "text/plain",
     json: "application/json",
     csv: "text/csv",
+    html: "text/html",
+    css: "text/css",
+    js: "application/javascript",
+    ts: "application/typescript",
+    xml: "application/xml",
+    yaml: "application/x-yaml",
+    yml: "application/x-yaml",
+    // Images
     pdf: "application/pdf",
     png: "image/png",
     jpg: "image/jpeg",
@@ -1511,6 +1558,50 @@ function getMimeType(extension: string): string {
     bmp: "image/bmp",
     ico: "image/x-icon",
     svg: "image/svg+xml",
+    tiff: "image/tiff",
+    tif: "image/tiff",
+    // Video
+    mp4: "video/mp4",
+    mov: "video/quicktime",
+    avi: "video/x-msvideo",
+    mkv: "video/x-matroska",
+    webm: "video/webm",
+    wmv: "video/x-ms-wmv",
+    flv: "video/x-flv",
+    m4v: "video/x-m4v",
+    // Audio
+    mp3: "audio/mpeg",
+    wav: "audio/wav",
+    ogg: "audio/ogg",
+    flac: "audio/flac",
+    aac: "audio/aac",
+    m4a: "audio/mp4",
+    wma: "audio/x-ms-wma",
+    // Archives
+    zip: "application/zip",
+    rar: "application/vnd.rar",
+    "7z": "application/x-7z-compressed",
+    tar: "application/x-tar",
+    gz: "application/gzip",
+    bz2: "application/x-bzip2",
+    // Office
+    docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    xlsx: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    pptx: "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+    doc: "application/msword",
+    xls: "application/vnd.ms-excel",
+    ppt: "application/vnd.ms-powerpoint",
+    odt: "application/vnd.oasis.opendocument.text",
+    ods: "application/vnd.oasis.opendocument.spreadsheet",
+    odp: "application/vnd.oasis.opendocument.presentation",
+    // Fonts
+    ttf: "font/ttf",
+    otf: "font/otf",
+    woff: "font/woff",
+    woff2: "font/woff2",
+    eot: "application/vnd.ms-fontobject",
+    // Other
+    wasm: "application/wasm",
   };
   return mimeTypes[extension.toLowerCase()] || "application/octet-stream";
 }

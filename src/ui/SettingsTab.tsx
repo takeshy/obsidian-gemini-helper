@@ -16,13 +16,13 @@ import { clearMcpToolsCache } from "src/core/mcpTools";
 import { formatError } from "src/utils/error";
 import { t } from "src/i18n";
 import {
-  DEFAULT_MODEL,
   DEFAULT_SETTINGS,
   DEFAULT_CLI_CONFIG,
   DEFAULT_EDIT_HISTORY_SETTINGS,
   DEFAULT_ENCRYPTION_SETTINGS,
   getAvailableModels,
   isModelAllowedForPlan,
+  getDefaultModelForPlan,
   type ApiPlan,
   type ModelInfo,
   type SlashCommand,
@@ -1168,7 +1168,7 @@ export class SettingsTab extends PluginSettingTab {
             const plan = this.plugin.settings.apiPlan;
             const selectedModel = this.plugin.getSelectedModel();
             if (!isModelAllowedForPlan(plan, selectedModel)) {
-              await this.plugin.selectModel(DEFAULT_MODEL);
+              await this.plugin.selectModel(getDefaultModelForPlan(plan));
             }
             this.display();
           })();

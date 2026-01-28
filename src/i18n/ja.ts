@@ -352,6 +352,7 @@ export const ja: Record<string, string> = {
   "workflow.branchEnd": "(終了)",
   "workflow.run": "実行",
   "workflow.running": "実行中...",
+  "workflow.showProgress": "進捗を表示",
   "workflow.history": "履歴",
   "workflow.mustHaveNameForHotkey": "ホットキーを有効にするにはワークフローに名前が必要です",
   "workflow.hotkeyDisabled": "ホットキーを無効化しました（完全に解除するにはプラグインを再読み込みしてください）",
@@ -637,6 +638,8 @@ export const ja: Record<string, string> = {
   "workflowModal.encryptedHistoryNeedsPassword": "実行履歴は暗号化されています。閲覧するにはパスワードを入力してください。",
   "workflowModal.empty": "（空）",
   "workflowModal.circularReference": "（循環参照）",
+  "workflowModal.deleteSelected": "削除 ({{count}}件)",
+  "workflowModal.deletedRecords": "選択した履歴を削除しました",
 
   // MCP Server Settings
   "settings.mcpServers": "MCPサーバー",
@@ -872,4 +875,15 @@ export const ja: Record<string, string> = {
   "nodeEditor.falseNext.placeholder": "false分岐の次のノードID（任意）",
   "nodeEditor.nextNode": "次のノード",
   "nodeEditor.nextNode.placeholder": "次のノードID（任意）",
+
+  // MCP Apps
+  "mcpApp.loading": "MCP Appを読み込み中...",
+  "mcpApp.resourceNotFound": "UIリソースが見つかりません",
+  "mcpApp.fetchError": "UIリソースの取得に失敗しました",
+  "mcpApp.title": "MCP App",
+  "mcpApp.openUI": "UIを開く",
+  "mcpApp.expand": "拡大",
+  "mcpApp.collapse": "縮小",
+  "mcpApp.error": "MCP Appエラー",
+  "mcpApp.decodeError": "バイナリコンテンツのデコードに失敗しました",
 };

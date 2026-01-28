@@ -56,9 +56,13 @@ export class DialogPromptModal extends Modal {
   }
 
   onOpen() {
-    const { contentEl } = this;
+    const { contentEl, containerEl, modalEl } = this;
     contentEl.empty();
     contentEl.addClass("gemini-helper-dialog-modal");
+
+    // Prevent closing on outside click
+    containerEl.setCssProps({ 'pointer-events': 'none' });
+    modalEl.setCssProps({ 'pointer-events': 'auto' });
 
     // Title
     contentEl.createEl("h2", { text: this.title });

@@ -344,6 +344,7 @@ export const ko: Record<string, string> = {
   "workflow.branchEnd": "(끝)",
   "workflow.run": "실행",
   "workflow.running": "실행 중...",
+  "workflow.showProgress": "진행 상황 보기",
   "workflow.history": "기록",
   "workflow.mustHaveNameForHotkey": "단축키를 활성화하려면 워크플로우에 이름이 있어야 합니다",
   "workflow.hotkeyDisabled": "단축키 비활성화됨 (완전히 해제하려면 플러그인 다시 로드)",
@@ -474,6 +475,8 @@ export const ko: Record<string, string> = {
   "workflowModal.encryptedHistoryNeedsPassword": "실행 기록이 암호화되어 있습니다. 비밀번호를 입력하여 확인하세요.",
   "workflowModal.empty": "(비어 있음)",
   "workflowModal.circularReference": "(순환 참조)",
+  "workflowModal.deleteSelected": "삭제 ({{count}})",
+  "workflowModal.deletedRecords": "선택한 기록이 삭제되었습니다",
 
   // Commands
   "command.runWorkflow": "워크플로우 실행",
@@ -735,4 +738,15 @@ export const ko: Record<string, string> = {
   "nodeEditor.falseNext.placeholder": "false 분기의 다음 노드 ID (선택 사항)",
   "nodeEditor.nextNode": "다음 노드",
   "nodeEditor.nextNode.placeholder": "선택적 다음 노드 ID",
+
+  // MCP Apps
+  "mcpApp.loading": "MCP App 로딩 중...",
+  "mcpApp.resourceNotFound": "UI 리소스를 찾을 수 없습니다",
+  "mcpApp.fetchError": "UI 리소스를 가져오지 못했습니다",
+  "mcpApp.title": "MCP App",
+  "mcpApp.openUI": "UI 열기",
+  "mcpApp.expand": "확대",
+  "mcpApp.collapse": "축소",
+  "mcpApp.error": "MCP App 오류",
+  "mcpApp.decodeError": "바이너리 콘텐츠 디코딩 실패",
 };

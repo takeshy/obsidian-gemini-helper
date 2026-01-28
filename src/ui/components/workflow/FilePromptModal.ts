@@ -52,10 +52,14 @@ export class FilePromptModal extends Modal {
   }
 
   onOpen(): void {
-    const { contentEl } = this;
+    const { contentEl, containerEl, modalEl } = this;
     contentEl.empty();
     contentEl.addClass("workflow-file-prompt-modal");
     this.component.load();
+
+    // Prevent closing on outside click
+    containerEl.setCssProps({ 'pointer-events': 'none' });
+    modalEl.setCssProps({ 'pointer-events': 'auto' });
 
     // Title
     contentEl.createEl("h2", { text: this.title || t("workflowModal.selectFile") });
@@ -206,10 +210,14 @@ class AnyFilePromptModal extends Modal {
   }
 
   onOpen(): void {
-    const { contentEl } = this;
+    const { contentEl, containerEl, modalEl } = this;
     contentEl.empty();
     contentEl.addClass("workflow-file-prompt-modal");
     this.component.load();
+
+    // Prevent closing on outside click
+    containerEl.setCssProps({ 'pointer-events': 'none' });
+    modalEl.setCssProps({ 'pointer-events': 'auto' });
 
     // Title
     contentEl.createEl("h2", { text: this.title || t("workflowModal.selectFile") });
@@ -365,9 +373,13 @@ class NewFilePathModal extends Modal {
   }
 
   onOpen(): void {
-    const { contentEl } = this;
+    const { contentEl, containerEl, modalEl } = this;
     contentEl.empty();
     contentEl.addClass("workflow-file-prompt-modal");
+
+    // Prevent closing on outside click
+    containerEl.setCssProps({ 'pointer-events': 'none' });
+    modalEl.setCssProps({ 'pointer-events': 'auto' });
 
     // Title
     contentEl.createEl("h2", { text: this.title || t("workflowModal.enterFilePath") });

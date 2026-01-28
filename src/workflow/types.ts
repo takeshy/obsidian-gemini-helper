@@ -1,4 +1,5 @@
 import type { EditConfirmationResult } from "src/ui/components/workflow/EditConfirmationModal";
+import type { McpAppInfo } from "src/types";
 
 // Workflow node types
 export type WorkflowNodeType =
@@ -82,6 +83,7 @@ export interface ExecutionLog {
   status: "info" | "success" | "error";
   input?: Record<string, unknown>;
   output?: unknown;
+  mcpAppInfo?: McpAppInfo;  // MCP Apps UI info if available
 }
 
 // Editor position for selection
@@ -146,6 +148,7 @@ export interface ExecutionStep {
   output?: unknown;
   status: StepStatus;
   error?: string;
+  mcpAppInfo?: McpAppInfo;  // MCP Apps UI info if available
 }
 
 export interface ExecutionRecord {
@@ -211,4 +214,6 @@ export interface PromptCallbacks {
     inputVariables: Map<string, string | number>
   ) => Promise<Map<string, string | number>>;
   promptForPassword?: () => Promise<string | null>;
+  showMcpApp?: (mcpApp: McpAppInfo) => Promise<void>;
+  onThinking?: (nodeId: string, thinking: string) => void;  // Stream thinking content
 }

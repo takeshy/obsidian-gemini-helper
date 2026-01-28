@@ -1,4 +1,5 @@
 import { App } from "obsidian";
+import type { McpAppInfo } from "../types";
 import {
   ExecutionRecord,
   ExecutionStatus,
@@ -78,7 +79,8 @@ export class ExecutionHistoryManager {
     input?: Record<string, unknown>,
     output?: unknown,
     status: StepStatus = "success",
-    error?: string
+    error?: string,
+    mcpAppInfo?: McpAppInfo
   ): void {
     record.steps.push({
       nodeId,
@@ -88,6 +90,7 @@ export class ExecutionHistoryManager {
       output,
       status,
       error,
+      mcpAppInfo,
     });
   }
 

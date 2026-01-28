@@ -231,6 +231,28 @@ Les serveurs MCP (Model Context Protocol) fournissent des outils supplémentaire
 
 **Indices d'outils :** Après un test de connexion réussi, les noms des outils disponibles sont enregistrés et affichés dans les paramètres et l'interface de chat.
 
+### MCP Apps (UI Interactive)
+
+Certains outils MCP retournent une UI interactive qui permet d'interagir visuellement avec les résultats de l'outil. Cette fonctionnalité est basée sur la [spécification MCP Apps](https://github.com/anthropics/anthropic-cookbook/tree/main/misc/mcp_apps).
+
+![MCP Apps](docs/images/mcp_apps.png)
+
+**Comment ça fonctionne :**
+
+- Quand un outil MCP retourne un URI de ressource `ui://` dans les métadonnées de sa réponse, le plugin récupère et affiche le contenu HTML
+- L'UI est affichée dans un iframe isolé pour la sécurité (`sandbox="allow-scripts allow-forms"`)
+- Les applications interactives peuvent appeler des outils MCP supplémentaires et mettre à jour le contexte via un pont JSON-RPC
+
+**Dans le Chat :**
+- MCP Apps apparaît en ligne dans les messages de l'assistant avec un bouton développer/réduire
+- Cliquez sur ⊕ pour développer en plein écran, ⊖ pour réduire
+
+**Dans les Workflows :**
+- MCP Apps est affiché dans une boîte de dialogue modale pendant l'exécution du workflow
+- Le workflow se met en pause pour permettre l'interaction de l'utilisateur, puis continue quand le modal est fermé
+
+> **Sécurité :** Tout le contenu MCP App s'exécute dans un iframe isolé avec des permissions restreintes. L'iframe ne peut pas accéder au DOM de la page parente, aux cookies ou au stockage local. Seuls `allow-scripts` et `allow-forms` sont activés.
+
 ---
 
 # Constructeur de Workflows

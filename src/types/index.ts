@@ -14,6 +14,42 @@ export interface McpToolInfo {
   name: string;
   description?: string;
   inputSchema?: Record<string, unknown>;
+  _meta?: {
+    ui?: {
+      resourceUri: string;  // ui:// URI for MCP Apps
+    };
+  };
+}
+
+// MCP Apps types
+export interface McpAppContent {
+  type: "text" | "image" | "resource";
+  text?: string;
+  data?: string;
+  mimeType?: string;
+  resource?: {
+    uri: string;
+    mimeType?: string;
+    text?: string;
+  };
+}
+
+export interface McpAppResult {
+  content: McpAppContent[];
+  isError?: boolean;
+  _meta?: {
+    ui?: {
+      resourceUri: string;
+    };
+  };
+}
+
+// MCP App UI resource (HTML/JS content from ui:// scheme)
+export interface McpAppUiResource {
+  uri: string;
+  mimeType: string;
+  text?: string;
+  blob?: string;  // Base64 encoded binary data
 }
 
 // Obsidian event types for workflow triggers
@@ -397,6 +433,14 @@ export interface GeneratedImage {
   data: string;  // Base64 encoded image data
 }
 
+// MCP App info for rendering in messages
+export interface McpAppInfo {
+  serverUrl: string;
+  serverHeaders?: Record<string, string>;
+  toolResult: McpAppResult;
+  uiResource?: McpAppUiResource | null;
+}
+
 export interface Message {
   role: "user" | "assistant";
   content: string;
@@ -414,6 +458,7 @@ export interface Message {
   imageGenerationUsed?: boolean;  // Image Generationが使用されたか
   generatedImages?: GeneratedImage[];  // 生成された画像
   thinking?: string;  // モデルの思考内容（thinkingモデル用）
+  mcpApps?: McpAppInfo[];  // MCP Apps with UI (MCP Apps拡張)
 }
 
 // 保留中の編集情報
@@ -500,8 +545,17 @@ export interface StreamChunk {
   sessionId?: string;  // CLI session ID for resumption
 }
 
-// Default model
-export const DEFAULT_MODEL: ModelType = "gemini-3-flash-preview";
+// Default models by plan
+export const DEFAULT_MODEL_FREE: ModelType = "gemini-2.5-flash";
+export const DEFAULT_MODEL_PAID: ModelType = "gemini-3-pro-preview";
+
+// Default model (for backwards compatibility)
+export const DEFAULT_MODEL: ModelType = DEFAULT_MODEL_FREE;
+
+// Get default model for plan
+export function getDefaultModelForPlan(plan: ApiPlan): ModelType {
+  return plan === "paid" ? DEFAULT_MODEL_PAID : DEFAULT_MODEL_FREE;
+}
 
 // Default slash commands
 export const DEFAULT_SLASH_COMMANDS: SlashCommand[] = [

@@ -23,9 +23,13 @@ export class ValuePromptModal extends Modal {
   }
 
   onOpen(): void {
-    const { contentEl } = this;
+    const { contentEl, containerEl, modalEl } = this;
     contentEl.empty();
     contentEl.addClass("workflow-value-prompt-modal");
+
+    // Prevent closing on outside click
+    containerEl.setCssProps({ 'pointer-events': 'none' });
+    modalEl.setCssProps({ 'pointer-events': 'auto' });
 
     // Title
     contentEl.createEl("h2", { text: this.title || t("workflowModal.enterValue") });

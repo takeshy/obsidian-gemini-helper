@@ -344,6 +344,7 @@ export const de: Record<string, string> = {
   "workflow.branchEnd": "(Ende)",
   "workflow.run": "Ausführen",
   "workflow.running": "Wird ausgeführt...",
+  "workflow.showProgress": "Fortschritt anzeigen",
   "workflow.history": "Verlauf",
   "workflow.mustHaveNameForHotkey": "Workflow muss einen Namen haben, um Tastenkürzel zu aktivieren",
   "workflow.hotkeyDisabled": "Tastenkürzel deaktiviert (Plugin neu laden zum vollständigen Aufheben)",
@@ -474,6 +475,8 @@ export const de: Record<string, string> = {
   "workflowModal.encryptedHistoryNeedsPassword": "Ausführungsverlauf ist verschlüsselt. Geben Sie Ihr Passwort ein, um ihn anzuzeigen.",
   "workflowModal.empty": "(leer)",
   "workflowModal.circularReference": "(Zirkelverweis)",
+  "workflowModal.deleteSelected": "Löschen ({{count}})",
+  "workflowModal.deletedRecords": "Ausgewählte Einträge gelöscht",
 
   // Commands
   "command.runWorkflow": "Workflow ausführen",
@@ -735,4 +738,15 @@ export const de: Record<string, string> = {
   "nodeEditor.falseNext.placeholder": "Nächste Knoten-ID für False-Zweig (optional)",
   "nodeEditor.nextNode": "Nächster Knoten",
   "nodeEditor.nextNode.placeholder": "Optionale nächste Knoten-ID",
+
+  // MCP Apps
+  "mcpApp.loading": "MCP App wird geladen...",
+  "mcpApp.resourceNotFound": "UI-Ressource nicht gefunden",
+  "mcpApp.fetchError": "Fehler beim Abrufen der UI-Ressource",
+  "mcpApp.title": "MCP App",
+  "mcpApp.openUI": "UI öffnen",
+  "mcpApp.expand": "Erweitern",
+  "mcpApp.collapse": "Minimieren",
+  "mcpApp.error": "MCP App Fehler",
+  "mcpApp.decodeError": "Binärinhalt konnte nicht dekodiert werden",
 };

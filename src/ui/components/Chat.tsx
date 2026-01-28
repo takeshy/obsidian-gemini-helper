@@ -10,10 +10,10 @@ import { TFile, Notice, MarkdownView, Platform } from "obsidian";
 import { Plus, History, ChevronDown, Lock } from "lucide-react";
 import type { GeminiHelperPlugin } from "src/plugin";
 import {
-	DEFAULT_MODEL,
 	DEFAULT_CLI_CONFIG,
 	getAvailableModels,
 	isModelAllowedForPlan,
+	getDefaultModelForPlan,
 	CLI_MODEL,
 	CLAUDE_CLI_MODEL,
 	CODEX_CLI_MODEL,
@@ -26,6 +26,7 @@ import {
 	type GeneratedImage,
 	type ChatProvider,
 	type VaultToolNoneReason,
+	type McpAppInfo,
 	isImageGenerationModel,
 } from "src/types";
 import { getGeminiClient } from "src/core/gemini";
@@ -310,6 +311,7 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 			if (msg.webSearchUsed) metadata.webSearchUsed = msg.webSearchUsed;
 			if (msg.imageGenerationUsed) metadata.imageGenerationUsed = msg.imageGenerationUsed;
 			if (msg.generatedImages) metadata.generatedImages = msg.generatedImages;
+			if (msg.mcpApps) metadata.mcpApps = msg.mcpApps;
 			metadata.timestamp = msg.timestamp;
 
 			md += `<!-- msg-meta:${JSON.stringify(metadata)} -->\n\n---\n\n`;
@@ -424,6 +426,7 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 							if (meta.webSearchUsed) message.webSearchUsed = meta.webSearchUsed as boolean;
 							if (meta.imageGenerationUsed) message.imageGenerationUsed = meta.imageGenerationUsed as boolean;
 							if (meta.generatedImages) message.generatedImages = meta.generatedImages as Message["generatedImages"];
+							if (meta.mcpApps) message.mcpApps = meta.mcpApps as Message["mcpApps"];
 							if (meta.timestamp) message.timestamp = meta.timestamp as number;
 						} catch {
 							// Ignore parse errors for backward compatibility
@@ -747,8 +750,9 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 		// Skip plan check for CLI models
 		if (currentModel === "gemini-cli" || currentModel === "claude-cli" || currentModel === "codex-cli") return;
 		if (!isModelAllowedForPlan(apiPlan, currentModel)) {
-			setCurrentModel(DEFAULT_MODEL);
-			void plugin.selectModel(DEFAULT_MODEL);
+			const defaultModel = getDefaultModelForPlan(apiPlan);
+			setCurrentModel(defaultModel);
+			void plugin.selectModel(defaultModel);
 		}
 	}, [apiPlan, currentModel, plugin]);
 
@@ -1282,7 +1286,7 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 		// Set the current model (fallback if not allowed for plan)
 		const allowedModel = isModelAllowedForPlan(apiPlan, currentModel)
 			? currentModel
-			: DEFAULT_MODEL;
+			: getDefaultModelForPlan(apiPlan);
 		const supportsFunctionCalling = !allowedModel.toLowerCase().includes("gemma");
 		if (allowedModel !== currentModel) {
 			setCurrentModel(allowedModel);
@@ -1383,6 +1387,8 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 				// Track processed edits/deletes for message display
 				const processedEdits: PendingEditInfo[] = [];
 				const processedDeletes: PendingDeleteInfo[] = [];
+				// Track MCP Apps with UI for message display
+				const collectedMcpApps: McpAppInfo[] = [];
 				// Track pending additional request for edit feedback (use container to bypass TS narrowing)
 				const pendingAdditionalRequestRef: { current: { filePath: string; request: string } | null } = { current: null };
 
@@ -1391,7 +1397,16 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 					? async (name: string, args: Record<string, unknown>) => {
 						// MCP tools start with "mcp_"
 						if (name.startsWith("mcp_") && mcpToolExecutor) {
-							return await mcpToolExecutor.execute(name, args);
+							const mcpResult = await mcpToolExecutor.execute(name, args);
+							// Collect MCP App info if available
+							if (mcpResult.mcpApp) {
+								collectedMcpApps.push(mcpResult.mcpApp);
+							}
+							// Return result in expected format for compatibility
+							if (mcpResult.error) {
+								return { error: mcpResult.error };
+							}
+							return { result: mcpResult.result };
 						}
 						// Otherwise use Obsidian tool executor
 						if (obsidianToolExecutor) {
@@ -1741,6 +1756,7 @@ Always be helpful and provide clear, concise responses. When working with notes,
 					imageGenerationUsed: imageGenerationUsed || undefined,
 					generatedImages: generatedImages.length > 0 ? generatedImages : undefined,
 					thinking: thinkingContent || undefined,
+					mcpApps: collectedMcpApps.length > 0 ? collectedMcpApps : undefined,
 				};
 
 				const newMessages = [...messages, userMessage, assistantMessage];

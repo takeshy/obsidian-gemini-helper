@@ -374,15 +374,24 @@ export class WorkflowExecutor {
               : promptTemplate;
             log(node.id, node.type, `Executing LLM: ${promptPreview}`, "info");
 
+            const cmdResult = await handleCommandNode(node, context, this.app, this.plugin, promptCallbacks);
+
+            // Resolve actual RAG setting name
+            let actualRagSetting = node.properties["ragSetting"];
+            if (actualRagSetting === undefined) {
+              // Use current RAG setting from workspace state
+              actualRagSetting = this.plugin.workspaceState.selectedRagSetting || "(none)";
+            } else if (actualRagSetting === "") {
+              actualRagSetting = "(none)";
+            }
+
             const cmdInput: Record<string, unknown> = {
               prompt: promptTemplate,
-              model: node.properties["model"] || "(current)",
-              ragSetting: node.properties["ragSetting"] || "(current)",
+              model: cmdResult.usedModel,
+              ragSetting: actualRagSetting,
               vaultTools: node.properties["vaultTools"] || "all",
               mcpServers: node.properties["mcpServers"] || "(none)",
             };
-
-            const cmdMcpAppInfo = await handleCommandNode(node, context, this.app, this.plugin, promptCallbacks);
 
             const saveTo = node.properties["saveTo"];
             const cmdOutput = saveTo ? context.variables.get(saveTo) : undefined;
@@ -399,12 +408,12 @@ export class WorkflowExecutor {
                 "success",
                 cmdInput,
                 cmdOutput,
-                cmdMcpAppInfo
+                cmdResult.mcpAppInfo
               );
             } else {
-              log(node.id, node.type, `LLM completed`, "success", cmdInput, cmdOutput, cmdMcpAppInfo);
+              log(node.id, node.type, `LLM completed`, "success", cmdInput, cmdOutput, cmdResult.mcpAppInfo);
             }
-            addHistoryStep(node.id, node.type, cmdInput, cmdOutput, "success", undefined, cmdMcpAppInfo);
+            addHistoryStep(node.id, node.type, cmdInput, cmdOutput, "success", undefined, cmdResult.mcpAppInfo);
 
             // Push next nodes
             const cmdNextNodes = getNextNodes(workflow, node.id);

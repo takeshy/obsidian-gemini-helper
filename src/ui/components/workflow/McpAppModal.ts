@@ -149,7 +149,7 @@ export class McpAppModal extends Modal {
   }
 
   private renderIframe(container: HTMLElement, uiResource: McpAppUiResource) {
-    // Get the HTML content
+    // Get the HTML content (server-provided HTML should already contain SDK per MCP Apps spec)
     let html = uiResource.text || "";
 
     // If it's binary data, decode it
@@ -160,96 +160,6 @@ export class McpAppModal extends Modal {
         container.createEl("p", { text: "Error: failed to decode binary content" });
         return;
       }
-    }
-
-    // Inject the MCP Apps SDK bridge script
-    const bridgeScript = `
-<script>
-(function() {
-  // MCP Apps SDK Bridge
-  window.mcpApps = {
-    _pendingRequests: new Map(),
-    _requestId: 0,
-    _toolResult: null,
-
-    // Receive tool result from host
-    _handleToolResult: function(result) {
-      this._toolResult = result;
-      if (this.onToolResult) {
-        this.onToolResult(result);
-      }
-    },
-
-    // Call a tool on the MCP server
-    callTool: function(name, args) {
-      return new Promise((resolve, reject) => {
-        const id = ++this._requestId;
-        this._pendingRequests.set(id, { resolve, reject });
-
-        window.parent.postMessage({
-          jsonrpc: "2.0",
-          id: id,
-          method: "tools/call",
-          params: { name: name, arguments: args || {} }
-        }, "*");
-      });
-    },
-
-    // Update model context
-    updateContext: function(context) {
-      return new Promise((resolve, reject) => {
-        const id = ++this._requestId;
-        this._pendingRequests.set(id, { resolve, reject });
-
-        window.parent.postMessage({
-          jsonrpc: "2.0",
-          id: id,
-          method: "context/update",
-          params: context
-        }, "*");
-      });
-    },
-
-    // Get the initial tool result
-    getToolResult: function() {
-      return this._toolResult;
-    }
-  };
-
-  // Handle messages from host
-  window.addEventListener("message", function(event) {
-    var data = event.data;
-
-    // Handle tool result push
-    if (data.method === "toolResult") {
-      window.mcpApps._handleToolResult(data.params);
-      return;
-    }
-
-    // Handle JSON-RPC responses
-    if (data.jsonrpc === "2.0" && typeof data.id !== "undefined") {
-      var pending = window.mcpApps._pendingRequests.get(data.id);
-      if (pending) {
-        window.mcpApps._pendingRequests.delete(data.id);
-        if (data.error) {
-          pending.reject(new Error(data.error.message));
-        } else {
-          pending.resolve(data.result);
-        }
-      }
-    }
-  });
-})();
-</script>
-`;
-
-    // Inject bridge script before </head> or at the start of the HTML
-    if (html.includes("</head>")) {
-      html = html.replace("</head>", bridgeScript + "</head>");
-    } else if (html.includes("<body")) {
-      html = html.replace("<body", bridgeScript + "<body");
-    } else {
-      html = bridgeScript + html;
     }
 
     // Create iframe

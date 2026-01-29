@@ -241,25 +241,6 @@ export class McpClient {
   }
 
   /**
-   * Call a tool on the MCP server (returns text content only)
-   */
-  async callTool(toolName: string, args?: Record<string, unknown>): Promise<string> {
-    const result = await this.callToolRaw(toolName, args);
-
-    // Extract text content from the result (handle missing content)
-    const content = result?.content || [];
-    const textContents = content
-      .filter(c => c.type === "text" && c.text)
-      .map(c => c.text!);
-
-    if (result?.isError) {
-      throw new Error(`Tool execution failed: ${textContents.join("\n")}`);
-    }
-
-    return textContents.join("\n");
-  }
-
-  /**
    * Call a tool on the MCP server (returns full result with UI metadata)
    */
   async callToolRaw(toolName: string, args?: Record<string, unknown>): Promise<McpToolCallResult> {

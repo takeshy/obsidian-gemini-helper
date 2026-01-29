@@ -1,7 +1,15 @@
-import { Plugin, WorkspaceLeaf, Notice, MarkdownView, Platform, TFile, Modal, App } from "obsidian";
-import { StateField, StateEffect } from "@codemirror/state";
-import { Decoration, type DecorationSet, EditorView } from "@codemirror/view";
+import { Plugin, WorkspaceLeaf, Notice, MarkdownView, TFile, Modal, App } from "obsidian";
+import { EditorView } from "@codemirror/view";
+import { StateEffect } from "@codemirror/state";
 import { EventEmitter } from "src/utils/EventEmitter";
+import {
+  selectionHighlightField,
+  setSelectionHighlight,
+  type SelectionHighlightInfo,
+  type SelectionLocationInfo,
+} from "src/ui/selectionHighlight";
+import { matchFilePattern } from "src/utils/globMatcher";
+import { WorkspaceStateManager } from "src/core/workspaceStateManager";
 import { ChatView, VIEW_TYPE_GEMINI_CHAT } from "src/ui/ChatView";
 import { CryptView, CRYPT_VIEW_TYPE } from "src/ui/CryptView";
 import { SettingsTab } from "src/ui/SettingsTab";
@@ -16,10 +24,7 @@ import {
   type WorkflowEventTrigger,
   type McpAppInfo,
   DEFAULT_SETTINGS,
-  DEFAULT_WORKSPACE_STATE,
-  DEFAULT_RAG_SETTING,
   DEFAULT_RAG_STATE,
-  isModelAllowedForPlan,
   getDefaultModelForPlan,
 } from "src/types";
 import { initGeminiClient, resetGeminiClient, getGeminiClient } from "src/core/gemini";
@@ -53,63 +58,10 @@ import { initLocale, t } from "src/i18n";
 import { isEncryptedFile, encryptFileContent, decryptFileContent } from "src/core/crypto";
 import { cryptoCache } from "src/core/cryptoCache";
 
-const WORKSPACE_STATE_FILENAME = "gemini-workspace.json";
-const OLD_WORKSPACE_STATE_FILENAME = ".gemini-workspace.json";
-const OLD_RAG_STATE_FILENAME = ".gemini-rag-state.json";
-
-// Selection highlight decoration
-const selectionHighlightMark = Decoration.mark({ class: "gemini-helper-selection-highlight" });
-
-// StateEffect to set/clear the highlight range
-const setSelectionHighlight = StateEffect.define<{ from: number; to: number } | null>();
-
-// StateField to manage highlight decorations
-const selectionHighlightField = StateField.define<DecorationSet>({
-  create() {
-    return Decoration.none;
-  },
-  update(decorations, tr) {
-    // Map decorations through document changes
-    decorations = decorations.map(tr.changes);
-
-    for (const effect of tr.effects) {
-      if (effect.is(setSelectionHighlight)) {
-        if (effect.value === null) {
-          // Clear highlight
-          decorations = Decoration.none;
-        } else {
-          // Set new highlight
-          const { from, to } = effect.value;
-          decorations = Decoration.set([selectionHighlightMark.range(from, to)]);
-        }
-      }
-    }
-    return decorations;
-  },
-  provide: (field) => EditorView.decorations.from(field),
-});
-
-
-// Selection highlight info
-interface SelectionHighlightInfo {
-  view: MarkdownView;
-  from: number;
-  to: number;
-}
-
-// Selection location info (file path, line numbers, and character offsets)
-interface SelectionLocationInfo {
-  filePath: string;
-  startLine: number;
-  endLine: number;
-  start: number;  // Character offset from beginning of file
-  end: number;    // Character offset from beginning of file
-}
-
 export class GeminiHelperPlugin extends Plugin {
   settings: GeminiHelperSettings = { ...DEFAULT_SETTINGS };
-  workspaceState: WorkspaceState = { ...DEFAULT_WORKSPACE_STATE };
   settingsEmitter = new EventEmitter();
+  private wsManager!: WorkspaceStateManager;
   private lastSelection = "";
   private selectionHighlight: SelectionHighlightInfo | null = null;
   private selectionLocation: SelectionLocationInfo | null = null;
@@ -122,22 +74,53 @@ export class GeminiHelperPlugin extends Plugin {
   private modifyDebounceTimers = new Map<string, ReturnType<typeof setTimeout>>();
   private static readonly MODIFY_DEBOUNCE_MS = 5000; // 5 seconds debounce for modify events
 
+  // Delegate workspaceState to the manager
+  get workspaceState(): WorkspaceState {
+    return this.wsManager.workspaceState;
+  }
+  set workspaceState(value: WorkspaceState) {
+    this.wsManager.workspaceState = value;
+  }
+
   onload(): void {
     // Initialize i18n locale
     initLocale();
+
+    // Initialize workspace state manager
+    this.wsManager = new WorkspaceStateManager(
+      this.app,
+      () => this.settings,
+      () => this.saveSettings(),
+      this.settingsEmitter,
+      () => this.loadData()
+    );
+
+    // Handle migration data modified event
+    this.settingsEmitter.on("migration-data-modified", (data: unknown) => {
+      void (async () => {
+        await this.saveData(data);
+        await this.saveSettings();
+      })();
+    });
 
     // Load settings and workspace state
     void this.loadSettings().then(async () => {
       // Migrate from old settings format first (one-time)
       try {
-        await this.migrateFromOldSettings();
+        await this.wsManager.migrateFromOldSettings();
       } catch (e) {
         console.error("Gemini Helper: Failed to migrate old settings:", formatError(e));
       }
       try {
-        await this.loadWorkspaceState();
+        await this.wsManager.loadWorkspaceState();
       } catch (e) {
         console.error("Gemini Helper: Failed to load workspace state:", formatError(e));
+      }
+      // Migrate slash commands (add default commands if missing)
+      try {
+        await this.migrateSlashCommands();
+      } catch (e) {
+        console.error("Gemini Helper: Failed to migrate slash commands:", formatError(e));
       }
       // Initialize clients if API key is set or any CLI is verified
       try {
@@ -843,73 +826,6 @@ export class GeminiHelperPlugin extends Plugin {
   }
 
   /**
-   * Glob pattern matching for file paths.
-   * Supports: * (any characters except /), ** (any characters including /), ? (single char),
-   * {a,b,c} (brace expansion), [abc] (character class), [a-z] (character range), [!abc] (negated class)
-   */
-  private matchFilePattern(pattern: string, filePath: string): boolean {
-    // Handle brace expansion first: {a,b,c} -> (a|b|c)
-    // This needs to be done before regex escaping
-    const expandBraces = (p: string): string => {
-      const braceRegex = /\{([^{}]+)\}/g;
-      return p.replace(braceRegex, (_, content: string) => {
-        const alternatives = content.split(",").map((alt: string) => alt.trim());
-        return `(${alternatives.join("|")})`;
-      });
-    };
-
-    let regexPattern = expandBraces(pattern);
-
-    // Handle character classes [abc], [a-z], [!abc] before escaping
-    // Replace [!...] with [^...] for negation
-    regexPattern = regexPattern.replace(/\[!/g, "[^");
-
-    // Now escape regex special characters except *, ?, and character class brackets
-    // We need to be careful not to escape brackets that are part of character classes
-    const escapeRegexChars = (p: string): string => {
-      let result = "";
-      let inCharClass = false;
-      for (let i = 0; i < p.length; i++) {
-        const char = p[i];
-        if (char === "[" && !inCharClass) {
-          inCharClass = true;
-          result += char;
-        } else if (char === "]" && inCharClass) {
-          inCharClass = false;
-          result += char;
-        } else if (!inCharClass && ".+^${}()|\\".includes(char)) {
-          // Escape special regex chars (except * and ? which we handle separately)
-          // Note: {} are already processed by brace expansion, but we keep them in case of nested/unmatched
-          result += "\\" + char;
-        } else {
-          result += char;
-        }
-      }
-      return result;
-    };
-
-    regexPattern = escapeRegexChars(regexPattern);
-
-    // Convert ** to a placeholder first (before handling single *)
-    regexPattern = regexPattern.replace(/\*\*/g, "<<<DOUBLESTAR>>>");
-    // Convert * to match anything except /
-    regexPattern = regexPattern.replace(/\*/g, "[^/]*");
-    // Convert ? to match any single character (except /)
-    regexPattern = regexPattern.replace(/\?/g, "[^/]");
-    // Convert ** placeholder to match anything including /
-    regexPattern = regexPattern.replace(/<<<DOUBLESTAR>>>/g, ".*");
-
-    // Ensure the pattern matches the whole path
-    try {
-      const regex = new RegExp(`^${regexPattern}$`);
-      return regex.test(filePath);
-    } catch {
-      // Invalid regex pattern, return false
-      return false;
-    }
-  }
-
-  /**
    * Handle a workflow event trigger.
    * Includes event loop prevention and debouncing for modify events.
    */
@@ -969,7 +885,7 @@ export class GeminiHelperPlugin extends Plugin {
 
       // Check file pattern if specified
       if (trigger.filePattern) {
-        if (!this.matchFilePattern(trigger.filePattern, filePath)) {
+        if (!matchFilePattern(trigger.filePattern, filePath)) {
           return false;
         }
       }
@@ -1121,425 +1037,86 @@ export class GeminiHelperPlugin extends Plugin {
     }
   }
 
-  // Get the path to the workspace state file
-  private getWorkspaceStateFilePath(): string {
-    const folder = this.settings.workspaceFolder || "";
-    return folder ? `${folder}/${WORKSPACE_STATE_FILENAME}` : WORKSPACE_STATE_FILENAME;
+  // ========================================
+  // Workspace State Methods (delegated to WorkspaceStateManager)
+  // ========================================
+
+  getWorkspaceStateFilePath(): string {
+    return this.wsManager.getWorkspaceStateFilePath();
   }
 
-  // Get the path to the old RAG state file (for migration)
-  private getOldRagStateFilePath(): string {
-    const folder = this.settings.workspaceFolder || "";
-    return folder ? `${folder}/${OLD_RAG_STATE_FILENAME}` : OLD_RAG_STATE_FILENAME;
-  }
-
-  // Get old workspace state file path (for migration)
-  private getOldWorkspaceStateFilePath(): string {
-    const folder = this.settings.workspaceFolder || "";
-    return folder ? `${folder}/${OLD_WORKSPACE_STATE_FILENAME}` : OLD_WORKSPACE_STATE_FILENAME;
-  }
-
-  // Load workspace state from file
   async loadWorkspaceState(): Promise<void> {
-    this.workspaceState = { ...DEFAULT_WORKSPACE_STATE };
-
-    const filePath = this.getWorkspaceStateFilePath();
-
-    try {
-      let exists = await this.app.vault.adapter.exists(filePath);
-
-      // Migrate from old hidden file name if new file doesn't exist
-      if (!exists) {
-        const oldFilePath = this.getOldWorkspaceStateFilePath();
-        const oldExists = await this.app.vault.adapter.exists(oldFilePath);
-        if (oldExists) {
-          const content = await this.app.vault.adapter.read(oldFilePath);
-          await this.app.vault.adapter.write(filePath, content);
-          await this.app.vault.adapter.remove(oldFilePath);
-          exists = true;
-        }
-      }
-
-      if (exists) {
-        const content = await this.app.vault.adapter.read(filePath);
-        const loaded = JSON.parse(content) as Partial<WorkspaceState>;
-        this.workspaceState = { ...DEFAULT_WORKSPACE_STATE, ...loaded };
-
-        // Ensure each RAG setting has all required fields (migration for new fields)
-        for (const [settingName, setting] of Object.entries(this.workspaceState.ragSettings)) {
-          this.workspaceState.ragSettings[settingName] = {
-            ...DEFAULT_RAG_SETTING,
-            ...setting,
-          };
-        }
-
-        // Sync FileSearchManager with selected RAG setting's store ID
-        this.syncFileSearchManagerWithSelectedRag();
-      } else {
-        // Check for old RAG state file and migrate
-        await this.migrateOldRagStateFile();
-      }
-    } catch (error) {
-      // Log error for debugging
-      console.error("Gemini Helper: Failed to load workspace state:", formatError(error));
-    }
+    return this.wsManager.loadWorkspaceState();
   }
 
-  // Migrate old .gemini-rag-state.json to new format
-  private async migrateOldRagStateFile(): Promise<void> {
-    const oldFilePath = this.getOldRagStateFilePath();
-
-    try {
-      const exists = await this.app.vault.adapter.exists(oldFilePath);
-      if (!exists) return;
-
-      const content = await this.app.vault.adapter.read(oldFilePath);
-      const oldState = JSON.parse(content) as Partial<RagState>;
-
-      // Convert old format to new RagSetting
-      // Detect external store: has storeId but no storeName
-      const isExternal = !!(oldState.storeId && !oldState.storeName);
-      const ragSetting: RagSetting = {
-        storeId: isExternal ? null : (oldState.storeId || null),
-        storeIds: isExternal && oldState.storeId ? [oldState.storeId] : [],
-        storeName: oldState.storeName || null,
-        isExternal,
-        targetFolders: oldState.includeFolders || [],
-        excludePatterns: oldState.excludePatterns || [],
-        files: oldState.files || {},
-        lastFullSync: oldState.lastFullSync || null,
-      };
-
-      // Create default name based on store name or "default"
-      const settingName = oldState.storeName || "default";
-
-      this.workspaceState = {
-        selectedRagSetting: settingName,
-        selectedModel: null,
-        ragSettings: {
-          [settingName]: ragSetting,
-        },
-      };
-
-      // Save new format
-      await this.saveWorkspaceState();
-
-      // Delete old file
-      await this.app.vault.adapter.remove(oldFilePath);
-
-      // Sync FileSearchManager
-      this.syncFileSearchManagerWithSelectedRag();
-    } catch (error) {
-      // Log error for debugging
-      console.error("Gemini Helper: Migration from old RAG state file failed:", formatError(error));
-    }
-  }
-
-  // Sync FileSearchManager with currently selected RAG setting
-  private syncFileSearchManagerWithSelectedRag(): void {
-    const fileSearchManager = getFileSearchManager();
-    const selectedRag = this.getSelectedRagSetting();
-
-    if (!fileSearchManager) return;
-
-    if (selectedRag?.storeId) {
-      fileSearchManager.setStoreName(selectedRag.storeId);
-    } else {
-      fileSearchManager.setStoreName(null);
-    }
-  }
-
-  // Load workspace state, create file if not exists
   async loadOrCreateWorkspaceState(): Promise<void> {
-    await this.loadWorkspaceState();
-
-    const filePath = this.getWorkspaceStateFilePath();
-    const exists = await this.app.vault.adapter.exists(filePath);
-    if (!exists) {
-      await this.saveWorkspaceState();
-    }
+    return this.wsManager.loadOrCreateWorkspaceState();
   }
 
-  // Save workspace state to file
   async saveWorkspaceState(): Promise<void> {
-    const filePath = this.getWorkspaceStateFilePath();
-    const content = JSON.stringify(this.workspaceState, null, 2);
-
-    // Ensure folder exists
-    const folder = this.settings.workspaceFolder;
-    if (folder) {
-      const folderExists = await this.app.vault.adapter.exists(folder);
-      if (!folderExists) {
-        await this.app.vault.createFolder(folder);
-      }
-    }
-
-    await this.app.vault.adapter.write(filePath, content);
+    return this.wsManager.saveWorkspaceState();
   }
 
-  // Change workspace folder and migrate state file
   async changeWorkspaceFolder(newFolder: string): Promise<void> {
-    const oldFolder = this.settings.workspaceFolder;
-
-    // If same folder, do nothing
-    if (oldFolder === newFolder) return;
-
-    const oldFilePath = this.getWorkspaceStateFilePath();
-
-    // Update settings first
+    // Update settings first (manager expects this)
     this.settings.workspaceFolder = newFolder;
-    await this.saveSettings();
-
-    // Check if new folder already has a state file
-    const newFilePath = this.getWorkspaceStateFilePath();
-    const newFileExists = await this.app.vault.adapter.exists(newFilePath);
-
-    if (newFileExists) {
-      // Load existing state from new folder
-      await this.loadWorkspaceState();
-    } else {
-      // Copy state to new folder
-      try {
-        const oldFileExists = await this.app.vault.adapter.exists(oldFilePath);
-        if (oldFileExists) {
-          const content = await this.app.vault.adapter.read(oldFilePath);
-
-          // Ensure new folder exists
-          if (newFolder) {
-            const folderExists = await this.app.vault.adapter.exists(newFolder);
-            if (!folderExists) {
-              await this.app.vault.createFolder(newFolder);
-            }
-          }
-
-          // Write to new location
-          await this.app.vault.adapter.write(newFilePath, content);
-        } else {
-          // No old file, save current state to new location
-          await this.saveWorkspaceState();
-        }
-      } catch {
-        // Failed to copy, just save current state
-        await this.saveWorkspaceState();
-      }
-    }
-
-    // Sync FileSearchManager with selected RAG
-    this.syncFileSearchManagerWithSelectedRag();
-
-    // Emit event
-    this.settingsEmitter.emit("workspace-state-loaded", this.workspaceState);
+    return this.wsManager.changeWorkspaceFolder(newFolder);
   }
 
-  // Get currently selected RAG setting
   getSelectedRagSetting(): RagSetting | null {
-    const name = this.workspaceState.selectedRagSetting;
-    if (!name) return null;
-    return this.workspaceState.ragSettings[name] || null;
+    return this.wsManager.getSelectedRagSetting();
   }
 
-  // Get RAG setting by name
   getRagSetting(name: string): RagSetting | null {
-    return this.workspaceState.ragSettings[name] || null;
+    return this.wsManager.getRagSetting(name);
   }
 
-  // Get all RAG setting names
   getRagSettingNames(): string[] {
-    return Object.keys(this.workspaceState.ragSettings);
+    return this.wsManager.getRagSettingNames();
   }
 
-  // Select a RAG setting
   async selectRagSetting(name: string | null): Promise<void> {
-    this.workspaceState.selectedRagSetting = name;
-    await this.saveWorkspaceState();
-    this.syncFileSearchManagerWithSelectedRag();
-    this.settingsEmitter.emit("rag-setting-changed", name);
+    return this.wsManager.selectRagSetting(name);
   }
 
-  // Select a model
   async selectModel(model: ModelType): Promise<void> {
-    this.workspaceState.selectedModel = model;
-    await this.saveWorkspaceState();
+    return this.wsManager.selectModel(model);
   }
 
-  // Get selected model
   getSelectedModel(): ModelType {
-    const defaultModel = getDefaultModelForPlan(this.settings.apiPlan);
-    const selected = this.workspaceState.selectedModel || defaultModel;
-
-    // CLI models are only allowed on desktop if verified
-    const cliConfig = this.settings.cliConfig;
-    if (selected === "gemini-cli") {
-      if (Platform.isMobile || !cliConfig?.cliVerified) {
-        return defaultModel;
-      }
-      return selected;
-    }
-    if (selected === "claude-cli") {
-      if (Platform.isMobile || !cliConfig?.claudeCliVerified) {
-        return defaultModel;
-      }
-      return selected;
-    }
-    if (selected === "codex-cli") {
-      if (Platform.isMobile || !cliConfig?.codexCliVerified) {
-        return defaultModel;
-      }
-      return selected;
-    }
-
-    return isModelAllowedForPlan(this.settings.apiPlan, selected)
-      ? selected
-      : defaultModel;
+    return this.wsManager.getSelectedModel();
   }
 
-  // Create a new RAG setting
   async createRagSetting(name: string, setting?: Partial<RagSetting>): Promise<void> {
-    if (this.workspaceState.ragSettings[name]) {
-      throw new Error(`Semantic search setting "${name}" already exists`);
-    }
-
-    this.workspaceState.ragSettings[name] = {
-      ...DEFAULT_RAG_SETTING,
-      ...setting,
-    };
-
-    await this.saveWorkspaceState();
-    this.settingsEmitter.emit("workspace-state-loaded", this.workspaceState);
+    return this.wsManager.createRagSetting(name, setting);
   }
 
-  // Update a RAG setting
   async updateRagSetting(name: string, updates: Partial<RagSetting>): Promise<void> {
-    const existing = this.workspaceState.ragSettings[name];
-    if (!existing) {
-      throw new Error(`Semantic search setting "${name}" not found`);
-    }
-
-    this.workspaceState.ragSettings[name] = {
-      ...existing,
-      ...updates,
-    };
-
-    await this.saveWorkspaceState();
-
-    // If this is the selected setting, sync FileSearchManager
-    if (name === this.workspaceState.selectedRagSetting) {
-      this.syncFileSearchManagerWithSelectedRag();
-    }
+    return this.wsManager.updateRagSetting(name, updates);
   }
 
-  // Delete a RAG setting
   async deleteRagSetting(name: string): Promise<void> {
-    if (!this.workspaceState.ragSettings[name]) {
-      return;
-    }
-
-    delete this.workspaceState.ragSettings[name];
-
-    // If this was the selected setting, clear selection
-    if (this.workspaceState.selectedRagSetting === name) {
-      this.workspaceState.selectedRagSetting = null;
-    }
-
-    await this.saveWorkspaceState();
-    this.settingsEmitter.emit("workspace-state-loaded", this.workspaceState);
+    return this.wsManager.deleteRagSetting(name);
   }
 
-  // Rename a RAG setting
   async renameRagSetting(oldName: string, newName: string): Promise<void> {
-    if (!this.workspaceState.ragSettings[oldName]) {
-      throw new Error(`Semantic search setting "${oldName}" not found`);
-    }
-    if (this.workspaceState.ragSettings[newName]) {
-      throw new Error(`Semantic search setting "${newName}" already exists`);
-    }
-
-    this.workspaceState.ragSettings[newName] = this.workspaceState.ragSettings[oldName];
-    delete this.workspaceState.ragSettings[oldName];
-
-    // Update selection if needed
-    if (this.workspaceState.selectedRagSetting === oldName) {
-      this.workspaceState.selectedRagSetting = newName;
-    }
-
-    await this.saveWorkspaceState();
-    this.settingsEmitter.emit("workspace-state-loaded", this.workspaceState);
+    return this.wsManager.renameRagSetting(oldName, newName);
   }
 
-  // Reset sync state for a RAG setting
   async resetRagSettingSyncState(name: string): Promise<void> {
-    const setting = this.workspaceState.ragSettings[name];
-    if (!setting) {
-      throw new Error(`Semantic search setting "${name}" not found`);
-    }
-
-    this.workspaceState.ragSettings[name] = {
-      ...setting,
-      files: {},
-      lastFullSync: null,
-    };
-
-    await this.saveWorkspaceState();
-    new Notice("Sync state has been reset. Next sync will re-upload all files.");
+    return this.wsManager.resetRagSettingSyncState(name);
   }
 
-  // Migrate from old settings format
-  private async migrateFromOldSettings(): Promise<void> {
-    const data = await this.loadData();
-    if (!data) return;
+  getVaultStoreName(): string {
+    return this.wsManager.getVaultStoreName();
+  }
 
-    let needsSave = false;
+  private syncFileSearchManagerWithSelectedRag(): void {
+    this.wsManager.syncFileSearchManagerWithSelectedRag();
+  }
 
-    // Migrate chatsFolder to workspaceFolder
-    if (data.chatsFolder !== undefined && data.workspaceFolder === undefined) {
-      data.workspaceFolder = data.chatsFolder;
-      delete data.chatsFolder;
-      this.settings.workspaceFolder = data.workspaceFolder as string;
-      needsSave = true;
-    }
-
-    // Check for old RAG format fields in settings (very old format)
-    const oldStoreId = data.ragStoreId as string | null | undefined;
-    const oldSyncState = data.ragSyncState as { files?: Record<string, unknown>; lastFullSync?: number | null } | undefined;
-    const oldIncludeFolders = data.ragIncludeFolders as string[] | undefined;
-    const oldExcludePatterns = data.ragExcludePatterns as string[] | undefined;
-
-    if (oldStoreId || (oldSyncState && Object.keys(oldSyncState.files || {}).length > 0) || oldIncludeFolders || oldExcludePatterns) {
-      // Migrate to new workspace state format
-      const ragSetting: RagSetting = {
-        storeId: oldStoreId || null,
-        storeIds: [],
-        storeName: null,
-        isExternal: false,
-        targetFolders: oldIncludeFolders || [],
-        excludePatterns: oldExcludePatterns || [],
-        files: (oldSyncState?.files || {}) as RagSetting["files"],
-        lastFullSync: oldSyncState?.lastFullSync || null,
-      };
-
-      this.workspaceState = {
-        selectedRagSetting: "default",
-        selectedModel: null,
-        ragSettings: {
-          default: ragSetting,
-        },
-      };
-
-      // Save to new state file
-      await this.saveWorkspaceState();
-
-      // Remove old fields from settings
-      delete data.ragStoreId;
-      delete data.ragSyncState;
-      delete data.ragAutoSync;
-      delete data.ragIncludeFolders;
-      delete data.ragExcludePatterns;
-      needsSave = true;
-
-      // Sync FileSearchManager
-      this.syncFileSearchManagerWithSelectedRag();
-    }
-
+  // Migrate from old settings format (plugin-specific parts)
+  private async migrateSlashCommands(): Promise<void> {
     // Add default infographic command if not present
     const hasInfographicCommand = this.settings.slashCommands.some(
       (cmd) => cmd.name === "infographic"
@@ -1553,19 +1130,8 @@ export class GeminiHelperPlugin extends Plugin {
         description: "Generate HTML infographic from selection or active note",
         searchSetting: null,
       });
-      needsSave = true;
-    }
-
-    if (needsSave) {
-      await this.saveData(data);
       await this.saveSettings();
     }
-  }
-
-  // Get vault name for store naming
-  getVaultStoreName(): string {
-    const vaultName = this.app.vault.getName();
-    return `obsidian-${vaultName}`;
   }
 
   private initializeClients() {

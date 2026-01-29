@@ -6,6 +6,7 @@ export interface EventMap {
   "chat-activated": [];
   "file-restored": [path: string];
   "execution-history-saved": [workflowPath: string];
+  "migration-data-modified": [data: unknown];
 }
 
 type EventName = keyof EventMap;

@@ -98,8 +98,12 @@ export class GeminiHelperPlugin extends Plugin {
     // Handle migration data modified event
     this.settingsEmitter.on("migration-data-modified", (data: unknown) => {
       void (async () => {
+        // Update in-memory settings from migrated data before saving
+        const migratedData = data as Record<string, unknown>;
+        if (migratedData.workspaceFolder !== undefined) {
+          this.settings.workspaceFolder = migratedData.workspaceFolder as string;
+        }
         await this.saveData(data);
-        await this.saveSettings();
       })();
     });
 
@@ -1058,9 +1062,11 @@ export class GeminiHelperPlugin extends Plugin {
   }
 
   async changeWorkspaceFolder(newFolder: string): Promise<void> {
-    // Update settings first (manager expects this)
+    // Manager handles migration, then we update settings
+    await this.wsManager.changeWorkspaceFolder(newFolder);
+    // Update settings after manager completes migration
     this.settings.workspaceFolder = newFolder;
-    return this.wsManager.changeWorkspaceFolder(newFolder);
+    await this.saveSettings();
   }
 
   getSelectedRagSetting(): RagSetting | null {

@@ -74,17 +74,7 @@ export class WorkspaceStateManager {
       }
 
       if (exists) {
-        const content = await this.app.vault.adapter.read(filePath);
-        const loaded = JSON.parse(content) as Partial<WorkspaceState>;
-        this.workspaceState = { ...DEFAULT_WORKSPACE_STATE, ...loaded };
-
-        // Ensure each RAG setting has all required fields (migration for new fields)
-        for (const [settingName, setting] of Object.entries(this.workspaceState.ragSettings)) {
-          this.workspaceState.ragSettings[settingName] = {
-            ...DEFAULT_RAG_SETTING,
-            ...setting,
-          };
-        }
+        await this.loadWorkspaceStateFromPath(filePath);
 
         // Sync FileSearchManager with selected RAG setting's store ID
         this.syncFileSearchManagerWithSelectedRag();
@@ -95,6 +85,20 @@ export class WorkspaceStateManager {
     } catch (error) {
       // Log error for debugging
       console.error("Gemini Helper: Failed to load workspace state:", formatError(error));
+    }
+  }
+
+  private async loadWorkspaceStateFromPath(filePath: string): Promise<void> {
+    const content = await this.app.vault.adapter.read(filePath);
+    const loaded = JSON.parse(content) as Partial<WorkspaceState>;
+    this.workspaceState = { ...DEFAULT_WORKSPACE_STATE, ...loaded };
+
+    // Ensure each RAG setting has all required fields (migration for new fields)
+    for (const [settingName, setting] of Object.entries(this.workspaceState.ragSettings)) {
+      this.workspaceState.ragSettings[settingName] = {
+        ...DEFAULT_RAG_SETTING,
+        ...setting,
+      };
     }
   }
 
@@ -197,26 +201,34 @@ export class WorkspaceStateManager {
     // If same folder, do nothing
     if (oldFolder === newFolder) return;
 
-    const oldFilePath = this.getWorkspaceStateFilePath();
-
-    // Update settings first (this modifies settings externally)
-    // Note: The caller must update settings.workspaceFolder before calling this
-    await this.saveSettingsCallback();
+    // Compute paths explicitly (don't rely on settings which hasn't changed yet)
+    const oldFilePath = oldFolder
+      ? `${oldFolder}/${WORKSPACE_STATE_FILENAME}`
+      : WORKSPACE_STATE_FILENAME;
+    const newFilePath = newFolder
+      ? `${newFolder}/${WORKSPACE_STATE_FILENAME}`
+      : WORKSPACE_STATE_FILENAME;
+    const newOldFilePath = newFolder
+      ? `${newFolder}/${OLD_WORKSPACE_STATE_FILENAME}`
+      : OLD_WORKSPACE_STATE_FILENAME;
 
     // Check if new folder already has a state file
-    const newFilePath = this.getWorkspaceStateFilePath();
     const newFileExists = await this.app.vault.adapter.exists(newFilePath);
 
     if (newFileExists) {
       // Load existing state from new folder
-      await this.loadWorkspaceState();
-    } else {
-      // Copy state to new folder
       try {
-        const oldFileExists = await this.app.vault.adapter.exists(oldFilePath);
-        if (oldFileExists) {
-          const content = await this.app.vault.adapter.read(oldFilePath);
-
+        await this.loadWorkspaceStateFromPath(newFilePath);
+      } catch {
+        // Failed to load, keep current state
+      }
+    } else {
+      // Migrate from old hidden file name if present in new folder
+      let migratedFromLegacy = false;
+      const newOldFileExists = await this.app.vault.adapter.exists(newOldFilePath);
+      if (newOldFileExists) {
+        try {
+          const content = await this.app.vault.adapter.read(newOldFilePath);
           // Ensure new folder exists
           if (newFolder) {
             const folderExists = await this.app.vault.adapter.exists(newFolder);
@@ -224,16 +236,60 @@ export class WorkspaceStateManager {
               await this.app.vault.createFolder(newFolder);
             }
           }
-
-          // Write to new location
           await this.app.vault.adapter.write(newFilePath, content);
-        } else {
-          // No old file, save current state to new location
-          await this.saveWorkspaceState();
+          await this.app.vault.adapter.remove(newOldFilePath);
+          await this.loadWorkspaceStateFromPath(newFilePath);
+          migratedFromLegacy = true;
+        } catch {
+          // Failed to migrate, continue with copy/save
         }
-      } catch {
-        // Failed to copy, just save current state
-        await this.saveWorkspaceState();
+      }
+
+      // Copy state to new folder (skip if already migrated from legacy file)
+      if (!migratedFromLegacy) {
+        try {
+          const oldFileExists = await this.app.vault.adapter.exists(oldFilePath);
+          if (oldFileExists) {
+            const content = await this.app.vault.adapter.read(oldFilePath);
+
+            // Ensure new folder exists
+            if (newFolder) {
+              const folderExists = await this.app.vault.adapter.exists(newFolder);
+              if (!folderExists) {
+                await this.app.vault.createFolder(newFolder);
+              }
+            }
+
+            // Write to new location
+            await this.app.vault.adapter.write(newFilePath, content);
+            await this.loadWorkspaceStateFromPath(newFilePath);
+          } else {
+            // No old file, save current state to new location
+            // Ensure new folder exists
+            if (newFolder) {
+              const folderExists = await this.app.vault.adapter.exists(newFolder);
+              if (!folderExists) {
+                await this.app.vault.createFolder(newFolder);
+              }
+            }
+            const stateContent = JSON.stringify(this.workspaceState, null, 2);
+            await this.app.vault.adapter.write(newFilePath, stateContent);
+          }
+        } catch {
+          // Failed to copy, save current state to new location
+          try {
+            if (newFolder) {
+              const folderExists = await this.app.vault.adapter.exists(newFolder);
+              if (!folderExists) {
+                await this.app.vault.createFolder(newFolder);
+              }
+            }
+            const stateContent = JSON.stringify(this.workspaceState, null, 2);
+            await this.app.vault.adapter.write(newFilePath, stateContent);
+          } catch {
+            // Failed to save, continue anyway
+          }
+        }
       }
     }
 

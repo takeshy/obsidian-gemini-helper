@@ -214,6 +214,7 @@ export const ko: Record<string, string> = {
   "chat.errorOccurred": "죄송합니다, 오류가 발생했습니다: {{message}}",
   "chat.unknownError": "알 수 없는 오류",
   "chat.generationStopped": "_(생성 중지됨)_",
+  "chat.generationInProgress": "AI가 생성 중입니다. 중지한 다음 계속해 주세요.",
   "chat.yesterday": "어제",
 
   // InputArea

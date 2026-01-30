@@ -1004,30 +1004,30 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 		}
 
 		// Optionally change search setting (null = keep current, "" = None, "__websearch__" = Web Search, other = RAG setting name)
-			const supportsFunctionCalling = !nextModel.toLowerCase().includes("gemma");
-			if (!supportsFunctionCalling && selectedRagSetting !== null) {
-				handleRagSettingChange(null);
-			}
-			if (allowWebSearch && supportsFunctionCalling && command.searchSetting !== null && command.searchSetting !== undefined) {
-				const newSetting = command.searchSetting === "" ? null : command.searchSetting;
-				handleRagSettingChange(newSetting);
-			}
+		const supportsFunctionCalling = !nextModel.toLowerCase().includes("gemma");
+		if (!supportsFunctionCalling && selectedRagSetting !== null) {
+			handleRagSettingChange(null);
+		}
+		if (allowWebSearch && supportsFunctionCalling && command.searchSetting !== null && command.searchSetting !== undefined) {
+			const newSetting = command.searchSetting === "" ? null : command.searchSetting;
+			handleRagSettingChange(newSetting);
+		}
 
-			// Optionally change vault tool mode (null = keep current)
-			// Slash commands are input helpers, so vaultToolMode="none" uses "manual" reason (MCP unchanged)
-			if (command.vaultToolMode !== null && command.vaultToolMode !== undefined) {
-				setVaultToolMode(command.vaultToolMode);
-				setVaultToolNoneReason(command.vaultToolMode === "none" ? "manual" : null);
-			}
+		// Optionally change vault tool mode (null = keep current)
+		// Slash commands are input helpers, so vaultToolMode="none" uses "manual" reason (MCP unchanged)
+		if (command.vaultToolMode !== null && command.vaultToolMode !== undefined) {
+			setVaultToolMode(command.vaultToolMode);
+			setVaultToolNoneReason(command.vaultToolMode === "none" ? "manual" : null);
+		}
 
-			// Optionally change MCP server enabled state (null = keep current)
-			if (command.enabledMcpServers !== null && command.enabledMcpServers !== undefined) {
-				const enabledSet = new Set(command.enabledMcpServers);
-				setMcpServers(servers => servers.map(s => ({
-					...s,
-					enabled: enabledSet.has(s.name)
-				})));
-			}
+		// Optionally change MCP server enabled state (null = keep current)
+		if (command.enabledMcpServers !== null && command.enabledMcpServers !== undefined) {
+			const enabledSet = new Set(command.enabledMcpServers);
+			setMcpServers(servers => servers.map(s => ({
+				...s,
+				enabled: enabledSet.has(s.name)
+			})));
+		}
 
 		// Return template as-is, variables will be resolved on send
 		return command.promptTemplate;
@@ -1035,6 +1035,10 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 
 	// Start new chat
 	const startNewChat = () => {
+		if (isLoading) {
+			new Notice(t("chat.generationInProgress"));
+			return;
+		}
 		setMessages([]);
 		setCurrentChatId(null);
 		setCliSession(null);  // Clear CLI session
@@ -1050,6 +1054,10 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 
 	// Decrypt and load encrypted chat
 	const decryptAndLoadChat = async (chatId: string, password: string) => {
+		if (isLoading) {
+			new Notice(t("chat.generationInProgress"));
+			return;
+		}
 		try {
 			const filePath = getChatFilePath(chatId);
 			const file = plugin.app.vault.getAbstractFileByPath(filePath);
@@ -1078,6 +1086,8 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 			setMessages(parsed.messages);
 			setCurrentChatId(chatId);
 			setCliSession(parsed.cliSession || null);
+			setStreamingContent("");
+			setStreamingThinking("");
 			setDecryptingChatId(null);
 			setDecryptPassword("");
 			setShowHistory(false);
@@ -1090,6 +1100,10 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 
 	// Load a chat from history
 	const loadChat = (history: ChatHistory) => {
+		if (isLoading) {
+			new Notice(t("chat.generationInProgress"));
+			return;
+		}
 		if (history.isEncrypted) {
 			// If password is cached, try to decrypt automatically
 			const cachedPassword = cryptoCache.getPassword();
@@ -1105,12 +1119,18 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 		setMessages(history.messages);
 		setCurrentChatId(history.id);
 		setCliSession(history.cliSession || null);  // Restore CLI session
+		setStreamingContent("");
+		setStreamingThinking("");
 		setShowHistory(false);
 	};
 
 	// Delete a chat from history
 	const deleteChat = async (chatId: string, e: React.MouseEvent) => {
 		e.stopPropagation();
+		if (isLoading) {
+			new Notice(t("chat.generationInProgress"));
+			return;
+		}
 
 		// Delete the Markdown file
 		const filePath = getChatFilePath(chatId);
@@ -1248,7 +1268,6 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 
 			const newMessages = [...messages, userMessage, assistantMessage];
 			setMessages(newMessages);
-
 			// Save chat history (with session info)
 			await saveCurrentChat(newMessages, newSession || undefined);
 		} catch (error) {
@@ -1672,60 +1691,60 @@ Always be helpful and provide clear, concise responses. When working with notes,
 						break;
 					}
 
-					switch (chunk.type) {
-						case "text":
-							fullContent += chunk.content || "";
-							setStreamingContent(fullContent);
-							break;
+				switch (chunk.type) {
+					case "text":
+						fullContent += chunk.content || "";
+						setStreamingContent(fullContent);
+						break;
 
-						case "thinking":
-							thinkingContent += chunk.content || "";
-							// thinkingは別stateで管理（折りたたみ表示用）
-							setStreamingThinking(thinkingContent);
-							break;
+					case "thinking":
+						thinkingContent += chunk.content || "";
+						// thinkingは別stateで管理（折りたたみ表示用）
+						setStreamingThinking(thinkingContent);
+						break;
 
-						case "tool_call":
-							if (chunk.toolCall) {
-								toolCalls.push(chunk.toolCall);
-								// ツール名を記録（重複なし）
-								if (!toolsUsed.includes(chunk.toolCall.name)) {
-									toolsUsed.push(chunk.toolCall.name);
-								}
+					case "tool_call":
+						if (chunk.toolCall) {
+							toolCalls.push(chunk.toolCall);
+							// ツール名を記録（重複なし）
+							if (!toolsUsed.includes(chunk.toolCall.name)) {
+								toolsUsed.push(chunk.toolCall.name);
 							}
-							break;
+						}
+						break;
 
-						case "tool_result":
-							if (chunk.toolResult) {
-								toolResults.push(chunk.toolResult);
-							}
-							break;
+					case "tool_result":
+						if (chunk.toolResult) {
+							toolResults.push(chunk.toolResult);
+						}
+						break;
 
-						case "rag_used":
-							ragUsed = true;
-							if (chunk.ragSources) {
-								ragSources = chunk.ragSources;
-							}
-							break;
+					case "rag_used":
+						ragUsed = true;
+						if (chunk.ragSources) {
+							ragSources = chunk.ragSources;
+						}
+						break;
 
-						case "web_search_used":
-							webSearchUsed = true;
-							break;
+					case "web_search_used":
+						webSearchUsed = true;
+						break;
 
-						case "image_generated":
-							imageGenerationUsed = true;
-							if (chunk.generatedImage) {
-								generatedImages.push(chunk.generatedImage);
-							}
-							break;
+					case "image_generated":
+						imageGenerationUsed = true;
+						if (chunk.generatedImage) {
+							generatedImages.push(chunk.generatedImage);
+						}
+						break;
 
-						case "error":
-							throw new Error(chunk.error || "Unknown error");
+					case "error":
+						throw new Error(chunk.error || "Unknown error");
 
-						case "done":
-							// Finalize the message
-							break;
-					}
+					case "done":
+						// Finalize the message
+						break;
 				}
+			}
 
 				// If stopped, add partial message if any content was received
 				if (stopped && fullContent) {
@@ -1826,6 +1845,10 @@ Always be helpful and provide clear, concise responses. When working with notes,
 		if (abortControllerRef.current) {
 			abortControllerRef.current.abort();
 		}
+		// Always reset loading state to ensure user can continue
+		// even if abort signal is not properly handled by the stream
+		setIsLoading(false);
+		abortControllerRef.current = null;
 	};
 
 	// Handle apply edit button click

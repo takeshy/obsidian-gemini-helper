@@ -214,6 +214,7 @@ export const ja: Record<string, string> = {
   "chat.errorOccurred": "エラーが発生しました: {{message}}",
   "chat.unknownError": "不明なエラー",
   "chat.generationStopped": "_(生成が停止されました)_",
+  "chat.generationInProgress": "生成中のため操作できません。停止してから続行してください。",
   "chat.yesterday": "昨日",
 
   // InputArea

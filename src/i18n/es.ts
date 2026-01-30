@@ -214,6 +214,7 @@ export const es: Record<string, string> = {
   "chat.errorOccurred": "Lo siento, ocurrió un error: {{message}}",
   "chat.unknownError": "Error desconocido",
   "chat.generationStopped": "_(Generación detenida)_",
+  "chat.generationInProgress": "La IA está generando. Deténla antes de continuar.",
   "chat.yesterday": "Ayer",
 
   // InputArea

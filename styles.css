@@ -1548,6 +1548,18 @@
   flex-direction: column;
 }
 
+.gemini-helper-tab-panel {
+  display: none;
+  height: 100%;
+}
+
+.gemini-helper-tab-panel.is-active {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+}
+
 /* ===============================================
    Workflow Sidebar Styles (from visualflow)
    =============================================== */

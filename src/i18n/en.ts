@@ -214,6 +214,7 @@ export const en = {
   "chat.errorOccurred": "Sorry, an error occurred: {{message}}",
   "chat.unknownError": "Unknown error",
   "chat.generationStopped": "_(generation stopped)_",
+  "chat.generationInProgress": "AI is generating. Please stop it before continuing.",
   "chat.yesterday": "Yesterday",
 
   // InputArea

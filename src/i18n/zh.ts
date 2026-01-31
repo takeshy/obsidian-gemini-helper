@@ -214,6 +214,7 @@ export const zh: Record<string, string> = {
   "chat.errorOccurred": "抱歉，发生错误：{{message}}",
   "chat.unknownError": "未知错误",
   "chat.generationStopped": "_（生成已停止）_",
+  "chat.generationInProgress": "AI 正在生成。请先停止再继续。",
   "chat.yesterday": "昨天",
 
   // InputArea

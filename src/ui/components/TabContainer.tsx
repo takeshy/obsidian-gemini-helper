@@ -42,8 +42,12 @@ const TabContainer = forwardRef<TabContainerRef, TabContainerProps>(
           </button>
         </div>
         <div className="gemini-helper-tab-content">
-          {activeTab === "chat" && <Chat ref={chatRef} plugin={plugin} />}
-          {activeTab === "workflow" && <WorkflowPanel plugin={plugin} />}
+          <div className={`gemini-helper-tab-panel ${activeTab === "chat" ? "is-active" : ""}`}>
+            <Chat ref={chatRef} plugin={plugin} />
+          </div>
+          <div className={`gemini-helper-tab-panel ${activeTab === "workflow" ? "is-active" : ""}`}>
+            <WorkflowPanel plugin={plugin} />
+          </div>
         </div>
       </div>
     );

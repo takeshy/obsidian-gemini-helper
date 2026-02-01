@@ -750,4 +750,42 @@ export const es: Record<string, string> = {
   "mcpApp.collapse": "Contraer",
   "mcpApp.error": "Error de MCP App",
   "mcpApp.decodeError": "No se pudo decodificar el contenido binario",
+
+  // MCP Server Settings
+  "settings.mcpServers": "Servidores MCP",
+  "settings.mcpServers.desc": "Configurar servidores MCP externos (Model Context Protocol) para herramientas adicionales",
+  "settings.mcpServersIntro": "Los servidores MCP proporcionan herramientas adicionales. Añade servidores para habilitar sus herramientas.",
+  "settings.addMcpServer": "Añadir servidor",
+  "settings.mcpServerName": "Nombre del servidor",
+  "settings.mcpServerName.placeholder": "Mi servidor MCP",
+  "settings.mcpServerUrl": "URL del servidor",
+  "settings.mcpServerUrl.placeholder": "https://example.com/mcp",
+  "settings.mcpServerHeaders": "Cabeceras (JSON)",
+  "settings.mcpServerHeaders.placeholder": "{\"Authorization\": \"Bearer xxx\"}",
+  "settings.mcpServerHeaders.desc": "Cabeceras opcionales para autenticación (formato JSON)",
+  "settings.editMcpServer": "Editar servidor MCP",
+  "settings.createMcpServer": "Añadir servidor MCP",
+  "settings.mcpServerCreated": "Servidor MCP \"{{name}}\" añadido",
+  "settings.mcpServerUpdated": "Servidor MCP \"{{name}}\" actualizado",
+  "settings.mcpServerDeleted": "Servidor MCP \"{{name}}\" eliminado",
+  "settings.mcpServerNameRequired": "El nombre del servidor es obligatorio",
+  "settings.mcpServerNameDuplicate": "El nombre del servidor \"{{name}}\" ya existe",
+  "settings.mcpServerUrlRequired": "La URL del servidor es obligatoria",
+  "settings.mcpServerInvalidHeaders": "JSON no válido para cabeceras",
+  "settings.testMcpConnection": "Conectar",
+  "settings.mcpConnectionSuccess": "¡Conexión exitosa! {{count}} herramienta(s) disponible(s)",
+  "settings.mcpConnectionFailed": "Conexión fallida: {{error}}",
+  "settings.mcpNoServers": "No hay servidores MCP configurados",
+  "settings.testConnectionRequired": "Se requiere probar la conexión antes de guardar",
+  "settings.mcpToolHints": "Herramientas: {{tools}}",
+
+  // MCP OAuth settings
+  "settings.mcpOAuthEnabled.desc": "Usar autenticación OAuth para este servidor",
+  "settings.mcpOAuthAuthenticated": "Autenticado",
+  "settings.mcpOAuthAuthenticating": "Autenticando...",
+  "settings.oauthSuccess": "Autenticación OAuth exitosa para \"{{name}}\"",
+  "settings.oauthFailed": "Autenticación OAuth fallida: {{error}}",
+
+  // Input - MCP tool hint
+  "input.mcpToolHint": "({{count}} herramientas: {{tools}})",
 };

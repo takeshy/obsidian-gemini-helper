@@ -750,4 +750,42 @@ export const de: Record<string, string> = {
   "mcpApp.collapse": "Minimieren",
   "mcpApp.error": "MCP App Fehler",
   "mcpApp.decodeError": "Binärinhalt konnte nicht dekodiert werden",
+
+  // MCP Server Settings
+  "settings.mcpServers": "MCP-Server",
+  "settings.mcpServers.desc": "Externe MCP-Server (Model Context Protocol) für zusätzliche Tools konfigurieren",
+  "settings.mcpServersIntro": "MCP-Server bieten zusätzliche Tools. Server hinzufügen, um deren Tools zu aktivieren.",
+  "settings.addMcpServer": "Server hinzufügen",
+  "settings.mcpServerName": "Servername",
+  "settings.mcpServerName.placeholder": "Mein MCP-Server",
+  "settings.mcpServerUrl": "Server-URL",
+  "settings.mcpServerUrl.placeholder": "https://example.com/mcp",
+  "settings.mcpServerHeaders": "Header (JSON)",
+  "settings.mcpServerHeaders.placeholder": "{\"Authorization\": \"Bearer xxx\"}",
+  "settings.mcpServerHeaders.desc": "Optionale Header für Authentifizierung (JSON-Format)",
+  "settings.editMcpServer": "MCP-Server bearbeiten",
+  "settings.createMcpServer": "MCP-Server hinzufügen",
+  "settings.mcpServerCreated": "MCP-Server \"{{name}}\" hinzugefügt",
+  "settings.mcpServerUpdated": "MCP-Server \"{{name}}\" aktualisiert",
+  "settings.mcpServerDeleted": "MCP-Server \"{{name}}\" gelöscht",
+  "settings.mcpServerNameRequired": "Servername ist erforderlich",
+  "settings.mcpServerNameDuplicate": "Servername \"{{name}}\" existiert bereits",
+  "settings.mcpServerUrlRequired": "Server-URL ist erforderlich",
+  "settings.mcpServerInvalidHeaders": "Ungültiges JSON für Header",
+  "settings.testMcpConnection": "Verbinden",
+  "settings.mcpConnectionSuccess": "Verbindung erfolgreich! {{count}} Tool(s) verfügbar",
+  "settings.mcpConnectionFailed": "Verbindung fehlgeschlagen: {{error}}",
+  "settings.mcpNoServers": "Keine MCP-Server konfiguriert",
+  "settings.testConnectionRequired": "Verbindungstest vor dem Speichern erforderlich",
+  "settings.mcpToolHints": "Tools: {{tools}}",
+
+  // MCP OAuth settings
+  "settings.mcpOAuthEnabled.desc": "OAuth-Authentifizierung für diesen Server verwenden",
+  "settings.mcpOAuthAuthenticated": "Authentifiziert",
+  "settings.mcpOAuthAuthenticating": "Authentifizierung...",
+  "settings.oauthSuccess": "OAuth-Authentifizierung für \"{{name}}\" erfolgreich",
+  "settings.oauthFailed": "OAuth-Authentifizierung fehlgeschlagen: {{error}}",
+
+  // Input - MCP tool hint
+  "input.mcpToolHint": "({{count}} Tools: {{tools}})",
 };

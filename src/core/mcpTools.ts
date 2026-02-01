@@ -2,6 +2,7 @@
 // Fetches tools from configured MCP servers and executes them
 
 import { McpClient } from "./mcpClient";
+import { isTokenExpired, refreshAccessToken, type OAuthTokens } from "./oauth";
 import type { McpServerConfig, McpToolInfo, ToolDefinition, ToolPropertyDefinition, McpAppInfo } from "../types";
 
 // Extended tool definition with MCP server info
@@ -20,10 +21,114 @@ const toolsCache = new Map<string, McpToolsCache>();
 const CACHE_TTL_MS = 60000; // 1 minute cache
 
 /**
- * Get a unique key for an MCP server config
+ * Normalize headers for cache/pool key generation.
+ * Optionally strips Authorization to avoid token churn in keys.
+ */
+function normalizeHeadersForKey(
+  headers?: Record<string, string>,
+  ignoreAuthorization = false
+): string {
+  if (!headers) {
+    return "";
+  }
+
+  const normalized = new Map<string, string>();
+  for (const [key, value] of Object.entries(headers)) {
+    const lowerKey = key.toLowerCase();
+    if (ignoreAuthorization && lowerKey === "authorization") {
+      continue;
+    }
+    normalized.set(lowerKey, value);
+  }
+
+  const sortedEntries = Array.from(normalized.entries()).sort(([a], [b]) => a.localeCompare(b));
+  return JSON.stringify(Object.fromEntries(sortedEntries));
+}
+
+function getAuthorizationHeader(headers?: Record<string, string>): string | undefined {
+  if (!headers) {
+    return undefined;
+  }
+  for (const [key, value] of Object.entries(headers)) {
+    if (key.toLowerCase() === "authorization") {
+      return value;
+    }
+  }
+  return undefined;
+}
+
+/**
+ * Get a unique key for an MCP server config (for caching/pooling).
+ * Includes base headers and OAuth token identifier to ensure cache invalidation on token change.
  */
 function getServerKey(server: McpServerConfig): string {
-  return `${server.url}:${JSON.stringify(server.headers || {})}`;
+  const ignoreAuthorization = Boolean(server.oauthTokens?.accessToken);
+  const headersKey = normalizeHeadersForKey(server.headers, ignoreAuthorization);
+  // Include OAuth token identifier to invalidate cache when token changes (e.g., different account)
+  const tokenId = server.oauthTokens?.accessToken
+    ? server.oauthTokens.accessToken.slice(0, 16)
+    : "";
+  return `${server.url}:${server.name}:${headersKey}:${tokenId}`;
+}
+
+/**
+ * Callback for token refresh - allows callers to persist updated tokens
+ * Can be sync or async
+ */
+export type OnTokenRefreshCallback = (serverName: string, tokens: OAuthTokens) => void | Promise<void>;
+
+/**
+ * Prepare server config with OAuth Authorization header if tokens are available.
+ * Handles token refresh if expired.
+ * @param server - MCP server configuration
+ * @param onTokenRefresh - Optional callback when tokens are refreshed
+ * @returns Server config with Authorization header added if OAuth tokens exist
+ */
+export async function prepareServerConfigWithAuth(
+  server: McpServerConfig,
+  onTokenRefresh?: OnTokenRefreshCallback
+): Promise<McpServerConfig> {
+  if (!server.oauthTokens?.accessToken) {
+    return server;
+  }
+
+  let tokens = server.oauthTokens;
+
+  // Check if token is expired
+  if (isTokenExpired(tokens)) {
+    // Try to refresh if we have a refresh token and OAuth config
+    if (tokens.refreshToken && server.oauth) {
+      try {
+        tokens = await refreshAccessToken(server.oauth, tokens.refreshToken);
+        // Notify caller so they can persist the new tokens (save error should not break auth)
+        if (onTokenRefresh) {
+          try {
+            await onTokenRefresh(server.name, tokens);
+          } catch (saveError) {
+            console.warn(`Failed to persist refreshed tokens for MCP server ${server.name}:`, saveError);
+            // Continue with the refreshed tokens even if save failed
+          }
+        }
+      } catch {
+        // Token refresh failed - return without auth, let server return 401
+        console.warn(`OAuth token refresh failed for MCP server ${server.name}`);
+        return server;
+      }
+    } else {
+      // Token expired but no refresh token available - return without auth to trigger re-auth
+      console.warn(`OAuth token expired and no refresh token for MCP server ${server.name}`);
+      return server;
+    }
+  }
+
+  // Return config with Authorization header
+  return {
+    ...server,
+    headers: {
+      ...server.headers,
+      Authorization: `${tokens.tokenType || "Bearer"} ${tokens.accessToken}`,
+    },
+  };
 }
 
 /**
@@ -117,15 +222,24 @@ function convertMcpToolToGemini(
 
 /**
  * Fetch tools from a single MCP server
+ * @param server - MCP server configuration
+ * @param onTokenRefresh - Optional callback when OAuth tokens are refreshed
  */
-async function fetchToolsFromServer(server: McpServerConfig): Promise<McpToolDefinition[]> {
-  const client = new McpClient(server);
+async function fetchToolsFromServer(
+  server: McpServerConfig,
+  onTokenRefresh?: OnTokenRefreshCallback
+): Promise<McpToolDefinition[]> {
+  // Prepare server config with OAuth headers if available
+  const serverWithAuth = await prepareServerConfigWithAuth(server, onTokenRefresh);
+  const client = new McpClient(serverWithAuth);
 
   try {
     await client.initialize();
     const mcpTools = await client.listTools();
     await client.close();
 
+    // Store original server config (without injected auth header) in tool definition
+    // This ensures mcpServer in tool definitions has the persistent config
     return mcpTools.map((tool) => convertMcpToolToGemini(tool, server));
   } catch (error) {
     console.error(`Failed to fetch tools from MCP server ${server.name}:`, error);
@@ -138,10 +252,12 @@ async function fetchToolsFromServer(server: McpServerConfig): Promise<McpToolDef
  * Fetch tools from all configured MCP servers
  * @param servers - Array of MCP server configurations
  * @param forceRefresh - If true, bypasses cache
+ * @param onTokenRefresh - Optional callback when OAuth tokens are refreshed
  */
 export async function fetchMcpTools(
   servers: McpServerConfig[],
-  forceRefresh = false
+  forceRefresh = false,
+  onTokenRefresh?: OnTokenRefreshCallback
 ): Promise<McpToolDefinition[]> {
   if (!servers || servers.length === 0) {
     return [];
@@ -168,7 +284,7 @@ export async function fetchMcpTools(
   // Fetch from servers in parallel
   const fetchResults = await Promise.all(
     serversToFetch.map(async (server) => {
-      const tools = await fetchToolsFromServer(server);
+      const tools = await fetchToolsFromServer(server, onTokenRefresh);
       // Update cache
       toolsCache.set(getServerKey(server), {
         tools,
@@ -210,9 +326,12 @@ export interface McpToolExecutor {
 /**
  * Create an MCP tool executor with session reuse
  * Returns an executor object with execute and cleanup methods
+ * @param mcpTools - Array of MCP tool definitions
+ * @param onTokenRefresh - Optional callback when OAuth tokens are refreshed
  */
 export function createMcpToolExecutor(
-  mcpTools: McpToolDefinition[]
+  mcpTools: McpToolDefinition[],
+  onTokenRefresh?: OnTokenRefreshCallback
 ): McpToolExecutor {
   // Create a map for quick lookup
   const toolMap = new Map<string, McpToolDefinition>();
@@ -220,20 +339,52 @@ export function createMcpToolExecutor(
     toolMap.set(tool.name, tool);
   }
 
-  // Client pool keyed by server URL
-  const clientPool = new Map<string, McpClient>();
+  // Client pool keyed by server key (URL + name)
+  // Store both client and the auth-enriched config for mcpApp headers
+  interface PoolEntry {
+    client: McpClient;
+    serverWithAuth: McpServerConfig;
+  }
+  const clientPool = new Map<string, PoolEntry>();
 
-  const getClient = async (server: McpServerConfig): Promise<McpClient> => {
+  const getClientEntry = async (server: McpServerConfig): Promise<PoolEntry> => {
     const key = getServerKey(server);
-    let client = clientPool.get(key);
+    const keyPrefix = `${server.url}:${server.name}:`;
 
-    if (!client) {
-      client = new McpClient(server);
-      await client.initialize();
-      clientPool.set(key, client);
+    // Prepare server config with OAuth headers
+    const serverWithAuth = await prepareServerConfigWithAuth(server, onTokenRefresh);
+
+    // Remove stale entries for the same server if headers changed
+    for (const [existingKey, entry] of clientPool) {
+      if (existingKey.startsWith(keyPrefix) && existingKey !== key) {
+        await entry.client.close().catch(() => {});
+        clientPool.delete(existingKey);
+      }
     }
 
-    return client;
+    let entry = clientPool.get(key);
+    if (entry) {
+      const previousAuth = getAuthorizationHeader(entry.serverWithAuth.headers);
+      const nextAuth = getAuthorizationHeader(serverWithAuth.headers);
+
+      if (previousAuth !== nextAuth) {
+        await entry.client.close().catch(() => {});
+        clientPool.delete(key);
+        entry = undefined;
+      }
+    }
+
+    if (!entry) {
+      const client = new McpClient(serverWithAuth);
+      await client.initialize();
+      entry = { client, serverWithAuth };
+      clientPool.set(key, entry);
+    } else {
+      // Keep latest headers for UI operations
+      entry.serverWithAuth = serverWithAuth;
+    }
+
+    return entry;
   };
 
   const execute = async (toolName: string, args: Record<string, unknown>): Promise<McpToolResult> => {
@@ -242,8 +393,10 @@ export function createMcpToolExecutor(
       return { error: `MCP tool not found: ${toolName}` };
     }
 
+    const key = getServerKey(tool.mcpServer);
+
     try {
-      const client = await getClient(tool.mcpServer);
+      const { client, serverWithAuth } = await getClientEntry(tool.mcpServer);
       // Use callToolWithUi to get full result including UI metadata
       const appResult = await client.callToolWithUi(tool.mcpToolName, args);
 
@@ -266,8 +419,9 @@ export function createMcpToolExecutor(
         const uiResource = await client.readResource(appResult._meta.ui.resourceUri);
 
         result.mcpApp = {
-          serverUrl: tool.mcpServer.url,
-          serverHeaders: tool.mcpServer.headers,
+          serverUrl: serverWithAuth.url,
+          // Include OAuth Authorization header for MCP App UI operations
+          serverHeaders: serverWithAuth.headers,
           toolResult: appResult,
           uiResource,
         };
@@ -276,10 +430,9 @@ export function createMcpToolExecutor(
       return result;
     } catch (error) {
       // On error, remove the client from pool to force reconnection on next call
-      const key = getServerKey(tool.mcpServer);
-      const client = clientPool.get(key);
-      if (client) {
-        await client.close().catch(() => {});
+      const entry = clientPool.get(key);
+      if (entry) {
+        await entry.client.close().catch(() => {});
         clientPool.delete(key);
       }
 
@@ -289,8 +442,8 @@ export function createMcpToolExecutor(
   };
 
   const cleanup = async (): Promise<void> => {
-    const closePromises = Array.from(clientPool.values()).map(client =>
-      client.close().catch(() => {})
+    const closePromises = Array.from(clientPool.values()).map(entry =>
+      entry.client.close().catch(() => {})
     );
     await Promise.all(closePromises);
     clientPool.clear();

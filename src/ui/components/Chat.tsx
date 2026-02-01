@@ -31,7 +31,7 @@ import {
 } from "src/types";
 import { getGeminiClient } from "src/core/gemini";
 import { getEnabledTools } from "src/core/tools";
-import { fetchMcpTools, createMcpToolExecutor, isMcpTool, type McpToolDefinition, type McpToolExecutor } from "src/core/mcpTools";
+import { fetchMcpTools, createMcpToolExecutor, isMcpTool, type McpToolDefinition, type McpToolExecutor, type OnTokenRefreshCallback } from "src/core/mcpTools";
 import { GeminiCliProvider, ClaudeCliProvider, CodexCliProvider } from "src/core/cliProvider";
 import { createToolExecutor } from "src/vault/toolExecutor";
 import {
@@ -1347,8 +1347,18 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 				const enabledMcpServers = vaultToolMode !== "none"
 					? mcpServers.filter(s => s.enabled)
 					: [];
+
+				// Callback to persist refreshed OAuth tokens
+				const onTokenRefresh: OnTokenRefreshCallback = async (serverName, tokens) => {
+					const serverIndex = plugin.settings.mcpServers.findIndex(s => s.name === serverName);
+					if (serverIndex >= 0) {
+						plugin.settings.mcpServers[serverIndex].oauthTokens = tokens;
+						await plugin.saveSettings();
+					}
+				};
+
 				const mcpTools: McpToolDefinition[] = toolsEnabled && enabledMcpServers.length > 0
-					? await fetchMcpTools(enabledMcpServers)
+					? await fetchMcpTools(enabledMcpServers, false, onTokenRefresh)
 					: [];
 
 				// Cleanup previous MCP executor if exists
@@ -1359,7 +1369,7 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 
 				// Create MCP tool executor
 				const mcpToolExecutor = mcpTools.length > 0
-					? createMcpToolExecutor(mcpTools)
+					? createMcpToolExecutor(mcpTools, onTokenRefresh)
 					: undefined;
 
 				// Store for session reuse

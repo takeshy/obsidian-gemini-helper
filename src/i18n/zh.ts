@@ -750,4 +750,42 @@ export const zh: Record<string, string> = {
   "mcpApp.collapse": "收起",
   "mcpApp.error": "MCP App 错误",
   "mcpApp.decodeError": "无法解码二进制内容",
+
+  // MCP Server Settings
+  "settings.mcpServers": "MCP 服务器",
+  "settings.mcpServers.desc": "配置外部 MCP（模型上下文协议）服务器以获取额外工具",
+  "settings.mcpServersIntro": "MCP 服务器提供额外工具。添加服务器以启用其工具。",
+  "settings.addMcpServer": "添加服务器",
+  "settings.mcpServerName": "服务器名称",
+  "settings.mcpServerName.placeholder": "我的 MCP 服务器",
+  "settings.mcpServerUrl": "服务器 URL",
+  "settings.mcpServerUrl.placeholder": "https://example.com/mcp",
+  "settings.mcpServerHeaders": "请求头 (JSON)",
+  "settings.mcpServerHeaders.placeholder": "{\"Authorization\": \"Bearer xxx\"}",
+  "settings.mcpServerHeaders.desc": "用于身份验证的可选请求头（JSON 格式）",
+  "settings.editMcpServer": "编辑 MCP 服务器",
+  "settings.createMcpServer": "添加 MCP 服务器",
+  "settings.mcpServerCreated": "MCP 服务器 \"{{name}}\" 已添加",
+  "settings.mcpServerUpdated": "MCP 服务器 \"{{name}}\" 已更新",
+  "settings.mcpServerDeleted": "MCP 服务器 \"{{name}}\" 已删除",
+  "settings.mcpServerNameRequired": "服务器名称为必填项",
+  "settings.mcpServerNameDuplicate": "服务器名称 \"{{name}}\" 已存在",
+  "settings.mcpServerUrlRequired": "服务器 URL 为必填项",
+  "settings.mcpServerInvalidHeaders": "请求头的 JSON 格式无效",
+  "settings.testMcpConnection": "连接",
+  "settings.mcpConnectionSuccess": "连接成功！{{count}} 个工具可用",
+  "settings.mcpConnectionFailed": "连接失败：{{error}}",
+  "settings.mcpNoServers": "未配置 MCP 服务器",
+  "settings.testConnectionRequired": "保存前需要测试连接",
+  "settings.mcpToolHints": "工具：{{tools}}",
+
+  // MCP OAuth settings
+  "settings.mcpOAuthEnabled.desc": "为此服务器使用 OAuth 身份验证",
+  "settings.mcpOAuthAuthenticated": "已认证",
+  "settings.mcpOAuthAuthenticating": "认证中...",
+  "settings.oauthSuccess": "\"{{name}}\" 的 OAuth 身份验证成功",
+  "settings.oauthFailed": "OAuth 身份验证失败：{{error}}",
+
+  // Input - MCP tool hint
+  "input.mcpToolHint": "({{count}} 个工具：{{tools}})",
 };

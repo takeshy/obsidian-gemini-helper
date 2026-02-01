@@ -750,4 +750,42 @@ export const ko: Record<string, string> = {
   "mcpApp.collapse": "축소",
   "mcpApp.error": "MCP App 오류",
   "mcpApp.decodeError": "바이너리 콘텐츠 디코딩 실패",
+
+  // MCP Server Settings
+  "settings.mcpServers": "MCP 서버",
+  "settings.mcpServers.desc": "추가 도구를 위한 외부 MCP(Model Context Protocol) 서버 구성",
+  "settings.mcpServersIntro": "MCP 서버는 추가 도구를 제공합니다. 서버를 추가하여 도구를 활성화하세요.",
+  "settings.addMcpServer": "서버 추가",
+  "settings.mcpServerName": "서버 이름",
+  "settings.mcpServerName.placeholder": "내 MCP 서버",
+  "settings.mcpServerUrl": "서버 URL",
+  "settings.mcpServerUrl.placeholder": "https://example.com/mcp",
+  "settings.mcpServerHeaders": "헤더 (JSON)",
+  "settings.mcpServerHeaders.placeholder": "{\"Authorization\": \"Bearer xxx\"}",
+  "settings.mcpServerHeaders.desc": "인증을 위한 선택적 헤더 (JSON 형식)",
+  "settings.editMcpServer": "MCP 서버 편집",
+  "settings.createMcpServer": "MCP 서버 추가",
+  "settings.mcpServerCreated": "MCP 서버 \"{{name}}\" 추가됨",
+  "settings.mcpServerUpdated": "MCP 서버 \"{{name}}\" 업데이트됨",
+  "settings.mcpServerDeleted": "MCP 서버 \"{{name}}\" 삭제됨",
+  "settings.mcpServerNameRequired": "서버 이름이 필요합니다",
+  "settings.mcpServerNameDuplicate": "서버 이름 \"{{name}}\"이(가) 이미 존재합니다",
+  "settings.mcpServerUrlRequired": "서버 URL이 필요합니다",
+  "settings.mcpServerInvalidHeaders": "헤더의 JSON이 유효하지 않습니다",
+  "settings.testMcpConnection": "연결",
+  "settings.mcpConnectionSuccess": "연결 성공! {{count}}개의 도구 사용 가능",
+  "settings.mcpConnectionFailed": "연결 실패: {{error}}",
+  "settings.mcpNoServers": "구성된 MCP 서버 없음",
+  "settings.testConnectionRequired": "저장하기 전에 연결 테스트가 필요합니다",
+  "settings.mcpToolHints": "도구: {{tools}}",
+
+  // MCP OAuth settings
+  "settings.mcpOAuthEnabled.desc": "이 서버에 OAuth 인증 사용",
+  "settings.mcpOAuthAuthenticated": "인증됨",
+  "settings.mcpOAuthAuthenticating": "인증 중...",
+  "settings.oauthSuccess": "\"{{name}}\"의 OAuth 인증 성공",
+  "settings.oauthFailed": "OAuth 인증 실패: {{error}}",
+
+  // Input - MCP tool hint
+  "input.mcpToolHint": "({{count}}개 도구: {{tools}})",
 };

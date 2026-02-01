@@ -57,6 +57,7 @@ import { DEFAULT_CLI_CONFIG, DEFAULT_EDIT_HISTORY_SETTINGS, hasVerifiedCli } fro
 import { initLocale, t } from "src/i18n";
 import { isEncryptedFile, encryptFileContent, decryptFileContent } from "src/core/crypto";
 import { cryptoCache } from "src/core/cryptoCache";
+import { OAUTH_PROTOCOL_ACTION, handleOAuthCallback } from "src/core/oauth";
 
 export class GeminiHelperPlugin extends Plugin {
   settings: GeminiHelperSettings = { ...DEFAULT_SETTINGS };
@@ -155,6 +156,29 @@ export class GeminiHelperPlugin extends Plugin {
 
     // Add settings tab
     this.addSettingTab(new SettingsTab(this.app, this));
+
+    // Register OAuth protocol handler for MCP server authentication
+    this.registerObsidianProtocolHandler(OAUTH_PROTOCOL_ACTION, async (params) => {
+      try {
+        const result = await handleOAuthCallback(params);
+        if (result) {
+          // Find and update the MCP server with the new tokens and config
+          const serverIndex = this.settings.mcpServers.findIndex(
+            (s) => s.name === result.serverName
+          );
+          if (serverIndex >= 0) {
+            this.settings.mcpServers[serverIndex].oauthTokens = result.tokens;
+            // Also save OAuth config to ensure token refresh works even if modal is closed
+            this.settings.mcpServers[serverIndex].oauth = result.config;
+            await this.saveSettings();
+            new Notice(t("settings.oauthSuccess", { name: result.serverName }));
+          }
+        }
+      } catch (error) {
+        console.error("OAuth callback error:", error);
+        new Notice(t("settings.oauthFailed", { error: formatError(error) }));
+      }
+    });
 
     // Register chat view
     this.registerView(

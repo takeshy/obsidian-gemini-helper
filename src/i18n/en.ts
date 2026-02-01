@@ -669,14 +669,22 @@ export const en = {
   "settings.mcpServerUpdated": "Mcp server \"{{name}}\" updated",
   "settings.mcpServerDeleted": "Mcp server \"{{name}}\" deleted",
   "settings.mcpServerNameRequired": "Server name is required",
+  "settings.mcpServerNameDuplicate": "Server name \"{{name}}\" already exists",
   "settings.mcpServerUrlRequired": "Server URL is required",
   "settings.mcpServerInvalidHeaders": "Invalid JSON for headers",
-  "settings.testMcpConnection": "Test connection",
+  "settings.testMcpConnection": "Connect",
   "settings.mcpConnectionSuccess": "Connection successful! {{count}} tool(s) available",
   "settings.mcpConnectionFailed": "Connection failed: {{error}}",
   "settings.mcpNoServers": "No mcp servers configured",
   "settings.testConnectionRequired": "Test connection required before saving",
   "settings.mcpToolHints": "Tools: {{tools}}",
+
+  // MCP oauth settings
+  "settings.mcpOAuthEnabled.desc": "Server requires token-based authentication",
+  "settings.mcpOAuthAuthenticated": "Authenticated",
+  "settings.mcpOAuthAuthenticating": "Authenticating...",
+  "settings.oauthSuccess": "Successfully authenticated \"{{name}}\"",
+  "settings.oauthFailed": "Authentication failed: {{error}}",
 
   // Input - MCP tool hint
   "input.mcpToolHint": "({{count}} tools: {{tools}})",

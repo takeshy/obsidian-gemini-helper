@@ -16,6 +16,12 @@ import { clearMcpToolsCache } from "src/core/mcpTools";
 import { formatError } from "src/utils/error";
 import { t } from "src/i18n";
 import {
+  startAuthorizationFlow,
+  isTokenExpired,
+  refreshAccessToken,
+  discoverOAuthFromServer,
+} from "src/core/oauth";
+import {
   DEFAULT_SETTINGS,
   DEFAULT_CLI_CONFIG,
   DEFAULT_EDIT_HISTORY_SETTINGS,
@@ -533,23 +539,30 @@ class SlashCommandModal extends Modal {
 class McpServerModal extends Modal {
   private server: McpServerConfig;
   private isNew: boolean;
+  private originalName: string;
+  private existingNames: Set<string>;
   private onSubmit: (server: McpServerConfig) => void | Promise<void>;
   private headersText = "";
   private connectionTested = false;
   private saveBtn: import("obsidian").ButtonComponent | null = null;
   private testRequiredEl: HTMLElement | null = null;
+  private oauthStatusEl: HTMLElement | null = null;
 
   constructor(
     app: App,
     server: McpServerConfig | null,
+    existingNames: string[],
     onSubmit: (server: McpServerConfig) => void | Promise<void>
   ) {
     super(app);
     this.isNew = server === null;
+    this.originalName = server?.name || "";
+    // Store existing names for duplicate check (excluding current server's original name)
+    this.existingNames = new Set(existingNames.filter(n => n !== this.originalName));
     // For existing servers with toolHints, consider connection already tested
     this.connectionTested = server !== null && Array.isArray(server.toolHints) && server.toolHints.length > 0;
     this.server = server
-      ? { ...server }
+      ? { ...server, oauth: server.oauth ? { ...server.oauth } : undefined, oauthTokens: server.oauthTokens ? { ...server.oauthTokens } : undefined }
       : {
           name: "",
           url: "",
@@ -614,6 +627,22 @@ class McpServerModal extends Modal {
       text.inputEl.addClass("gemini-helper-settings-textarea");
     });
 
+    // OAuth status (auto-discovered, shown only if authenticated)
+    if (this.server.oauthTokens?.accessToken) {
+      const oauthStatusSetting = new Setting(contentEl)
+        .setName(t("settings.mcpOAuthAuthenticated"))
+        .setDesc(t("settings.mcpOAuthEnabled.desc"));
+      this.oauthStatusEl = oauthStatusSetting.controlEl.createDiv({ cls: "gemini-helper-oauth-status gemini-helper-oauth-status--authenticated" });
+      this.oauthStatusEl.setText(t("settings.mcpOAuthAuthenticated"));
+    }
+
+    // Show existing tools if already connected
+    if (this.server.toolHints && this.server.toolHints.length > 0) {
+      new Setting(contentEl)
+        .setName(t("settings.mcpToolHints", { tools: "" }).replace(": ", ""))
+        .setDesc(this.server.toolHints.join(", "));
+    }
+
     // Test connection button
     const testSetting = new Setting(contentEl);
     const testStatusEl = testSetting.controlEl.createDiv({ cls: "gemini-helper-mcp-test-status" });
@@ -644,8 +673,13 @@ class McpServerModal extends Modal {
         .setButtonText(this.isNew ? t("common.create") : t("common.save"))
         .setCta()
         .onClick(() => {
-          if (!this.server.name.trim()) {
+          const trimmedName = this.server.name.trim();
+          if (!trimmedName) {
             new Notice(t("settings.mcpServerNameRequired"));
+            return;
+          }
+          if (this.existingNames.has(trimmedName)) {
+            new Notice(t("settings.mcpServerNameDuplicate", { name: trimmedName }));
             return;
           }
           if (!this.server.url.trim()) {
@@ -684,7 +718,7 @@ class McpServerModal extends Modal {
     btnEl.disabled = true;
 
     try {
-      // Parse headers for test
+      // Parse custom headers
       let headers: Record<string, string> | undefined;
       if (this.headersText.trim()) {
         try {
@@ -697,41 +731,140 @@ class McpServerModal extends Modal {
         }
       }
 
-      const client = new McpClient({
-        name: this.server.name || "test",
-        url: this.server.url,
-        headers,
-        enabled: true,
-      });
+      // Add OAuth token if we have one
+      if (this.server.oauthTokens?.accessToken) {
+        let tokens = this.server.oauthTokens;
 
-      await client.initialize();
-      const tools = await client.listTools();
-      await client.close();
+        // Refresh token if expired
+        if (isTokenExpired(tokens) && tokens.refreshToken && this.server.oauth) {
+          try {
+            tokens = await refreshAccessToken(this.server.oauth, tokens.refreshToken);
+            this.server.oauthTokens = tokens;
+          } catch {
+            // Token refresh failed, will try OAuth discovery below
+            this.server.oauthTokens = undefined;
+          }
+        }
 
-      // Save tool hints
-      const toolNames = tools.map(tool => tool.name);
-      this.server.toolHints = toolNames;
-
-      // Mark connection as tested and enable save button
-      this.connectionTested = true;
-      if (this.saveBtn) {
-        this.saveBtn.setDisabled(false);
-      }
-      if (this.testRequiredEl) {
-        this.testRequiredEl.addClass("gemini-helper-hidden");
+        if (this.server.oauthTokens) {
+          headers = headers || {};
+          headers["Authorization"] = `${tokens.tokenType || "Bearer"} ${tokens.accessToken}`;
+        }
       }
 
-      statusEl.addClass("gemini-helper-mcp-status--success");
-      statusEl.empty();
+      // Try to connect
+      let connectionSuccess = false;
+      try {
+        const client = new McpClient({
+          name: this.server.name || "test",
+          url: this.server.url,
+          headers,
+          enabled: true,
+        });
 
-      // Show tool count
-      const countEl = statusEl.createDiv({ cls: "gemini-helper-mcp-tools-count" });
-      countEl.setText(t("settings.mcpConnectionSuccess", { count: String(tools.length) }));
+        await client.initialize();
+        const tools = await client.listTools();
+        await client.close();
 
-      // Show tool names if any
-      if (tools.length > 0) {
-        const toolsEl = statusEl.createDiv({ cls: "gemini-helper-mcp-tools-list" });
-        toolsEl.setText(toolNames.join(", "));
+        // Connection succeeded
+        connectionSuccess = true;
+
+        // Save tool hints
+        const toolNames = tools.map(tool => tool.name);
+        this.server.toolHints = toolNames;
+
+        // Mark connection as tested and enable save button
+        this.connectionTested = true;
+        if (this.saveBtn) {
+          this.saveBtn.setDisabled(false);
+        }
+        if (this.testRequiredEl) {
+          this.testRequiredEl.addClass("gemini-helper-hidden");
+        }
+
+        statusEl.addClass("gemini-helper-mcp-status--success");
+        statusEl.empty();
+
+        // Show tool count
+        const countEl = statusEl.createDiv({ cls: "gemini-helper-mcp-tools-count" });
+        countEl.setText(t("settings.mcpConnectionSuccess", { count: String(tools.length) }));
+
+        // Show tool names if any
+        if (tools.length > 0) {
+          const toolsEl = statusEl.createDiv({ cls: "gemini-helper-mcp-tools-list" });
+          toolsEl.setText(toolNames.join(", "));
+        }
+      } catch (connectionError) {
+        // Connection failed - try OAuth discovery
+        statusEl.setText(t("settings.mcpOAuthAuthenticating"));
+
+        const discovery = await discoverOAuthFromServer(this.server.url);
+        if (discovery) {
+          // OAuth is required - start authorization flow
+          // Server name must be set before OAuth to ensure correct token association
+          const oauthServerName = this.server.name.trim();
+          if (!oauthServerName) {
+            throw new Error(t("settings.mcpServerNameRequired"));
+          }
+          this.server.oauth = discovery.config;
+
+          try {
+            const tokens = await startAuthorizationFlow(oauthServerName, discovery.config);
+            this.server.oauthTokens = tokens;
+
+            // Retry connection with token
+            headers = headers || {};
+            headers["Authorization"] = `${tokens.tokenType || "Bearer"} ${tokens.accessToken}`;
+
+            const client = new McpClient({
+              name: this.server.name || "test",
+              url: this.server.url,
+              headers,
+              enabled: true,
+            });
+
+            await client.initialize();
+            const tools = await client.listTools();
+            await client.close();
+
+            connectionSuccess = true;
+
+            // Save tool hints
+            const toolNames = tools.map(tool => tool.name);
+            this.server.toolHints = toolNames;
+
+            // Mark connection as tested
+            this.connectionTested = true;
+            if (this.saveBtn) {
+              this.saveBtn.setDisabled(false);
+            }
+            if (this.testRequiredEl) {
+              this.testRequiredEl.addClass("gemini-helper-hidden");
+            }
+
+            statusEl.removeClass("gemini-helper-mcp-status--error");
+            statusEl.addClass("gemini-helper-mcp-status--success");
+            statusEl.empty();
+
+            const countEl = statusEl.createDiv({ cls: "gemini-helper-mcp-tools-count" });
+            countEl.setText(t("settings.mcpConnectionSuccess", { count: String(tools.length) }));
+
+            if (tools.length > 0) {
+              const toolsEl = statusEl.createDiv({ cls: "gemini-helper-mcp-tools-list" });
+              toolsEl.setText(toolNames.join(", "));
+            }
+          } catch (oauthError) {
+            // OAuth failed
+            throw oauthError;
+          }
+        } else {
+          // No OAuth discovery available, throw original error
+          throw connectionError;
+        }
+      }
+
+      if (!connectionSuccess) {
+        throw new Error("Connection failed");
       }
     } catch (error) {
       // Reset connection tested flag on error
@@ -2265,9 +2398,11 @@ export class SettingsTab extends PluginSettingTab {
           .setButtonText(t("settings.addMcpServer"))
           .setCta()
           .onClick(() => {
+            const existingNames = this.plugin.settings.mcpServers.map(s => s.name);
             new McpServerModal(
               this.app,
               null,
+              existingNames,
               async (server) => {
                 this.plugin.settings.mcpServers.push(server);
                 await this.plugin.saveSettings();
@@ -2302,9 +2437,11 @@ export class SettingsTab extends PluginSettingTab {
             .setIcon("pencil")
             .setTooltip(t("common.edit"))
             .onClick(() => {
+              const existingNames = this.plugin.settings.mcpServers.map(s => s.name);
               new McpServerModal(
                 this.app,
                 server,
+                existingNames,
                 async (updated) => {
                   const index = this.plugin.settings.mcpServers.findIndex(
                     (s) => s.name === server.name && s.url === server.url

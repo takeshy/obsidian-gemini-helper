@@ -1,4 +1,5 @@
 import type { Content } from "@google/genai";
+import type { OAuthConfig, OAuthTokens } from "../core/oauth";
 
 // MCP (Model Context Protocol) server configuration
 export interface McpServerConfig {
@@ -7,6 +8,8 @@ export interface McpServerConfig {
   headers?: Record<string, string>;  // Optional headers for authentication
   enabled: boolean;       // Whether this server is enabled for chat
   toolHints?: string[];   // Tool names from test connection (for display hints)
+  oauth?: OAuthConfig;    // OAuth configuration (if server requires OAuth)
+  oauthTokens?: OAuthTokens;  // OAuth tokens (access token, refresh token, etc.)
 }
 
 // MCP tool information (from server)

@@ -660,14 +660,22 @@ export const ja: Record<string, string> = {
   "settings.mcpServerUpdated": "MCPサーバー「{{name}}」を更新しました",
   "settings.mcpServerDeleted": "MCPサーバー「{{name}}」を削除しました",
   "settings.mcpServerNameRequired": "サーバー名は必須です",
+  "settings.mcpServerNameDuplicate": "サーバー名「{{name}}」は既に存在します",
   "settings.mcpServerUrlRequired": "サーバーURLは必須です",
   "settings.mcpServerInvalidHeaders": "ヘッダーのJSONが無効です",
-  "settings.testMcpConnection": "接続テスト",
+  "settings.testMcpConnection": "接続",
   "settings.mcpConnectionSuccess": "接続成功！{{count}}個のツールが利用可能です",
   "settings.mcpConnectionFailed": "接続失敗: {{error}}",
   "settings.mcpNoServers": "MCPサーバーが設定されていません",
   "settings.testConnectionRequired": "保存前に接続テストが必要です",
   "settings.mcpToolHints": "ツール: {{tools}}",
+
+  // MCP OAuth settings
+  "settings.mcpOAuthEnabled.desc": "このサーバーでOAuth認証を使用する",
+  "settings.mcpOAuthAuthenticated": "認証済み",
+  "settings.mcpOAuthAuthenticating": "認証中...",
+  "settings.oauthSuccess": "\"{{name}}\"のOAuth認証が成功しました",
+  "settings.oauthFailed": "OAuth認証に失敗しました: {{error}}",
 
   // Input - MCP tool hint
   "input.mcpToolHint": "({{count}}個のツール: {{tools}})",

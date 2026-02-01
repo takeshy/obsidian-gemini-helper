@@ -4,7 +4,7 @@ import { getGeminiClient } from "../../core/gemini";
 import { CliProviderManager } from "../../core/cliProvider";
 import { isImageGenerationModel, type ModelType, type ToolDefinition, type McpAppInfo } from "../../types";
 import { getEnabledTools } from "../../core/tools";
-import { fetchMcpTools, createMcpToolExecutor, type McpToolDefinition } from "../../core/mcpTools";
+import { fetchMcpTools, createMcpToolExecutor, type McpToolDefinition, type OnTokenRefreshCallback } from "../../core/mcpTools";
 import { createToolExecutor } from "../../vault/toolExecutor";
 import { WorkflowNode, ExecutionContext, PromptCallbacks, FileExplorerData } from "../types";
 import { replaceVariables } from "./utils";
@@ -217,6 +217,15 @@ Please revise the output based on the user's feedback above.`;
   let toolExecutor: ((name: string, args: Record<string, unknown>) => Promise<unknown>) | undefined;
   let mcpToolExecutor: ReturnType<typeof createMcpToolExecutor> | null = null;
 
+  // Callback to persist refreshed OAuth tokens
+  const onTokenRefresh: OnTokenRefreshCallback = async (serverName, tokens) => {
+    const serverIndex = plugin.settings.mcpServers.findIndex(s => s.name === serverName);
+    if (serverIndex >= 0) {
+      plugin.settings.mcpServers[serverIndex].oauthTokens = tokens;
+      await plugin.saveSettings();
+    }
+  };
+
   const isImageModel = isImageGenerationModel(model as ModelType);
 
   if (!isImageModel && vaultToolMode !== "none") {
@@ -252,11 +261,11 @@ Please revise the output based on the user's feedback above.`;
       );
       if (enabledServers.length > 0) {
         try {
-          mcpTools = await fetchMcpTools(enabledServers);
+          mcpTools = await fetchMcpTools(enabledServers, false, onTokenRefresh);
           // Add MCP tools to the tools array
           tools = [...tools, ...mcpTools];
           // Create MCP tool executor
-          mcpToolExecutor = createMcpToolExecutor(mcpTools);
+          mcpToolExecutor = createMcpToolExecutor(mcpTools, onTokenRefresh);
         } catch (error) {
           console.error("Failed to fetch MCP tools:", error);
           // Continue without MCP tools
@@ -293,9 +302,9 @@ Please revise the output based on the user's feedback above.`;
     );
     if (enabledServers.length > 0) {
       try {
-        const mcpTools = await fetchMcpTools(enabledServers);
+        const mcpTools = await fetchMcpTools(enabledServers, false, onTokenRefresh);
         tools = mcpTools;
-        mcpToolExecutor = createMcpToolExecutor(mcpTools);
+        mcpToolExecutor = createMcpToolExecutor(mcpTools, onTokenRefresh);
         toolExecutor = async (name: string, args: Record<string, unknown>) => {
           if (mcpToolExecutor) {
             const mcpResult = await mcpToolExecutor.execute(name, args);

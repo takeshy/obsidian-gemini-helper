@@ -19,6 +19,14 @@ interface McpToolsCache {
 const toolsCache = new Map<string, McpToolsCache>();
 const CACHE_TTL_MS = 60000; // 1 minute cache
 
+function sanitizeMcpName(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/[^a-z0-9_]/g, "_")
+    .replace(/_+/g, "_")
+    .replace(/^_+|_+$/g, "");
+}
+
 /**
  * Get a unique key for an MCP server config
  */
@@ -70,6 +78,17 @@ function convertPropertySchema(prop: Record<string, unknown>): ToolPropertyDefin
     }
   }
 
+  if (prop.type === "object" && prop.properties) {
+    const nestedProps: Record<string, ToolPropertyDefinition> = {};
+    for (const [k, v] of Object.entries(prop.properties as Record<string, unknown>)) {
+      nestedProps[k] = convertPropertySchema(v as Record<string, unknown>);
+    }
+    result.properties = nestedProps;
+    if (Array.isArray(prop.required)) {
+      result.required = prop.required as string[];
+    }
+  }
+
   return result;
 }
 
@@ -100,7 +119,7 @@ function convertMcpToolToGemini(
 
   // Create a unique tool name by prefixing with server name
   // This avoids conflicts between tools from different servers
-  const uniqueName = `mcp_${server.name.toLowerCase().replace(/[^a-z0-9]/g, "_")}_${tool.name}`;
+  const uniqueName = `mcp_${sanitizeMcpName(server.name)}_${sanitizeMcpName(tool.name)}`;
 
   return {
     name: uniqueName,
@@ -129,6 +148,7 @@ async function fetchToolsFromServer(server: McpServerConfig): Promise<McpToolDef
     return mcpTools.map((tool) => convertMcpToolToGemini(tool, server));
   } catch (error) {
     console.error(`Failed to fetch tools from MCP server ${server.name}:`, error);
+    await client.close().catch(() => {});
     // Return empty array on failure - don't block chat functionality
     return [];
   }

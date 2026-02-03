@@ -11,6 +11,7 @@ import {
   DEFAULT_SETTINGS,
   type Message,
   type ToolDefinition,
+  type ToolPropertyDefinition,
   type StreamChunk,
   type ToolCall,
   type ModelType,
@@ -73,12 +74,7 @@ export class GeminiClient {
 
   // Convert tool definitions to Gemini format
   private toolsToGeminiFormat(tools: ToolDefinition[]): Tool[] {
-    const convertProperty = (value: {
-      type: string;
-      description: string;
-      enum?: string[];
-      items?: unknown;
-    }): Schema => {
+    const convertProperty = (value: ToolPropertyDefinition): Schema => {
       const schema: Schema = {
         type: value.type.toUpperCase() as Type,
         description: value.description,
@@ -87,10 +83,9 @@ export class GeminiClient {
 
       // Handle array items
       if (value.type === "array" && value.items) {
-        const items = value.items as {
+        const items = value.items as ToolPropertyDefinition | {
           type: string;
-          description?: string;
-          properties?: Record<string, { type: string; description: string; enum?: string[] }>;
+          properties?: Record<string, ToolPropertyDefinition>;
           required?: string[];
         };
 
@@ -98,11 +93,7 @@ export class GeminiClient {
           // Nested object in array
           const nestedProperties: Record<string, Schema> = {};
           for (const [propKey, propValue] of Object.entries(items.properties)) {
-            nestedProperties[propKey] = {
-              type: propValue.type.toUpperCase() as Type,
-              description: propValue.description,
-              enum: propValue.enum,
-            };
+            nestedProperties[propKey] = convertProperty(propValue);
           }
           schema.items = {
             type: Type.OBJECT,
@@ -114,6 +105,17 @@ export class GeminiClient {
           schema.items = {
             type: items.type.toUpperCase() as Type,
           };
+        }
+      }
+
+      if (value.type === "object" && value.properties) {
+        const nestedProperties: Record<string, Schema> = {};
+        for (const [propKey, propValue] of Object.entries(value.properties)) {
+          nestedProperties[propKey] = convertProperty(propValue);
+        }
+        schema.properties = nestedProperties;
+        if (value.required && value.required.length > 0) {
+          schema.required = value.required;
         }
       }
 

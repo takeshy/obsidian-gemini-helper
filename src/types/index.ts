@@ -502,6 +502,8 @@ export interface ToolPropertyDefinition {
   type: string;
   description: string;
   enum?: string[];
+  properties?: Record<string, ToolPropertyDefinition>;
+  required?: string[];
   items?: ToolPropertyDefinition | {
     type: string;
     properties?: Record<string, ToolPropertyDefinition>;

@@ -571,7 +571,7 @@ export default function MessageBubble({
                 </button>
                 <button
                   className="gemini-helper-image-btn"
-                  onClick={() => handleDownloadImage(image.mimeType, image.data, index)}
+                  onClick={() => void handleDownloadImage(image.mimeType, image.data, index)}
                   title={t("message.downloadImage")}
                 >
                   <Download size={14} />

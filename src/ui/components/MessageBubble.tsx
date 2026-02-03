@@ -248,13 +248,42 @@ export default function MessageBubble({
     }
   };
 
-  // Download image
-  const handleDownloadImage = (mimeType: string, base64Data: string, index: number) => {
+  // Download image - vault save on mobile, download on desktop
+  const handleDownloadImage = async (mimeType: string, base64Data: string, index: number) => {
     const extension = mimeType.split("/")[1] || "png";
-    const link = document.createElement("a");
-    link.href = `data:${mimeType};base64,${base64Data}`;
-    link.download = `generated-image-${Date.now()}-${index}.${extension}`;
-    link.click();
+    const fileName = `generated-image-${Date.now()}-${index}.${extension}`;
+
+    if (Platform.isMobile) {
+      // Mobile: Save to vault (download doesn't work on mobile)
+      try {
+        const folderPath = "GeminiHelper/images";
+
+        // Convert base64 to ArrayBuffer
+        const byteCharacters = atob(base64Data);
+        const byteArray = new Uint8Array(byteCharacters.length);
+        for (let i = 0; i < byteCharacters.length; i++) {
+          byteArray[i] = byteCharacters.charCodeAt(i);
+        }
+
+        const folder = app.vault.getAbstractFileByPath(folderPath);
+        if (!folder) {
+          await app.vault.createFolder(folderPath);
+        }
+
+        const filePath = `${folderPath}/${fileName}`;
+        await app.vault.createBinary(filePath, byteArray.buffer);
+
+        new Notice(t("message.savedTo", { path: filePath }));
+      } catch (error) {
+        new Notice(t("message.saveFailed", { error: error instanceof Error ? error.message : "Unknown error" }));
+      }
+    } else {
+      // PC: Download file
+      const link = document.createElement("a");
+      link.href = `data:${mimeType};base64,${base64Data}`;
+      link.download = fileName;
+      link.click();
+    }
   };
 
   // Check for HTML code block

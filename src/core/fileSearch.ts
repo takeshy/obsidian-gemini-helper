@@ -7,13 +7,14 @@ import type {
 import { formatError } from "src/utils/error";
 
 // Supported file extensions for RAG upload
+// Note: Gemini File Search API only supports text and application types (not images)
 const SUPPORTED_EXTENSIONS = [
   // Text
   "md",
   // PDF
   "pdf",
-  // Images
-  "png", "jpg", "jpeg", "gif", "webp",
+  // Microsoft Office
+  "doc", "docx", "xls", "xlsx", "pptx",
 ];
 
 // Get MIME type from file extension
@@ -21,11 +22,11 @@ function getMimeType(extension: string): string {
   const mimeTypes: Record<string, string> = {
     md: "text/markdown",
     pdf: "application/pdf",
-    png: "image/png",
-    jpg: "image/jpeg",
-    jpeg: "image/jpeg",
-    gif: "image/gif",
-    webp: "image/webp",
+    doc: "application/msword",
+    docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    xls: "application/vnd.ms-excel",
+    xlsx: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    pptx: "application/vnd.openxmlformats-officedocument.presentationml.presentation",
   };
   return mimeTypes[extension.toLowerCase()] || "application/octet-stream";
 }
@@ -108,7 +109,7 @@ export class FileSearchManager {
 
   // Check if file is binary (non-text)
   private isBinaryFile(file: TFile): boolean {
-    const binaryExtensions = ["pdf", "png", "jpg", "jpeg", "gif", "webp"];
+    const binaryExtensions = ["pdf", "doc", "docx", "xls", "xlsx", "pptx"];
     return binaryExtensions.includes(file.extension.toLowerCase());
   }
 

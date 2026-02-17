@@ -1836,7 +1836,7 @@
 .workflow-node-comment {
   font-size: 11px;
   font-style: italic;
-  color: var(--text-faint);
+  color: var(--color-yellow);
   margin-top: 2px;
   margin-left: 16px;
   display: flex;

@@ -175,6 +175,18 @@ export const de: Record<string, string> = {
   "settings.storeDeleted": "Semantischer Such-Store gelöscht",
   "settings.deleteStoreFailed": "Store-Löschung fehlgeschlagen: {{error}}",
 
+  // Settings - RAG Files Modal
+  "settings.viewFiles": "Dateien anzeigen",
+  "settings.ragFiles.title": "Dateien in {{name}}",
+  "settings.ragFiles.searchPlaceholder": "Dateien suchen...",
+  "settings.ragFiles.filterAll": "Alle",
+  "settings.ragFiles.filterRegistered": "Registriert",
+  "settings.ragFiles.filterPending": "Ausstehend",
+  "settings.ragFiles.noFiles": "Keine Dateien gefunden",
+  "settings.ragFiles.registered": "Registriert",
+  "settings.ragFiles.pending": "Ausstehend",
+  "settings.ragFiles.fileCount": "{{count}} Dateien",
+
   // Common buttons
   "common.cancel": "Abbrechen",
   "common.close": "Schließen",
@@ -739,6 +751,8 @@ export const de: Record<string, string> = {
   "nodeEditor.falseNext.placeholder": "Nächste Knoten-ID für False-Zweig (optional)",
   "nodeEditor.nextNode": "Nächster Knoten",
   "nodeEditor.nextNode.placeholder": "Optionale nächste Knoten-ID",
+  "nodeEditor.comment": "Kommentar",
+  "nodeEditor.comment.placeholder": "Kommentar zur Beschreibung dieses Knotens hinzufügen...",
 
   // MCP Apps
   "mcpApp.loading": "MCP App wird geladen...",

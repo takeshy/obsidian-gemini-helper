@@ -175,6 +175,18 @@ export const ko: Record<string, string> = {
   "settings.storeDeleted": "시맨틱 검색 스토어 삭제됨",
   "settings.deleteStoreFailed": "스토어 삭제 실패: {{error}}",
 
+  // Settings - RAG Files Modal
+  "settings.viewFiles": "파일 보기",
+  "settings.ragFiles.title": "{{name}}의 파일",
+  "settings.ragFiles.searchPlaceholder": "파일 검색...",
+  "settings.ragFiles.filterAll": "전체",
+  "settings.ragFiles.filterRegistered": "등록됨",
+  "settings.ragFiles.filterPending": "대기 중",
+  "settings.ragFiles.noFiles": "파일을 찾을 수 없습니다",
+  "settings.ragFiles.registered": "등록됨",
+  "settings.ragFiles.pending": "대기 중",
+  "settings.ragFiles.fileCount": "{{count}} 파일",
+
   // Common buttons
   "common.cancel": "취소",
   "common.close": "닫기",
@@ -739,6 +751,8 @@ export const ko: Record<string, string> = {
   "nodeEditor.falseNext.placeholder": "false 분기의 다음 노드 ID (선택 사항)",
   "nodeEditor.nextNode": "다음 노드",
   "nodeEditor.nextNode.placeholder": "선택적 다음 노드 ID",
+  "nodeEditor.comment": "코멘트",
+  "nodeEditor.comment.placeholder": "이 노드에 대한 설명을 추가하세요...",
 
   // MCP Apps
   "mcpApp.loading": "MCP App 로딩 중...",

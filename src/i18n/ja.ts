@@ -175,6 +175,18 @@ export const ja: Record<string, string> = {
   "settings.storeDeleted": "セマンティック検索ストアを削除しました",
   "settings.deleteStoreFailed": "ストアの削除に失敗しました: {{error}}",
 
+  // Settings - RAG Files Modal
+  "settings.viewFiles": "ファイル一覧",
+  "settings.ragFiles.title": "{{name}} のファイル",
+  "settings.ragFiles.searchPlaceholder": "ファイルを検索...",
+  "settings.ragFiles.filterAll": "すべて",
+  "settings.ragFiles.filterRegistered": "登録済み",
+  "settings.ragFiles.filterPending": "保留中",
+  "settings.ragFiles.noFiles": "ファイルが見つかりません",
+  "settings.ragFiles.registered": "登録済み",
+  "settings.ragFiles.pending": "保留中",
+  "settings.ragFiles.fileCount": "{{count}} 件",
+
   // Common buttons
   "common.cancel": "キャンセル",
   "common.close": "閉じる",
@@ -876,6 +888,8 @@ export const ja: Record<string, string> = {
   "nodeEditor.falseNext.placeholder": "false分岐の次のノードID（任意）",
   "nodeEditor.nextNode": "次のノード",
   "nodeEditor.nextNode.placeholder": "次のノードID（任意）",
+  "nodeEditor.comment": "コメント",
+  "nodeEditor.comment.placeholder": "このノードの説明を入力...",
 
   // MCP Apps
   "mcpApp.loading": "MCP Appを読み込み中...",

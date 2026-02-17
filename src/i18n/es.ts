@@ -175,6 +175,18 @@ export const es: Record<string, string> = {
   "settings.storeDeleted": "Almacén de búsqueda semántica eliminado",
   "settings.deleteStoreFailed": "Error al eliminar almacén: {{error}}",
 
+  // Settings - RAG Files Modal
+  "settings.viewFiles": "Ver archivos",
+  "settings.ragFiles.title": "Archivos en {{name}}",
+  "settings.ragFiles.searchPlaceholder": "Buscar archivos...",
+  "settings.ragFiles.filterAll": "Todos",
+  "settings.ragFiles.filterRegistered": "Registrados",
+  "settings.ragFiles.filterPending": "Pendientes",
+  "settings.ragFiles.noFiles": "No se encontraron archivos",
+  "settings.ragFiles.registered": "Registrado",
+  "settings.ragFiles.pending": "Pendiente",
+  "settings.ragFiles.fileCount": "{{count}} archivos",
+
   // Common buttons
   "common.cancel": "Cancelar",
   "common.close": "Cerrar",
@@ -739,6 +751,8 @@ export const es: Record<string, string> = {
   "nodeEditor.falseNext.placeholder": "ID del siguiente nodo para rama false (opcional)",
   "nodeEditor.nextNode": "Siguiente nodo",
   "nodeEditor.nextNode.placeholder": "ID del siguiente nodo opcional",
+  "nodeEditor.comment": "Comentario",
+  "nodeEditor.comment.placeholder": "Añadir un comentario describiendo este nodo...",
 
   // MCP Apps
   "mcpApp.loading": "Cargando MCP App...",

@@ -339,6 +339,7 @@ export default function WorkflowPanel({ plugin }: WorkflowPanelProps) {
   const [dropTarget, setDropTarget] = useState<{ index: number; position: "above" | "below" } | null>(null);
   const [enabledHotkeys, setEnabledHotkeys] = useState<string[]>(plugin.settings.enabledWorkflowHotkeys);
   const [eventTriggers, setEventTriggers] = useState<WorkflowEventTrigger[]>(plugin.settings.enabledWorkflowEventTriggers);
+  const [expandedComments, setExpandedComments] = useState<Set<string>>(new Set());
   const addBtnRef = useRef<HTMLButtonElement>(null);
   const executionModalRef = useRef<WorkflowExecutionModal | null>(null);
 
@@ -1200,6 +1201,30 @@ ${result.nodes.map(node => {
                     <div className="workflow-node-summary">
                       {getNodeSummary(node)}
                     </div>
+
+                    {/* Comment */}
+                    {node.properties["comment"] && (() => {
+                      const comment = node.properties["comment"];
+                      const isMultiLine = comment.includes("\n");
+                      const isExpanded = expandedComments.has(node.id);
+                      return (
+                        <div
+                          className={`workflow-node-comment${isMultiLine ? " is-multiline" : ""}${isExpanded ? " is-expanded" : ""}`}
+                          onClick={isMultiLine ? (e) => {
+                            e.stopPropagation();
+                            setExpandedComments(prev => {
+                              const next = new Set(prev);
+                              if (next.has(node.id)) next.delete(node.id);
+                              else next.add(node.id);
+                              return next;
+                            });
+                          } : undefined}
+                        >
+                          {isMultiLine && <span className="workflow-node-comment-toggle">{isExpanded ? "▼" : "▶"}</span>}
+                          <span className="workflow-node-comment-text">{comment}</span>
+                        </div>
+                      );
+                    })()}
 
                     {/* Actions */}
                     <div className="workflow-node-actions">

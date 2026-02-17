@@ -501,6 +501,9 @@ export class NodeEditorModal extends Modal {
         break;
     }
 
+    // Comment field (common to all node types)
+    this.addTextArea(container, "comment", t("nodeEditor.comment"), t("nodeEditor.comment.placeholder"));
+
     if (isConditional) {
       this.addLinkField(container, "trueNext", t("nodeEditor.trueNext"), t("nodeEditor.trueNext.placeholder"));
       this.addLinkField(container, "falseNext", t("nodeEditor.falseNext"), t("nodeEditor.falseNext.placeholder"));

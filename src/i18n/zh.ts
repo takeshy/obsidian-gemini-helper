@@ -175,6 +175,18 @@ export const zh: Record<string, string> = {
   "settings.storeDeleted": "语义搜索存储已删除",
   "settings.deleteStoreFailed": "删除存储失败：{{error}}",
 
+  // Settings - RAG Files Modal
+  "settings.viewFiles": "查看文件",
+  "settings.ragFiles.title": "{{name}} 中的文件",
+  "settings.ragFiles.searchPlaceholder": "搜索文件...",
+  "settings.ragFiles.filterAll": "全部",
+  "settings.ragFiles.filterRegistered": "已注册",
+  "settings.ragFiles.filterPending": "待处理",
+  "settings.ragFiles.noFiles": "未找到文件",
+  "settings.ragFiles.registered": "已注册",
+  "settings.ragFiles.pending": "待处理",
+  "settings.ragFiles.fileCount": "{{count}} 个文件",
+
   // Common buttons
   "common.cancel": "取消",
   "common.close": "关闭",
@@ -739,6 +751,8 @@ export const zh: Record<string, string> = {
   "nodeEditor.falseNext.placeholder": "false 分支的下一个节点 ID（可选）",
   "nodeEditor.nextNode": "下一个节点",
   "nodeEditor.nextNode.placeholder": "可选的下一个节点 ID",
+  "nodeEditor.comment": "注释",
+  "nodeEditor.comment.placeholder": "添加描述此节点的注释...",
 
   // MCP Apps
   "mcpApp.loading": "正在加载 MCP App...",

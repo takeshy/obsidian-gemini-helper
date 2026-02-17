@@ -1832,6 +1832,41 @@
   white-space: nowrap;
 }
 
+/* Node Comment */
+.workflow-node-comment {
+  font-size: 11px;
+  font-style: italic;
+  color: var(--text-faint);
+  margin-top: 2px;
+  margin-left: 16px;
+  display: flex;
+  align-items: flex-start;
+  gap: 4px;
+}
+
+.workflow-node-comment.is-multiline {
+  cursor: pointer;
+}
+
+.workflow-node-comment-toggle {
+  font-size: 8px;
+  flex-shrink: 0;
+  margin-top: 2px;
+  font-style: normal;
+}
+
+.workflow-node-comment-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.workflow-node-comment.is-expanded .workflow-node-comment-text {
+  white-space: pre-wrap;
+  text-overflow: unset;
+}
+
 /* Node Actions */
 .workflow-node-actions {
   display: flex;
@@ -6163,4 +6198,120 @@
 
 .workflow-step-mcp-app-btn:hover {
   background: var(--interactive-accent-hover);
+}
+
+/* RAG Files Modal */
+.gemini-helper-rag-files-modal {
+  max-width: 600px;
+}
+
+.gemini-helper-rag-files-filter {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.gemini-helper-rag-files-search {
+  width: 100%;
+  padding: 6px 10px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 4px;
+  background: var(--background-primary);
+  color: var(--text-normal);
+  font-size: 14px;
+}
+
+.gemini-helper-rag-files-filter-buttons {
+  display: flex;
+  gap: 4px;
+}
+
+.gemini-helper-rag-files-filter-btn {
+  padding: 4px 12px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 4px;
+  background: var(--background-secondary);
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.gemini-helper-rag-files-filter-btn.is-active {
+  background: var(--interactive-accent);
+  color: var(--text-on-accent);
+  border-color: var(--interactive-accent);
+}
+
+.gemini-helper-rag-files-list {
+  max-height: 400px;
+  overflow-y: auto;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 4px;
+}
+
+.gemini-helper-rag-files-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--background-modifier-border);
+  gap: 8px;
+}
+
+.gemini-helper-rag-files-item:last-child {
+  border-bottom: none;
+}
+
+.gemini-helper-rag-files-item-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+}
+
+.gemini-helper-rag-files-item-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.gemini-helper-rag-files-item-date {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.gemini-helper-rag-files-status {
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.gemini-helper-rag-files-status--registered {
+  background: rgba(0, 200, 83, 0.15);
+  color: var(--text-success, #00c853);
+}
+
+.gemini-helper-rag-files-status--pending {
+  background: rgba(255, 171, 0, 0.15);
+  color: var(--text-warning, #ffab00);
+}
+
+.gemini-helper-rag-files-empty {
+  padding: 24px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.gemini-helper-rag-files-count {
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--text-muted);
+  text-align: right;
 }

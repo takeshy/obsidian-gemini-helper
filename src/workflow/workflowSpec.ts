@@ -516,6 +516,7 @@ nodes:
 6. Always specify saveTo for nodes that produce output
 7. Use meaningful workflow names
 8. **One task per command node**: Each command node should request ONE task only. Don't combine multiple tasks (e.g., "translate AND create infographic"). Split into separate command nodes for better results and debugging.
+9. **Use comment field**: Add a \`comment\` property to nodes to describe their purpose. This is displayed in the sidebar for readability. Example: \`comment: "Fetch latest articles from RSS feed"\`
 `;
 }
 

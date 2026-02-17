@@ -175,6 +175,18 @@ export const en = {
   "settings.storeDeleted": "Semantic search store deleted",
   "settings.deleteStoreFailed": "Failed to delete store: {{error}}",
 
+  // Settings - RAG Files Modal
+  "settings.viewFiles": "View files",
+  "settings.ragFiles.title": "Files in {{name}}",
+  "settings.ragFiles.searchPlaceholder": "Search files...",
+  "settings.ragFiles.filterAll": "All",
+  "settings.ragFiles.filterRegistered": "Registered",
+  "settings.ragFiles.filterPending": "Pending",
+  "settings.ragFiles.noFiles": "No files found",
+  "settings.ragFiles.registered": "Registered",
+  "settings.ragFiles.pending": "Pending",
+  "settings.ragFiles.fileCount": "{{count}} files",
+
   // Common buttons
   "common.cancel": "Cancel",
   "common.close": "Close",
@@ -885,6 +897,8 @@ export const en = {
   "nodeEditor.falseNext.placeholder": "Next node ID for false branch (optional)",
   "nodeEditor.nextNode": "Next node",
   "nodeEditor.nextNode.placeholder": "Optional next node ID",
+  "nodeEditor.comment": "Comment",
+  "nodeEditor.comment.placeholder": "Add a comment describing this node...",
 
   // MCP Apps
   "mcpApp.loading": "Loading mcp app...",

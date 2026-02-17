@@ -175,6 +175,18 @@ export const pt: Record<string, string> = {
   "settings.storeDeleted": "Store de pesquisa semântica excluído",
   "settings.deleteStoreFailed": "Falha ao excluir store: {{error}}",
 
+  // Settings - RAG Files Modal
+  "settings.viewFiles": "Ver arquivos",
+  "settings.ragFiles.title": "Arquivos em {{name}}",
+  "settings.ragFiles.searchPlaceholder": "Pesquisar arquivos...",
+  "settings.ragFiles.filterAll": "Todos",
+  "settings.ragFiles.filterRegistered": "Registrados",
+  "settings.ragFiles.filterPending": "Pendentes",
+  "settings.ragFiles.noFiles": "Nenhum arquivo encontrado",
+  "settings.ragFiles.registered": "Registrado",
+  "settings.ragFiles.pending": "Pendente",
+  "settings.ragFiles.fileCount": "{{count}} arquivos",
+
   // Common buttons
   "common.cancel": "Cancelar",
   "common.close": "Fechar",
@@ -739,6 +751,8 @@ export const pt: Record<string, string> = {
   "nodeEditor.falseNext.placeholder": "ID do próximo nó para ramificação falsa (opcional)",
   "nodeEditor.nextNode": "Próximo nó",
   "nodeEditor.nextNode.placeholder": "ID do próximo nó opcional",
+  "nodeEditor.comment": "Comentário",
+  "nodeEditor.comment.placeholder": "Adicionar um comentário descrevendo este nó...",
 
   // MCP Apps
   "mcpApp.loading": "Carregando MCP App...",

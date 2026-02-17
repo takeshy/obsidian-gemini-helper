@@ -175,6 +175,18 @@ export const fr: Record<string, string> = {
   "settings.storeDeleted": "Store de recherche sémantique supprimé",
   "settings.deleteStoreFailed": "Échec de la suppression du store : {{error}}",
 
+  // Settings - RAG Files Modal
+  "settings.viewFiles": "Voir les fichiers",
+  "settings.ragFiles.title": "Fichiers dans {{name}}",
+  "settings.ragFiles.searchPlaceholder": "Rechercher des fichiers...",
+  "settings.ragFiles.filterAll": "Tous",
+  "settings.ragFiles.filterRegistered": "Enregistrés",
+  "settings.ragFiles.filterPending": "En attente",
+  "settings.ragFiles.noFiles": "Aucun fichier trouvé",
+  "settings.ragFiles.registered": "Enregistré",
+  "settings.ragFiles.pending": "En attente",
+  "settings.ragFiles.fileCount": "{{count}} fichiers",
+
   // Common buttons
   "common.cancel": "Annuler",
   "common.close": "Fermer",
@@ -739,6 +751,8 @@ export const fr: Record<string, string> = {
   "nodeEditor.falseNext.placeholder": "ID du nœud suivant pour la branche fausse (optionnel)",
   "nodeEditor.nextNode": "Nœud suivant",
   "nodeEditor.nextNode.placeholder": "ID du nœud suivant optionnel",
+  "nodeEditor.comment": "Commentaire",
+  "nodeEditor.comment.placeholder": "Ajouter un commentaire décrivant ce nœud...",
 
   // MCP Apps
   "mcpApp.loading": "Chargement de MCP App...",

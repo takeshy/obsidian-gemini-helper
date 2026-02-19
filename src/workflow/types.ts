@@ -159,6 +159,8 @@ export interface ExecutionRecord {
   endTime?: string;
   status: ExecutionStatus;
   steps: ExecutionStep[];
+  errorNodeId?: string;
+  variablesSnapshot?: Record<string, string | number>;
 }
 
 // Workflow input for execution

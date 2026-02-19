@@ -834,6 +834,41 @@ ${result.nodes.map(node => {
     onDragEnd();
   };
 
+  // Build prompt callbacks for workflow execution
+  const buildPromptCallbacks = (): PromptCallbacks => ({
+    promptForFile: (defaultPath?: string) => promptForFile(plugin.app, defaultPath || "Select a file"),
+    promptForAnyFile: (extensions?: string[], defaultPath?: string) =>
+      promptForAnyFile(plugin.app, extensions, defaultPath || "Select a file"),
+    promptForNewFilePath: (extensions?: string[], defaultPath?: string) =>
+      promptForNewFilePath(plugin.app, extensions, defaultPath),
+    promptForSelection: () => promptForSelection(plugin.app, "Select text"),
+    promptForValue: (prompt: string, defaultValue?: string, multiline?: boolean) =>
+      promptForValue(plugin.app, prompt, defaultValue || "", multiline || false),
+    promptForConfirmation: (filePath: string, content: string, mode: string) =>
+      promptForConfirmation(plugin.app, filePath, content, mode),
+    promptForDialog: (title: string, message: string, options: string[], multiSelect: boolean, button1: string, button2?: string, markdown?: boolean, inputTitle?: string, defaults?: { input?: string; selected?: string[] }, multiline?: boolean) =>
+      promptForDialog(plugin.app, title, message, options, multiSelect, button1, button2, markdown, inputTitle, defaults, multiline),
+    openFile: async (notePath: string) => {
+      const noteFile = plugin.app.vault.getAbstractFileByPath(notePath);
+      if (noteFile instanceof TFile) {
+        await plugin.app.workspace.getLeaf().openFile(noteFile);
+      }
+    },
+    promptForPassword: async () => {
+      const cached = cryptoCache.getPassword();
+      if (cached) return cached;
+      return promptForPassword(plugin.app);
+    },
+    showMcpApp: async (mcpApp) => {
+      if (executionModalRef.current) {
+        await showMcpApp(plugin.app, mcpApp);
+      }
+    },
+    onThinking: (nodeId, thinking) => {
+      executionModalRef.current?.updateThinking(nodeId, thinking);
+    },
+  });
+
   // Run workflow
   const runWorkflow = async () => {
     if (!workflowFile || nodes.length === 0) {
@@ -884,45 +919,6 @@ ${result.nodes.map(node => {
       );
       executionModalRef.current.open();
 
-      // Create prompt callbacks
-      const promptCallbacks: PromptCallbacks = {
-        promptForFile: (defaultPath?: string) => promptForFile(plugin.app, defaultPath || "Select a file"),
-        promptForAnyFile: (extensions?: string[], defaultPath?: string) =>
-          promptForAnyFile(plugin.app, extensions, defaultPath || "Select a file"),
-        promptForNewFilePath: (extensions?: string[], defaultPath?: string) =>
-          promptForNewFilePath(plugin.app, extensions, defaultPath),
-        promptForSelection: () => promptForSelection(plugin.app, "Select text"),
-        promptForValue: (prompt: string, defaultValue?: string, multiline?: boolean) =>
-          promptForValue(plugin.app, prompt, defaultValue || "", multiline || false),
-        promptForConfirmation: (filePath: string, content: string, mode: string) =>
-          promptForConfirmation(plugin.app, filePath, content, mode),
-        promptForDialog: (title: string, message: string, options: string[], multiSelect: boolean, button1: string, button2?: string, markdown?: boolean, inputTitle?: string, defaults?: { input?: string; selected?: string[] }, multiline?: boolean) =>
-          promptForDialog(plugin.app, title, message, options, multiSelect, button1, button2, markdown, inputTitle, defaults, multiline),
-        openFile: async (notePath: string) => {
-          const noteFile = plugin.app.vault.getAbstractFileByPath(notePath);
-          if (noteFile instanceof TFile) {
-            await plugin.app.workspace.getLeaf().openFile(noteFile);
-          }
-        },
-        promptForPassword: async () => {
-          // Try cached password first
-          const cached = cryptoCache.getPassword();
-          if (cached) return cached;
-          // Prompt for password
-          return promptForPassword(plugin.app);
-        },
-        showMcpApp: async (mcpApp) => {
-          // Only show MCP App UI if execution modal is displayed
-          if (executionModalRef.current) {
-            await showMcpApp(plugin.app, mcpApp);
-          }
-        },
-        onThinking: (nodeId, thinking) => {
-          // Stream thinking content to the progress modal
-          executionModalRef.current?.updateThinking(nodeId, thinking);
-        },
-      };
-
       await executor.execute(
         workflow,
         input,
@@ -936,7 +932,7 @@ ${result.nodes.map(node => {
           recordHistory: true,
           abortSignal: abortController.signal,
         },
-        promptCallbacks
+        buildPromptCallbacks()
       );
 
       // Mark execution as complete
@@ -947,6 +943,88 @@ ${result.nodes.map(node => {
       // Always mark modal as complete (failed state)
       executionModalRef.current?.setComplete(false);
       // Don't show error notice if it was just stopped
+      if (message !== "Workflow execution was stopped") {
+        new Notice(t("workflow.failed", { message }));
+      }
+    } finally {
+      setIsRunning(false);
+      executionModalRef.current = null;
+    }
+  };
+
+  // Retry workflow from error node
+  const retryFromError = async (
+    retryWorkflowPath: string,
+    retryWorkflowName: string | undefined,
+    errorNodeId: string,
+    variablesSnapshot: Record<string, string | number>
+  ) => {
+    setIsRunning(true);
+
+    const abortController = new AbortController();
+
+    try {
+      const file = plugin.app.vault.getAbstractFileByPath(retryWorkflowPath);
+      if (!file || !(file instanceof TFile)) {
+        throw new Error(`Workflow file not found: ${retryWorkflowPath}`);
+      }
+
+      const content = await plugin.app.vault.read(file);
+
+      // Find the correct workflow index by name
+      const options = listWorkflowOptions(content);
+      let retryWorkflowIndex = 0;
+      if (retryWorkflowName) {
+        const idx = options.findIndex(opt => opt.name === retryWorkflowName);
+        if (idx >= 0) retryWorkflowIndex = idx;
+      }
+
+      const workflow = parseWorkflowFromMarkdown(content, retryWorkflowName || undefined, retryWorkflowIndex);
+
+      const executor = new WorkflowExecutor(plugin.app, plugin);
+
+      const input: WorkflowInput = {
+        variables: new Map(),
+      };
+
+      const initialVariables = new Map<string, string | number>();
+      for (const [key, value] of Object.entries(variablesSnapshot)) {
+        initialVariables.set(key, value);
+      }
+
+      executionModalRef.current = new WorkflowExecutionModal(
+        plugin.app,
+        workflow,
+        retryWorkflowName || file.basename,
+        abortController,
+        () => {
+          setIsRunning(false);
+        }
+      );
+      executionModalRef.current.open();
+
+      await executor.execute(
+        workflow,
+        input,
+        (log) => {
+          executionModalRef.current?.updateFromLog(log);
+        },
+        {
+          workflowPath: retryWorkflowPath,
+          workflowName: retryWorkflowName,
+          recordHistory: true,
+          abortSignal: abortController.signal,
+          startNodeId: errorNodeId,
+          initialVariables,
+        },
+        buildPromptCallbacks()
+      );
+
+      executionModalRef.current?.setComplete(true);
+      new Notice(t("workflow.completedSuccessfully"));
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      executionModalRef.current?.setComplete(false);
       if (message !== "Workflow execution was stopped") {
         new Notice(t("workflow.failed", { message }));
       }
@@ -978,7 +1056,10 @@ ${result.nodes.map(node => {
       plugin.app,
       workflowFile.path,
       plugin.settings.workspaceFolder,
-      encryptionConfig
+      encryptionConfig,
+      (retryPath, retryName, errorNodeId, variablesSnapshot) => {
+        void retryFromError(retryPath, retryName, errorNodeId, variablesSnapshot);
+      }
     );
     modal.open();
   };

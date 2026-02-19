@@ -489,6 +489,7 @@ export const en = {
   "workflowModal.circularReference": "(circular reference)",
   "workflowModal.deleteSelected": "Delete ({{count}})",
   "workflowModal.deletedRecords": "Deleted selected records",
+  "workflowModal.retryFromError": "Retry from error",
 
   // Edit History Modal
   "editHistoryModal.title": "Edit history: {{file}}",

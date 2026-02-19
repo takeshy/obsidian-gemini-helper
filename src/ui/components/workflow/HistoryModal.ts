@@ -12,6 +12,7 @@ export class HistoryModal extends Modal {
   private workflowPath: string;
   private workspaceFolder: string;
   private encryptionConfig: EncryptionConfig | undefined;
+  private onRetryFromError?: (workflowPath: string, workflowName: string | undefined, errorNodeId: string, variablesSnapshot: Record<string, string | number>) => void;
   private records: ExecutionRecord[] = [];
   private selectedRecord: ExecutionRecord | null = null;
   private selectedRecordEncrypted: boolean = false;
@@ -21,11 +22,18 @@ export class HistoryModal extends Modal {
   private checkedRecordIds: Set<string> = new Set();
   private listHeaderEl: HTMLElement | null = null;
 
-  constructor(app: App, workflowPath: string, workspaceFolder: string, encryptionConfig?: EncryptionConfig) {
+  constructor(
+    app: App,
+    workflowPath: string,
+    workspaceFolder: string,
+    encryptionConfig?: EncryptionConfig,
+    onRetryFromError?: (workflowPath: string, workflowName: string | undefined, errorNodeId: string, variablesSnapshot: Record<string, string | number>) => void,
+  ) {
     super(app);
     this.workflowPath = workflowPath;
     this.workspaceFolder = workspaceFolder;
     this.encryptionConfig = encryptionConfig;
+    this.onRetryFromError = onRetryFromError;
   }
 
   async onOpen(): Promise<void> {
@@ -387,6 +395,18 @@ export class HistoryModal extends Modal {
         this.close();
       })();
     });
+
+    // Retry from error button
+    if (record.status === "error" && record.errorNodeId && record.variablesSnapshot && this.onRetryFromError) {
+      const retryBtn = actions.createEl("button", {
+        text: t("workflowModal.retryFromError"),
+        cls: "mod-cta",
+      });
+      retryBtn.addEventListener("click", () => {
+        this.close();
+        this.onRetryFromError!(record.workflowPath, record.workflowName, record.errorNodeId!, record.variablesSnapshot!);
+      });
+    }
 
     const deleteBtn = actions.createEl("button", {
       cls: "workflow-detail-delete-btn",

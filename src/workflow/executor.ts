@@ -48,6 +48,8 @@ export interface ExecuteOptions {
   workflowName?: string;
   recordHistory?: boolean;
   abortSignal?: AbortSignal;
+  startNodeId?: string;
+  initialVariables?: Map<string, string | number>;
 }
 
 export interface ExecuteResult {
@@ -93,6 +95,13 @@ export class WorkflowExecutor {
       variables: new Map(input.variables),
       logs: [],
     };
+
+    // Merge initial variables (for retry from error)
+    if (options?.initialVariables) {
+      for (const [key, value] of options.initialVariables) {
+        context.variables.set(key, value);
+      }
+    }
 
     // Initialize history record if recording is enabled
     const shouldRecord = options?.recordHistory && options?.workflowPath;
@@ -187,8 +196,9 @@ export class WorkflowExecutor {
     };
 
     // Stack-based execution for handling loops
+    const startNode = options?.startNodeId || workflow.startNode;
     const stack: { nodeId: string; iterationCount: number }[] = [
-      { nodeId: workflow.startNode, iterationCount: 0 },
+      { nodeId: startNode, iterationCount: 0 },
     ];
 
     // Track while loop states
@@ -226,7 +236,7 @@ export class WorkflowExecutor {
             handleVariableNode(node, context);
             const varName = node.properties["name"];
             const varValue = context.variables.get(varName);
-            const varInput = { name: varName, value: node.properties["value"] };
+            const varInput = { name: varName, value: replaceVariables(node.properties["value"] || "", context) };
             log(
               node.id,
               node.type,
@@ -254,7 +264,7 @@ export class WorkflowExecutor {
             await handleSetNode(node, context);
             const setVarName = node.properties["name"];
             const setVarValue = context.variables.get(setVarName);
-            const setInput = { name: setVarName, expression: node.properties["value"] };
+            const setInput = { name: setVarName, expression: replaceVariables(node.properties["value"] || "", context) };
             log(
               node.id,
               node.type,
@@ -280,7 +290,7 @@ export class WorkflowExecutor {
 
           case "if": {
             const ifResult = handleIfNode(node, context);
-            const ifInput = { condition: node.properties["condition"] };
+            const ifInput = { condition: replaceVariables(node.properties["condition"] || "", context) };
             log(
               node.id,
               node.type,
@@ -321,7 +331,7 @@ export class WorkflowExecutor {
               whileLoopStates.set(node.id, whileState);
 
               const whileTrueInput = {
-                condition: node.properties["condition"],
+                condition: replaceVariables(node.properties["condition"] || "", context),
                 iteration: whileState.iterationCount,
               };
               log(
@@ -347,7 +357,7 @@ export class WorkflowExecutor {
               }
             } else {
               // Condition is false, exit loop
-              const whileFalseInput = { condition: node.properties["condition"] };
+              const whileFalseInput = { condition: replaceVariables(node.properties["condition"] || "", context) };
               log(node.id, node.type, `Loop condition false, exiting`, "success", whileFalseInput, whileResult);
               addHistoryStep(
                 node.id,
@@ -386,7 +396,7 @@ export class WorkflowExecutor {
             }
 
             const cmdInput: Record<string, unknown> = {
-              prompt: promptTemplate,
+              prompt: replaceVariables(promptTemplate, context),
               model: cmdResult.usedModel,
               ragSetting: actualRagSetting,
               vaultTools: node.properties["vaultTools"] || "all",
@@ -519,9 +529,9 @@ export class WorkflowExecutor {
             );
 
             const noteInput: Record<string, unknown> = {
-              path: notePath,
+              path: replaceVariables(notePath, context),
               mode: noteMode,
-              content: node.properties["content"],
+              content: replaceVariables(node.properties["content"] || "", context),
             };
 
             await handleNoteNode(node, context, this.app, promptCallbacks);
@@ -550,7 +560,7 @@ export class WorkflowExecutor {
                 ? noteReadContent.substring(0, 50) +
                   (noteReadContent.length > 50 ? "..." : "")
                 : noteReadContent;
-            const noteReadInput = { path: noteReadPath };
+            const noteReadInput = { path: replaceVariables(noteReadPath, context) };
             log(
               node.id,
               node.type,
@@ -589,7 +599,7 @@ export class WorkflowExecutor {
             await handleNoteSearchNode(node, context, this.app);
 
             const noteSearchResults = context.variables.get(noteSearchSaveTo);
-            const noteSearchInput = { query: noteSearchQuery, searchContent: noteSearchContent };
+            const noteSearchInput = { query: replaceVariables(noteSearchQuery, context), searchContent: noteSearchContent };
             log(
               node.id,
               node.type,
@@ -1165,8 +1175,15 @@ export class WorkflowExecutor {
           errorMessage
         );
 
-        // Complete and save history with error status
+        // Save error node and variables snapshot for retry
         if (historyRecord) {
+          historyRecord.errorNodeId = node.id;
+          const snapshot: Record<string, string | number> = {};
+          for (const [key, value] of context.variables) {
+            snapshot[key] = value;
+          }
+          historyRecord.variablesSnapshot = snapshot;
+
           this.historyManager.completeRecord(historyRecord, "error");
           await this.historyManager.saveRecord(historyRecord);
         }

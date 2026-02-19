@@ -594,8 +594,13 @@ export class WorkflowExecutor {
             }
 
             const noteReadContent = context.variables.get(noteReadSaveTo);
-            const noteReadPreview =
-              typeof noteReadContent === "string"
+            // When an encrypted file was read and history is not encrypted,
+            // mask the output to prevent leaking decrypted content
+            const noteReadIsEncrypted = skipSnapshots && !historyEncrypted;
+            const noteReadOutput = noteReadIsEncrypted ? "(encrypted)" : noteReadContent;
+            const noteReadPreview = noteReadIsEncrypted
+              ? "(encrypted)"
+              : typeof noteReadContent === "string"
                 ? noteReadContent.substring(0, 50) +
                   (noteReadContent.length > 50 ? "..." : "")
                 : noteReadContent;
@@ -606,13 +611,13 @@ export class WorkflowExecutor {
               `Note read, saved to ${noteReadSaveTo}: ${noteReadPreview}`,
               "success",
               noteReadInput,
-              noteReadContent
+              noteReadOutput
             );
             addHistoryStep(
               node.id,
               node.type,
               noteReadInput,
-              noteReadContent,
+              noteReadOutput,
               "success"
             );
 

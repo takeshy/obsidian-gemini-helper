@@ -401,9 +401,11 @@ Obsidian のイベントでワークフローを自動実行：
 
 | モデル                   | 説明                                      |
 | ------------------------ | ----------------------------------------- |
-| Gemini 3 Flash Preview   | 高速モデル、1M コンテキスト（デフォルト） |
-| Gemini 3 Pro Preview     | フラッグシップモデル、1M コンテキスト     |
-| Gemini 2.5 Flash         | 高速モデル、1M コンテキスト               |
+| Gemini 3.1 Pro Preview | 最新フラッグシップモデル、1M コンテキスト（推奨） |
+| Gemini 3.1 Pro Preview (Custom Tools) | カスタムツールと bash を活用したエージェントワークフローに最適化 |
+| Gemini 3 Flash Preview | 高速モデル、1M コンテキスト、コストパフォーマンス最高 |
+| Gemini 3 Pro Preview | フラッグシップモデル、1M コンテキスト |
+| Gemini 2.5 Flash | 高速モデル、1M コンテキスト |
 | Gemini 2.5 Pro           | プロモデル、1M コンテキスト               |
 | Gemini 2.5 Flash Lite    | 軽量フラッシュモデル                      |
 | Gemini 2.5 Flash (Image) | 画像生成、1024px                          |

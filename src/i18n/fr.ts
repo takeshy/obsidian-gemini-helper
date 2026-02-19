@@ -346,6 +346,7 @@ export const fr: Record<string, string> = {
   "workflow.createWithAI": "Créer un flux de travail avec l'IA",
   "workflow.noWorkflows": "Aucun flux de travail",
   "workflow.newAI": "+ Nouveau (IA)",
+  "workflow.browseAllWorkflows": "Parcourir tous les workflows...",
   "workflow.reloadFromFile": "Recharger depuis le fichier",
   "workflow.addNode": "Ajouter un nœud",
   "workflow.modifyWithAI": "Modifier le flux de travail avec l'IA",

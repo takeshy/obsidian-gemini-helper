@@ -346,6 +346,7 @@ export const ko: Record<string, string> = {
   "workflow.createWithAI": "AI로 워크플로우 생성",
   "workflow.noWorkflows": "워크플로우 없음",
   "workflow.newAI": "+ 새로 만들기 (AI)",
+  "workflow.browseAllWorkflows": "모든 워크플로 찾아보기...",
   "workflow.reloadFromFile": "파일에서 다시 로드",
   "workflow.addNode": "노드 추가",
   "workflow.modifyWithAI": "AI로 워크플로우 수정",

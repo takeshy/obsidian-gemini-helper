@@ -277,6 +277,8 @@ export type ModelType =
   | "gemini-2.5-pro"
   | "gemini-3-flash-preview"
   | "gemini-3-pro-preview"
+  | "gemini-3.1-pro-preview"
+  | "gemini-3.1-pro-preview-customtools"
   | "gemini-2.5-flash-lite"
   | "gemini-2.5-flash-image"
   | "gemini-3-pro-image-preview"
@@ -320,14 +322,24 @@ export const CODEX_CLI_MODEL: ModelInfo = {
 
 export const PAID_MODELS: ModelInfo[] = [
   {
+    name: "gemini-3.1-pro-preview",
+    displayName: "Gemini 3.1 Pro Preview",
+    description: "Latest flagship model with 1M context, best performance (recommended)",
+  },
+  {
+    name: "gemini-3.1-pro-preview-customtools",
+    displayName: "Gemini 3.1 Pro Preview (Custom Tools)",
+    description: "Optimized for agentic workflows with custom tools and bash",
+  },
+  {
     name: "gemini-3-flash-preview",
     displayName: "Gemini 3 Flash Preview",
-    description: "Latest fast model with 1M context, best cost-performance (recommended)",
+    description: "Fast model with 1M context, best cost-performance",
   },
   {
     name: "gemini-3-pro-preview",
     displayName: "Gemini 3 Pro Preview",
-    description: "Latest flagship model with 1M context, best performance",
+    description: "Flagship model with 1M context",
   },
   {
     name: "gemini-2.5-flash",
@@ -549,7 +561,7 @@ export interface StreamChunk {
 
 // Default models by plan
 export const DEFAULT_MODEL_FREE: ModelType = "gemini-2.5-flash";
-export const DEFAULT_MODEL_PAID: ModelType = "gemini-3-pro-preview";
+export const DEFAULT_MODEL_PAID: ModelType = "gemini-3.1-pro-preview";
 
 // Default model (for backwards compatibility)
 export const DEFAULT_MODEL: ModelType = DEFAULT_MODEL_FREE;

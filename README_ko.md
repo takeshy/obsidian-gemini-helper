@@ -390,7 +390,9 @@ Obsidian 이벤트에 의해 워크플로우가 자동으로 트리거될 수 �
 ### 유료 플랜
 | 모델 | 설명 |
 |-------|-------------|
-| Gemini 3 Flash Preview | 빠른 모델, 1M 컨텍스트 (기본값) |
+| Gemini 3.1 Pro Preview | 최신 플래그십 모델, 1M 컨텍스트 (권장) |
+| Gemini 3.1 Pro Preview (Custom Tools) | 커스텀 도구와 bash를 활용한 에이전틱 워크플로에 최적화 |
+| Gemini 3 Flash Preview | 빠른 모델, 1M 컨텍스트, 최고의 비용 대비 성능 |
 | Gemini 3 Pro Preview | 플래그십 모델, 1M 컨텍스트 |
 | Gemini 2.5 Flash | 빠른 모델, 1M 컨텍스트 |
 | Gemini 2.5 Pro | Pro 모델, 1M 컨텍스트 |

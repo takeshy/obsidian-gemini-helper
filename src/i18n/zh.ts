@@ -346,6 +346,7 @@ export const zh: Record<string, string> = {
   "workflow.createWithAI": "使用 AI 创建工作流",
   "workflow.noWorkflows": "无工作流",
   "workflow.newAI": "+ 新建 (AI)",
+  "workflow.browseAllWorkflows": "浏览所有工作流...",
   "workflow.reloadFromFile": "从文件重新加载",
   "workflow.addNode": "添加节点",
   "workflow.modifyWithAI": "使用 AI 修改工作流",

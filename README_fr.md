@@ -390,7 +390,9 @@ Les workflows peuvent être automatiquement déclenchés par des événements Ob
 ### Plan Payant
 | Modèle | Description |
 |--------|-------------|
-| Gemini 3 Flash Preview | Modèle rapide, contexte 1M (par défaut) |
+| Gemini 3.1 Pro Preview | Dernier modèle phare, contexte 1M (recommandé) |
+| Gemini 3.1 Pro Preview (Custom Tools) | Optimisé pour les workflows agentiques avec outils personnalisés et bash |
+| Gemini 3 Flash Preview | Modèle rapide, contexte 1M, meilleur rapport coût-performance |
 | Gemini 3 Pro Preview | Modèle phare, contexte 1M |
 | Gemini 2.5 Flash | Modèle rapide, contexte 1M |
 | Gemini 2.5 Pro | Modèle Pro, contexte 1M |

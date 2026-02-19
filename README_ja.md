@@ -129,15 +129,14 @@ AI が Chat でノートを扱う際は Vault ツールを経由します。添�
 | CLI モデル（Gemini/Claude/Codex CLI） | Vault: オフ      | 不可     |
 | Gemma モデル                          | Vault: オフ      | 不可     |
 | Web Search 有効                       | Vault: オフ      | 不可     |
-| Flash Lite + RAG                      | Vault: オフ      | 不可     |
-| RAG 有効                              | Vault: 検索なし  | 可       |
+| RAG 有効                              | Vault: オフ      | 不可     |
 | RAG なし                              | Vault: 全て      | 可       |
 
 **一部モードが強制される理由：**
 
 - **CLI/Gemma モデル**: これらのモデルは関数呼び出し（Function Calling）をサポートしていないため、Vault ツールは使用できません。
 - **Web Search**: 仕様上、Web Search 有効時は Vault ツールが無効になります。
-- **Flash Lite + RAG**: RAG と Vault ツールの両方が有効だと、Flash Lite モデルはツールを混乱してうまく動作しません。RAG が優先され、Vault ツールは自動的に無効になります。
+- **RAG 有効**: Gemini API は File Search（RAG）と関数呼び出しの併用をサポートしていません。RAG 有効時は Vault ツールと MCP が自動的に無効になります。
 
 ## 安全な編集
 

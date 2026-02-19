@@ -128,15 +128,14 @@ Quando a IA manipula notas no Chat, ela usa ferramentas do Vault. Controle quais
 | Modelos CLI (Gemini/Claude/Codex CLI) | Vault: Desligado | Não |
 | Modelos Gemma | Vault: Desligado | Não |
 | Web Search habilitado | Vault: Desligado | Não |
-| Flash Lite + RAG | Vault: Desligado | Não |
-| RAG habilitado | Vault: Sem pesquisa | Sim |
+| RAG habilitado | Vault: Desligado | Não |
 | Sem RAG | Vault: Tudo | Sim |
 
 **Por que alguns modos são forçados:**
 
 - **Modelos CLI/Gemma**: Esses modelos não suportam chamadas de função, então as ferramentas do Vault não podem ser usadas.
 - **Web Search**: Por design, as ferramentas do Vault são desabilitadas quando Web Search está habilitado.
-- **Flash Lite + RAG**: Quando tanto RAG quanto as ferramentas do Vault estão habilitados, os modelos Flash Lite ficam confusos e não funcionam corretamente. RAG é automaticamente priorizado e as ferramentas do Vault são desabilitadas.
+- **RAG habilitado**: A API Gemini não suporta combinar File Search (RAG) com chamadas de função. Quando RAG está habilitado, as ferramentas do Vault e MCP são automaticamente desabilitadas.
 
 ## Edição Segura
 

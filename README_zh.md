@@ -128,15 +128,14 @@ AI 可以使用以下工具与您的仓库交互：
 | CLI 模型（Gemini/Claude/Codex CLI） | Vault: 关闭 | 否 |
 | Gemma 模型 | Vault: 关闭 | 否 |
 | 启用 Web Search | Vault: 关闭 | 否 |
-| Flash Lite + RAG | Vault: 关闭 | 否 |
-| 启用 RAG | Vault: 无搜索 | 是 |
+| 启用 RAG | Vault: 关闭 | 否 |
 | 无 RAG | Vault: 全部 | 是 |
 
 **为什么某些模式是强制的：**
 
 - **CLI/Gemma 模型**：这些模型不支持函数调用，因此无法使用 Vault 工具。
 - **Web Search**：按设计，当启用 Web Search 时，Vault 工具会被禁用。
-- **Flash Lite + RAG**：当同时启用 RAG 和 Vault 工具时，Flash Lite 模型会出现混乱，无法正常工作。系统会自动优先使用 RAG 并禁用 Vault 工具。
+- **启用 RAG**：Gemini API 不支持将 File Search（RAG）与函数调用结合使用。启用 RAG 时，Vault 工具和 MCP 会自动禁用。
 
 ## 安全编辑
 

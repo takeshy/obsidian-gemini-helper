@@ -128,15 +128,14 @@ When the AI handles notes in Chat, it uses Vault tools. Control which vault tool
 | CLI models (Gemini/Claude/Codex CLI) | Vault: Off | No |
 | Gemma models | Vault: Off | No |
 | Web Search enabled | Vault: Off | No |
-| Flash Lite + RAG | Vault: Off | No |
-| RAG enabled | Vault: No search | Yes |
+| RAG enabled | Vault: Off | No |
 | No RAG | Vault: All | Yes |
 
 **Why some modes are forced:**
 
 - **CLI/Gemma models**: These models do not support function calling, so Vault tools cannot be used.
 - **Web Search**: By design, Vault tools are disabled when Web Search is enabled.
-- **Flash Lite + RAG**: When both RAG and Vault tools are enabled, Flash Lite models get confused and don't work properly. RAG is automatically prioritized and Vault tools are disabled.
+- **RAG enabled**: The Gemini API does not support combining File Search (RAG) with function calling. When RAG is enabled, Vault tools and MCP are automatically disabled.
 
 ## Safe Editing
 

@@ -128,15 +128,14 @@ Lorsque l'IA gère des notes dans le Chat, elle utilise les outils du Vault. Con
 | Modèles CLI (Gemini/Claude/Codex CLI) | Vault: Désactivé | Non |
 | Modèles Gemma | Vault: Désactivé | Non |
 | Web Search activé | Vault: Désactivé | Non |
-| Flash Lite + RAG | Vault: Désactivé | Non |
-| RAG activé | Vault: Sans recherche | Oui |
+| RAG activé | Vault: Désactivé | Non |
 | Sans RAG | Vault: Tous | Oui |
 
 **Pourquoi certains modes sont forcés :**
 
 - **Modèles CLI/Gemma** : Ces modèles ne prennent pas en charge les appels de fonction, donc les outils Vault ne peuvent pas être utilisés.
 - **Web Search** : Par conception, les outils Vault sont désactivés lorsque Web Search est activé.
-- **Flash Lite + RAG** : Lorsque RAG et les outils Vault sont tous deux activés, les modèles Flash Lite se confondent et ne fonctionnent pas correctement. RAG est automatiquement priorisé et les outils Vault sont désactivés.
+- **RAG activé** : L'API Gemini ne prend pas en charge la combinaison de File Search (RAG) avec les appels de fonction. Lorsque RAG est activé, les outils Vault et MCP sont automatiquement désactivés.
 
 ## Édition Sécurisée
 

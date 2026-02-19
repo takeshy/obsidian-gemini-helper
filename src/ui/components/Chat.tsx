@@ -154,7 +154,6 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 	const [vaultToolMode, setVaultToolMode] = useState<"all" | "noSearch" | "none">(() => {
 		const ragSetting = plugin.workspaceState.selectedRagSetting;
 		const initialModel = plugin.getSelectedModel();
-		const isInitialFlashLite = initialModel.toLowerCase().includes("flash-lite");
 		const isInitialCli = initialModel === "gemini-cli" || initialModel === "claude-cli" || initialModel === "codex-cli";
 		const isInitialGemma = initialModel.toLowerCase().includes("gemma");
 
@@ -165,11 +164,9 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 		if (ragSetting === "__websearch__") {
 			return "none";
 		}
-		if (ragSetting && isInitialFlashLite) {
-			return "none";
-		}
+		// RAG enabled: force "none" (fileSearch + functionDeclarations not supported)
 		if (ragSetting) {
-			return "noSearch";
+			return "none";
 		}
 		return "all";
 	});
@@ -177,7 +174,6 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 	const [, setVaultToolNoneReason] = useState<VaultToolNoneReason | null>(() => {
 		const ragSetting = plugin.workspaceState.selectedRagSetting;
 		const initialModel = plugin.getSelectedModel();
-		const isInitialFlashLite = initialModel.toLowerCase().includes("flash-lite");
 		const isInitialCli = initialModel === "gemini-cli" || initialModel === "claude-cli" || initialModel === "codex-cli";
 		const isInitialGemma = initialModel.toLowerCase().includes("gemma");
 
@@ -190,8 +186,9 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 		if (ragSetting === "__websearch__") {
 			return "websearch";
 		}
-		if (ragSetting && isInitialFlashLite) {
-			return "flashLiteRag";
+		// RAG enabled: fileSearch + functionDeclarations not supported
+		if (ragSetting) {
+			return "rag";
 		}
 		return null;
 	});
@@ -200,14 +197,13 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 	const [mcpServers, setMcpServers] = useState(() => {
 		const ragSetting = plugin.workspaceState.selectedRagSetting;
 		const initialModel = plugin.getSelectedModel();
-		const isInitialFlashLite = initialModel.toLowerCase().includes("flash-lite");
 		const isInitialCli = initialModel === "gemini-cli" || initialModel === "claude-cli" || initialModel === "codex-cli";
 		const isInitialGemma = initialModel.toLowerCase().includes("gemma");
 
 		// Check if MCP should be disabled (same logic as vaultToolNoneReason)
+		// RAG enabled: fileSearch + functionDeclarations not supported, so MCP also disabled
 		const shouldDisableMcp = isInitialCli || isInitialGemma ||
-			ragSetting === "__websearch__" ||
-			(ragSetting && isInitialFlashLite);
+			ragSetting === "__websearch__" || !!ragSetting;
 
 		if (shouldDisableMcp) {
 			return plugin.settings.mcpServers.map(s => ({ ...s, enabled: false }));
@@ -771,8 +767,7 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 		}
 	}, [pendingEditFeedback, isLoading]);
 
-	// Check if current model is Flash Lite or Gemma
-	const isFlashLiteModel = currentModel.toLowerCase().includes("flash-lite");
+	// Check if current model is Gemma
 	const isGemmaModel = currentModel.toLowerCase().includes("gemma");
 
 	// Handle RAG setting change from UI
@@ -786,17 +781,10 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 			setVaultToolNoneReason("websearch");
 			setMcpServers(servers => servers.map(s => ({ ...s, enabled: false })));
 		} else if (name) {
-			// RAG is selected
-			if (isFlashLiteModel) {
-				// Flash Lite + RAG: force to "none"
-				setVaultToolMode("none");
-				setVaultToolNoneReason("flashLiteRag");
-				setMcpServers(servers => servers.map(s => ({ ...s, enabled: false })));
-			} else {
-				// Other models + RAG: default to "noSearch"
-				setVaultToolMode("noSearch");
-				setVaultToolNoneReason(null);
-			}
+			// RAG enabled: force to "none" (fileSearch + functionDeclarations not supported)
+			setVaultToolMode("none");
+			setVaultToolNoneReason("rag");
+			setMcpServers(servers => servers.map(s => ({ ...s, enabled: false })));
 		} else {
 			// No RAG selected: default to "all"
 			setVaultToolMode("all");
@@ -826,8 +814,6 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 	const handleModelChange = (model: ModelType) => {
 		setCurrentModel(model);
 		void plugin.selectModel(model);
-
-		const isNewModelFlashLite = model.toLowerCase().includes("flash-lite");
 
 		const isNewModelCli = model === "gemini-cli" || model === "claude-cli" || model === "codex-cli";
 		const isNewModelGemma = model.toLowerCase().includes("gemma");
@@ -865,17 +851,6 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 			// Reset vault tool mode for image generation models
 			setVaultToolMode("all");
 			setVaultToolNoneReason(null);
-		} else if (isNewModelFlashLite) {
-			if (selectedRagSetting && selectedRagSetting !== "__websearch__") {
-				// Flash Lite + RAG: force vault tool mode to "none"
-				setVaultToolMode("none");
-				setVaultToolNoneReason("flashLiteRag");
-				setMcpServers(servers => servers.map(s => ({ ...s, enabled: false })));
-			} else {
-				// Flash Lite without RAG: reset to "all"
-				setVaultToolMode("all");
-				setVaultToolNoneReason(null);
-			}
 		} else {
 			// Normal models: check current RAG setting and reset appropriately
 			if (selectedRagSetting === "__websearch__") {
@@ -883,8 +858,10 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 				setVaultToolNoneReason("websearch");
 				setMcpServers(servers => servers.map(s => ({ ...s, enabled: false })));
 			} else if (selectedRagSetting) {
-				setVaultToolMode("noSearch");
-				setVaultToolNoneReason(null);
+				// RAG enabled: force to "none" (fileSearch + functionDeclarations not supported)
+				setVaultToolMode("none");
+				setVaultToolNoneReason("rag");
+				setMcpServers(servers => servers.map(s => ({ ...s, enabled: false })));
 			} else {
 				setVaultToolMode("all");
 				setVaultToolNoneReason(null);
@@ -2056,7 +2033,7 @@ Always be helpful and provide clear, concise responses. When working with notes,
 						onRagSettingChange={handleRagSettingChange}
 						vaultToolMode={vaultToolMode}
 						onVaultToolModeChange={handleVaultToolModeChange}
-						vaultToolModeOnlyNone={isCliMode || isGemmaModel || selectedRagSetting === "__websearch__" || (isFlashLiteModel && !!selectedRagSetting && selectedRagSetting !== "__websearch__")}
+						vaultToolModeOnlyNone={isCliMode || isGemmaModel || !!selectedRagSetting}
 						mcpServers={mcpServers}
 						onMcpServerToggle={handleMcpServerToggle}
 						slashCommands={plugin.settings.slashCommands}

@@ -128,15 +128,14 @@ Wenn die KI Notizen im Chat verarbeitet, verwendet sie Vault-Tools. Steuern Sie,
 | CLI-Modelle (Gemini/Claude/Codex CLI) | Vault: Aus | Nein |
 | Gemma-Modelle | Vault: Aus | Nein |
 | Web Search aktiviert | Vault: Aus | Nein |
-| Flash Lite + RAG | Vault: Aus | Nein |
-| RAG aktiviert | Vault: Ohne Suche | Ja |
+| RAG aktiviert | Vault: Aus | Nein |
 | Kein RAG | Vault: Alle | Ja |
 
 **Warum einige Modi erzwungen werden:**
 
 - **CLI/Gemma-Modelle**: Diese Modelle unterstützen keine Funktionsaufrufe, daher können Vault-Tools nicht verwendet werden.
 - **Web Search**: Gemäß Design sind Vault-Tools deaktiviert, wenn Web Search aktiviert ist.
-- **Flash Lite + RAG**: Wenn sowohl RAG als auch Vault-Tools aktiviert sind, werden Flash Lite-Modelle verwirrt und funktionieren nicht richtig. RAG wird automatisch priorisiert und Vault-Tools werden deaktiviert.
+- **RAG aktiviert**: Die Gemini API unterstützt nicht die Kombination von File Search (RAG) mit Funktionsaufrufen. Bei aktiviertem RAG werden Vault-Tools und MCP automatisch deaktiviert.
 
 ## Sicheres Bearbeiten
 

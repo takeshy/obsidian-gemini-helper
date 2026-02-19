@@ -128,15 +128,14 @@ AI가 Chat에서 노트를 처리할 때 Vault 도구를 사용합니다. 첨부
 | CLI 모델 (Gemini/Claude/Codex CLI) | Vault: 끄기 | 아니오 |
 | Gemma 모델 | Vault: 끄기 | 아니오 |
 | Web Search 활성화 | Vault: 끄기 | 아니오 |
-| Flash Lite + RAG | Vault: 끄기 | 아니오 |
-| RAG 활성화 | Vault: 검색 제외 | 예 |
+| RAG 활성화 | Vault: 끄기 | 아니오 |
 | RAG 없음 | Vault: 전체 | 예 |
 
 **일부 모드가 강제되는 이유:**
 
 - **CLI/Gemma 모델**: 이러한 모델은 함수 호출을 지원하지 않으므로 Vault 도구를 사용할 수 없습니다.
 - **Web Search**: 설계상 Web Search가 활성화되면 Vault 도구가 비활성화됩니다.
-- **Flash Lite + RAG**: RAG와 Vault 도구가 모두 활성화되면 Flash Lite 모델이 혼란스러워지고 제대로 작동하지 않습니다. RAG가 자동으로 우선시되고 Vault 도구가 비활성화됩니다.
+- **RAG 활성화**: Gemini API는 File Search(RAG)와 함수 호출의 조합을 지원하지 않습니다. RAG가 활성화되면 Vault 도구와 MCP가 자동으로 비활성화됩니다.
 
 ## 안전한 편집
 

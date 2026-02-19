@@ -655,6 +655,7 @@ export const ja: Record<string, string> = {
   "workflowModal.deleteSelected": "削除 ({{count}}件)",
   "workflowModal.deletedRecords": "選択した履歴を削除しました",
   "workflowModal.retryFromError": "エラーからリトライ",
+  "workflowModal.retryFromStep": "ここからリトライ",
 
   // MCP Server Settings
   "settings.mcpServers": "MCPサーバー",

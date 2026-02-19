@@ -491,6 +491,8 @@ export const zh: Record<string, string> = {
   "workflowModal.circularReference": "（循环引用）",
   "workflowModal.deleteSelected": "删除 ({{count}})",
   "workflowModal.deletedRecords": "已删除选中的记录",
+  "workflowModal.retryFromError": "从错误处重试",
+  "workflowModal.retryFromStep": "从此处重试",
 
   // Commands
   "command.runWorkflow": "运行工作流",

@@ -172,6 +172,9 @@ export class WorkflowExecutor {
       return data;
     };
 
+    // Current variables snapshot, captured before each node execution for retry support
+    let currentVarsSnapshot: Record<string, string | number> | undefined;
+
     const addHistoryStep = (
       nodeId: string,
       nodeType: WorkflowNode["type"],
@@ -190,7 +193,8 @@ export class WorkflowExecutor {
           truncateLargeData(output),
           status,
           error,
-          mcpAppInfo
+          mcpAppInfo,
+          currentVarsSnapshot
         );
       }
     };
@@ -226,6 +230,12 @@ export class WorkflowExecutor {
       }
 
       log(node.id, node.type, `Executing node: ${node.type}`);
+
+      // Snapshot variables before execution for retry support
+      currentVarsSnapshot = {};
+      for (const [key, value] of context.variables) {
+        currentVarsSnapshot[key] = value;
+      }
 
       // Track current node input for error reporting
       let currentNodeInput: Record<string, unknown> | undefined;
@@ -536,8 +546,9 @@ export class WorkflowExecutor {
 
             await handleNoteNode(node, context, this.app, promptCallbacks);
 
-            log(node.id, node.type, `Note written: ${notePath}`, "success", noteInput, notePath);
-            addHistoryStep(node.id, node.type, noteInput, notePath, "success");
+            const noteResolvedPath = replaceVariables(notePath, context);
+            log(node.id, node.type, `Note written: ${noteResolvedPath}`, "success", noteInput, noteResolvedPath);
+            addHistoryStep(node.id, node.type, noteInput, noteResolvedPath, "success");
 
             // Push next nodes
             const noteNextNodes = getNextNodes(workflow, node.id);

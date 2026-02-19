@@ -149,6 +149,7 @@ export interface ExecutionStep {
   status: StepStatus;
   error?: string;
   mcpAppInfo?: McpAppInfo;  // MCP Apps UI info if available
+  variablesSnapshot?: Record<string, string | number>;  // Variables state before this step
 }
 
 export interface ExecutionRecord {

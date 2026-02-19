@@ -80,7 +80,8 @@ export class ExecutionHistoryManager {
     output?: unknown,
     status: StepStatus = "success",
     error?: string,
-    mcpAppInfo?: McpAppInfo
+    mcpAppInfo?: McpAppInfo,
+    variablesSnapshot?: Record<string, string | number>
   ): void {
     record.steps.push({
       nodeId,
@@ -91,6 +92,7 @@ export class ExecutionHistoryManager {
       status,
       error,
       mcpAppInfo,
+      variablesSnapshot,
     });
   }
 
@@ -137,6 +139,9 @@ export class ExecutionHistoryManager {
 
     // Emit event to notify UI components
     globalEventEmitter.emit("execution-history-saved", record.workflowPath);
+
+    // Strip variablesSnapshot from older records to save disk space
+    await this.stripOldSnapshots(record.workflowPath, record.id);
   }
 
   /**
@@ -383,6 +388,46 @@ export class ExecutionHistoryManager {
     }
 
     return deletedCount;
+  }
+
+  /**
+   * Strip variablesSnapshot from steps of older records to save disk space.
+   * Only the latest record (excludeId) retains snapshots for retry.
+   */
+  private async stripOldSnapshots(workflowPath: string, excludeId: string): Promise<void> {
+    const folderPath = this.historyFolder;
+
+    try {
+      const files = await this.app.vault.adapter.list(folderPath);
+
+      for (const file of files.files) {
+        if (!file.endsWith(".json")) continue;
+
+        try {
+          const content = await this.app.vault.adapter.read(file);
+
+          // Skip encrypted files - cannot modify without full decrypt/re-encrypt cycle
+          if (isEncryptedFile(content)) continue;
+
+          const record: ExecutionRecord = JSON.parse(content);
+          if (record.workflowPath !== workflowPath || record.id === excludeId) continue;
+
+          // Check if any step has a variablesSnapshot
+          const hasSnapshots = record.steps.some(s => s.variablesSnapshot);
+          if (!hasSnapshots) continue;
+
+          // Strip snapshots and re-save
+          for (const step of record.steps) {
+            delete step.variablesSnapshot;
+          }
+          await this.app.vault.adapter.write(file, JSON.stringify(record, null, 2));
+        } catch {
+          // Skip invalid files
+        }
+      }
+    } catch (e) {
+      console.error("Failed to strip old snapshots:", formatError(e));
+    }
   }
 
   private async ensureHistoryFolder(): Promise<void> {

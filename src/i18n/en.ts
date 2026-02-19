@@ -490,6 +490,7 @@ export const en = {
   "workflowModal.deleteSelected": "Delete ({{count}})",
   "workflowModal.deletedRecords": "Deleted selected records",
   "workflowModal.retryFromError": "Retry from error",
+  "workflowModal.retryFromStep": "Retry from here",
 
   // Edit History Modal
   "editHistoryModal.title": "Edit history: {{file}}",

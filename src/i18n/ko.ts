@@ -491,6 +491,8 @@ export const ko: Record<string, string> = {
   "workflowModal.circularReference": "(순환 참조)",
   "workflowModal.deleteSelected": "삭제 ({{count}})",
   "workflowModal.deletedRecords": "선택한 기록이 삭제되었습니다",
+  "workflowModal.retryFromError": "오류에서 재시도",
+  "workflowModal.retryFromStep": "여기서 재시도",
 
   // Commands
   "command.runWorkflow": "워크플로우 실행",

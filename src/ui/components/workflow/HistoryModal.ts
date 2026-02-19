@@ -373,6 +373,19 @@ export class HistoryModal extends Modal {
           }
         });
       }
+
+      // Retry from here button
+      if (step.variablesSnapshot && this.onRetryFromError) {
+        const retryStepBtn = stepEl.createEl("button", {
+          text: t("workflowModal.retryFromStep"),
+          cls: "workflow-step-retry-btn",
+        });
+        retryStepBtn.addEventListener("click", (e) => {
+          e.stopPropagation();
+          this.close();
+          this.onRetryFromError!(record.workflowPath, record.workflowName, step.nodeId, step.variablesSnapshot!);
+        });
+      }
     }
 
     // Actions

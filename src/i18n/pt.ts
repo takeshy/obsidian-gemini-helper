@@ -491,6 +491,8 @@ export const pt: Record<string, string> = {
   "workflowModal.circularReference": "(referência circular)",
   "workflowModal.deleteSelected": "Excluir ({{count}})",
   "workflowModal.deletedRecords": "Registros selecionados excluídos",
+  "workflowModal.retryFromError": "Tentar novamente a partir do erro",
+  "workflowModal.retryFromStep": "Tentar novamente a partir daqui",
 
   // Commands
   "command.runWorkflow": "Executar workflow",

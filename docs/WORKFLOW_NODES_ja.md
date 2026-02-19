@@ -314,7 +314,8 @@ HTTP リクエストを実行。
 |------------|------|
 | `url` | リクエスト URL（必須） |
 | `method` | `GET`（デフォルト）、`POST`、`PUT`、`PATCH`、`DELETE` |
-| `contentType` | `json`（デフォルト）、`form-data`、`text` |
+| `contentType` | `json`（デフォルト）、`form-data`、`text`、`binary` |
+| `responseType` | `auto`（デフォルト）、`text`、`binary`。レスポンス処理における Content-Type 自動判定を上書き |
 | `headers` | JSON オブジェクトまたは `Key: Value` 形式（1行1つ） |
 | `body` | リクエストボディ（POST/PUT/PATCH 用） |
 | `saveTo` | レスポンスボディを保存する変数 |

@@ -314,7 +314,8 @@ Fuehrt HTTP-Anfragen aus.
 |-------------|--------------|
 | `url` | Anfrage-URL (erforderlich) |
 | `method` | `GET` (Standard), `POST`, `PUT`, `PATCH`, `DELETE` |
-| `contentType` | `json` (Standard), `form-data`, `text` |
+| `contentType` | `json` (Standard), `form-data`, `text`, `binary` |
+| `responseType` | `auto` (Standard), `text`, `binary`. Content-Type-Autoerkennung für die Antwortverarbeitung überschreiben |
 | `headers` | JSON-Objekt oder `Key: Value`-Format (eines pro Zeile) |
 | `body` | Anfrage-Body (fuer POST/PUT/PATCH) |
 | `saveTo` | Variable fuer Antwort-Body |

@@ -618,6 +618,8 @@ export const ko: Record<string, string> = {
   "nodeEditor.headers.placeholder": "{\"Authorization\": \"Bearer {{token}}\"}",
   "nodeEditor.body": "본문",
   "nodeEditor.body.placeholder": "{\"key\": \"{{value}}\"}\nform-data의 경우: {\"file:filename.html\": \"{{content}}\"}",
+  "nodeEditor.responseType": "응답 타입",
+  "nodeEditor.responseType.desc": "Content-Type 자동 감지 재정의: auto (기본값), text (텍스트 강제), binary (바이너리 강제)",
   "nodeEditor.saveStatus": "상태 저장 위치",
   "nodeEditor.saveStatus.placeholder": "HTTP 상태 코드를 저장할 변수 이름",
   "nodeEditor.throwOnError": "오류 시 예외 발생",

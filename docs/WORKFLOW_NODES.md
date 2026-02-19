@@ -314,7 +314,8 @@ Make HTTP requests.
 |----------|-------------|
 | `url` | Request URL (required) |
 | `method` | `GET` (default), `POST`, `PUT`, `PATCH`, `DELETE` |
-| `contentType` | `json` (default), `form-data`, `text` |
+| `contentType` | `json` (default), `form-data`, `text`, `binary` |
+| `responseType` | `auto` (default), `text`, `binary`. Override Content-Type auto-detection for response handling |
 | `headers` | JSON object or `Key: Value` format (one per line) |
 | `body` | Request body (for POST/PUT/PATCH) |
 | `saveTo` | Variable for response body |

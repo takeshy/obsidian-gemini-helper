@@ -618,6 +618,8 @@ export const zh: Record<string, string> = {
   "nodeEditor.headers.placeholder": "{\"Authorization\": \"Bearer {{token}}\"}",
   "nodeEditor.body": "正文",
   "nodeEditor.body.placeholder": "{\"key\": \"{{value}}\"}\n对于 form-data：{\"file:filename.html\": \"{{content}}\"}",
+  "nodeEditor.responseType": "响应类型",
+  "nodeEditor.responseType.desc": "覆盖 Content-Type 自动检测：auto（默认）、text（强制文本）、binary（强制二进制）",
   "nodeEditor.saveStatus": "保存状态到",
   "nodeEditor.saveStatus.placeholder": "用于存储 HTTP 状态码的变量名",
   "nodeEditor.throwOnError": "出错时抛出异常",

@@ -314,7 +314,8 @@ HTTP 요청을 수행합니다.
 |----------|-------------|
 | `url` | 요청 URL (필수) |
 | `method` | `GET` (기본값), `POST`, `PUT`, `PATCH`, `DELETE` |
-| `contentType` | `json` (기본값), `form-data`, `text` |
+| `contentType` | `json` (기본값), `form-data`, `text`, `binary` |
+| `responseType` | `auto` (기본값), `text`, `binary`. 응답 처리를 위한 Content-Type 자동 감지 재정의 |
 | `headers` | JSON 객체 또는 `Key: Value` 형식 (한 줄에 하나씩) |
 | `body` | 요청 본문 (POST/PUT/PATCH용) |
 | `saveTo` | 응답 본문을 저장할 변수 |

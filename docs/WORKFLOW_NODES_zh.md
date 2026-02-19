@@ -314,7 +314,8 @@ nodes:
 |----------|-------------|
 | `url` | 请求 URL（必填） |
 | `method` | `GET`（默认）、`POST`、`PUT`、`PATCH`、`DELETE` |
-| `contentType` | `json`（默认）、`form-data`、`text` |
+| `contentType` | `json`（默认）、`form-data`、`text`、`binary` |
+| `responseType` | `auto`（默认）、`text`、`binary`。覆盖 Content-Type 自动检测以处理响应 |
 | `headers` | JSON 对象或 `Key: Value` 格式（每行一个） |
 | `body` | 请求体（用于 POST/PUT/PATCH） |
 | `saveTo` | 用于存储响应体的变量 |

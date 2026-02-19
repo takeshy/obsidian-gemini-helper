@@ -618,6 +618,8 @@ export const it: Record<string, string> = {
   "nodeEditor.headers.placeholder": "{\"Authorization\": \"Bearer {{token}}\"}",
   "nodeEditor.body": "Corpo",
   "nodeEditor.body.placeholder": "{\"key\": \"{{value}}\"}\nPer form-data: {\"file:filename.html\": \"{{content}}\"}",
+  "nodeEditor.responseType": "Tipo di risposta",
+  "nodeEditor.responseType.desc": "Sovrascrivere il rilevamento automatico del Content-Type: auto (predefinito), text (forza testo), binary (forza binario)",
   "nodeEditor.saveStatus": "Salva stato in",
   "nodeEditor.saveStatus.placeholder": "Nome variabile per memorizzare il codice di stato HTTP",
   "nodeEditor.throwOnError": "Lancia errore su fallimento",

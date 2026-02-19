@@ -314,7 +314,8 @@ Realiza solicitudes HTTP.
 |----------|-------------|
 | `url` | URL de la solicitud (requerido) |
 | `method` | `GET` (predeterminado), `POST`, `PUT`, `PATCH`, `DELETE` |
-| `contentType` | `json` (predeterminado), `form-data`, `text` |
+| `contentType` | `json` (predeterminado), `form-data`, `text`, `binary` |
+| `responseType` | `auto` (predeterminado), `text`, `binary`. Anular la detección automática de Content-Type para el manejo de la respuesta |
 | `headers` | Objeto JSON o formato `Key: Value` (uno por linea) |
 | `body` | Cuerpo de la solicitud (para POST/PUT/PATCH) |
 | `saveTo` | Variable para el cuerpo de respuesta |

@@ -755,6 +755,8 @@ export const ja: Record<string, string> = {
   "nodeEditor.headers.placeholder": "{\"Authorization\": \"Bearer {{token}}\"}",
   "nodeEditor.body": "ボディ",
   "nodeEditor.body.placeholder": "{\"key\": \"{{value}}\"}\nform-data: {\"file:filename.html\": \"{{content}}\"}",
+  "nodeEditor.responseType": "レスポンスタイプ",
+  "nodeEditor.responseType.desc": "Content-Type自動判定の上書き: auto（デフォルト）、text（テキスト強制）、binary（バイナリ強制）",
   "nodeEditor.saveTo.httpResponse": "変数名（Content-Typeからバイナリを自動判定）",
   "nodeEditor.saveStatus": "ステータス保存先",
   "nodeEditor.saveStatus.placeholder": "HTTPステータスコードを保存する変数名",

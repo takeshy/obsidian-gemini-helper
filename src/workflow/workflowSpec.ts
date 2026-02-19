@@ -125,6 +125,7 @@ Make HTTP request.
 - **url** (required): Request URL (supports {{variables}})
 - **method** (optional): GET, POST, PUT, DELETE, PATCH (default: GET)
 - **contentType** (optional): "json", "form-data", "text", "binary" (default: "json")
+- **responseType** (optional): "auto", "text", "binary" (default: "auto"). Override Content-Type auto-detection for response handling.
 - **headers** (optional): JSON headers
 - **body** (optional): Request body (supports {{variables}})
   - For "json": JSON string

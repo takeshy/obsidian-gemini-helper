@@ -314,7 +314,8 @@ Fazer requisicoes HTTP.
 |-------------|-----------|
 | `url` | URL da requisicao (obrigatorio) |
 | `method` | `GET` (padrao), `POST`, `PUT`, `PATCH`, `DELETE` |
-| `contentType` | `json` (padrao), `form-data`, `text` |
+| `contentType` | `json` (padrao), `form-data`, `text`, `binary` |
+| `responseType` | `auto` (padrão), `text`, `binary`. Substituir a detecção automática de Content-Type para o tratamento da resposta |
 | `headers` | Objeto JSON ou formato `Key: Value` (um por linha) |
 | `body` | Corpo da requisicao (para POST/PUT/PATCH) |
 | `saveTo` | Variavel para corpo da resposta |

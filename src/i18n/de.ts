@@ -618,6 +618,8 @@ export const de: Record<string, string> = {
   "nodeEditor.headers.placeholder": "{\"Authorization\": \"Bearer {{token}}\"}",
   "nodeEditor.body": "Body",
   "nodeEditor.body.placeholder": "{\"key\": \"{{value}}\"}\nFür form-data: {\"file:filename.html\": \"{{content}}\"}",
+  "nodeEditor.responseType": "Antworttyp",
+  "nodeEditor.responseType.desc": "Content-Type-Autoerkennung überschreiben: auto (Standard), text (Text erzwingen), binary (Binär erzwingen)",
   "nodeEditor.saveStatus": "Status speichern in",
   "nodeEditor.saveStatus.placeholder": "Variablenname zum Speichern des HTTP-Statuscodes",
   "nodeEditor.throwOnError": "Fehler bei Fehler werfen",

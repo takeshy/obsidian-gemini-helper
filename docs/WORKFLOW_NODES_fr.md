@@ -314,7 +314,8 @@ Effectuer des requetes HTTP.
 |-----------|-------------|
 | `url` | URL de la requete (requis) |
 | `method` | `GET` (defaut), `POST`, `PUT`, `PATCH`, `DELETE` |
-| `contentType` | `json` (defaut), `form-data`, `text` |
+| `contentType` | `json` (defaut), `form-data`, `text`, `binary` |
+| `responseType` | `auto` (défaut), `text`, `binary`. Remplacer la détection automatique du Content-Type pour le traitement de la réponse |
 | `headers` | Objet JSON ou format `Cle: Valeur` (un par ligne) |
 | `body` | Corps de la requete (pour POST/PUT/PATCH) |
 | `saveTo` | Variable pour le corps de la reponse |

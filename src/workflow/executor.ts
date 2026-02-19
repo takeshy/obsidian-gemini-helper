@@ -40,6 +40,7 @@ import {
 } from "./nodeHandlers";
 import { parseWorkflowFromMarkdown } from "./parser";
 import { ExecutionHistoryManager, EncryptionConfig } from "./history";
+import { isEncryptedFile } from "../core/crypto";
 
 const MAX_ITERATIONS = 1000; // Prevent infinite loops
 
@@ -172,8 +173,17 @@ export class WorkflowExecutor {
       return data;
     };
 
-    // Current variables snapshot, captured before each node execution for retry support
+    // Current variables snapshot, captured before each node execution for retry support.
+    // When history is not encrypted, skip snapshots after reading an encrypted file
+    // to avoid leaking decrypted content into unencrypted history files.
     let currentVarsSnapshot: Record<string, string | number> | undefined;
+    let skipSnapshots = false;
+    const historyEncrypted = !!(
+      this.plugin.settings.encryption?.encryptWorkflowHistory &&
+      this.plugin.settings.encryption?.publicKey &&
+      this.plugin.settings.encryption?.encryptedPrivateKey &&
+      this.plugin.settings.encryption?.salt
+    );
 
     const addHistoryStep = (
       nodeId: string,
@@ -232,9 +242,13 @@ export class WorkflowExecutor {
       log(node.id, node.type, `Executing node: ${node.type}`);
 
       // Snapshot variables before execution for retry support
-      currentVarsSnapshot = {};
-      for (const [key, value] of context.variables) {
-        currentVarsSnapshot[key] = value;
+      if (!skipSnapshots) {
+        currentVarsSnapshot = {};
+        for (const [key, value] of context.variables) {
+          currentVarsSnapshot[key] = value;
+        }
+      } else {
+        currentVarsSnapshot = undefined;
       }
 
       // Track current node input for error reporting
@@ -564,6 +578,20 @@ export class WorkflowExecutor {
             log(node.id, node.type, `Reading note: ${noteReadPath}`, "info");
 
             await handleNoteReadNode(node, context, this.app, promptCallbacks);
+
+            // If an encrypted file was read and history is not encrypted,
+            // stop recording snapshots to prevent leaking decrypted content
+            if (!skipSnapshots && !historyEncrypted) {
+              const noteReadResolvedPath = replaceVariables(noteReadPath, context);
+              const noteReadCheckPath = noteReadResolvedPath.endsWith(".md") ? noteReadResolvedPath : `${noteReadResolvedPath}.md`;
+              const noteReadCheckFile = this.app.vault.getAbstractFileByPath(noteReadCheckPath);
+              if (noteReadCheckFile instanceof TFile) {
+                const rawContent = await this.app.vault.read(noteReadCheckFile);
+                if (isEncryptedFile(rawContent)) {
+                  skipSnapshots = true;
+                }
+              }
+            }
 
             const noteReadContent = context.variables.get(noteReadSaveTo);
             const noteReadPreview =

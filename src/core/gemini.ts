@@ -167,22 +167,36 @@ export class GeminiClient {
   ): AsyncGenerator<StreamChunk> {
     const contents = this.messagesToContents(messages);
 
-    const response = await this.ai.models.generateContentStream({
-      model: this.model,
-      contents,
-      config: {
-        systemInstruction: systemPrompt,
-      },
-    });
+    try {
+      const response = await this.ai.models.generateContentStream({
+        model: this.model,
+        contents,
+        config: {
+          systemInstruction: systemPrompt,
+        },
+      });
 
-    for await (const chunk of response) {
-      const text = chunk.text;
-      if (text) {
-        yield { type: "text", content: text };
+      let hasReceivedChunk = false;
+      for await (const chunk of response) {
+        hasReceivedChunk = true;
+        const text = chunk.text;
+        if (text) {
+          yield { type: "text", content: text };
+        }
       }
-    }
 
-    yield { type: "done" };
+      if (!hasReceivedChunk) {
+        yield { type: "error", error: "No response received from API (possible server error)" };
+        return;
+      }
+
+      yield { type: "done" };
+    } catch (error) {
+      yield {
+        type: "error",
+        error: error instanceof Error ? error.message : "API call failed",
+      };
+    }
   }
 
   // Convert messages to Gemini history format (for chat sessions)
@@ -331,211 +345,226 @@ export class GeminiClient {
       messageParts.push({ text: lastMessage.content });
     }
 
-    // Send initial message
-    let response = await chat.sendMessageStream({ message: messageParts });
+    try {
+      // Send initial message
+      let response = await chat.sendMessageStream({ message: messageParts });
 
-    while (continueLoop) {
-      const functionCallsToProcess: Array<{ name: string; args: Record<string, unknown> }> = [];
-      let groundingEmitted = false;
-      const accumulatedSources: string[] = [];
+      while (continueLoop) {
+        const functionCallsToProcess: Array<{ name: string; args: Record<string, unknown> }> = [];
+        let groundingEmitted = false;
+        const accumulatedSources: string[] = [];
+        let hasReceivedChunk = false;
 
-      for await (const chunk of response) {
-        // Check for function calls
-        if (chunk.functionCalls && chunk.functionCalls.length > 0) {
-          for (const fc of chunk.functionCalls) {
-            functionCallsToProcess.push({
-              name: fc.name ?? "",
-              args: (fc.args as Record<string, unknown>) ?? {},
-            });
+        for await (const chunk of response) {
+          hasReceivedChunk = true;
+          // Check for function calls
+          if (chunk.functionCalls && chunk.functionCalls.length > 0) {
+            for (const fc of chunk.functionCalls) {
+              functionCallsToProcess.push({
+                name: fc.name ?? "",
+                args: (fc.args as Record<string, unknown>) ?? {},
+              });
+            }
           }
-        }
 
-        // Check for grounding metadata and thinking parts
-        // Access candidates via type assertion for grounding metadata and thought parts
-        const chunkWithCandidates = chunk as {
-          candidates?: Array<{
-            content?: {
-              parts?: Array<{
-                text?: string;
-                thought?: boolean;
-              }>;
-            };
-            groundingMetadata?: {
-              groundingChunks?: Array<{
-                retrievedContext?: { uri?: string; title?: string };
-              }>;
-            };
-          }>;
-        };
-        const candidates = chunkWithCandidates.candidates;
+          // Check for grounding metadata and thinking parts
+          // Access candidates via type assertion for grounding metadata and thought parts
+          const chunkWithCandidates = chunk as {
+            candidates?: Array<{
+              content?: {
+                parts?: Array<{
+                  text?: string;
+                  thought?: boolean;
+                }>;
+              };
+              groundingMetadata?: {
+                groundingChunks?: Array<{
+                  retrievedContext?: { uri?: string; title?: string };
+                }>;
+              };
+            }>;
+          };
+          const candidates = chunkWithCandidates.candidates;
 
-        // Extract and yield thinking parts
-        if (candidates && candidates.length > 0) {
-          const parts = candidates[0]?.content?.parts;
-          if (parts) {
-            for (const part of parts) {
-              if (part.thought && part.text) {
-                yield { type: "thinking", content: part.text };
+          // Extract and yield thinking parts
+          if (candidates && candidates.length > 0) {
+            const parts = candidates[0]?.content?.parts;
+            if (parts) {
+              for (const part of parts) {
+                if (part.thought && part.text) {
+                  yield { type: "thinking", content: part.text };
+                }
               }
             }
           }
-        }
-        if (!groundingEmitted && candidates && candidates.length > 0) {
-          const groundingMetadata = candidates[0]?.groundingMetadata;
-          if (groundingMetadata) {
-            if (webSearchEnabled) {
-              // Web Search was used
-              yield { type: "web_search_used" };
-              groundingEmitted = true;
-            } else {
-              // RAG/File Search was used - accumulate sources from all chunks
-              // Extract source file names from grounding chunks
-              // Prefer title (actual file name) over uri (internal reference)
-              if (groundingMetadata.groundingChunks) {
-                for (const gc of groundingMetadata.groundingChunks) {
-                  const source = gc.retrievedContext?.title || gc.retrievedContext?.uri;
-                  if (source && !accumulatedSources.includes(source)) {
-                    accumulatedSources.push(source);
+          if (!groundingEmitted && candidates && candidates.length > 0) {
+            const groundingMetadata = candidates[0]?.groundingMetadata;
+            if (groundingMetadata) {
+              if (webSearchEnabled) {
+                // Web Search was used
+                yield { type: "web_search_used" };
+                groundingEmitted = true;
+              } else {
+                // RAG/File Search was used - accumulate sources from all chunks
+                // Extract source file names from grounding chunks
+                // Prefer title (actual file name) over uri (internal reference)
+                if (groundingMetadata.groundingChunks) {
+                  for (const gc of groundingMetadata.groundingChunks) {
+                    const source = gc.retrievedContext?.title || gc.retrievedContext?.uri;
+                    if (source && !accumulatedSources.includes(source)) {
+                      accumulatedSources.push(source);
+                    }
                   }
                 }
               }
             }
           }
-        }
 
-        // Yield text chunks
-        const text = chunk.text;
-        if (text) {
-          yield { type: "text", content: text };
-        }
-      }
-
-      // Emit accumulated RAG sources after processing all chunks
-      if (accumulatedSources.length > 0 && !groundingEmitted) {
-        yield { type: "rag_used", ragSources: accumulatedSources };
-        groundingEmitted = true;
-      }
-
-      // Process function calls if any
-      if (functionCallsToProcess.length > 0 && executeToolCall) {
-        // Calculate how many calls we can still execute
-        const remainingBefore = maxFunctionCalls - functionCallCount;
-
-        // If already at limit, request final answer without executing any more
-        if (remainingBefore <= 0) {
-          yield {
-            type: "text",
-            content: "\n\n[Function call limit reached. Summarizing with available information...]",
-          };
-          response = await chat.sendMessageStream({
-            message: [{ text: "You have reached the function call limit. Please provide a final answer based on the information gathered so far." }],
-          });
-          for await (const chunk of response) {
-            const text = chunk.text;
-            if (text) {
-              yield { type: "text", content: text };
-            }
+          // Yield text chunks
+          const text = chunk.text;
+          if (text) {
+            yield { type: "text", content: text };
           }
-          continueLoop = false;
-          continue;
         }
 
-        // Execute only up to remaining allowed calls
-        const callsToExecute = functionCallsToProcess.slice(0, remainingBefore);
-        const skippedCount = functionCallsToProcess.length - callsToExecute.length;
-
-        // Emit warning when approaching limit
-        const remainingAfter = remainingBefore - callsToExecute.length;
-        if (!warningEmitted && remainingAfter <= warningThreshold) {
-          warningEmitted = true;
-          yield {
-            type: "text",
-            content: `\n\n[Note: ${remainingAfter} function calls remaining. Please work efficiently.]`,
-          };
+        // Emit accumulated RAG sources after processing all chunks
+        if (accumulatedSources.length > 0 && !groundingEmitted) {
+          yield { type: "rag_used", ragSources: accumulatedSources };
+          groundingEmitted = true;
         }
 
-        const functionResponseParts: Part[] = [];
-
-        for (const fc of callsToExecute) {
-          const toolCall: ToolCall = {
-            id: (fc as { id?: string }).id ?? `${fc.name}_${Date.now()}`,
-            name: fc.name,
-            args: fc.args,
-          };
-
-          yield { type: "tool_call", toolCall };
-
-          const result = await executeToolCall(fc.name, fc.args);
-
-          yield {
-            type: "tool_result",
-            toolResult: { toolCallId: toolCall.id, result },
-          };
-
-          functionResponseParts.push({
-            functionResponse: {
-              name: fc.name,
-              id: toolCall.id,
-              response: { result } as Record<string, unknown>,
-            },
-          });
+        // If no chunks received at all, likely an API error (e.g., 503)
+        if (!hasReceivedChunk && functionCallsToProcess.length === 0) {
+          yield { type: "error", error: "No response received from API (possible server error)" };
+          return;
         }
 
-        // Update count after execution
-        functionCallCount += callsToExecute.length;
+        // Process function calls if any
+        if (functionCallsToProcess.length > 0 && executeToolCall) {
+          // Calculate how many calls we can still execute
+          const remainingBefore = maxFunctionCalls - functionCallCount;
 
-        // If we hit the limit (including skipped calls), request final answer
-        if (skippedCount > 0 || functionCallCount >= maxFunctionCalls) {
-          const skippedMsg = skippedCount > 0
-            ? ` (${skippedCount} additional calls were skipped)`
-            : "";
-          yield {
-            type: "text",
-            content: `\n\n[Function call limit reached${skippedMsg}. Summarizing with available information...]`,
-          };
-
-          // Send results so far, then request final answer
-          if (functionResponseParts.length > 0) {
-            functionResponseParts.push({
-              text: "[System: Function call limit reached. Please provide a final answer based on the information gathered so far.]",
-            } as Part);
-            response = await chat.sendMessageStream({
-              message: functionResponseParts,
-            });
-          } else {
+          // If already at limit, request final answer without executing any more
+          if (remainingBefore <= 0) {
+            yield {
+              type: "text",
+              content: "\n\n[Function call limit reached. Summarizing with available information...]",
+            };
             response = await chat.sendMessageStream({
               message: [{ text: "You have reached the function call limit. Please provide a final answer based on the information gathered so far." }],
             });
-          }
-
-          // Get final response without processing more function calls
-          for await (const chunk of response) {
-            const text = chunk.text;
-            if (text) {
-              yield { type: "text", content: text };
+            for await (const chunk of response) {
+              const text = chunk.text;
+              if (text) {
+                yield { type: "text", content: text };
+              }
             }
+            continueLoop = false;
+            continue;
           }
+
+          // Execute only up to remaining allowed calls
+          const callsToExecute = functionCallsToProcess.slice(0, remainingBefore);
+          const skippedCount = functionCallsToProcess.length - callsToExecute.length;
+
+          // Emit warning when approaching limit
+          const remainingAfter = remainingBefore - callsToExecute.length;
+          if (!warningEmitted && remainingAfter <= warningThreshold) {
+            warningEmitted = true;
+            yield {
+              type: "text",
+              content: `\n\n[Note: ${remainingAfter} function calls remaining. Please work efficiently.]`,
+            };
+          }
+
+          const functionResponseParts: Part[] = [];
+
+          for (const fc of callsToExecute) {
+            const toolCall: ToolCall = {
+              id: (fc as { id?: string }).id ?? `${fc.name}_${Date.now()}`,
+              name: fc.name,
+              args: fc.args,
+            };
+
+            yield { type: "tool_call", toolCall };
+
+            const result = await executeToolCall(fc.name, fc.args);
+
+            yield {
+              type: "tool_result",
+              toolResult: { toolCallId: toolCall.id, result },
+            };
+
+            functionResponseParts.push({
+              functionResponse: {
+                name: fc.name,
+                id: toolCall.id,
+                response: { result } as Record<string, unknown>,
+              },
+            });
+          }
+
+          // Update count after execution
+          functionCallCount += callsToExecute.length;
+
+          // If we hit the limit (including skipped calls), request final answer
+          if (skippedCount > 0 || functionCallCount >= maxFunctionCalls) {
+            const skippedMsg = skippedCount > 0
+              ? ` (${skippedCount} additional calls were skipped)`
+              : "";
+            yield {
+              type: "text",
+              content: `\n\n[Function call limit reached${skippedMsg}. Summarizing with available information...]`,
+            };
+
+            // Send results so far, then request final answer
+            if (functionResponseParts.length > 0) {
+              functionResponseParts.push({
+                text: "[System: Function call limit reached. Please provide a final answer based on the information gathered so far.]",
+              } as Part);
+              response = await chat.sendMessageStream({
+                message: functionResponseParts,
+              });
+            } else {
+              response = await chat.sendMessageStream({
+                message: [{ text: "You have reached the function call limit. Please provide a final answer based on the information gathered so far." }],
+              });
+            }
+
+            // Get final response without processing more function calls
+            for await (const chunk of response) {
+              const text = chunk.text;
+              if (text) {
+                yield { type: "text", content: text };
+              }
+            }
+            continueLoop = false;
+            continue;
+          }
+
+          // Add warning message to Gemini if approaching limit
+          if (warningEmitted && remainingAfter <= warningThreshold) {
+            functionResponseParts.push({
+              text: `[System: You have ${remainingAfter} function calls remaining. Please complete your task efficiently or provide a summary.]`,
+            } as Part);
+          }
+
+          // Send function responses back to the chat
+          response = await chat.sendMessageStream({
+            message: functionResponseParts,
+          });
+        } else {
           continueLoop = false;
-          continue;
         }
-
-        // Add warning message to Gemini if approaching limit
-        if (warningEmitted && remainingAfter <= warningThreshold) {
-          functionResponseParts.push({
-            text: `[System: You have ${remainingAfter} function calls remaining. Please complete your task efficiently or provide a summary.]`,
-          } as Part);
-        }
-
-        // Send function responses back to the chat
-        response = await chat.sendMessageStream({
-          message: functionResponseParts,
-        });
-      } else {
-        continueLoop = false;
       }
-    }
 
-    yield { type: "done" };
+      yield { type: "done" };
+    } catch (error) {
+      yield {
+        type: "error",
+        error: error instanceof Error ? error.message : "API call failed",
+      };
+    }
   }
 
   // Streaming workflow generation with thinking

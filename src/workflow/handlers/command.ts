@@ -352,7 +352,7 @@ Please revise the output based on the user's feedback above.`;
     } else if (chunk.type === "image_generated" && chunk.generatedImage) {
       generatedImages.push(chunk.generatedImage);
     } else if (chunk.type === "error") {
-      throw new Error(chunk.content);
+      throw new Error(chunk.error || chunk.content || "Unknown API error");
     } else if (chunk.type === "done") {
       break;
     }

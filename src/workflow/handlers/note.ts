@@ -124,7 +124,7 @@ export async function handleNoteNode(
 
   // Save edit history if enabled
   if (saveHistory && historyManager) {
-    await historyManager.saveEdit({
+    historyManager.saveEdit({
       path: notePath,
       modifiedContent: finalContent,
       source: "workflow",

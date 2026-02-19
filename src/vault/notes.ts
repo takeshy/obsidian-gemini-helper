@@ -433,7 +433,7 @@ export async function applyEdit(
     if (historyManager) {
       // Ensure snapshot exists before modification
       await historyManager.ensureSnapshot(pendingEdit.originalPath);
-      await historyManager.saveEdit({
+      historyManager.saveEdit({
         path: pendingEdit.originalPath,
         modifiedContent: pendingEdit.newContent,
         source: "propose_edit",
@@ -703,7 +703,7 @@ export async function applyBulkEdit(
         // Save edit history before writing
         if (historyManager) {
           await historyManager.ensureSnapshot(item.path);
-          await historyManager.saveEdit({
+          historyManager.saveEdit({
             path: item.path,
             modifiedContent: item.newContent,
             source: "propose_edit",

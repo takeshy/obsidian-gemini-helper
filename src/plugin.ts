@@ -337,7 +337,7 @@ export class GeminiHelperPlugin extends Plugin {
         if (file instanceof TFile && file.extension === "md") {
           const historyManager = getEditHistoryManager();
           if (historyManager) {
-            void historyManager.handleFileRename(oldPath, file.path);
+            historyManager.handleFileRename(oldPath, file.path);
           }
         }
       })
@@ -348,7 +348,7 @@ export class GeminiHelperPlugin extends Plugin {
         if (file instanceof TFile && file.extension === "md") {
           const historyManager = getEditHistoryManager();
           if (historyManager) {
-            void historyManager.handleFileDelete(file.path);
+            historyManager.handleFileDelete(file.path);
           }
         }
       })
@@ -383,7 +383,7 @@ export class GeminiHelperPlugin extends Plugin {
     }
 
     await historyManager.ensureSnapshot(file.path);
-    const entry = await historyManager.saveEdit({
+    const entry = historyManager.saveEdit({
       path: file.path,
       modifiedContent: await this.app.vault.read(file),
       source: "manual",
@@ -415,7 +415,7 @@ export class GeminiHelperPlugin extends Plugin {
       return;
     }
 
-    const history = await historyManager.getHistory(filePath);
+    const history = historyManager.getHistory(filePath);
     if (history.length === 0) {
       new Notice(t("editHistoryModal.noHistory"));
       return;
@@ -1149,7 +1149,7 @@ export class GeminiHelperPlugin extends Plugin {
 
     // Initialize edit history manager
     const editHistorySettings = this.settings.editHistory || DEFAULT_EDIT_HISTORY_SETTINGS;
-    initEditHistoryManager(this.app, this.settings.workspaceFolder, editHistorySettings);
+    initEditHistoryManager(this.app, editHistorySettings);
 
     // Sync FileSearchManager with selected RAG setting
     this.syncFileSearchManagerWithSelectedRag();

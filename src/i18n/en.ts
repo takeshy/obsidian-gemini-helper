@@ -424,8 +424,8 @@ export const en = {
   "settings.editHistoryPrune": "Prune old entries",
   "settings.editHistoryViewStats": "View stats",
   "settings.editHistoryPruned": "Pruned {{count}} old entries",
-  "settings.editHistoryStats": "{{files}} files, {{entries}} entries, {{size}}",
-  "settings.editHistoryCleared": "{{count}} edit history file(s) deleted",
+  "settings.editHistoryStats": "{{files}} files, {{entries}} entries",
+  "settings.editHistoryCleared": "{{count}} edit history entries cleared",
 
   // Workflow Modals
   "workflowModal.enterValue": "Enter value",

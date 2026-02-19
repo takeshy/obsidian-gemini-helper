@@ -1,6 +1,16 @@
 import { App, TFile } from "obsidian";
 import * as Diff from "diff";
 import type { EditHistorySettings } from "src/types";
+import {
+  getHistoryFromStore,
+  saveHistoryToStore,
+  deleteHistoryFromStore,
+  getAllHistoryPaths,
+  clearAllHistories,
+  getSnapshotFromStore,
+  saveSnapshotToStore,
+  deleteSnapshotFromStore,
+} from "./editHistoryStore";
 
 // Edit history entry stored in history file
 export interface EditHistoryEntry {
@@ -27,21 +37,19 @@ export interface EditHistoryFile {
 export interface EditHistoryStats {
   totalFiles: number;
   totalEntries: number;
-  totalSizeBytes: number;
 }
 
 /**
  * Manages edit history for AI-modified notes.
- * Stores unified diffs to enable lightweight version tracking.
+ * Stores unified diffs in memory to enable lightweight version tracking.
+ * Data is cleared on Obsidian restart (Obsidian's own history is sufficient for persistence).
  */
 export class EditHistoryManager {
   private app: App;
-  private workspaceFolder: string;
   private settings: EditHistorySettings;
 
-  constructor(app: App, workspaceFolder: string, settings: EditHistorySettings) {
+  constructor(app: App, settings: EditHistorySettings) {
     this.app = app;
-    this.workspaceFolder = workspaceFolder;
     this.settings = settings;
   }
 
@@ -60,65 +68,6 @@ export class EditHistoryManager {
   }
 
   /**
-   * Update workspace folder
-   */
-  updateWorkspaceFolder(folder: string): void {
-    this.workspaceFolder = folder;
-  }
-
-  /**
-   * Get the history folder path
-   */
-  private getHistoryFolderPath(): string {
-    if (this.workspaceFolder) {
-      return `${this.workspaceFolder}/history`;
-    }
-    return "history";
-  }
-
-  /**
-   * Check if a path is inside the history folder (should not be tracked)
-   */
-  private isInHistoryFolder(path: string): boolean {
-    const historyFolder = this.getHistoryFolderPath();
-    return path.startsWith(historyFolder + "/") || path === historyFolder;
-  }
-
-  /**
-   * Convert a file path to its history file name
-   * e.g., "notes/daily/2025-01-10.md" -> "notes-daily-2025-01-10.md.history.md"
-   */
-  private pathToHistoryFileName(filePath: string): string {
-    return filePath.replace(/\//g, "-") + ".history.md";
-  }
-
-  /**
-   * Convert a file path to its snapshot file name
-   * e.g., "notes/daily/2025-01-10.md" -> "notes-daily-2025-01-10.md.snapshot.md"
-   */
-  private pathToSnapshotFileName(filePath: string): string {
-    return filePath.replace(/\//g, "-") + ".snapshot.md";
-  }
-
-  /**
-   * Get the full path to a history file
-   */
-  private getHistoryFilePath(notePath: string): string {
-    const historyFolder = this.getHistoryFolderPath();
-    const historyFileName = this.pathToHistoryFileName(notePath);
-    return `${historyFolder}/${historyFileName}`;
-  }
-
-  /**
-   * Get the full path to a snapshot file
-   */
-  private getSnapshotFilePath(notePath: string): string {
-    const historyFolder = this.getHistoryFolderPath();
-    const snapshotFileName = this.pathToSnapshotFileName(notePath);
-    return `${historyFolder}/${snapshotFileName}`;
-  }
-
-  /**
    * Generate a unique ID for an entry (6 characters)
    */
   private generateId(): string {
@@ -126,64 +75,10 @@ export class EditHistoryManager {
   }
 
   /**
-   * Ensure the history folder exists
+   * Load history for a note from in-memory store
    */
-  private async ensureHistoryFolder(): Promise<void> {
-    const historyFolder = this.getHistoryFolderPath();
-
-    // Use adapter directly to avoid vault cache issues
-    if (!(await this.app.vault.adapter.exists(historyFolder))) {
-      // Create parent folder if needed
-      if (this.workspaceFolder && !(await this.app.vault.adapter.exists(this.workspaceFolder))) {
-        await this.app.vault.adapter.mkdir(this.workspaceFolder);
-      }
-      await this.app.vault.adapter.mkdir(historyFolder);
-    }
-  }
-
-  /**
-   * Parse JSON from markdown code block
-   */
-  private parseHistoryFromMarkdown(content: string): EditHistoryFile | null {
-    const match = content.match(/```json\n([\s\S]*?)\n```/);
-    if (match) {
-      try {
-        return JSON.parse(match[1]) as EditHistoryFile;
-      } catch {
-        return null;
-      }
-    }
-    return null;
-  }
-
-  /**
-   * Format history as markdown with JSON code block
-   */
-  private formatHistoryAsMarkdown(history: EditHistoryFile): string {
-    const json = JSON.stringify(history, null, 2);
-    return `# Edit History\n\n\`\`\`json\n${json}\n\`\`\`\n`;
-  }
-
-  /**
-   * Load history file for a note
-   */
-  private async loadHistoryFile(notePath: string): Promise<EditHistoryFile> {
-    const historyPath = this.getHistoryFilePath(notePath);
-
-    try {
-      if (await this.app.vault.adapter.exists(historyPath)) {
-        const content = await this.app.vault.adapter.read(historyPath);
-        const history = this.parseHistoryFromMarkdown(content);
-        if (history) {
-          return history;
-        }
-      }
-    } catch {
-      // File doesn't exist or is invalid
-    }
-
-    // Return empty history
-    return {
+  private loadHistoryFile(notePath: string): EditHistoryFile {
+    return getHistoryFromStore(notePath) ?? {
       version: 1,
       path: notePath,
       entries: [],
@@ -191,51 +86,24 @@ export class EditHistoryManager {
   }
 
   /**
-   * Save history file for a note
+   * Save history for a note to in-memory store
    */
-  private async saveHistoryFile(notePath: string, history: EditHistoryFile): Promise<void> {
-    await this.ensureHistoryFolder();
-
-    const historyPath = this.getHistoryFilePath(notePath);
-    const content = this.formatHistoryAsMarkdown(history);
-
-    // Use adapter directly to avoid vault cache issues
-    await this.app.vault.adapter.write(historyPath, content);
+  private saveHistoryFile(notePath: string, history: EditHistoryFile): void {
+    saveHistoryToStore(notePath, history);
   }
 
   /**
-   * Load snapshot content for a note
+   * Load snapshot content for a note from in-memory store
    */
-  private async loadSnapshot(notePath: string): Promise<string | null> {
-    const snapshotPath = this.getSnapshotFilePath(notePath);
-
-    try {
-      if (await this.app.vault.adapter.exists(snapshotPath)) {
-        return await this.app.vault.adapter.read(snapshotPath);
-      }
-    } catch {
-      // Snapshot doesn't exist
-    }
-    return null;
+  private loadSnapshot(notePath: string): string | null {
+    return getSnapshotFromStore(notePath);
   }
 
   /**
-   * Save snapshot content for a note
+   * Save snapshot content for a note to in-memory store
    */
-  private async saveSnapshot(notePath: string, content: string): Promise<void> {
-    await this.ensureHistoryFolder();
-    const snapshotPath = this.getSnapshotFilePath(notePath);
-    await this.app.vault.adapter.write(snapshotPath, content);
-  }
-
-  /**
-   * Delete snapshot for a note
-   */
-  private async deleteSnapshot(notePath: string): Promise<void> {
-    const snapshotPath = this.getSnapshotFilePath(notePath);
-    if (await this.app.vault.adapter.exists(snapshotPath)) {
-      await this.app.vault.adapter.remove(snapshotPath);
-    }
+  private saveSnapshot(notePath: string, content: string): void {
+    saveSnapshotToStore(notePath, content);
   }
 
   /**
@@ -288,24 +156,19 @@ export class EditHistoryManager {
    * - "+" means lines that existed in the old version
    * - "-" means lines that were added in the new version
    */
-  async saveEdit(params: {
+  saveEdit(params: {
     path: string;
     modifiedContent: string;
     source: "workflow" | "propose_edit" | "manual" | "auto";
     workflowName?: string;
     model?: string;
-  }): Promise<EditHistoryEntry | null> {
+  }): EditHistoryEntry | null {
     if (!this.settings.enabled) {
       return null;
     }
 
-    // Skip files in the history folder
-    if (this.isInHistoryFolder(params.path)) {
-      return null;
-    }
-
     // Load previous snapshot (or empty string if none)
-    const snapshot = await this.loadSnapshot(params.path) ?? "";
+    const snapshot = this.loadSnapshot(params.path) ?? "";
 
     // Generate diff in reverse direction (new → old) for intuitive history viewing
     const { diff, stats } = this.createDiff(params.modifiedContent, snapshot);
@@ -327,7 +190,7 @@ export class EditHistoryManager {
     };
 
     // Load existing history
-    const history = await this.loadHistoryFile(params.path);
+    const history = this.loadHistoryFile(params.path);
 
     // Add new entry
     history.entries.push(entry);
@@ -340,8 +203,8 @@ export class EditHistoryManager {
     }
 
     // Save history and update snapshot
-    await this.saveHistoryFile(params.path, history);
-    await this.saveSnapshot(params.path, params.modifiedContent);
+    this.saveHistoryFile(params.path, history);
+    this.saveSnapshot(params.path, params.modifiedContent);
 
     return entry;
   }
@@ -350,19 +213,18 @@ export class EditHistoryManager {
    * Get history for a file
    * If history exists but snapshot doesn't (inconsistent state), delete the orphaned history
    */
-  async getHistory(path: string): Promise<EditHistoryEntry[]> {
+  getHistory(path: string): EditHistoryEntry[] {
     // Check for inconsistent state: history exists but snapshot doesn't
-    const snapshotExists = await this.loadSnapshot(path) !== null;
-    const historyPath = this.getHistoryFilePath(path);
-    const historyExists = await this.app.vault.adapter.exists(historyPath);
+    const snapshotExists = this.loadSnapshot(path) !== null;
+    const historyData = getHistoryFromStore(path);
 
-    if (historyExists && !snapshotExists) {
-      // Inconsistent state - delete orphaned history file
-      await this.app.vault.adapter.remove(historyPath);
+    if (historyData && !snapshotExists) {
+      // Inconsistent state - delete orphaned history
+      deleteHistoryFromStore(path);
       return [];
     }
 
-    const history = await this.loadHistoryFile(path);
+    const history = this.loadHistoryFile(path);
     return history.entries;
   }
 
@@ -375,7 +237,7 @@ export class EditHistoryManager {
       return null;
     }
 
-    const snapshot = await this.loadSnapshot(path);
+    const snapshot = this.loadSnapshot(path);
     if (snapshot === null) {
       return null; // No snapshot exists
     }
@@ -465,13 +327,13 @@ export class EditHistoryManager {
    * Returns the content BEFORE the change recorded in that entry
    * Uses snapshot and applies patches to go back in time
    */
-  async getContentAt(path: string, entryId: string): Promise<string | null> {
-    const snapshot = await this.loadSnapshot(path);
+  getContentAt(path: string, entryId: string): string | null {
+    const snapshot = this.loadSnapshot(path);
     if (snapshot === null) {
       return null;
     }
 
-    const history = await this.loadHistoryFile(path);
+    const history = this.loadHistoryFile(path);
     const targetIndex = history.entries.findIndex(e => e.id === entryId);
     if (targetIndex === -1) {
       return null;
@@ -494,7 +356,7 @@ export class EditHistoryManager {
    * and history is cleared
    */
   async restoreTo(path: string, entryId: string): Promise<boolean> {
-    const content = await this.getContentAt(path, entryId);
+    const content = this.getContentAt(path, entryId);
     if (content === null) {
       return false;
     }
@@ -508,10 +370,10 @@ export class EditHistoryManager {
     await this.app.vault.modify(file, content);
 
     // Update snapshot to restored content (new base)
-    await this.saveSnapshot(path, content);
+    this.saveSnapshot(path, content);
 
     // Clear history - restored point is now the base
-    await this.clearHistory(path);
+    this.clearHistory(path);
 
     return true;
   }
@@ -520,7 +382,7 @@ export class EditHistoryManager {
    * Revert file to the base snapshot (discard unsaved changes)
    */
   async revertToBase(path: string): Promise<boolean> {
-    const snapshot = await this.loadSnapshot(path);
+    const snapshot = this.loadSnapshot(path);
     if (snapshot === null) {
       return false;
     }
@@ -550,22 +412,17 @@ export class EditHistoryManager {
       return;
     }
 
-    // Skip files in the history folder
-    if (this.isInHistoryFolder(path)) {
-      return;
-    }
-
     const file = this.app.vault.getAbstractFileByPath(path);
     if (!(file instanceof TFile)) {
       return;
     }
 
     const currentContent = await this.app.vault.read(file);
-    const existingSnapshot = await this.loadSnapshot(path);
+    const existingSnapshot = this.loadSnapshot(path);
 
     if (existingSnapshot === null) {
       // No snapshot exists, create initial one
-      await this.saveSnapshot(path, currentContent);
+      this.saveSnapshot(path, currentContent);
       return;
     }
 
@@ -575,7 +432,7 @@ export class EditHistoryManager {
     }
 
     // Content differs, save diff as history entry and update snapshot
-    await this.saveEdit({
+    this.saveEdit({
       path,
       modifiedContent: currentContent,
       source: "auto",
@@ -617,11 +474,6 @@ export class EditHistoryManager {
       return null;
     }
 
-    // Skip files in history folder
-    if (this.isInHistoryFolder(path)) {
-      return null;
-    }
-
     // Get current file content
     const file = this.app.vault.getAbstractFileByPath(path);
     if (!(file instanceof TFile)) {
@@ -629,11 +481,11 @@ export class EditHistoryManager {
     }
 
     const currentContent = await this.app.vault.read(file);
-    const existingSnapshot = await this.loadSnapshot(path);
+    const existingSnapshot = this.loadSnapshot(path);
 
     if (existingSnapshot === null) {
       // No snapshot exists, create initial one
-      await this.saveSnapshot(path, currentContent);
+      this.saveSnapshot(path, currentContent);
       return currentContent;
     }
 
@@ -655,7 +507,7 @@ export class EditHistoryManager {
         stats,
       };
 
-      const history = await this.loadHistoryFile(path);
+      const history = this.loadHistoryFile(path);
       history.entries.push(entry);
 
       // Apply retention limits
@@ -665,78 +517,58 @@ export class EditHistoryManager {
         }
       }
 
-      await this.saveHistoryFile(path, history);
+      this.saveHistoryFile(path, history);
     }
 
     // Update snapshot to current content
-    await this.saveSnapshot(path, currentContent);
+    this.saveSnapshot(path, currentContent);
     return currentContent;
   }
 
   /**
    * Delete a specific history entry
    */
-  async deleteEntry(path: string, entryId: string): Promise<void> {
-    const history = await this.loadHistoryFile(path);
+  deleteEntry(path: string, entryId: string): void {
+    const history = this.loadHistoryFile(path);
 
     const index = history.entries.findIndex(e => e.id === entryId);
     if (index !== -1) {
       history.entries.splice(index, 1);
-      await this.saveHistoryFile(path, history);
+      this.saveHistoryFile(path, history);
     }
   }
 
   /**
    * Clear all history for a file (keeps snapshot for future tracking)
    */
-  async clearHistory(path: string): Promise<void> {
-    const historyPath = this.getHistoryFilePath(path);
-
-    if (await this.app.vault.adapter.exists(historyPath)) {
-      await this.app.vault.adapter.remove(historyPath);
-    }
+  clearHistory(path: string): void {
+    deleteHistoryFromStore(path);
   }
 
   /**
-   * Clear all edit history (delete entire history folder)
+   * Clear snapshot for a file
    */
-  async clearAllHistory(): Promise<number> {
-    const historyFolder = this.getHistoryFolderPath();
+  clearSnapshot(path: string): void {
+    deleteSnapshotFromStore(path);
+  }
 
-    if (!(await this.app.vault.adapter.exists(historyFolder))) {
-      return 0;
-    }
-
-    const files = await this.app.vault.adapter.list(historyFolder);
-    let deletedCount = 0;
-
-    // Delete all files in the history folder
-    for (const filePath of files.files) {
-      try {
-        await this.app.vault.adapter.remove(filePath);
-        deletedCount++;
-      } catch {
-        // Ignore errors for individual files
-      }
-    }
-
-    // Try to remove the empty folder
-    try {
-      await this.app.vault.adapter.rmdir(historyFolder, false);
-    } catch {
-      // Folder might not be empty or other error
-    }
-
-    return deletedCount;
+  /**
+   * Clear all edit history
+   */
+  clearAllHistory(): number {
+    const paths = getAllHistoryPaths();
+    const count = paths.length;
+    clearAllHistories();
+    return count;
   }
 
   /**
    * Prune old history entries based on retention settings
    */
-  async prune(options?: {
+  prune(options?: {
     maxAgeMs?: number;
     maxEntriesPerFile?: number;
-  }): Promise<{ deletedCount: number }> {
+  }): { deletedCount: number } {
     const maxAgeMs = options?.maxAgeMs ??
       (this.settings.retention.maxAgeInDays > 0
         ? this.settings.retention.maxAgeInDays * 24 * 60 * 60 * 1000
@@ -747,49 +579,34 @@ export class EditHistoryManager {
     const now = Date.now();
     let deletedCount = 0;
 
-    const historyFolder = this.getHistoryFolderPath();
+    const paths = getAllHistoryPaths();
 
-    if (!(await this.app.vault.adapter.exists(historyFolder))) {
-      return { deletedCount: 0 };
-    }
+    for (const path of paths) {
+      const history = getHistoryFromStore(path);
+      if (!history) continue;
 
-    const files = await this.app.vault.adapter.list(historyFolder);
+      const originalCount = history.entries.length;
 
-    for (const filePath of files.files) {
-      if (!filePath.endsWith(".history.md")) {
-        continue;
+      // Filter by age
+      if (maxAgeMs > 0) {
+        history.entries = history.entries.filter(e => {
+          const entryTime = new Date(e.timestamp).getTime();
+          return now - entryTime < maxAgeMs;
+        });
       }
 
-      try {
-        const content = await this.app.vault.adapter.read(filePath);
-        const history = this.parseHistoryFromMarkdown(content);
-        if (!history) continue;
+      // Limit entries per file
+      if (maxEntriesPerFile > 0 && history.entries.length > maxEntriesPerFile) {
+        history.entries = history.entries.slice(-maxEntriesPerFile);
+      }
 
-        const originalCount = history.entries.length;
+      deletedCount += originalCount - history.entries.length;
 
-        // Filter by age
-        if (maxAgeMs > 0) {
-          history.entries = history.entries.filter(e => {
-            const entryTime = new Date(e.timestamp).getTime();
-            return now - entryTime < maxAgeMs;
-          });
-        }
-
-        // Limit entries per file
-        if (maxEntriesPerFile > 0 && history.entries.length > maxEntriesPerFile) {
-          history.entries = history.entries.slice(-maxEntriesPerFile);
-        }
-
-        deletedCount += originalCount - history.entries.length;
-
-        // Save or delete the history file
-        if (history.entries.length === 0) {
-          await this.app.vault.adapter.remove(filePath);
-        } else if (history.entries.length !== originalCount) {
-          await this.app.vault.adapter.write(filePath, this.formatHistoryAsMarkdown(history));
-        }
-      } catch {
-        // Skip invalid files
+      // Save or delete the history
+      if (history.entries.length === 0) {
+        deleteHistoryFromStore(path);
+      } else if (history.entries.length !== originalCount) {
+        saveHistoryToStore(path, history);
       }
     }
 
@@ -799,108 +616,63 @@ export class EditHistoryManager {
   /**
    * Get statistics about edit history
    */
-  async getStats(): Promise<EditHistoryStats> {
+  getStats(): EditHistoryStats {
     let totalFiles = 0;
     let totalEntries = 0;
-    let totalSizeBytes = 0;
 
-    const historyFolder = this.getHistoryFolderPath();
+    const paths = getAllHistoryPaths();
 
-    if (!(await this.app.vault.adapter.exists(historyFolder))) {
-      return { totalFiles: 0, totalEntries: 0, totalSizeBytes: 0 };
+    for (const path of paths) {
+      const history = getHistoryFromStore(path);
+      if (!history) continue;
+
+      totalFiles++;
+      totalEntries += history.entries.length;
     }
 
-    const files = await this.app.vault.adapter.list(historyFolder);
-
-    for (const filePath of files.files) {
-      if (!filePath.endsWith(".history.md")) {
-        continue;
-      }
-
-      try {
-        totalFiles++;
-        const stat = await this.app.vault.adapter.stat(filePath);
-        if (stat) {
-          totalSizeBytes += stat.size;
-        }
-
-        const content = await this.app.vault.adapter.read(filePath);
-        const history = this.parseHistoryFromMarkdown(content);
-        if (history) {
-          totalEntries += history.entries.length;
-        }
-      } catch {
-        // Skip invalid files
-      }
-    }
-
-    return { totalFiles, totalEntries, totalSizeBytes };
+    return { totalFiles, totalEntries };
   }
 
   /**
-   * Handle file rename - update history and snapshot file paths
+   * Handle file rename - update history and snapshot paths in store
    */
-  async handleFileRename(oldPath: string, newPath: string): Promise<void> {
-    // Rename history file
-    const oldHistoryPath = this.getHistoryFilePath(oldPath);
-    const newHistoryPath = this.getHistoryFilePath(newPath);
-
-    if (await this.app.vault.adapter.exists(oldHistoryPath)) {
-      try {
-        const content = await this.app.vault.adapter.read(oldHistoryPath);
-        const history = this.parseHistoryFromMarkdown(content);
-        if (history) {
-          history.path = newPath;
-          await this.ensureHistoryFolder();
-          await this.app.vault.adapter.write(newHistoryPath, this.formatHistoryAsMarkdown(history));
-          await this.app.vault.adapter.remove(oldHistoryPath);
-        }
-      } catch {
-        // If parsing fails, just remove the old file
-        await this.app.vault.adapter.remove(oldHistoryPath);
-      }
+  handleFileRename(oldPath: string, newPath: string): void {
+    // Rename history
+    const history = getHistoryFromStore(oldPath);
+    if (history) {
+      history.path = newPath;
+      saveHistoryToStore(newPath, history);
+      deleteHistoryFromStore(oldPath);
     }
 
-    // Rename snapshot file
-    const oldSnapshotPath = this.getSnapshotFilePath(oldPath);
-    const newSnapshotPath = this.getSnapshotFilePath(newPath);
-
-    if (await this.app.vault.adapter.exists(oldSnapshotPath)) {
-      try {
-        const snapshotContent = await this.app.vault.adapter.read(oldSnapshotPath);
-        await this.ensureHistoryFolder();
-        await this.app.vault.adapter.write(newSnapshotPath, snapshotContent);
-        await this.app.vault.adapter.remove(oldSnapshotPath);
-      } catch {
-        // If rename fails, remove old snapshot
-        await this.app.vault.adapter.remove(oldSnapshotPath);
-      }
+    // Rename snapshot
+    const snapshot = getSnapshotFromStore(oldPath);
+    if (snapshot !== null) {
+      saveSnapshotToStore(newPath, snapshot);
+      deleteSnapshotFromStore(oldPath);
     }
   }
 
   /**
-   * Handle file delete - delete history and snapshot files
+   * Handle file delete - delete history and snapshot
    */
-  async handleFileDelete(path: string, keepHistory = false): Promise<void> {
+  handleFileDelete(path: string, keepHistory = false): void {
     if (keepHistory) {
       return;
     }
 
-    // Delete history file
-    await this.clearHistory(path);
+    // Delete history
+    this.clearHistory(path);
 
-    // Delete snapshot file
-    const snapshotPath = this.getSnapshotFilePath(path);
-    if (await this.app.vault.adapter.exists(snapshotPath)) {
-      await this.app.vault.adapter.remove(snapshotPath);
-    }
+    // Delete snapshot
+    deleteSnapshotFromStore(path);
   }
 
   /**
    * Copy content at a specific history entry to a new file
    */
   async copyTo(sourcePath: string, entryId: string, destPath: string): Promise<{ success: boolean; error?: string }> {
-    const content = await this.getContentAt(sourcePath, entryId);
+    const content = this.getContentAt(sourcePath, entryId);
     if (content === null) {
       return { success: false, error: "Failed to get content at entry" };
     }
@@ -925,20 +697,19 @@ export class EditHistoryManager {
    * Check if a file has edit history
    * If history exists but snapshot doesn't (inconsistent state), delete the orphaned history and return false
    */
-  async hasHistory(path: string): Promise<boolean> {
-    const historyPath = this.getHistoryFilePath(path);
-    const historyExists = await this.app.vault.adapter.exists(historyPath);
+  hasHistory(path: string): boolean {
+    const historyData = getHistoryFromStore(path);
 
-    if (!historyExists) {
+    if (!historyData) {
       return false;
     }
 
     // Check for inconsistent state: history exists but snapshot doesn't
-    const snapshotExists = await this.loadSnapshot(path) !== null;
+    const snapshotExists = this.loadSnapshot(path) !== null;
 
     if (!snapshotExists) {
-      // Inconsistent state - delete orphaned history file
-      await this.app.vault.adapter.remove(historyPath);
+      // Inconsistent state - delete orphaned history
+      deleteHistoryFromStore(path);
       return false;
     }
 
@@ -951,10 +722,9 @@ let editHistoryManager: EditHistoryManager | null = null;
 
 export function initEditHistoryManager(
   app: App,
-  workspaceFolder: string,
   settings: EditHistorySettings
 ): EditHistoryManager {
-  editHistoryManager = new EditHistoryManager(app, workspaceFolder, settings);
+  editHistoryManager = new EditHistoryManager(app, settings);
   return editHistoryManager;
 }
 

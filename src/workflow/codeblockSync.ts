@@ -250,7 +250,7 @@ export async function saveToCodeBlock(
 
   // Record edit history
   if (historyManager) {
-    await historyManager.saveEdit({
+    historyManager.saveEdit({
       path: file.path,
       modifiedContent: newContent,
       source: "workflow",

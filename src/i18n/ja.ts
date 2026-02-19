@@ -422,8 +422,8 @@ export const ja: Record<string, string> = {
   "settings.editHistoryPrune": "古いエントリを削除",
   "settings.editHistoryViewStats": "統計を表示",
   "settings.editHistoryPruned": "{{count}}件の古いエントリを削除しました",
-  "settings.editHistoryStats": "{{files}}ファイル、{{entries}}エントリ、{{size}}",
-  "settings.editHistoryCleared": "{{count}}件の編集履歴ファイルを削除しました",
+  "settings.editHistoryStats": "{{files}}ファイル、{{entries}}エントリ",
+  "settings.editHistoryCleared": "{{count}}件の編集履歴をクリアしました",
 
   // Edit History Modal
   "editHistoryModal.title": "編集履歴: {{file}}",

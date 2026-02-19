@@ -211,7 +211,7 @@ export class EditHistoryModal extends Modal {
       return;
     }
 
-    const history = await historyManager.getHistory(this.filePath);
+    const history = historyManager.getHistory(this.filePath);
     const currentDiff = await historyManager.getDiffFromLastSaved(this.filePath);
     const hasUnsavedChanges = currentDiff && currentDiff.stats.additions + currentDiff.stats.deletions > 0;
 
@@ -291,8 +291,8 @@ export class EditHistoryModal extends Modal {
           .setButtonText(t("editHistoryModal.clearAll"))
           .setWarning()
           .onClick(() => {
-            new ConfirmModal(this.app, t("editHistoryModal.confirmClear"), async () => {
-              await historyManager.clearHistory(this.filePath);
+            new ConfirmModal(this.app, t("editHistoryModal.confirmClear"), () => {
+              historyManager.clearHistory(this.filePath);
               this.close();
             }).open();
           })

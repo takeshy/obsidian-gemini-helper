@@ -1629,7 +1629,7 @@ export class SettingsTab extends PluginSettingTab {
                 // Turning off - delete all edit history
                 const manager = getEditHistoryManager();
                 if (manager) {
-                  const deletedCount = await manager.clearAllHistory();
+                  const deletedCount = manager.clearAllHistory();
                   if (deletedCount > 0) {
                     new Notice(t("settings.editHistoryCleared", { count: String(deletedCount) }));
                   }
@@ -1742,39 +1742,29 @@ export class SettingsTab extends PluginSettingTab {
         btn
           .setButtonText(t("settings.editHistoryPrune"))
           .onClick(() => {
-            void (async () => {
-              const manager = getEditHistoryManager();
-              if (!manager) {
-                new Notice("Edit history manager not initialized");
-                return;
-              }
-              const result = await manager.prune();
-              new Notice(t("settings.editHistoryPruned", { count: String(result.deletedCount) }));
-            })();
+            const manager = getEditHistoryManager();
+            if (!manager) {
+              new Notice("Edit history manager not initialized");
+              return;
+            }
+            const result = manager.prune();
+            new Notice(t("settings.editHistoryPruned", { count: String(result.deletedCount) }));
           })
       )
       .addButton((btn) =>
         btn
           .setButtonText(t("settings.editHistoryViewStats"))
           .onClick(() => {
-            void (async () => {
-              const manager = getEditHistoryManager();
-              if (!manager) {
-                new Notice("Edit history manager not initialized");
-                return;
-              }
-              const stats = await manager.getStats();
-              const sizeStr = stats.totalSizeBytes < 1024
-                ? `${stats.totalSizeBytes}B`
-                : stats.totalSizeBytes < 1024 * 1024
-                  ? `${(stats.totalSizeBytes / 1024).toFixed(1)}KB`
-                  : `${(stats.totalSizeBytes / 1024 / 1024).toFixed(1)}MB`;
-              new Notice(t("settings.editHistoryStats", {
-                files: String(stats.totalFiles),
-                entries: String(stats.totalEntries),
-                size: sizeStr,
-              }));
-            })();
+            const manager = getEditHistoryManager();
+            if (!manager) {
+              new Notice("Edit history manager not initialized");
+              return;
+            }
+            const stats = manager.getStats();
+            new Notice(t("settings.editHistoryStats", {
+              files: String(stats.totalFiles),
+              entries: String(stats.totalEntries),
+            }));
           })
       );
   }

@@ -187,10 +187,7 @@ AI が `propose_edit` を使用時：
 - コマンドによる手動保存
 - ファイルを開いた時にスナップショットと異なる場合の自動検出
 
-**保存場所：**
-
-- 履歴ファイル: `{workspaceFolder}/history/{filename}.history.md`
-- スナップショットファイル: `{workspaceFolder}/history/{filename}.snapshot.md`
+**保存場所：** 編集履歴はメモリ上に保存され、Obsidian の再起動時にクリアされます。永続的なバージョン管理は Obsidian 組み込みのファイル復元機能でカバーされます。
 
 **設定：**
 
@@ -657,7 +654,7 @@ if __name__ == "__main__":
 
 1. サイドバーで **Workflow** タブを開く
 2. `workflow` コードブロックを含むファイルを開く
-3. ドロップダウンからワークフローを選択
+3. ドロップダウンからワークフローを選択（または **Browse all workflows** で vault 内の全ワークフローを検索）
 4. **Run** で実行
 5. **History** で過去の実行を確認
 

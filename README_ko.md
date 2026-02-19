@@ -183,9 +183,7 @@ Edit history는 스냅샷 기반 접근 방식을 사용합니다:
 - 명령어를 통한 수동 저장
 - 파일 열기 시 스냅샷과 다른 경우 자동 감지
 
-**저장 위치:**
-- 히스토리 파일: `{workspaceFolder}/history/{filename}.history.md`
-- 스냅샷 파일: `{workspaceFolder}/history/{filename}.snapshot.md`
+**저장:** 편집 기록은 메모리에 저장되며 Obsidian 재시작 시 삭제됩니다. 영구적인 버전 추적은 Obsidian의 내장 파일 복구 기능으로 커버됩니다.
 
 **설정:**
 - 플러그인 설정에서 활성화/비활성화
@@ -625,7 +623,7 @@ if __name__ == "__main__":
 **사이드바에서:**
 1. 사이드바에서 **Workflow** 탭 열기
 2. `workflow` 코드 블록이 있는 파일 열기
-3. 드롭다운에서 워크플로우 선택
+3. 드롭다운에서 워크플로우 선택 (또는 **Browse all workflows**를 선택하여 vault의 모든 워크플로우 검색)
 4. **Run**을 클릭하여 실행
 5. **History**를 클릭하여 과거 실행 보기
 

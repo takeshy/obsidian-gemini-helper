@@ -183,9 +183,7 @@ Edit history uses a snapshot-based approach:
 - Manual saves via command
 - Auto-detection when file differs from snapshot on open
 
-**Storage location:**
-- History files: `{workspaceFolder}/history/{filename}.history.md`
-- Snapshot files: `{workspaceFolder}/history/{filename}.snapshot.md`
+**Storage:** Edit history is stored in memory and cleared on Obsidian restart. Obsidian's built-in file recovery covers persistent version tracking.
 
 **Settings:**
 - Enable/disable in plugin settings
@@ -631,7 +629,7 @@ Requires: `pip install cryptography`
 **From Sidebar:**
 1. Open **Workflow** tab in sidebar
 2. Open a file with `workflow` code block
-3. Select workflow from dropdown
+3. Select workflow from dropdown (or choose **Browse all workflows** to search all vault workflows)
 4. Click **Run** to execute
 5. Click **History** to view past runs
 

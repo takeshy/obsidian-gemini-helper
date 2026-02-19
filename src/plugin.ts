@@ -382,7 +382,6 @@ export class GeminiHelperPlugin extends Plugin {
       return;
     }
 
-    await historyManager.ensureSnapshot(file.path);
     const entry = historyManager.saveEdit({
       path: file.path,
       modifiedContent: await this.app.vault.read(file),

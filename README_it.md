@@ -183,9 +183,7 @@ La cronologia modifiche usa un approccio basato su snapshot:
 - Salvataggi manuali tramite comando
 - Auto-rilevamento quando il file differisce dallo snapshot all'apertura
 
-**Posizione di archiviazione:**
-- File cronologia: `{workspaceFolder}/history/{filename}.history.md`
-- File snapshot: `{workspaceFolder}/history/{filename}.snapshot.md`
+**Archiviazione:** La cronologia delle modifiche è memorizzata in memoria e viene cancellata al riavvio di Obsidian. Il tracciamento persistente delle versioni è coperto dal recupero file integrato di Obsidian.
 
 **Impostazioni:**
 - Abilita/disabilita nelle impostazioni del plugin
@@ -625,7 +623,7 @@ Richiede: `pip install cryptography`
 **Dalla Sidebar:**
 1. Apri la scheda **Workflow** nella sidebar
 2. Apri un file con blocco di codice `workflow`
-3. Seleziona il workflow dal menu a tendina
+3. Seleziona il workflow dal menu a tendina (o scegli **Browse all workflows** per cercare tutti i workflow nel vault)
 4. Clicca **Run** per eseguire
 5. Clicca **History** per vedere le esecuzioni passate
 

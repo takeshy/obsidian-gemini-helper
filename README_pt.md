@@ -183,9 +183,7 @@ O histórico de edições usa uma abordagem baseada em snapshots:
 - Salvamentos manuais via comando
 - Auto-detecção quando o arquivo difere do snapshot ao abrir
 
-**Local de armazenamento:**
-- Arquivos de histórico: `{workspaceFolder}/history/{filename}.history.md`
-- Arquivos de snapshot: `{workspaceFolder}/history/{filename}.snapshot.md`
+**Armazenamento:** O histórico de edição é armazenado em memória e limpo ao reiniciar o Obsidian. O rastreamento persistente de versões é coberto pela recuperação de arquivos integrada do Obsidian.
 
 **Configurações:**
 - Habilitar/desabilitar nas configurações do plugin
@@ -625,7 +623,7 @@ Requer: `pip install cryptography`
 **Da Barra Lateral:**
 1. Abra a aba **Workflow** na barra lateral
 2. Abra um arquivo com bloco de código `workflow`
-3. Selecione o workflow no dropdown
+3. Selecione o workflow no dropdown (ou escolha **Browse all workflows** para pesquisar todos os workflows do vault)
 4. Clique em **Run** para executar
 5. Clique em **History** para ver execuções anteriores
 

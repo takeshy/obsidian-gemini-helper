@@ -183,9 +183,7 @@ Der Bearbeitungsverlauf verwendet einen Snapshot-basierten Ansatz:
 - Manuelle Speicherungen über Befehl
 - Auto-Erkennung, wenn die Datei beim Öffnen vom Snapshot abweicht
 
-**Speicherort:**
-- Verlaufsdateien: `{workspaceFolder}/history/{filename}.history.md`
-- Snapshot-Dateien: `{workspaceFolder}/history/{filename}.snapshot.md`
+**Speicher:** Der Bearbeitungsverlauf wird im Arbeitsspeicher gespeichert und beim Neustart von Obsidian gelöscht. Die dauerhafte Versionsverfolgung wird durch die integrierte Dateiwiederherstellung von Obsidian abgedeckt.
 
 **Einstellungen:**
 - Aktivieren/Deaktivieren in den Plugin-Einstellungen
@@ -625,7 +623,7 @@ Benötigt: `pip install cryptography`
 **Von der Seitenleiste:**
 1. Öffnen Sie den **Workflow**-Tab in der Seitenleiste
 2. Öffnen Sie eine Datei mit `workflow`-Codeblock
-3. Wählen Sie einen Workflow aus dem Dropdown
+3. Wählen Sie einen Workflow aus dem Dropdown (oder wählen Sie **Browse all workflows**, um alle Vault-Workflows zu durchsuchen)
 4. Klicken Sie auf **Run**, um auszuführen
 5. Klicken Sie auf **History**, um vergangene Durchläufe anzuzeigen
 

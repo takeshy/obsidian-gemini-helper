@@ -183,9 +183,7 @@ L'historique d'édition utilise une approche basée sur les instantanés :
 - Sauvegardes manuelles via commande
 - Auto-détection quand le fichier diffère de l'instantané à l'ouverture
 
-**Emplacement de stockage :**
-- Fichiers d'historique : `{workspaceFolder}/history/{filename}.history.md`
-- Fichiers d'instantané : `{workspaceFolder}/history/{filename}.snapshot.md`
+**Stockage :** L'historique des modifications est stocké en mémoire et effacé au redémarrage d'Obsidian. Le suivi persistant des versions est couvert par la récupération de fichiers intégrée d'Obsidian.
 
 **Paramètres :**
 - Activer/désactiver dans les paramètres du plugin
@@ -625,7 +623,7 @@ Requis : `pip install cryptography`
 **Depuis la Barre Latérale :**
 1. Ouvrez l'onglet **Workflow** dans la barre latérale
 2. Ouvrez un fichier avec un bloc de code `workflow`
-3. Sélectionnez le workflow dans le menu déroulant
+3. Sélectionnez le workflow dans le menu déroulant (ou choisissez **Browse all workflows** pour rechercher tous les workflows du coffre)
 4. Cliquez sur **Exécuter** pour lancer
 5. Cliquez sur **Historique** pour voir les exécutions passées
 

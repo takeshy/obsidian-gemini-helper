@@ -354,6 +354,7 @@ export const ja: Record<string, string> = {
   "workflow.createWithAI": "AIでワークフローを作成",
   "workflow.noWorkflows": "ワークフローがありません",
   "workflow.newAI": "+ 新規 (AI)",
+  "workflow.browseAllWorkflows": "全ワークフローを参照...",
   "workflow.reloadFromFile": "ファイルから再読み込み",
   "workflow.addNode": "ノードを追加",
   "workflow.modifyWithAI": "AIでワークフローを修正",

@@ -342,9 +342,14 @@ export default function WorkflowPanel({ plugin }: WorkflowPanelProps) {
   const [expandedComments, setExpandedComments] = useState<Set<string>>(new Set());
   const addBtnRef = useRef<HTMLButtonElement>(null);
   const executionModalRef = useRef<WorkflowExecutionModal | null>(null);
+  const pendingWorkflowIndexRef = useRef<number | null>(null);
 
   // Load workflow from active file
   const loadWorkflow = useCallback(async () => {
+    // Consume pending index early so it doesn't leak across unrelated loadWorkflow calls
+    const pendingIndex = pendingWorkflowIndexRef.current;
+    pendingWorkflowIndexRef.current = null;
+
     const activeFile = plugin.app.workspace.getActiveFile();
     if (!activeFile || activeFile.extension !== "md") {
       setWorkflowFile(null);
@@ -368,7 +373,9 @@ export default function WorkflowPanel({ plugin }: WorkflowPanelProps) {
     setWorkflowFile(activeFile);
     setWorkflowOptions(options);
 
-    const indexToLoad = currentWorkflowIndex < options.length ? currentWorkflowIndex : 0;
+    const indexToLoad = pendingIndex !== null && pendingIndex < options.length
+      ? pendingIndex
+      : currentWorkflowIndex < options.length ? currentWorkflowIndex : 0;
     const selectedOption = options[indexToLoad];
 
     // Check for YAML parse error first
@@ -434,6 +441,30 @@ export default function WorkflowPanel({ plugin }: WorkflowPanelProps) {
     }, currentWorkflowIndex);
   }, [plugin.app, workflowFile, workflowName, currentWorkflowIndex]);
 
+  // Open browse all workflows modal
+  const openBrowseAllModal = () => {
+    new WorkflowSelectorModal(
+      plugin.app,
+      plugin,
+      (filePath, workflowName) => {
+        void plugin.executeWorkflowFromHotkey(filePath, workflowName);
+      },
+      (filePath, _workflowName, workflowIndex) => {
+        // Set the pending index so loadWorkflow picks it up when active-leaf-change fires
+        pendingWorkflowIndexRef.current = workflowIndex;
+        // If the same file is already active, active-leaf-change won't fire after openFile,
+        // so we need to trigger loadWorkflow manually.
+        // Note: this callback runs BEFORE openFile(), so getActiveFile() still returns the old file.
+        const activeFile = plugin.app.workspace.getActiveFile();
+        if (activeFile && activeFile.path === filePath) {
+          // Same file — active-leaf-change won't fire, call directly
+          void loadWorkflow();
+        }
+        // Different file — active-leaf-change will fire and consume pendingWorkflowIndexRef
+      }
+    ).open();
+  };
+
   // Handle workflow selection change
   const handleWorkflowSelect = async (e: React.ChangeEvent<HTMLSelectElement>) => {
     const value = e.target.value;
@@ -443,6 +474,13 @@ export default function WorkflowPanel({ plugin }: WorkflowPanelProps) {
       e.target.value = String(currentWorkflowIndex);
       await loadWorkflow();
       new Notice(t("workflow.reloaded"));
+      return;
+    }
+
+    // Handle browse all workflows
+    if (value === "__browse_all__") {
+      e.target.value = String(currentWorkflowIndex);
+      openBrowseAllModal();
       return;
     }
 
@@ -1018,9 +1056,7 @@ ${result.nodes.map(node => {
 
   // Open workflow selector modal
   const handleOpenWorkflowSelector = () => {
-    new WorkflowSelectorModal(plugin.app, plugin, (filePath, workflowName) => {
-      void plugin.executeWorkflowFromHotkey(filePath, workflowName);
-    }).open();
+    openBrowseAllModal();
   };
 
   // ファイルが選択されていない場合
@@ -1097,6 +1133,7 @@ ${result.nodes.map(node => {
               </option>
             ))
           )}
+          <option value="__browse_all__">{t("workflow.browseAllWorkflows")}</option>
           <option value="__new_ai__">{t("workflow.newAI")}</option>
           <option value="__reload__">{t("workflow.reloadFromFile")}</option>
         </select>

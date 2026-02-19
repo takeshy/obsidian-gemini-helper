@@ -87,6 +87,7 @@ function getNodeSummary(node: SidebarNode): string {
 export class WorkflowSelectorModal extends Modal {
   private plugin: GeminiHelperPlugin;
   private onExecute: (filePath: string, workflowName: string) => void;
+  private onOpenCallback?: (filePath: string, workflowName: string, workflowIndex: number) => void;
 
   private files: TFile[] = [];
   private filteredFiles: TFile[] = [];
@@ -104,11 +105,13 @@ export class WorkflowSelectorModal extends Modal {
   constructor(
     app: App,
     plugin: GeminiHelperPlugin,
-    onExecute: (filePath: string, workflowName: string) => void
+    onExecute: (filePath: string, workflowName: string) => void,
+    onOpen?: (filePath: string, workflowName: string, workflowIndex: number) => void
   ) {
     super(app);
     this.plugin = plugin;
     this.onExecute = onExecute;
+    this.onOpenCallback = onOpen;
   }
 
   onOpen(): void {
@@ -117,14 +120,18 @@ export class WorkflowSelectorModal extends Modal {
     contentEl.addClass("workflow-selector-modal");
     modalEl.addClass("workflow-selector-modal-container");
 
-    // Load and sort files (workflows/ first)
-    this.files = this.app.vault.getMarkdownFiles().sort((a, b) => {
-      const aInWorkflows = a.path.startsWith("workflows/");
-      const bInWorkflows = b.path.startsWith("workflows/");
-      if (aInWorkflows && !bInWorkflows) return -1;
-      if (!aInWorkflows && bInWorkflows) return 1;
-      return a.path.localeCompare(b.path);
-    });
+    // Load and sort files (workflows/ first), excluding workspace folder (chat history etc.)
+    const wsFolder = this.plugin.settings.workspaceFolder || "GeminiHelper";
+    this.files = this.app.vault
+      .getMarkdownFiles()
+      .filter((file) => !file.path.startsWith(wsFolder + "/"))
+      .sort((a, b) => {
+        const aInWorkflows = a.path.startsWith("workflows/");
+        const bInWorkflows = b.path.startsWith("workflows/");
+        if (aInWorkflows && !bInWorkflows) return -1;
+        if (!aInWorkflows && bInWorkflows) return 1;
+        return a.path.localeCompare(b.path);
+      });
     this.filteredFiles = [...this.files];
 
     // Title
@@ -518,6 +525,12 @@ export class WorkflowSelectorModal extends Modal {
 
   private onOpenClick(): void {
     if (!this.selectedFile) return;
+
+    if (this.onOpenCallback && this.workflowOptions.length > 0) {
+      const selectedOption = this.workflowOptions[this.selectedWorkflowIndex];
+      const workflowName = selectedOption.name || selectedOption.label;
+      this.onOpenCallback(this.selectedFile.path, workflowName, this.selectedWorkflowIndex);
+    }
 
     // Open the file in Obsidian
     const leaf = this.app.workspace.getLeaf();

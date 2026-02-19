@@ -354,6 +354,7 @@ export const en = {
   "workflow.createWithAI": "Create workflow with AI",
   "workflow.noWorkflows": "No workflows",
   "workflow.newAI": "+ new (AI)",
+  "workflow.browseAllWorkflows": "Browse all workflows...",
   "workflow.reloadFromFile": "Reload from file",
   "workflow.addNode": "Add node",
   "workflow.modifyWithAI": "Modify workflow with AI",

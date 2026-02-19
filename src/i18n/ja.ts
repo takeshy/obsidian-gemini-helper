@@ -469,6 +469,13 @@ export const ja: Record<string, string> = {
   "editHistoryModal.manual": "手動",
   "editHistoryModal.auto": "自動",
 
+  // Status bar
+  "statusBar.snapshot": "スナップショット",
+  "statusBar.snapshotTooltip": "現在の状態をスナップショットとして保存",
+  "statusBar.snapshotSaved": "スナップショットを保存しました",
+  "statusBar.history": "履歴",
+  "statusBar.historyTooltip": "編集履歴を表示",
+
   // Commands
   "command.showEditHistory": "編集履歴を表示",
   "command.restorePreviousVersion": "前のバージョンに復元",
@@ -751,7 +758,7 @@ export const ja: Record<string, string> = {
   "nodeEditor.url.placeholder": "https://api.example.com/endpoint",
   "nodeEditor.method": "メソッド",
   "nodeEditor.contentType": "コンテンツタイプ",
-  "nodeEditor.contentType.desc": "json: JSONボディ、form-data: multipart/form-data、text: プレーンテキスト、binary: FileExplorerDataからのバイナリ",
+  "nodeEditor.contentType.desc": "ボディのフォーマットタイプ",
   "nodeEditor.headers": "ヘッダー（JSON）",
   "nodeEditor.headers.placeholder": "{\"Authorization\": \"Bearer {{token}}\"}",
   "nodeEditor.body": "ボディ",

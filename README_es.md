@@ -484,12 +484,6 @@ Para Claude CLI, usa `Get-Command claude` y navega a `node_modules\@anthropic-ai
 
 ![Límite de Herramientas e Historial de Edición](docs/images/setting_tool_history.png)
 
-### Comandos Slash
-- Define plantillas de prompts personalizadas activadas por `/`
-- Modelo y búsqueda opcionales por comando
-
-![Comandos Slash](docs/images/setting_slash_command.png)
-
 ### Cifrado
 
 Protege tu historial de chat y registros de ejecución de workflows con contraseña por separado.
@@ -602,6 +596,12 @@ Requiere: `pip install cryptography`
 - **Protegido del chat de IA** - Los archivos cifrados no pueden ser leídos por las operaciones de vault de IA (herramienta `read_note`). Esto mantiene los datos sensibles como claves API a salvo de exposición accidental durante el chat.
 - **Acceso desde workflow con contraseña** - Los workflows pueden leer archivos cifrados usando el nodo `note-read`. Al acceder, aparece un diálogo de contraseña, y la contraseña se almacena en caché para la sesión.
 - **Almacena secretos de forma segura** - En lugar de escribir claves API directamente en workflows, almacénalas en archivos cifrados. El workflow lee la clave en tiempo de ejecución después de la verificación de contraseña.
+
+### Comandos Slash
+- Define plantillas de prompts personalizadas activadas por `/`
+- Modelo y búsqueda opcionales por comando
+
+![Comandos Slash](docs/images/setting_slash_command.png)
 
 ## Uso
 

@@ -162,11 +162,20 @@ export class CryptView extends ItemView {
 
     try {
       await this.plugin.app.vault.modify(this.file, content);
+
+      // Remove .encrypted extension if present
+      let openPath = this.filePath;
+      if (this.file.path.endsWith(".encrypted")) {
+        const newPath = this.file.path.slice(0, -".encrypted".length);
+        await this.plugin.app.vault.rename(this.file, newPath);
+        openPath = newPath;
+      }
+
       new Notice("File decrypted and saved");
 
       // Close this view and open the file normally
       this.leaf.detach();
-      await this.plugin.app.workspace.openLinkText(this.filePath, "", false);
+      await this.plugin.app.workspace.openLinkText(openPath, "", false);
     } catch (error) {
       console.error("Failed to save decrypted file:", formatError(error));
       new Notice("Failed to decrypt file");

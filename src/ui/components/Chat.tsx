@@ -455,11 +455,13 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 				return;
 			}
 
-			const files = plugin.app.vault.getMarkdownFiles().filter(f => {
+			const files = plugin.app.vault.getFiles().filter(f => {
 				// Only include files directly in the folder (not in subdirectories)
 				if (!f.path.startsWith(folder + "/")) return false;
 				const relativePath = f.path.slice(folder.length + 1);
-				return !relativePath.includes("/");
+				if (relativePath.includes("/")) return false;
+				// Include .md and .md.encrypted files
+				return f.path.endsWith(".md") || f.path.endsWith(".md.encrypted");
 			});
 			const histories: ChatHistory[] = [];
 
@@ -468,9 +470,11 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 					const content = await plugin.app.vault.read(file);
 					const frontmatterMatch = content.match(/^---\n([\s\S]*?)\n---/);
 
+					// Extract chatId from filename (handles both .md and .md.encrypted)
+					const chatId = file.name.replace(/\.md(\.encrypted)?$/, "");
+
 					// Check if content is encrypted (YAML frontmatter format)
 					if (isEncryptedFile(content)) {
-						const chatId = file.basename;
 						histories.push({
 							id: chatId,
 							title: t("chat.encryptedChat"),
@@ -483,8 +487,6 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 						const titleMatch = frontmatterMatch[1].match(/title:\s*"([^"]+)"/);
 						const createdAtMatch = frontmatterMatch[1].match(/createdAt:\s*(\d+)/);
 						const updatedAtMatch = frontmatterMatch[1].match(/updatedAt:\s*(\d+)/);
-
-						const chatId = file.basename;
 						const title = titleMatch ? titleMatch[1] : chatId;
 						const createdAt = createdAtMatch ? parseInt(createdAtMatch[1]) : file.stat.ctime;
 						const updatedAt = updatedAtMatch ? parseInt(updatedAtMatch[1]) : file.stat.mtime;
@@ -538,9 +540,18 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 		const effectiveSession = session || existingHistory?.cliSession;
 
 		const markdown = await messagesToMarkdown(msgs, title, createdAt, effectiveSession);
-		const filePath = getChatFilePath(chatId);
+		const basePath = getChatFilePath(chatId);
+		const encrypted = isEncryptedFile(markdown);
+		const filePath = encrypted ? basePath + ".encrypted" : basePath;
+		const oldPath = encrypted ? basePath : basePath + ".encrypted";
 
 		try {
+			// Delete old file if encryption status changed (extension mismatch)
+			const oldFile = plugin.app.vault.getAbstractFileByPath(oldPath);
+			if (oldFile instanceof TFile) {
+				await plugin.app.fileManager.trashFile(oldFile);
+			}
+
 			const file = plugin.app.vault.getAbstractFileByPath(filePath);
 
 			if (file instanceof TFile) {
@@ -1036,8 +1047,12 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 			return;
 		}
 		try {
-			const filePath = getChatFilePath(chatId);
-			const file = plugin.app.vault.getAbstractFileByPath(filePath);
+			// Try .md.encrypted first, then fall back to .md
+			const basePath = getChatFilePath(chatId);
+			let file = plugin.app.vault.getAbstractFileByPath(basePath + ".encrypted");
+			if (!(file instanceof TFile)) {
+				file = plugin.app.vault.getAbstractFileByPath(basePath);
+			}
 			if (!(file instanceof TFile)) {
 				throw new Error("Chat file not found");
 			}
@@ -1109,15 +1124,17 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 			return;
 		}
 
-		// Delete the Markdown file
-		const filePath = getChatFilePath(chatId);
-		try {
-			const file = plugin.app.vault.getAbstractFileByPath(filePath);
-			if (file instanceof TFile) {
-				await plugin.app.fileManager.trashFile(file);
+		// Delete the Markdown file (try both .md and .md.encrypted)
+		const basePath = getChatFilePath(chatId);
+		for (const path of [basePath, basePath + ".encrypted"]) {
+			try {
+				const file = plugin.app.vault.getAbstractFileByPath(path);
+				if (file instanceof TFile) {
+					await plugin.app.fileManager.trashFile(file);
+				}
+			} catch {
+				// Failed to delete chat file
 			}
-		} catch {
-			// Failed to delete chat file
 		}
 
 		const newHistories = chatHistories.filter(h => h.id !== chatId);

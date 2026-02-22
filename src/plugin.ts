@@ -310,7 +310,7 @@ export class GeminiHelperPlugin extends Plugin {
       name: t("command.decryptFile"),
       checkCallback: (checking: boolean) => {
         const activeFile = this.app.workspace.getActiveFile();
-        if (activeFile && activeFile.extension === "md") {
+        if (activeFile && (activeFile.extension === "md" || activeFile.extension === "encrypted")) {
           if (!checking) {
             void this.decryptCurrentFile(activeFile);
           }
@@ -358,14 +358,19 @@ export class GeminiHelperPlugin extends Plugin {
     // Also check if file is encrypted and open in CryptView
     this.registerEvent(
       this.app.workspace.on("file-open", (file) => {
-        if (file instanceof TFile && file.extension === "md") {
-          const historyManager = getEditHistoryManager();
-          if (historyManager) {
-            void historyManager.initSnapshot(file.path);
-          }
+        if (file instanceof TFile) {
+          if (file.extension === "md") {
+            const historyManager = getEditHistoryManager();
+            if (historyManager) {
+              void historyManager.initSnapshot(file.path);
+            }
 
-          // Check if file is encrypted and redirect to CryptView
-          void this.checkAndOpenEncryptedFile(file);
+            // Check if file is encrypted and redirect to CryptView
+            void this.checkAndOpenEncryptedFile(file);
+          } else if (file.extension === "encrypted") {
+            // .encrypted files are always encrypted - open in CryptView
+            void this.checkAndOpenEncryptedFile(file);
+          }
         }
       })
     );
@@ -1657,6 +1662,11 @@ export class GeminiHelperPlugin extends Plugin {
 
       // Save encrypted content
       await this.app.vault.modify(file, encryptedContent);
+
+      // Rename file to add .encrypted extension
+      const newPath = file.path + ".encrypted";
+      await this.app.vault.rename(file, newPath);
+
       new Notice(t("crypt.encryptSuccess"));
 
       // Reopen the file in CryptView
@@ -1728,6 +1738,13 @@ export class GeminiHelperPlugin extends Plugin {
   async decryptFile(file: TFile, decryptedContent: string): Promise<void> {
     try {
       await this.app.vault.modify(file, decryptedContent);
+
+      // Remove .encrypted extension if present
+      if (file.path.endsWith(".encrypted")) {
+        const newPath = file.path.slice(0, -".encrypted".length);
+        await this.app.vault.rename(file, newPath);
+      }
+
       new Notice(t("crypt.decryptSuccess"));
     } catch (error) {
       console.error("Failed to decrypt file:", formatError(error));
@@ -1817,6 +1834,13 @@ export class GeminiHelperPlugin extends Plugin {
 
       // Write decrypted content back
       await this.app.vault.modify(file, decryptedContent);
+
+      // Remove .encrypted extension if present
+      if (file.path.endsWith(".encrypted")) {
+        const newPath = file.path.slice(0, -".encrypted".length);
+        await this.app.vault.rename(file, newPath);
+      }
+
       new Notice(t("crypt.decryptSuccess"));
     } catch (error) {
       console.error("Failed to decrypt file:", formatError(error));

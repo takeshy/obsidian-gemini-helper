@@ -114,11 +114,12 @@ export class ExecutionHistoryManager {
     await this.ensureHistoryFolder();
 
     const fileName = this.getFileName(record);
-    const filePath = `${this.historyFolder}/${fileName}`;
+    const basePath = `${this.historyFolder}/${fileName}`;
     const jsonContent = JSON.stringify(record, null, 2);
 
     // Encrypt if encryption is enabled and available
     let content: string;
+    let filePath: string;
     if (this.canEncrypt() && this.encryptionConfig) {
       content = await encryptFileContent(
         jsonContent,
@@ -126,8 +127,10 @@ export class ExecutionHistoryManager {
         this.encryptionConfig.encryptedPrivateKey,
         this.encryptionConfig.salt
       );
+      filePath = basePath + ".encrypted";
     } else {
       content = jsonContent;
+      filePath = basePath;
     }
 
     const existingFile = this.app.vault.getAbstractFileByPath(filePath);
@@ -179,7 +182,7 @@ export class ExecutionHistoryManager {
       const files = await this.app.vault.adapter.list(folderPath);
 
       for (const file of files.files) {
-        if (!file.endsWith(".json")) continue;
+        if (!file.endsWith(".json") && !file.endsWith(".json.encrypted")) continue;
 
         try {
           const content = await this.app.vault.adapter.read(file);
@@ -229,7 +232,7 @@ export class ExecutionHistoryManager {
       const files = await this.app.vault.adapter.list(folderPath);
 
       for (const file of files.files) {
-        if (!file.endsWith(".json")) continue;
+        if (!file.endsWith(".json") && !file.endsWith(".json.encrypted")) continue;
 
         try {
           const content = await this.app.vault.adapter.read(file);
@@ -267,7 +270,7 @@ export class ExecutionHistoryManager {
       const files = await this.app.vault.adapter.list(folderPath);
 
       for (const file of files.files) {
-        if (!file.endsWith(".json")) continue;
+        if (!file.endsWith(".json") && !file.endsWith(".json.encrypted")) continue;
 
         try {
           const content = await this.app.vault.adapter.read(file);
@@ -303,7 +306,7 @@ export class ExecutionHistoryManager {
       const files = await this.app.vault.adapter.list(folderPath);
 
       for (const file of files.files) {
-        if (!file.endsWith(".json")) continue;
+        if (!file.endsWith(".json") && !file.endsWith(".json.encrypted")) continue;
 
         try {
           const content = await this.app.vault.adapter.read(file);
@@ -335,7 +338,7 @@ export class ExecutionHistoryManager {
       const files = await this.app.vault.adapter.list(folderPath);
 
       for (const file of files.files) {
-        if (!file.endsWith(".json")) continue;
+        if (!file.endsWith(".json") && !file.endsWith(".json.encrypted")) continue;
 
         try {
           const content = await this.app.vault.adapter.read(file);
@@ -369,7 +372,7 @@ export class ExecutionHistoryManager {
       const files = await this.app.vault.adapter.list(folderPath);
 
       for (const file of files.files) {
-        if (!file.endsWith(".json")) continue;
+        if (!file.endsWith(".json") && !file.endsWith(".json.encrypted")) continue;
 
         try {
           const content = await this.app.vault.adapter.read(file);
@@ -401,7 +404,7 @@ export class ExecutionHistoryManager {
       const files = await this.app.vault.adapter.list(folderPath);
 
       for (const file of files.files) {
-        if (!file.endsWith(".json")) continue;
+        if (!file.endsWith(".json") && !file.endsWith(".json.encrypted")) continue;
 
         try {
           const content = await this.app.vault.adapter.read(file);

@@ -787,6 +787,18 @@ MIT
 
 - **[Google Drive Sync (GemiHub Connection)](docs/GEMIHUB_CONNECTION.md)** - Sync your vault with Google Drive via [GemiHub](https://gemihub.com). Bidirectional push/pull, conflict resolution, and encrypted authentication.
 
+### Why use GemiHub?
+
+[GemiHub](https://gemihub.com) is a web application that works with the same vault data synced via Google Drive. Using GemiHub alongside this plugin gives you additional benefits:
+
+| Benefit | Description |
+|---------|-------------|
+| **No installation required** | GemiHub runs entirely in the browser — no app to install, works on any device with a web browser |
+| **OAuth-based MCP servers** | Use MCP servers that require OAuth authentication (e.g., Google Calendar, GitHub). OAuth flows that need browser redirects work natively in GemiHub's web environment |
+| **Web publishing & PDF export** | Publish notes as public web pages and export them as PDF documents directly from the browser |
+| **Cross-device access** | Access and edit your vault from any device — desktop, tablet, or phone — without installing Obsidian |
+| **Bidirectional sync** | Changes made in GemiHub are synced to Obsidian (and vice versa) via Google Drive, so you can use both seamlessly |
+
 ## Links
 
 - [Gemini API Docs](https://ai.google.dev/docs)

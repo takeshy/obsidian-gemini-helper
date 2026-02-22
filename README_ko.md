@@ -777,6 +777,10 @@ AI로 워크플로우를 수정할 때 이전 실행 결과를 참조하여 AI�
 
 MIT
 
+## 실험적 기능
+
+- **[Google Drive Sync (GemiHub Connection)](docs/GEMIHUB_CONNECTION_ko.md)** - [GemiHub](https://gemihub.com)를 통해 vault를 Google Drive와 동기화합니다. 양방향 push/pull, 충돌 해결, 암호화된 인증을 지원합니다.
+
 ## 링크
 
 - [Gemini API Docs](https://ai.google.dev/docs)

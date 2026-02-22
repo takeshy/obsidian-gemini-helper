@@ -777,6 +777,10 @@ Veja os [Termos de Serviço do Google AI](https://ai.google.dev/terms) para pol�
 
 MIT
 
+## Recursos Experimentais
+
+- **[Google Drive Sync (GemiHub Connection)](docs/GEMIHUB_CONNECTION_pt.md)** - Sincronize seu vault com o Google Drive via [GemiHub](https://gemihub.com). Push/pull bidirecional, resolução de conflitos e autenticação criptografada.
+
 ## Links
 
 - [Documentação da API Gemini](https://ai.google.dev/docs)

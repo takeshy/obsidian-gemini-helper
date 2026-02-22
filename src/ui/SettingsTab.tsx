@@ -36,6 +36,13 @@ import {
   generateKeyPair,
   encryptPrivateKey,
 } from "src/core/crypto";
+import { DriveSyncConflictModal } from "src/ui/components/DriveSyncConflictModal";
+import type { DriveSyncManager } from "src/core/driveSync";
+import { DriveAuthPasswordModal } from "src/ui/components/DriveAuthPasswordModal";
+import { DriveTrashModal } from "src/ui/components/DriveTrashModal";
+import { DriveConflictBackupModal } from "src/ui/components/DriveConflictBackupModal";
+import { DriveTempFilesModal } from "src/ui/components/DriveTempFilesModal";
+import { ConfirmModal } from "src/ui/components/ConfirmModal";
 
 // Modal for creating/renaming RAG settings
 class RagSettingNameModal extends Modal {
@@ -105,54 +112,6 @@ class RagSettingNameModal extends Modal {
   onClose() {
     const { contentEl } = this;
     contentEl.empty();
-  }
-}
-
-class ConfirmModal extends Modal {
-  private message: string;
-  private confirmText: string;
-  private cancelText: string;
-  private resolver: (value: boolean) => void = () => {};
-
-  constructor(app: App, message: string, confirmText = t("common.confirm"), cancelText = t("common.cancel")) {
-    super(app);
-    this.message = message;
-    this.confirmText = confirmText;
-    this.cancelText = cancelText;
-  }
-
-  onOpen() {
-    const { contentEl } = this;
-    contentEl.empty();
-    contentEl.createEl("p", { text: this.message });
-
-    const actions = contentEl.createDiv({ cls: "gemini-helper-modal-actions" });
-
-    const confirmBtn = actions.createEl("button", {
-      text: this.confirmText,
-      cls: "mod-warning",
-    });
-    confirmBtn.addEventListener("click", () => {
-      this.resolver(true);
-      this.close();
-    });
-
-    const cancelBtn = actions.createEl("button", { text: this.cancelText });
-    cancelBtn.addEventListener("click", () => {
-      this.resolver(false);
-      this.close();
-    });
-  }
-
-  onClose() {
-    this.contentEl.empty();
-  }
-
-  openAndWait(): Promise<boolean> {
-    return new Promise((resolve) => {
-      this.resolver = resolve;
-      this.open();
-    });
   }
 }
 
@@ -947,6 +906,22 @@ export class SettingsTab extends PluginSettingTab {
           });
       });
 
+    // Hide Workspace Folder
+    new Setting(containerEl)
+      .setName(t("settings.hideWorkspaceFolder"))
+      .setDesc(t("settings.hideWorkspaceFolder.desc"))
+      .addToggle((toggle) =>
+        toggle
+          .setValue(this.plugin.settings.hideWorkspaceFolder)
+          .onChange((value) => {
+            void (async () => {
+              this.plugin.settings.hideWorkspaceFolder = value;
+              await this.plugin.saveSettings();
+              this.plugin.updateWorkspaceFolderVisibility();
+            })();
+          })
+      );
+
     // Save Chat History
     new Setting(containerEl)
       .setName(t("settings.saveChatHistory"))
@@ -1243,6 +1218,10 @@ export class SettingsTab extends PluginSettingTab {
     if (allowRag) {
       this.displayRagSettings(containerEl);
     }
+
+    // Google Drive Sync settings
+    new Setting(containerEl).setName(t("driveSync.heading")).setHeading();
+    this.displayDriveSyncSettings(containerEl);
 
     // MCP servers settings
     new Setting(containerEl).setName(t("settings.mcpServers")).setHeading();
@@ -1646,68 +1625,6 @@ export class SettingsTab extends PluginSettingTab {
       return;
     }
 
-    // Retention settings
-    const retentionDesc = containerEl.createDiv({ cls: "setting-item-description gemini-helper-settings-subheading" });
-    retentionDesc.textContent = t("settings.editHistoryRetention");
-
-    new Setting(containerEl)
-      .setName(t("settings.editHistoryMaxAge"))
-      .setDesc(t("settings.editHistoryMaxAge.desc"))
-      .addText((text) =>
-        text
-          .setValue(String(editHistory.retention.maxAgeInDays))
-          .onChange((value) => {
-            void (async () => {
-              const num = parseInt(value, 10);
-              if (!isNaN(num) && num >= 0) {
-                this.plugin.settings.editHistory.retention.maxAgeInDays = num;
-                await this.plugin.saveSettings();
-              }
-            })();
-          })
-      )
-      .addExtraButton((btn) =>
-        btn
-          .setIcon("reset")
-          .setTooltip(t("settings.resetToDefault", { value: String(DEFAULT_EDIT_HISTORY_SETTINGS.retention.maxAgeInDays) }))
-          .onClick(() => {
-            void (async () => {
-              this.plugin.settings.editHistory.retention.maxAgeInDays = DEFAULT_EDIT_HISTORY_SETTINGS.retention.maxAgeInDays;
-              await this.plugin.saveSettings();
-              this.display();
-            })();
-          })
-      );
-
-    new Setting(containerEl)
-      .setName(t("settings.editHistoryMaxEntries"))
-      .setDesc(t("settings.editHistoryMaxEntries.desc"))
-      .addText((text) =>
-        text
-          .setValue(String(editHistory.retention.maxEntriesPerFile))
-          .onChange((value) => {
-            void (async () => {
-              const num = parseInt(value, 10);
-              if (!isNaN(num) && num >= 0) {
-                this.plugin.settings.editHistory.retention.maxEntriesPerFile = num;
-                await this.plugin.saveSettings();
-              }
-            })();
-          })
-      )
-      .addExtraButton((btn) =>
-        btn
-          .setIcon("reset")
-          .setTooltip(t("settings.resetToDefault", { value: String(DEFAULT_EDIT_HISTORY_SETTINGS.retention.maxEntriesPerFile) }))
-          .onClick(() => {
-            void (async () => {
-              this.plugin.settings.editHistory.retention.maxEntriesPerFile = DEFAULT_EDIT_HISTORY_SETTINGS.retention.maxEntriesPerFile;
-              await this.plugin.saveSettings();
-              this.display();
-            })();
-          })
-      );
-
     new Setting(containerEl)
       .setName(t("settings.editHistoryContextLines"))
       .setDesc(t("settings.editHistoryContextLines.desc"))
@@ -1733,38 +1650,6 @@ export class SettingsTab extends PluginSettingTab {
               await this.plugin.saveSettings();
               this.display();
             })();
-          })
-      );
-
-    // Prune and Stats buttons
-    new Setting(containerEl)
-      .addButton((btn) =>
-        btn
-          .setButtonText(t("settings.editHistoryPrune"))
-          .onClick(() => {
-            const manager = getEditHistoryManager();
-            if (!manager) {
-              new Notice("Edit history manager not initialized");
-              return;
-            }
-            const result = manager.prune();
-            new Notice(t("settings.editHistoryPruned", { count: String(result.deletedCount) }));
-          })
-      )
-      .addButton((btn) =>
-        btn
-          .setButtonText(t("settings.editHistoryViewStats"))
-          .onClick(() => {
-            const manager = getEditHistoryManager();
-            if (!manager) {
-              new Notice("Edit history manager not initialized");
-              return;
-            }
-            const stats = manager.getStats();
-            new Notice(t("settings.editHistoryStats", {
-              files: String(stats.totalFiles),
-              entries: String(stats.totalEntries),
-            }));
           })
       );
   }
@@ -2467,6 +2352,327 @@ export class SettingsTab extends PluginSettingTab {
         });
       }
     }
+  }
+
+  private displayDriveSyncSettings(containerEl: HTMLElement): void {
+    const driveSync = this.plugin.settings.driveSync;
+    const syncManager = this.plugin.driveSyncManager;
+
+    // Enable toggle
+    new Setting(containerEl)
+      .setName(t("driveSync.enable"))
+      .setDesc(t("driveSync.enableDesc"))
+      .addToggle((toggle) =>
+        toggle.setValue(driveSync.enabled).onChange((value) => {
+          void (async () => {
+            this.plugin.settings.driveSync.enabled = value;
+            await this.plugin.saveSettings();
+            this.plugin.setupDriveSyncUI();
+            this.display();
+          })();
+        })
+      );
+
+    if (!driveSync.enabled) return;
+
+    // Setup / Connection status
+    if (!driveSync.encryptedAuth) {
+      // Not configured: show backup token input
+      new Setting(containerEl)
+        .setName(t("driveSync.backupToken"))
+        .setDesc(t("driveSync.backupTokenDesc"))
+        .addText((text) => {
+          text.setPlaceholder(t("driveSync.backupTokenPlaceholder"));
+          text.inputEl.type = "password";
+          text.inputEl.addClass("gemini-helper-backup-token-input");
+          // Store ref for button access
+          const inputEl = text.inputEl;
+
+          new Setting(containerEl)
+            .setName(t("driveSync.setupConnection"))
+            .setDesc(t("driveSync.setupConnectionDesc"))
+            .addButton((btn) =>
+              btn
+                .setButtonText(t("driveSync.setup"))
+                .setCta()
+                .onClick(() => {
+                  const token = inputEl.value.trim();
+                  if (!token) {
+                    new Notice(t("driveSync.pasteTokenFirst"));
+                    return;
+                  }
+                  void (async () => {
+                    try {
+                      btn.setButtonText(t("driveSync.settingUp"));
+                      btn.setDisabled(true);
+                      await syncManager?.setupWithBackupToken(token);
+                      new Notice(t("driveSync.configured"));
+                      this.display();
+                      // Auto-prompt for password after setup
+                      void this.plugin.promptDriveSyncUnlock();
+                    } catch (err) {
+                      new Notice(t("driveSync.setupFailed", { error: formatError(err) }));
+                      btn.setButtonText(t("driveSync.setup"));
+                      btn.setDisabled(false);
+                    }
+                  })();
+                })
+            );
+        });
+    } else {
+      // Configured: show unlock status
+      const isUnlocked = syncManager?.isUnlocked ?? false;
+
+      if (isUnlocked) {
+        new Setting(containerEl)
+          .setName(t("driveSync.connectionStatus"))
+          .setDesc(t("driveSync.connectedDesc"))
+          .addButton((btn) =>
+            btn.setButtonText(t("driveSync.resetAuth")).setWarning().onClick(() => {
+              void (async () => {
+                const confirmed = await new ConfirmModal(
+                  this.app,
+                  t("driveSync.resetAuthConfirm"),
+                  t("common.reset"),
+                  t("common.cancel")
+                ).openAndWait();
+                if (!confirmed) return;
+                this.plugin.settings.driveSync.encryptedAuth = null;
+                await this.plugin.saveSettings();
+                syncManager?.stopAutoSync();
+                this.display();
+                new Notice(t("driveSync.authReset"));
+              })();
+            })
+          );
+      } else {
+        new Setting(containerEl)
+          .setName(t("driveSync.connectionStatus"))
+          .setDesc(t("driveSync.lockedDesc"))
+          .addButton((btn) =>
+            btn
+              .setButtonText(t("driveSync.unlock"))
+              .setCta()
+              .onClick(() => {
+                void (async () => {
+                  const modal = new DriveAuthPasswordModal(this.app);
+                  const password = await modal.openAndWait();
+                  if (!password) return;
+                  try {
+                    await syncManager?.unlockWithPassword(password);
+                    new Notice(t("driveSync.unlocked"));
+                    this.display();
+                  } catch (err) {
+                    new Notice(t("driveSync.unlockFailed", { error: formatError(err) }));
+                  }
+                })();
+              })
+          )
+          .addButton((btn) =>
+            btn.setButtonText(t("driveSync.resetAuth")).onClick(() => {
+              void (async () => {
+                const confirmed = await new ConfirmModal(
+                  this.app,
+                  t("driveSync.resetAuthConfirm"),
+                  t("common.reset"),
+                  t("common.cancel")
+                ).openAndWait();
+                if (!confirmed) return;
+                this.plugin.settings.driveSync.encryptedAuth = null;
+                await this.plugin.saveSettings();
+                this.display();
+                new Notice(t("driveSync.authReset"));
+              })();
+            })
+          );
+      }
+    }
+
+    // Only show rest of settings if configured
+    if (!driveSync.encryptedAuth) return;
+
+    // Auto sync check toggle
+    new Setting(containerEl)
+      .setName(t("driveSync.autoSyncCheck"))
+      .setDesc(t("driveSync.autoSyncCheckDesc"))
+      .addToggle((toggle) =>
+        toggle.setValue(driveSync.autoSync).onChange((value) => {
+          void (async () => {
+            this.plugin.settings.driveSync.autoSync = value;
+            await this.plugin.saveSettings();
+            if (value) {
+              syncManager?.startAutoSync();
+            } else {
+              syncManager?.stopAutoSync();
+            }
+            this.display();
+          })();
+        })
+      );
+
+    // Sync check interval (only if auto sync check is on)
+    if (driveSync.autoSync) {
+      new Setting(containerEl)
+        .setName(t("driveSync.syncInterval"))
+        .setDesc(t("driveSync.syncIntervalDesc"))
+        .addSlider((slider) =>
+          slider
+            .setLimits(1, 60, 1)
+            .setValue(driveSync.syncIntervalMinutes)
+            .setDynamicTooltip()
+            .onChange((value) => {
+              void (async () => {
+                this.plugin.settings.driveSync.syncIntervalMinutes = value;
+                await this.plugin.saveSettings();
+                syncManager?.startAutoSync();
+              })();
+            })
+        );
+    }
+
+    // Exclude patterns
+    new Setting(containerEl)
+      .setName(t("driveSync.excludePatterns"))
+      .setDesc(t("driveSync.excludePatternsDesc"))
+      .addTextArea((text) => {
+        text
+          .setPlaceholder("node_modules/\n*.tmp")
+          .setValue(driveSync.excludePatterns.join("\n"))
+          .onChange((value) => {
+            void (async () => {
+              this.plugin.settings.driveSync.excludePatterns = value
+                .split("\n")
+                .map((s) => s.trim())
+                .filter(Boolean);
+              await this.plugin.saveSettings();
+            })();
+          });
+        text.inputEl.rows = 4;
+        text.inputEl.cols = 30;
+      });
+
+    // Only show sync actions if unlocked
+    if (!syncManager?.isUnlocked) return;
+
+    // Push / Pull / Full Pull buttons
+    const isSyncing = syncManager.syncStatus !== "idle";
+    const statusText = `Status: ${syncManager.syncStatus} | Local changes: ${syncManager.localModifiedCount} | Remote changes: ${syncManager.remoteModifiedCount}`;
+
+    const refreshBtnEl: HTMLButtonElement[] = [];
+
+    const syncActionSetting = new Setting(containerEl)
+      .setName(t("driveSync.syncActions"))
+      .setDesc(statusText);
+
+    // Helper: disable all sync action buttons in this setting group
+    const disableAllSyncButtons = () => {
+      syncActionSetting.controlEl.querySelectorAll<HTMLButtonElement>("button").forEach((b) => {
+        b.disabled = true;
+      });
+      refreshBtnEl.forEach((b) => { b.disabled = true; });
+    };
+
+    syncActionSetting
+      .addButton((btn) =>
+        btn.setButtonText(t("driveSync.push")).setDisabled(isSyncing).onClick(() => {
+          void (async () => {
+            disableAllSyncButtons();
+            await syncManager.push();
+            if (syncManager.syncStatus === "conflict") {
+              this.openConflictModal(syncManager);
+            }
+            this.display();
+          })();
+        })
+      )
+      .addButton((btn) =>
+        btn
+          .setButtonText(t("driveSync.pull"))
+          .setCta()
+          .setDisabled(isSyncing)
+          .onClick(() => {
+            void (async () => {
+              disableAllSyncButtons();
+              await syncManager.pull();
+              if (syncManager.syncStatus === "conflict") {
+                this.openConflictModal(syncManager);
+              }
+              this.display();
+            })();
+          })
+      )
+      .addButton((btn) =>
+        btn.setButtonText(t("driveSync.fullPull")).setWarning().setDisabled(isSyncing).onClick(() => {
+          void (async () => {
+            const confirmed = await new ConfirmModal(
+              this.app,
+              t("driveSync.fullPullConfirm"),
+              t("driveSync.fullPull"),
+              t("common.cancel")
+            ).openAndWait();
+            if (!confirmed) return;
+            disableAllSyncButtons();
+            await syncManager.fullPull();
+            this.display();
+          })();
+        })
+      );
+
+    // Refresh counts button
+    new Setting(containerEl)
+      .setName(t("driveSync.refreshStatus"))
+      .setDesc(t("driveSync.refreshStatusDesc"))
+      .addButton((btn) => {
+        btn.setButtonText(t("driveSync.refresh")).setDisabled(isSyncing).onClick(() => {
+          void (async () => {
+            disableAllSyncButtons();
+            await syncManager.refreshSyncCounts();
+            this.display();
+          })();
+        });
+        refreshBtnEl.push(btn.buttonEl);
+      });
+
+    new Setting(containerEl)
+      .setName(t("driveSync.tempFiles"))
+      .setDesc(t("driveSync.tempFilesDesc"))
+      .addButton((btn) =>
+        btn.setButtonText(t("driveSync.manage")).onClick(() => {
+          new DriveTempFilesModal(this.app, syncManager, () => this.display()).open();
+        })
+      );
+
+    new Setting(containerEl)
+      .setName(t("driveSync.conflictBackups"))
+      .setDesc(t("driveSync.conflictBackupsDesc"))
+      .addButton((btn) =>
+        btn.setButtonText(t("driveSync.manage")).onClick(() => {
+          new DriveConflictBackupModal(this.app, syncManager, () => this.display()).open();
+        })
+      );
+
+    new Setting(containerEl)
+      .setName(t("driveSync.trash"))
+      .setDesc(t("driveSync.trashDesc"))
+      .addButton((btn) =>
+        btn.setButtonText(t("driveSync.manage")).onClick(() => {
+          new DriveTrashModal(this.app, syncManager, () => this.display()).open();
+        })
+      );
+  }
+
+  private openConflictModal(syncManager: DriveSyncManager): void {
+    new DriveSyncConflictModal(
+      this.app,
+      syncManager,
+      syncManager.conflicts,
+      () => {
+        if (syncManager.syncStatus === "conflict") {
+          this.openConflictModal(syncManager);
+        }
+        this.display();
+      }
+    ).open();
   }
 
   private async deleteChatHistoryFiles(): Promise<void> {

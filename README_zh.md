@@ -777,6 +777,10 @@ AI 工作流模态框支持拖放定位和从角落调整大小，以提供更�
 
 MIT
 
+## 实验性功能
+
+- **[Google Drive Sync (GemiHub Connection)](docs/GEMIHUB_CONNECTION_zh.md)** - 通过 [GemiHub](https://gemihub.com) 将您的 vault 与 Google Drive 同步。支持双向 push/pull、冲突解决和加密认证。
+
 ## 链接
 
 - [Gemini API 文档](https://ai.google.dev/docs)

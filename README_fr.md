@@ -777,6 +777,10 @@ Voir les [Conditions d'Utilisation de Google AI](https://ai.google.dev/terms) po
 
 MIT
 
+## Fonctionnalités Expérimentales
+
+- **[Google Drive Sync (GemiHub Connection)](docs/GEMIHUB_CONNECTION_fr.md)** - Synchronisez votre coffre avec Google Drive via [GemiHub](https://gemihub.com). Synchronisation bidirectionnelle push/pull, résolution de conflits et authentification chiffrée.
+
 ## Liens
 
 - [Documentation API Gemini](https://ai.google.dev/docs)

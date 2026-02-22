@@ -1,5 +1,10 @@
 /* Gemini Helper Plugin Styles */
 
+/* Utility: hide element */
+.gemini-helper-hidden {
+  display: none !important;
+}
+
 /* Selection Highlight - shows where {selection} text came from */
 .gemini-helper-selection-highlight {
   background-color: rgba(255, 213, 79, 0.4);
@@ -273,6 +278,72 @@
   justify-content: flex-end;
   gap: 8px;
   margin-top: 12px;
+}
+
+/* Drive management modals (trash, conflict backups, temp files) */
+.gemini-helper-drive-manage-modal .gemini-helper-drive-file-list {
+  max-height: 400px;
+  overflow-y: auto;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 6px;
+  margin: 8px 0;
+}
+
+.gemini-helper-drive-manage-modal .gemini-helper-drive-modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--background-modifier-border);
+}
+
+.gemini-helper-drive-manage-modal .gemini-helper-drive-modal-processing {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 16px;
+  gap: 12px;
+  color: var(--text-muted);
+}
+
+.gemini-helper-drive-manage-modal .gemini-helper-drive-modal-processing .spinner {
+  display: inline-block;
+  width: 24px;
+  height: 24px;
+  border: 3px solid var(--background-modifier-border);
+  border-top-color: var(--interactive-accent);
+  border-radius: 50%;
+  animation: gemini-spin 0.6s linear infinite;
+}
+
+@keyframes gemini-spin {
+  to { transform: rotate(360deg); }
+}
+
+.gemini-helper-drive-manage-modal .gemini-helper-drive-preview-panel {
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 4px;
+  margin: 0 0 4px;
+  max-height: 300px;
+  overflow: auto;
+}
+
+.gemini-helper-drive-manage-modal .gemini-helper-drive-preview-panel pre {
+  font-family: var(--font-monospace);
+  font-size: 12px;
+  line-height: 1.5;
+  margin: 0;
+  padding: 8px;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.gemini-helper-drive-manage-modal .gemini-helper-drive-preview-loading {
+  padding: 12px;
+  color: var(--text-muted);
+  text-align: center;
 }
 
 .gemini-helper-message-assistant {
@@ -4534,6 +4605,202 @@
 .gemini-helper-password-input {
   width: 100%;
   margin-bottom: 1em;
+}
+
+.gemini-helper-backup-token-input {
+  width: 300px;
+}
+
+.gemini-helper-drive-sync-status {
+  cursor: pointer;
+}
+
+/* Drive Sync Ribbon Badge */
+.gemini-helper-drive-sync-ribbon {
+  position: relative;
+}
+
+.gemini-helper-sync-badge {
+  position: absolute;
+  top: 2px;
+  right: -4px;
+  min-width: 14px;
+  height: 14px;
+  padding: 0 3px;
+  border-radius: 7px;
+  background: var(--interactive-accent);
+  color: var(--text-on-accent);
+  font-size: 9px;
+  font-weight: bold;
+  line-height: 14px;
+  text-align: center;
+  pointer-events: none;
+}
+
+/* Drive Sync Diff Modal */
+.gemini-helper-sync-diff-modal {
+  max-width: 800px;
+}
+
+.gemini-helper-sync-diff-list {
+  max-height: 400px;
+  overflow-y: auto;
+  margin: 8px 0;
+}
+
+.gemini-helper-sync-diff-file {
+  border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.gemini-helper-sync-diff-file:last-child {
+  border-bottom: none;
+}
+
+.gemini-helper-sync-diff-file-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 4px;
+}
+
+.gemini-helper-sync-diff-file-header:hover {
+  background: var(--background-modifier-hover);
+}
+
+.gemini-helper-sync-diff-icon {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.gemini-helper-sync-diff-new {
+  color: var(--text-success);
+}
+
+.gemini-helper-sync-diff-modified {
+  color: var(--text-accent);
+}
+
+.gemini-helper-sync-diff-deleted {
+  color: var(--text-error);
+}
+
+.gemini-helper-sync-diff-edit-deleted {
+  color: var(--text-warning);
+}
+
+.gemini-helper-sync-diff-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+}
+
+.gemini-helper-sync-diff-tag {
+  font-size: 11px;
+  color: var(--text-warning);
+  background: var(--background-modifier-hover);
+  padding: 1px 6px;
+  border-radius: 3px;
+  white-space: nowrap;
+}
+
+.gemini-helper-sync-diff-toggle {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 12px;
+  margin-left: auto;
+}
+
+.gemini-helper-sync-diff-toggle:hover {
+  background: var(--background-modifier-hover);
+  color: var(--text-normal);
+}
+
+.gemini-helper-sync-diff-no-diff {
+  font-size: 11px;
+  color: var(--text-faint);
+  margin-left: auto;
+}
+
+.gemini-helper-sync-diff-panel {
+  border-top: 1px solid var(--background-modifier-border);
+  margin: 0 8px 8px;
+}
+
+.gemini-helper-sync-diff-loading {
+  padding: 12px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.gemini-helper-sync-diff-error {
+  padding: 12px;
+  text-align: center;
+  color: var(--text-error);
+  font-size: 13px;
+}
+
+.gemini-helper-sync-diff-content {
+  font-family: var(--font-monospace);
+  font-size: 12px;
+  line-height: 1.5;
+  overflow-x: auto;
+  margin: 0;
+  padding: 8px 0;
+}
+
+.gemini-helper-sync-diff-content > div {
+  padding: 0 8px;
+  white-space: pre;
+  min-height: 1.5em;
+}
+
+.gemini-helper-sync-diff-content .gemini-helper-diff-add {
+  background: rgba(0, 200, 83, 0.15);
+  color: var(--color-green);
+}
+
+.gemini-helper-sync-diff-content .gemini-helper-diff-remove {
+  background: rgba(255, 100, 100, 0.15);
+  color: var(--color-red);
+}
+
+.gemini-helper-sync-diff-content .gemini-helper-diff-hunk {
+  color: var(--text-accent);
+  background: var(--background-modifier-hover);
+  margin: 4px 0;
+  padding: 2px 8px;
+}
+
+.gemini-helper-sync-diff-content .gemini-helper-diff-header {
+  color: var(--text-faint);
+}
+
+.gemini-helper-diff-prefix {
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.theme-dark .gemini-helper-sync-diff-content .gemini-helper-diff-add {
+  background: rgba(0, 200, 83, 0.12);
+}
+
+.theme-dark .gemini-helper-sync-diff-content .gemini-helper-diff-remove {
+  background: rgba(255, 100, 100, 0.12);
 }
 
 /* Mobile Responsive - CryptView */

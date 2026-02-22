@@ -820,6 +820,10 @@ AI でワークフローを修正する際、過去の実行結果を参照し�
 
 MIT
 
+## 実験的機能
+
+- **[Google Drive 同期 (GemiHub 連携)](docs/GEMIHUB_CONNECTION.md)** - [GemiHub](https://gemihub.com) 経由で Vault を Google Drive と同期。双方向の Push/Pull、コンフリクト解決、暗号化認証に対応。
+
 ## リンク
 
 - [Gemini API ドキュメント](https://ai.google.dev/docs)

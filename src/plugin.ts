@@ -1,4 +1,4 @@
-import { Plugin, WorkspaceLeaf, Notice, MarkdownView, TFile, Modal, App } from "obsidian";
+import { Plugin, WorkspaceLeaf, Notice, MarkdownView, TFile, Modal, App, Menu } from "obsidian";
 import { EditorView } from "@codemirror/view";
 import { StateEffect } from "@codemirror/state";
 import { EventEmitter } from "src/utils/EventEmitter";
@@ -53,10 +53,15 @@ import {
 } from "src/core/editHistory";
 import { EditHistoryModal } from "src/ui/components/EditHistoryModal";
 import { formatError } from "src/utils/error";
-import { DEFAULT_CLI_CONFIG, DEFAULT_EDIT_HISTORY_SETTINGS, hasVerifiedCli } from "src/types";
+import { DEFAULT_CLI_CONFIG, DEFAULT_EDIT_HISTORY_SETTINGS, DEFAULT_DRIVE_SYNC_SETTINGS, hasVerifiedCli } from "src/types";
 import { initLocale, t } from "src/i18n";
 import { isEncryptedFile, encryptFileContent, decryptFileContent } from "src/core/crypto";
 import { cryptoCache } from "src/core/cryptoCache";
+import { DriveSyncManager } from "src/core/driveSync";
+import { DriveSyncConflictModal } from "src/ui/components/DriveSyncConflictModal";
+import { DriveSyncDiffModal } from "src/ui/components/DriveSyncDiffModal";
+import { DriveAuthPasswordModal } from "src/ui/components/DriveAuthPasswordModal";
+
 
 export class GeminiHelperPlugin extends Plugin {
   settings: GeminiHelperSettings = { ...DEFAULT_SETTINGS };
@@ -73,6 +78,15 @@ export class GeminiHelperPlugin extends Plugin {
   // Debounce timers for modify events (per file)
   private modifyDebounceTimers = new Map<string, ReturnType<typeof setTimeout>>();
   private static readonly MODIFY_DEBOUNCE_MS = 5000; // 5 seconds debounce for modify events
+
+  // Google Drive Sync
+  driveSyncManager: DriveSyncManager | null = null;
+  private driveSyncStatusBarEl: HTMLElement | null = null;
+  private driveSyncPushRibbonEl: HTMLElement | null = null;
+  private driveSyncPullRibbonEl: HTMLElement | null = null;
+
+  // Hide workspace folder CSS
+  private hideWorkspaceFolderStyleEl: HTMLStyleElement | null = null;
 
   // Delegate workspaceState to the manager
   get workspaceState(): WorkspaceState {
@@ -109,6 +123,9 @@ export class GeminiHelperPlugin extends Plugin {
 
     // Load settings and workspace state
     void this.loadSettings().then(async () => {
+      // Apply workspace folder visibility (CSS hide)
+      this.updateWorkspaceFolderVisibility();
+
       // Migrate from old settings format first (one-time)
       try {
         await this.wsManager.migrateFromOldSettings();
@@ -134,6 +151,18 @@ export class GeminiHelperPlugin extends Plugin {
         }
       } catch (e) {
         console.error("Gemini Helper: Failed to initialize clients:", formatError(e));
+      }
+      // Initialize Drive Sync manager independently (doesn't require API key or CLI)
+      try {
+        if (!this.driveSyncManager) {
+          this.driveSyncManager = new DriveSyncManager(this.app, this);
+        }
+        this.setupDriveSyncUI();
+        if (this.driveSyncManager.isConfigured && !this.driveSyncManager.isUnlocked) {
+          void this.promptDriveSyncUnlock();
+        }
+      } catch (e) {
+        console.error("Gemini Helper: Failed to initialize Drive sync:", formatError(e));
       }
       // Register workflows as Obsidian commands for hotkey support
       try {
@@ -197,6 +226,32 @@ export class GeminiHelperPlugin extends Plugin {
               });
           });
         }
+      })
+    );
+
+    // Register file menu for temp upload/download (all file types, Drive sync required)
+    this.registerEvent(
+      this.app.workspace.on("file-menu", (menu, file) => {
+        if (!(file instanceof TFile)) return;
+        const mgr = this.driveSyncManager;
+        if (!mgr?.isUnlocked) return;
+
+        menu.addItem((item) => {
+          item
+            .setTitle(t("driveSync.tempUpload"))
+            .setIcon("upload")
+            .onClick(() => {
+              void this.handleTempUpload(file);
+            });
+        });
+        menu.addItem((item) => {
+          item
+            .setTitle(t("driveSync.tempDownload"))
+            .setIcon("download")
+            .onClick(() => {
+              void this.handleTempDownload(file);
+            });
+        });
       })
     );
 
@@ -331,6 +386,64 @@ export class GeminiHelperPlugin extends Plugin {
       },
     });
 
+    // Google Drive Sync commands
+    this.addCommand({
+      id: "drive-sync-push",
+      name: t("driveSync.commandPush"),
+      callback: () => {
+        const mgr = this.driveSyncManager;
+        if (!mgr?.isUnlocked) {
+          new Notice(t("driveSync.notUnlocked"));
+          return;
+        }
+        void mgr.push();
+      },
+    });
+
+    this.addCommand({
+      id: "drive-sync-pull",
+      name: t("driveSync.commandPull"),
+      callback: () => {
+        const mgr = this.driveSyncManager;
+        if (!mgr?.isUnlocked) {
+          new Notice(t("driveSync.notUnlocked"));
+          return;
+        }
+        void (async () => {
+          await mgr.pull();
+          if (mgr.syncStatus === "conflict") {
+            this.openConflictModal(mgr);
+          }
+        })();
+      },
+    });
+
+    this.addCommand({
+      id: "drive-sync-full-push",
+      name: t("driveSync.commandFullPush"),
+      callback: () => {
+        const mgr = this.driveSyncManager;
+        if (!mgr?.isUnlocked) {
+          new Notice(t("driveSync.notUnlocked"));
+          return;
+        }
+        void mgr.fullPush();
+      },
+    });
+
+    this.addCommand({
+      id: "drive-sync-full-pull",
+      name: t("driveSync.commandFullPull"),
+      callback: () => {
+        const mgr = this.driveSyncManager;
+        if (!mgr?.isUnlocked) {
+          new Notice(t("driveSync.notUnlocked"));
+          return;
+        }
+        void mgr.fullPull();
+      },
+    });
+
     // Register file events for edit history
     this.registerEvent(
       this.app.vault.on("rename", (file, oldPath) => {
@@ -382,6 +495,7 @@ export class GeminiHelperPlugin extends Plugin {
       return;
     }
 
+    await historyManager.ensureSnapshot(file.path);
     const entry = historyManager.saveEdit({
       path: file.path,
       modifiedContent: await this.app.vault.read(file),
@@ -453,6 +567,15 @@ export class GeminiHelperPlugin extends Plugin {
     resetFileSearchManager();
     resetEditHistoryManager();
 
+    // Clean up Drive Sync
+    this.teardownDriveSyncUI();
+    this.driveSyncManager?.destroy();
+    this.driveSyncManager = null;
+
+    // Clean up hide workspace folder CSS
+    this.hideWorkspaceFolderStyleEl?.remove();
+    this.hideWorkspaceFolderStyleEl = null;
+
     // Clean up debounce timers
     for (const timer of this.modifyDebounceTimers.values()) {
       clearTimeout(timer);
@@ -494,6 +617,14 @@ export class GeminiHelperPlugin extends Plugin {
           ...DEFAULT_EDIT_HISTORY_SETTINGS.diff,
           ...(loaded.editHistory?.diff ?? {}),
         },
+      },
+      // Deep merge driveSync settings
+      driveSync: {
+        ...DEFAULT_DRIVE_SYNC_SETTINGS,
+        ...(loaded.driveSync ?? {}),
+        excludePatterns: loaded.driveSync?.excludePatterns
+          ? [...loaded.driveSync.excludePatterns]
+          : [...DEFAULT_DRIVE_SYNC_SETTINGS.excludePatterns],
       },
     };
   }
@@ -1066,6 +1197,30 @@ export class GeminiHelperPlugin extends Plugin {
     // Update settings after manager completes migration
     this.settings.workspaceFolder = newFolder;
     await this.saveSettings();
+    this.updateWorkspaceFolderVisibility();
+  }
+
+  /** Show or hide the workspace folder in the file explorer via CSS. */
+  updateWorkspaceFolderVisibility(): void {
+    if (this.settings.hideWorkspaceFolder && this.settings.workspaceFolder) {
+      const folder = this.settings.workspaceFolder;
+      if (!this.hideWorkspaceFolderStyleEl) {
+        // Dynamic style injection is necessary because the folder path is user-configurable
+        // and CSS attribute selectors cannot use CSS custom properties.
+        // eslint-disable-next-line obsidianmd/no-forbidden-elements
+        this.hideWorkspaceFolderStyleEl = document.createElement("style");
+        this.hideWorkspaceFolderStyleEl.id = "gemini-helper-hide-workspace-folder";
+        document.head.appendChild(this.hideWorkspaceFolderStyleEl);
+      }
+      this.hideWorkspaceFolderStyleEl.textContent =
+        `.nav-folder-title[data-path="${CSS.escape(folder)}"] { display: none !important; }` +
+        `.nav-folder-title[data-path="${CSS.escape(folder)}"] + .nav-folder-children { display: none !important; }`;
+    } else {
+      if (this.hideWorkspaceFolderStyleEl) {
+        this.hideWorkspaceFolderStyleEl.remove();
+        this.hideWorkspaceFolderStyleEl = null;
+      }
+    }
   }
 
   getSelectedRagSetting(): RagSetting | null {
@@ -1152,6 +1307,260 @@ export class GeminiHelperPlugin extends Plugin {
 
     // Sync FileSearchManager with selected RAG setting
     this.syncFileSearchManagerWithSelectedRag();
+
+    // Initialize Google Drive Sync manager (if not already done at startup)
+    if (!this.driveSyncManager) {
+      this.driveSyncManager = new DriveSyncManager(this.app, this);
+    }
+  }
+
+  /**
+   * Prompt user for password to unlock Drive sync session.
+   */
+  async promptDriveSyncUnlock(): Promise<void> {
+    while (this.driveSyncManager?.isConfigured && !this.driveSyncManager.isUnlocked) {
+      const modal = new DriveAuthPasswordModal(this.app);
+      const password = await modal.openAndWait();
+      if (!password) return; // User skipped/cancelled
+
+      try {
+        await this.driveSyncManager.unlockWithPassword(password);
+        new Notice(t("driveSync.unlocked"));
+        this.updateDriveSyncStatusBar();
+        return;
+      } catch (err) {
+        console.error("Drive sync unlock failed:", formatError(err));
+        new Notice(t("driveSync.unlockFailed", { error: formatError(err) }));
+      }
+    }
+  }
+
+  private teardownDriveSyncUI(): void {
+    this.driveSyncStatusBarEl?.remove();
+    this.driveSyncStatusBarEl = null;
+    this.driveSyncPushRibbonEl?.remove();
+    this.driveSyncPushRibbonEl = null;
+    this.driveSyncPullRibbonEl?.remove();
+    this.driveSyncPullRibbonEl = null;
+    if (this.driveSyncManager) {
+      this.driveSyncManager.onStatusChange = null;
+    }
+  }
+
+  public setupDriveSyncUI(): void {
+    const mgr = this.driveSyncManager;
+    if (!mgr) return;
+
+    if (!this.settings.driveSync.enabled) {
+      this.teardownDriveSyncUI();
+      return;
+    }
+
+    // Create status bar element if not exists
+    if (!this.driveSyncStatusBarEl) {
+      this.driveSyncStatusBarEl = this.addStatusBarItem();
+      this.driveSyncStatusBarEl.addClass("gemini-helper-drive-sync-status");
+      this.driveSyncStatusBarEl.addEventListener("click", (e) => {
+        this.showDriveSyncMenu(e);
+      });
+    }
+
+    // Create ribbon icons for Push/Pull
+    if (!this.driveSyncPushRibbonEl) {
+      this.driveSyncPushRibbonEl = this.addRibbonIcon("upload", t("driveSync.ribbonPush"), () => {
+        if (!mgr.isUnlocked) {
+          void this.promptDriveSyncUnlock();
+          return;
+        }
+        void this.showSyncDiffAndExecute(mgr, "push");
+      });
+      this.driveSyncPushRibbonEl.addClass("gemini-helper-drive-sync-ribbon");
+    }
+
+    if (!this.driveSyncPullRibbonEl) {
+      this.driveSyncPullRibbonEl = this.addRibbonIcon("download", t("driveSync.ribbonPull"), () => {
+        if (!mgr.isUnlocked) {
+          void this.promptDriveSyncUnlock();
+          return;
+        }
+        void this.showSyncDiffAndExecute(mgr, "pull");
+      });
+      this.driveSyncPullRibbonEl.addClass("gemini-helper-drive-sync-ribbon");
+    }
+
+    // Listen for status changes
+    mgr.onStatusChange = () => {
+      this.updateDriveSyncStatusBar();
+      this.updateDriveSyncRibbonBadges();
+    };
+
+    this.updateDriveSyncStatusBar();
+    this.updateDriveSyncRibbonBadges();
+  }
+
+  private updateDriveSyncRibbonBadges(): void {
+    const mgr = this.driveSyncManager;
+    const local = mgr?.localModifiedCount ?? 0;
+    const remote = mgr?.remoteModifiedCount ?? 0;
+
+    if (this.driveSyncPushRibbonEl) {
+      const label = local > 0 ? t("driveSync.ribbonPushCount", { count: local }) : t("driveSync.ribbonPush");
+      this.driveSyncPushRibbonEl.setAttribute("aria-label", label);
+      // Update badge
+      let badge = this.driveSyncPushRibbonEl.querySelector(".gemini-helper-sync-badge");
+      if (local > 0) {
+        if (!badge) {
+          badge = this.driveSyncPushRibbonEl.createSpan({ cls: "gemini-helper-sync-badge" });
+        }
+        badge.textContent = String(local);
+      } else {
+        badge?.remove();
+      }
+    }
+
+    if (this.driveSyncPullRibbonEl) {
+      const label = remote > 0 ? t("driveSync.ribbonPullCount", { count: remote }) : t("driveSync.ribbonPull");
+      this.driveSyncPullRibbonEl.setAttribute("aria-label", label);
+      // Update badge
+      let badge = this.driveSyncPullRibbonEl.querySelector(".gemini-helper-sync-badge");
+      if (remote > 0) {
+        if (!badge) {
+          badge = this.driveSyncPullRibbonEl.createSpan({ cls: "gemini-helper-sync-badge" });
+        }
+        badge.textContent = String(remote);
+      } else {
+        badge?.remove();
+      }
+    }
+  }
+
+  private updateDriveSyncStatusBar(): void {
+    const el = this.driveSyncStatusBarEl;
+    if (!el) return;
+
+    const mgr = this.driveSyncManager;
+    if (!mgr || !mgr.isConfigured) {
+      el.toggleClass("gemini-helper-hidden", true);
+      return;
+    }
+
+    el.toggleClass("gemini-helper-hidden", false);
+
+    if (!mgr.isUnlocked) {
+      el.setText(t("driveSync.statusLocked"));
+      el.setAttribute("aria-label", t("driveSync.statusLockedTooltip"));
+      return;
+    }
+
+    const status = mgr.syncStatus;
+    const local = mgr.localModifiedCount;
+    const remote = mgr.remoteModifiedCount;
+
+    let text: string;
+    switch (status) {
+      case "pushing":
+        text = t("driveSync.statusPushing");
+        break;
+      case "pulling":
+        text = t("driveSync.statusPulling");
+        break;
+      case "conflict":
+        text = t("driveSync.statusConflict");
+        break;
+      case "error":
+        text = "Drive: error";
+        break;
+      default: {
+        const parts: string[] = [];
+        if (local > 0) parts.push(`↑${local}`);
+        if (remote > 0) parts.push(`↓${remote}`);
+        text = parts.length > 0 ? t("driveSync.statusChanges", { changes: parts.join(" ") }) : t("driveSync.statusSynced");
+        break;
+      }
+    }
+
+    el.setText(text);
+    el.setAttribute("aria-label", mgr.lastError ? t("driveSync.statusError", { error: mgr.lastError }) : t("driveSync.statusTooltip"));
+  }
+
+  private showDriveSyncMenu(e: MouseEvent): void {
+    const mgr = this.driveSyncManager;
+    if (!mgr) return;
+
+    const menu = new Menu();
+
+    if (!mgr.isUnlocked) {
+      menu.addItem((item) => {
+        item.setTitle(t("driveSync.unlock")).setIcon("lock").onClick(() => {
+          void this.promptDriveSyncUnlock();
+        });
+      });
+    } else {
+      menu.addItem((item) => {
+        item.setTitle(t("driveSync.push")).setIcon("upload").onClick(() => {
+          void this.showSyncDiffAndExecute(mgr, "push");
+        });
+      });
+      menu.addItem((item) => {
+        item.setTitle(t("driveSync.pull")).setIcon("download").onClick(() => {
+          void this.showSyncDiffAndExecute(mgr, "pull");
+        });
+      });
+      menu.addSeparator();
+      menu.addItem((item) => {
+        item.setTitle(t("driveSync.refreshCounts")).setIcon("refresh-cw").onClick(() => {
+          void mgr.refreshSyncCounts();
+        });
+      });
+    }
+
+    menu.showAtMouseEvent(e);
+  }
+
+  private async showSyncDiffAndExecute(mgr: DriveSyncManager, direction: "push" | "pull"): Promise<void> {
+    // Show loading notice while computing file list
+    const loadingNotice = new Notice(t("driveSync.loadingFileList"), 0);
+    try {
+      const [result] = await Promise.all([
+        mgr.computeSyncFileList(direction),
+        mgr.refreshSyncCounts(),
+      ]);
+      loadingNotice.hide();
+
+      // Block push when remote has unpulled changes
+      if (direction === "push" && result.hasRemoteChanges) {
+        new Notice(t("driveSync.pushBlockedByRemote"));
+        return;
+      }
+
+      const modal = new DriveSyncDiffModal(this.app, result.files, direction, mgr);
+      const confirmed = await modal.openAndWait();
+      if (!confirmed) return;
+
+      if (direction === "push") {
+        await mgr.push();
+      } else {
+        await mgr.pull();
+      }
+
+      if (mgr.syncStatus === "conflict") {
+        this.openConflictModal(mgr);
+      }
+    } catch (err) {
+      loadingNotice.hide();
+      const key = direction === "push" ? "driveSync.pushFailed" as const : "driveSync.pullFailed" as const;
+      new Notice(t(key, { error: formatError(err) }));
+    }
+  }
+
+  private openConflictModal(mgr: DriveSyncManager): void {
+    new DriveSyncConflictModal(this.app, mgr, mgr.conflicts, () => {
+      // After all conflicts resolved, pull() runs automatically inside resolveConflict.
+      // If pull() detects new conflicts, re-open the modal.
+      if (mgr.syncStatus === "conflict") {
+        this.openConflictModal(mgr);
+      }
+    }).open();
   }
 
   private async ensureChatViewExists() {
@@ -1619,6 +2028,43 @@ export class GeminiHelperPlugin extends Plugin {
     const chatId = options?.chatId || `workflow-${Date.now()}`;
 
     return { response, chatId };
+  }
+
+  // ========================================
+  // Temp Upload / Download
+  // ========================================
+
+  private async handleTempUpload(file: TFile): Promise<void> {
+    const mgr = this.driveSyncManager;
+    if (!mgr?.isUnlocked) return;
+
+    try {
+      await mgr.saveTempFile(file.path);
+      new Notice(t("driveSync.tempUploadDone"));
+    } catch (err) {
+      new Notice(formatError(err));
+    }
+  }
+
+  private async handleTempDownload(file: TFile): Promise<void> {
+    const mgr = this.driveSyncManager;
+    if (!mgr?.isUnlocked) return;
+
+    try {
+      const tempFiles = await mgr.listTempFiles();
+      const fileName = file.path.split("/").pop() || file.path;
+      const match = tempFiles.find((e) => e.file.name === fileName);
+
+      if (!match) {
+        new Notice(t("driveSync.tempNotFound"));
+        return;
+      }
+
+      await mgr.downloadTempToVault(match.file.id, match.payload);
+      new Notice(t("driveSync.tempDownloadDone"));
+    } catch (err) {
+      new Notice(formatError(err));
+    }
   }
 
   // ========================================

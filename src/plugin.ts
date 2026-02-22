@@ -2052,8 +2052,10 @@ export class GeminiHelperPlugin extends Plugin {
 
     try {
       const tempFiles = await mgr.listTempFiles();
-      const fileName = file.path.split("/").pop() || file.path;
-      const match = tempFiles.find((e) => e.file.name === fileName);
+      // Match by full vault path first, then fall back to filename-only
+      // for backward compatibility with temp files saved before path-based naming.
+      const match = tempFiles.find((e) => e.file.name === file.path)
+        || tempFiles.find((e) => e.file.name === (file.path.split("/").pop() || file.path));
 
       if (!match) {
         new Notice(t("driveSync.tempNotFound"));

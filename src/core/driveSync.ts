@@ -1568,7 +1568,8 @@ export class DriveSyncManager {
 
   /**
    * Save a vault file to __TEMP__/ on Drive.
-   * Mirrors GemiHub's saveTempFile logic (overwrite if same name exists).
+   * Uses the full vault path as the Drive file name to avoid collisions
+   * when files in different directories share the same name.
    * Returns { fileId, fileName } for use by callers.
    */
   async saveTempFile(vaultPath: string): Promise<{ fileId: string; fileName: string }> {
@@ -1597,7 +1598,9 @@ export class DriveSyncManager {
     };
 
     const tempFolderId = await drive.ensureSubFolder(accessToken, rootFolderId, "__TEMP__");
-    const fileName = vaultPath.split("/").pop() || vaultPath;
+    // Use full vault path as file name to avoid collisions between
+    // files with the same name in different directories.
+    const fileName = vaultPath;
     const payloadJson = JSON.stringify(payload);
 
     // Overwrite if same name exists

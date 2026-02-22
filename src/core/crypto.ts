@@ -236,9 +236,7 @@ export async function verifyPassword(
 
 // Check if file content is encrypted using YAML frontmatter
 export function isEncryptedFile(content: string): boolean {
-  const frontmatter = content.match(/^---\n([\s\S]*?)\n---/);
-  if (!frontmatter) return false;
-  return /encrypted:\s*true/.test(frontmatter[1]);
+  return /^---\r?\nencrypted:\s*true/.test(content);
 }
 
 // Wrap encrypted data with YAML frontmatter format
@@ -248,7 +246,9 @@ export function wrapEncryptedFile(data: string, key: string, salt: string): stri
 
 // Extract encryption info from YAML frontmatter format
 export function unwrapEncryptedFile(content: string): { data: string; key: string; salt: string } | null {
-  const frontmatter = content.match(/^---\n([\s\S]*?)\n---\n([\s\S]*)$/);
+  // Normalize line endings to \n for reliable parsing
+  const normalized = content.replace(/\r\n/g, "\n");
+  const frontmatter = normalized.match(/^---\n([\s\S]*?)\n---\n([\s\S]*)$/);
   if (!frontmatter) return null;
 
   const keyMatch = frontmatter[1].match(/key:\s*(.+)/);
@@ -269,6 +269,10 @@ export async function encryptFileContent(
   encryptedPrivateKey: string,
   salt: string
 ): Promise<string> {
+  // Prevent double-encryption
+  if (isEncryptedFile(content)) {
+    return content;
+  }
   const encryptedData = await encryptData(content, publicKey);
   return wrapEncryptedFile(encryptedData, encryptedPrivateKey, salt);
 }

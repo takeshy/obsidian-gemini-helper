@@ -187,7 +187,6 @@ La cronologia modifiche usa un approccio basato su snapshot:
 **Impostazioni:**
 - Abilita/disabilita nelle impostazioni del plugin
 - Configura le righe di contesto per i diff
-- Imposta i limiti di conservazione (max voci per file, età massima)
 
 ![Modale Cronologia Modifiche](docs/images/edit_history.png)
 

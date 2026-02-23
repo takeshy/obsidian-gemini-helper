@@ -187,7 +187,6 @@ Der Bearbeitungsverlauf verwendet einen Snapshot-basierten Ansatz:
 **Einstellungen:**
 - Aktivieren/Deaktivieren in den Plugin-Einstellungen
 - Kontextzeilen für Diffs konfigurieren
-- Aufbewahrungslimits festlegen (max. Einträge pro Datei, maximales Alter)
 
 ![Bearbeitungsverlauf-Modal](docs/images/edit_history.png)
 

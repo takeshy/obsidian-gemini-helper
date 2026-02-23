@@ -187,7 +187,6 @@ El historial de edición usa un enfoque basado en instantáneas:
 **Configuración:**
 - Habilitar/deshabilitar en configuración del plugin
 - Configurar líneas de contexto para diferencias
-- Establecer límites de retención (máximo de entradas por archivo, edad máxima)
 
 ![Modal de Historial de Edición](docs/images/edit_history.png)
 

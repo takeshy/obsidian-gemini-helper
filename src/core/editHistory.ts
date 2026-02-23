@@ -195,13 +195,6 @@ export class EditHistoryManager {
     // Add new entry
     history.entries.push(entry);
 
-    // Apply retention limits
-    if (this.settings.retention.maxEntriesPerFile > 0) {
-      while (history.entries.length > this.settings.retention.maxEntriesPerFile) {
-        history.entries.shift();
-      }
-    }
-
     // Save history and update snapshot
     this.saveHistoryFile(params.path, history);
     this.saveSnapshot(params.path, params.modifiedContent);
@@ -510,13 +503,6 @@ export class EditHistoryManager {
       const history = this.loadHistoryFile(path);
       history.entries.push(entry);
 
-      // Apply retention limits
-      if (this.settings.retention.maxEntriesPerFile > 0) {
-        while (history.entries.length > this.settings.retention.maxEntriesPerFile) {
-          history.entries.shift();
-        }
-      }
-
       this.saveHistoryFile(path, history);
     }
 
@@ -560,57 +546,6 @@ export class EditHistoryManager {
     const count = paths.length;
     clearAllHistories();
     return count;
-  }
-
-  /**
-   * Prune old history entries based on retention settings
-   */
-  prune(options?: {
-    maxAgeMs?: number;
-    maxEntriesPerFile?: number;
-  }): { deletedCount: number } {
-    const maxAgeMs = options?.maxAgeMs ??
-      (this.settings.retention.maxAgeInDays > 0
-        ? this.settings.retention.maxAgeInDays * 24 * 60 * 60 * 1000
-        : 0);
-    const maxEntriesPerFile = options?.maxEntriesPerFile ??
-      this.settings.retention.maxEntriesPerFile;
-
-    const now = Date.now();
-    let deletedCount = 0;
-
-    const paths = getAllHistoryPaths();
-
-    for (const path of paths) {
-      const history = getHistoryFromStore(path);
-      if (!history) continue;
-
-      const originalCount = history.entries.length;
-
-      // Filter by age
-      if (maxAgeMs > 0) {
-        history.entries = history.entries.filter(e => {
-          const entryTime = new Date(e.timestamp).getTime();
-          return now - entryTime < maxAgeMs;
-        });
-      }
-
-      // Limit entries per file
-      if (maxEntriesPerFile > 0 && history.entries.length > maxEntriesPerFile) {
-        history.entries = history.entries.slice(-maxEntriesPerFile);
-      }
-
-      deletedCount += originalCount - history.entries.length;
-
-      // Save or delete the history
-      if (history.entries.length === 0) {
-        deleteHistoryFromStore(path);
-      } else if (history.entries.length !== originalCount) {
-        saveHistoryToStore(path, history);
-      }
-    }
-
-    return { deletedCount };
   }
 
   /**

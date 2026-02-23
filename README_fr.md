@@ -187,7 +187,6 @@ L'historique d'édition utilise une approche basée sur les instantanés :
 **Paramètres :**
 - Activer/désactiver dans les paramètres du plugin
 - Configurer les lignes de contexte pour les différences
-- Définir les limites de rétention (entrées max par fichier, âge max)
 
 ![Modal Historique d'Édition](docs/images/edit_history.png)
 

@@ -187,7 +187,6 @@ Edit history는 스냅샷 기반 접근 방식을 사용합니다:
 **설정:**
 - 플러그인 설정에서 활성화/비활성화
 - diff의 컨텍스트 줄 수 설정
-- 보존 제한 설정 (파일당 최대 항목 수, 최대 보존 기간)
 
 ![Edit History Modal](docs/images/edit_history.png)
 

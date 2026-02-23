@@ -491,10 +491,6 @@ export class GeminiHelperPlugin extends Plugin {
       editHistory: {
         ...DEFAULT_EDIT_HISTORY_SETTINGS,
         ...(loaded.editHistory ?? {}),
-        retention: {
-          ...DEFAULT_EDIT_HISTORY_SETTINGS.retention,
-          ...(loaded.editHistory?.retention ?? {}),
-        },
         diff: {
           ...DEFAULT_EDIT_HISTORY_SETTINGS.diff,
           ...(loaded.editHistory?.diff ?? {}),

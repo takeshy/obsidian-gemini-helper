@@ -142,10 +142,6 @@ export interface GeminiHelperSettings {
 // Edit history settings
 export interface EditHistorySettings {
   enabled: boolean;
-  retention: {
-    maxAgeInDays: number;
-    maxEntriesPerFile: number;
-  };
   diff: {
     contextLines: number;
   };
@@ -163,10 +159,6 @@ export interface EncryptionSettings {
 
 export const DEFAULT_EDIT_HISTORY_SETTINGS: EditHistorySettings = {
   enabled: true,
-  retention: {
-    maxAgeInDays: 30,
-    maxEntriesPerFile: 100,
-  },
   diff: {
     contextLines: 3,
   },

@@ -1646,68 +1646,6 @@ export class SettingsTab extends PluginSettingTab {
       return;
     }
 
-    // Retention settings
-    const retentionDesc = containerEl.createDiv({ cls: "setting-item-description gemini-helper-settings-subheading" });
-    retentionDesc.textContent = t("settings.editHistoryRetention");
-
-    new Setting(containerEl)
-      .setName(t("settings.editHistoryMaxAge"))
-      .setDesc(t("settings.editHistoryMaxAge.desc"))
-      .addText((text) =>
-        text
-          .setValue(String(editHistory.retention.maxAgeInDays))
-          .onChange((value) => {
-            void (async () => {
-              const num = parseInt(value, 10);
-              if (!isNaN(num) && num >= 0) {
-                this.plugin.settings.editHistory.retention.maxAgeInDays = num;
-                await this.plugin.saveSettings();
-              }
-            })();
-          })
-      )
-      .addExtraButton((btn) =>
-        btn
-          .setIcon("reset")
-          .setTooltip(t("settings.resetToDefault", { value: String(DEFAULT_EDIT_HISTORY_SETTINGS.retention.maxAgeInDays) }))
-          .onClick(() => {
-            void (async () => {
-              this.plugin.settings.editHistory.retention.maxAgeInDays = DEFAULT_EDIT_HISTORY_SETTINGS.retention.maxAgeInDays;
-              await this.plugin.saveSettings();
-              this.display();
-            })();
-          })
-      );
-
-    new Setting(containerEl)
-      .setName(t("settings.editHistoryMaxEntries"))
-      .setDesc(t("settings.editHistoryMaxEntries.desc"))
-      .addText((text) =>
-        text
-          .setValue(String(editHistory.retention.maxEntriesPerFile))
-          .onChange((value) => {
-            void (async () => {
-              const num = parseInt(value, 10);
-              if (!isNaN(num) && num >= 0) {
-                this.plugin.settings.editHistory.retention.maxEntriesPerFile = num;
-                await this.plugin.saveSettings();
-              }
-            })();
-          })
-      )
-      .addExtraButton((btn) =>
-        btn
-          .setIcon("reset")
-          .setTooltip(t("settings.resetToDefault", { value: String(DEFAULT_EDIT_HISTORY_SETTINGS.retention.maxEntriesPerFile) }))
-          .onClick(() => {
-            void (async () => {
-              this.plugin.settings.editHistory.retention.maxEntriesPerFile = DEFAULT_EDIT_HISTORY_SETTINGS.retention.maxEntriesPerFile;
-              await this.plugin.saveSettings();
-              this.display();
-            })();
-          })
-      );
-
     new Setting(containerEl)
       .setName(t("settings.editHistoryContextLines"))
       .setDesc(t("settings.editHistoryContextLines.desc"))
@@ -1736,21 +1674,8 @@ export class SettingsTab extends PluginSettingTab {
           })
       );
 
-    // Prune and Stats buttons
+    // Stats button
     new Setting(containerEl)
-      .addButton((btn) =>
-        btn
-          .setButtonText(t("settings.editHistoryPrune"))
-          .onClick(() => {
-            const manager = getEditHistoryManager();
-            if (!manager) {
-              new Notice("Edit history manager not initialized");
-              return;
-            }
-            const result = manager.prune();
-            new Notice(t("settings.editHistoryPruned", { count: String(result.deletedCount) }));
-          })
-      )
       .addButton((btn) =>
         btn
           .setButtonText(t("settings.editHistoryViewStats"))

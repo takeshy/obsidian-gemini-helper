@@ -187,7 +187,6 @@ O histórico de edições usa uma abordagem baseada em snapshots:
 **Configurações:**
 - Habilitar/desabilitar nas configurações do plugin
 - Configurar linhas de contexto para diffs
-- Definir limites de retenção (máximo de entradas por arquivo, idade máxima)
 
 ![Modal de Histórico de Edições](docs/images/edit_history.png)
 

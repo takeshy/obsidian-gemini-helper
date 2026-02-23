@@ -187,7 +187,6 @@ Edit history uses a snapshot-based approach:
 **Settings:**
 - Enable/disable in plugin settings
 - Configure context lines for diffs
-- Set retention limits (max entries per file, max age)
 
 ![Edit History Modal](docs/images/edit_history.png)
 

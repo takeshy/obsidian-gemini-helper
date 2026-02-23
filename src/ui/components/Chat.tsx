@@ -1591,9 +1591,23 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 					}
 					: undefined;
 
+					// Check if Web Search or Image Generation model is selected
+				const isWebSearch = allowWebSearch && selectedRagSetting === "__websearch__"
+					&& (toolsEnabled || allowedModel === "gemini-3-pro-image-preview");
+				const isImageGeneration = isImageGenerationModel(allowedModel);
+
+				// Pass RAG store IDs if RAG is enabled and a setting is selected (not web search)
+				const ragStoreIds = allowRag && toolsEnabled && selectedRagSetting && !isWebSearch
+					? plugin.getSelectedStoreIds()
+					: [];
+
+				// RAG-only mode: RAG enabled means only fileSearch tool is sent,
+				// so vault tool descriptions should be excluded from the system prompt
+				const ragOnlyMode = ragStoreIds.length > 0;
+
 				let systemPrompt = "You are a helpful AI assistant integrated with Obsidian.";
 
-				if (toolsEnabled) {
+				if (toolsEnabled && !ragOnlyMode) {
 					systemPrompt += `
 
 Available tools allow you to:
@@ -1606,7 +1620,7 @@ Available tools allow you to:
 				}
 
 				// Add RAG sync status info if RAG is enabled
-					if (allowRag && toolsEnabled) {
+					if (allowRag && toolsEnabled && !ragOnlyMode) {
 						systemPrompt += `
 - Check RAG sync status: When users ask about imported files, use the get_rag_sync_status tool to:
   - Check a specific file's sync status (when it was imported, if it has changes)
@@ -1645,16 +1659,6 @@ Always be helpful and provide clear, concise responses. When working with notes,
 				let webSearchUsed = false;
 				let imageGenerationUsed = false;
 				const generatedImages: GeneratedImage[] = [];
-
-					// Check if Web Search or Image Generation model is selected
-					const isWebSearch = allowWebSearch && selectedRagSetting === "__websearch__"
-						&& (toolsEnabled || allowedModel === "gemini-3-pro-image-preview");
-					const isImageGeneration = isImageGenerationModel(allowedModel);
-
-					// Pass RAG store IDs if RAG is enabled and a setting is selected (not web search)
-					const ragStoreIds = allowRag && toolsEnabled && selectedRagSetting && !isWebSearch
-						? plugin.getSelectedStoreIds()
-						: [];
 
 				let stopped = false;
 

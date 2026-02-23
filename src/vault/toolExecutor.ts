@@ -72,14 +72,34 @@ async function executeToolCallInternal(
         context?.maxNoteChars ?? DEFAULT_SETTINGS.maxNoteChars
       );
 
-    case "create_note":
+    case "create_note": {
+      let name = args.name as string | undefined;
+      let folder = args.folder as string | undefined;
+      if (!name && args.path) {
+        // Fallback: extract name and folder from path argument
+        const pathStr = args.path as string;
+        const lastSlash = pathStr.lastIndexOf("/");
+        if (lastSlash >= 0) {
+          name = pathStr.slice(lastSlash + 1);
+          folder = folder ?? pathStr.slice(0, lastSlash);
+        } else {
+          name = pathStr;
+        }
+      }
+      if (!name) {
+        return { success: false, error: "Required parameter 'name' is missing" };
+      }
+      if (args.content == null) {
+        return { success: false, error: "Required parameter 'content' is missing" };
+      }
       return createNote(
         app,
-        args.name as string,
+        name,
         args.content as string,
-        args.folder as string | undefined,
+        folder,
         args.tags as string | undefined
       );
+    }
 
     case "update_note":
       return updateNote(
@@ -91,12 +111,24 @@ async function executeToolCallInternal(
       );
 
     case "delete_note":
+      if (!args.fileName) {
+        return { success: false, error: "Required parameter 'fileName' is missing" };
+      }
       return deleteNote(app, args.fileName as string);
 
     case "rename_note":
+      if (!args.oldPath) {
+        return { success: false, error: "Required parameter 'oldPath' is missing" };
+      }
+      if (!args.newPath) {
+        return { success: false, error: "Required parameter 'newPath' is missing" };
+      }
       return renameNote(app, args.oldPath as string, args.newPath as string);
 
     case "search_notes": {
+      if (!args.query) {
+        return { success: false, error: "Required parameter 'query' is missing" };
+      }
       const query = args.query as string;
       const searchContent = args.searchContent as boolean | undefined;
       const parsedLimit = args.limit ? parseInt(args.limit as string, 10) : 10;

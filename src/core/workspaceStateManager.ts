@@ -680,4 +680,5 @@ export class WorkspaceStateManager {
       this.settingsEmitter.emit("migration-data-modified", data);
     }
   }
+
 }

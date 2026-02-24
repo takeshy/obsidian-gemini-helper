@@ -1,8 +1,8 @@
 {
 	"id": "gemini-helper",
 	"name": "Gemini Helper",
-	"minAppVersion": "0.15.0",
-	"description": "AI assistant with chat, workflow automation, and semantic search (RAG). Powered by Gemini API or CLI tools.",
+	"minAppVersion": "1.10.0",
+	"description": "AI assistant with chat, workflow automation, semantic search (RAG), and Google Drive sync. Powered by Gemini API or CLI tools.",
 	"author": "takeshy",
 	"authorUrl": "https://github.com/takeshy",
 	"fundingUrl": "https://buymeacoffee.com/takeshy",

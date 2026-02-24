@@ -396,6 +396,8 @@ Workflows can be automatically triggered by Obsidian events:
 | Gemini 2.5 Flash (Image) | Image generation, 1024px |
 | Gemini 3 Pro (Image) | Pro image generation, 4K |
 
+> **Thinking mode:** In Chat, thinking mode is triggered by keywords like "think", "analyze", or "consider" in your message. However, **Gemini 3 Pro** and **Gemini 3.1 Pro** always use thinking mode regardless of keywords — these models do not support disabling thinking.
+
 ### Free Plan
 | Model | Vault Operations |
 |-------|------------------|
@@ -770,6 +772,16 @@ Edit workflows directly in the visual node editor with drag-and-drop interface.
 - MCP (Model Context Protocol) servers can be configured in plugin settings for workflow `mcp` nodes
 - MCP servers are external services that provide additional tools and capabilities
 
+**Google Drive Sync via GemiHub (optional):**
+- When Google Drive Sync is enabled, vault files are uploaded to your own Google Drive account
+- Network endpoints used:
+  - `https://www.googleapis.com/drive/v3` — file metadata and sync operations
+  - `https://www.googleapis.com/upload/drive/v3` — file upload
+  - `https://gemihub.online/api/obsidian/token` — OAuth token refresh (see below)
+- **Token refresh flow:** Your encrypted refresh token is sent to the GemiHub proxy, which adds the OAuth client secret and forwards the request to Google's token endpoint. The proxy is required because OAuth client secrets cannot be safely embedded in client-side code. The proxy does not store or log tokens. See [GemiHub Privacy Policy](https://gemihub.online/privacy).
+- Encrypted auth data (RSA + AES-256-GCM) is stored in plugin settings; the decryption password is never transmitted
+- No vault content is sent to GemiHub — files are synced directly between Obsidian and Google Drive API
+
 **Security notes:**
 - Review workflows before running - `http` nodes can transmit vault data to external endpoints
 - Workflow `note` nodes show a confirmation dialog before writing files (default behavior)
@@ -781,6 +793,30 @@ See [Google AI Terms of Service](https://ai.google.dev/terms) for data retention
 ## License
 
 MIT
+
+## Experimental Features
+
+### Google Drive Sync (GemiHub Connection)
+
+Sync your Obsidian vault with Google Drive via [GemiHub](https://gemihub.online). Edit notes in Obsidian and access them from GemiHub's web interface, or vice versa.
+
+![Drive Sync Unlock](docs/images/gemihub_connection/start_with_sync.png)
+
+**GemiHub-exclusive features** (not available in Obsidian plugin):
+
+- **Automatic RAG** - Files synced to GemiHub are automatically indexed for semantic search on every sync, with no manual setup required
+- **OAuth2-enabled MCP** - Use MCP servers that require OAuth2 authentication (e.g., Google Calendar, Gmail, Google Docs)
+- **Markdown to PDF/HTML conversion** - Convert your Markdown notes to formatted PDF or HTML documents
+- **Public publishing** - Publish converted HTML/PDF documents with a shareable public URL
+
+**Features added to Obsidian through connection:**
+
+- **Bidirectional sync with diff preview** - Push and pull files with a detailed file list and unified diff view before committing changes
+- **Conflict resolution with diff** - When the same file is edited on both sides, resolve conflicts with a color-coded unified diff
+- **Drive edit history** - Track changes made from both Obsidian and GemiHub, with per-file history showing origin (local/remote)
+- **Conflict backup management** - Browse, preview, and restore conflict backups stored on Drive
+
+> **Setup:** See [GemiHub Connection Guide](docs/GEMIHUB_CONNECTION.md) for setup instructions.
 
 ## Links
 

@@ -33,8 +33,43 @@ function getMimeType(extension: string): string {
 }
 
 // Check if file extension is supported
-function isSupportedFile(file: TFile): boolean {
+export function isSupportedFile(file: TFile): boolean {
   return SUPPORTED_EXTENSIONS.includes(file.extension.toLowerCase());
+}
+
+// Standalone filter check for use outside the class
+export function shouldIncludeFile(filePath: string, config: FilterConfig): boolean {
+  // Check include folders (if empty, include all)
+  if (config.includeFolders.length > 0) {
+    let isInIncludedFolder = false;
+    for (const folder of config.includeFolders) {
+      const normalizedFolder = folder.replace(/\/$/, "");
+      if (
+        filePath.startsWith(normalizedFolder + "/") ||
+        filePath === normalizedFolder
+      ) {
+        isInIncludedFolder = true;
+        break;
+      }
+    }
+    if (!isInIncludedFolder) {
+      return false;
+    }
+  }
+
+  // Check regex pattern exclusions
+  for (const pattern of config.excludePatterns) {
+    try {
+      const regex = new RegExp(pattern);
+      if (regex.test(filePath)) {
+        return false;
+      }
+    } catch {
+      // Invalid regex pattern, skip
+    }
+  }
+
+  return true;
 }
 
 export interface SyncResult {
@@ -120,7 +155,7 @@ export class FileSearchManager {
   }
 
   // Read file content (handles both text and binary)
-  private async readFileContent(file: TFile): Promise<string | ArrayBuffer> {
+  async readFileContent(file: TFile): Promise<string | ArrayBuffer> {
     if (this.isBinaryFile(file)) {
       return await this.app.vault.readBinary(file);
     }
@@ -129,37 +164,7 @@ export class FileSearchManager {
 
   // Check if file should be included based on filter config
   private shouldInclude(filePath: string, config: FilterConfig): boolean {
-    // Check include folders (if empty, include all)
-    if (config.includeFolders.length > 0) {
-      let isInIncludedFolder = false;
-      for (const folder of config.includeFolders) {
-        const normalizedFolder = folder.replace(/\/$/, "");
-        if (
-          filePath.startsWith(normalizedFolder + "/") ||
-          filePath === normalizedFolder
-        ) {
-          isInIncludedFolder = true;
-          break;
-        }
-      }
-      if (!isInIncludedFolder) {
-        return false;
-      }
-    }
-
-    // Check regex pattern exclusions
-    for (const pattern of config.excludePatterns) {
-      try {
-        const regex = new RegExp(pattern);
-        if (regex.test(filePath)) {
-          return false;
-        }
-      } catch {
-        // Invalid regex pattern, skip
-      }
-    }
-
-    return true;
+    return shouldIncludeFile(filePath, config);
   }
 
   // Create a new File Search Store
@@ -247,6 +252,62 @@ export class FileSearchManager {
       for await (const doc of pager) {
         if (doc.displayName === displayName && doc.name) {
           // Delete the document
+          await this.ai.fileSearchStores.documents.delete({
+            name: doc.name,
+            config: { force: true }
+          });
+          return;
+        }
+      }
+    } catch {
+      // File deletion might not be supported or file already deleted
+    }
+  }
+
+  // Calculate checksum (public wrapper)
+  async getChecksum(content: string | ArrayBuffer): Promise<string> {
+    return this.calculateChecksum(content);
+  }
+
+  // Read file content and calculate checksum in one call
+  async getChecksumForFile(file: TFile): Promise<{ content: string | ArrayBuffer; checksum: string }> {
+    const content = await this.readFileContent(file);
+    const checksum = await this.calculateChecksum(content);
+    return { content, checksum };
+  }
+
+  // Check if a full sync is currently running
+  isSyncing(): boolean {
+    return this.syncStatus.isRunning;
+  }
+
+  // Upload a single file to a specified store (without changing this.storeName)
+  async uploadFileToStore(file: TFile, storeId: string): Promise<string | null> {
+    const content = await this.readFileContent(file);
+    const mimeType = getMimeType(file.extension);
+    const blob = new Blob([content], { type: mimeType });
+
+    const operation = await this.ai.fileSearchStores.uploadToFileSearchStore({
+      file: blob,
+      fileSearchStoreName: storeId,
+      config: {
+        displayName: file.path,
+      },
+    });
+
+    return operation?.name ?? null;
+  }
+
+  // Delete a file from a specified store by displayName (without changing this.storeName)
+  async deleteFileFromStoreById(displayName: string, storeId: string): Promise<void> {
+    try {
+      const pager = await this.ai.fileSearchStores.documents.list({
+        parent: storeId,
+        config: { pageSize: 20 }
+      });
+
+      for await (const doc of pager) {
+        if (doc.displayName === displayName && doc.name) {
           await this.ai.fileSearchStores.documents.delete({
             name: doc.name,
             config: { force: true }

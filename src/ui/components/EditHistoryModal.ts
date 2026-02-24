@@ -1,8 +1,18 @@
-import { App, Modal, Notice, Setting } from "obsidian";
+import { App, Modal, Notice, Setting, TFile } from "obsidian";
 import { t } from "src/i18n";
 import { formatError } from "src/utils/error";
 import { getEditHistoryManager, type EditHistoryEntry } from "src/core/editHistory";
 import { globalEventEmitter } from "src/utils/EventEmitter";
+import type { DriveSyncManager } from "src/core/driveSync";
+import type { DriveEditHistoryEntry } from "src/core/driveEditHistory";
+import { reverseApplyDiff, reconstructContent } from "src/core/diffUtils";
+
+/** Display entry wrapping local or remote origin */
+type DisplayEntry = EditHistoryEntry & { origin: "local" | "remote" };
+
+// ========================================
+// Helper modals
+// ========================================
 
 /**
  * Generate default copy filename with datetime
@@ -180,20 +190,37 @@ function setupDragHandle(dragHandle: HTMLElement, modalEl: HTMLElement): void {
   dragHandle.addEventListener("mousedown", onMouseDown);
 }
 
+// ========================================
+// Main modal
+// ========================================
+
 /**
  * Modal to show edit history for a file
  */
 export class EditHistoryModal extends Modal {
   private filePath: string;
-  private onRestore?: (entryId: string) => Promise<void>;
+  private driveSyncManager: DriveSyncManager | null;
+  private remoteEntries: DisplayEntry[] = [];
+  private showRemote = false;
+  private loadingRemote = false;
+  /** Merged timeline (newest first), set during render() */
+  private allEntries: DisplayEntry[] = [];
 
-  constructor(app: App, filePath: string, onRestore?: (entryId: string) => Promise<void>) {
+  constructor(
+    app: App,
+    filePath: string,
+    driveSyncManager?: DriveSyncManager | null,
+  ) {
     super(app);
     this.filePath = filePath;
-    this.onRestore = onRestore;
+    this.driveSyncManager = driveSyncManager ?? null;
   }
 
   async onOpen() {
+    await this.render();
+  }
+
+  private async render() {
     const { contentEl, modalEl } = this;
     contentEl.empty();
     contentEl.addClass("gemini-helper-edit-history-modal");
@@ -211,13 +238,32 @@ export class EditHistoryModal extends Modal {
       return;
     }
 
-    const history = historyManager.getHistory(this.filePath);
+    const localHistory = historyManager.getHistory(this.filePath);
     const currentDiff = await historyManager.getDiffFromLastSaved(this.filePath);
     const hasUnsavedChanges = currentDiff && currentDiff.stats.additions + currentDiff.stats.deletions > 0;
 
+    // Merge local + remote entries, sorted newest first (filter empty diffs / commit boundaries)
+    const localDisplayEntries: DisplayEntry[] = localHistory
+      .filter(e => e.diff !== "")
+      .map(e => ({ ...e, origin: "local" as const }));
+    const remoteDisplayEntries = this.showRemote
+      ? this.remoteEntries.filter(e => e.diff !== "")
+      : [];
+    this.allEntries = [...localDisplayEntries, ...remoteDisplayEntries];
+    this.allEntries.sort((a, b) => b.timestamp.localeCompare(a.timestamp));
+
+    const totalCount = this.allEntries.length;
+    const hasDriveSync = this.driveSyncManager?.isUnlocked;
+
     // Show "no history" only if both history is empty AND no unsaved changes
-    if (history.length === 0 && !hasUnsavedChanges) {
-      contentEl.createEl("p", { text: t("editHistoryModal.noHistory") });
+    if (totalCount === 0 && !hasUnsavedChanges) {
+      const noHistoryEl = contentEl.createDiv({ cls: "gemini-helper-edit-history-scroll" });
+      noHistoryEl.createEl("p", { text: t("editHistoryModal.noHistory") });
+
+      // Still show footer with "Show remote" if Drive is available
+      if (hasDriveSync && !this.showRemote) {
+        this.renderFooter(contentEl, 0, historyManager);
+      }
       return;
     }
 
@@ -275,23 +321,98 @@ export class EditHistoryModal extends Modal {
     currentEl.createSpan({ cls: "gemini-helper-edit-history-marker", text: "\u25CF" });
     currentEl.createSpan({ text: ` ${t("editHistoryModal.current")}` });
 
-    // History entries (newest first)
-    for (let i = history.length - 1; i >= 0; i--) {
-      const entry = history[i];
-      this.renderHistoryEntry(timelineEl, entry);
+    // All entries (newest first, merged)
+    for (let i = 0; i < this.allEntries.length; i++) {
+      this.renderHistoryEntry(timelineEl, this.allEntries[i]);
     }
 
     // Footer
-    const footerEl = contentEl.createDiv({ cls: "gemini-helper-edit-history-footer" });
-    footerEl.createSpan({ text: t("editHistoryModal.entriesCount", { count: String(history.length) }) });
+    this.renderFooter(contentEl, totalCount, historyManager);
+  }
 
+  private renderFooter(
+    container: HTMLElement,
+    totalCount: number,
+    historyManager: NonNullable<ReturnType<typeof getEditHistoryManager>>,
+  ) {
+    const footerEl = container.createDiv({ cls: "gemini-helper-edit-history-footer" });
+
+    // Left side: entry count + show remote
+    const leftEl = footerEl.createDiv({ cls: "gemini-helper-edit-history-footer-left" });
+    leftEl.createSpan({ text: t("editHistoryModal.entriesCount", { count: String(totalCount) }) });
+
+    const hasDriveSync = this.driveSyncManager?.isUnlocked;
+
+    if (hasDriveSync && !this.showRemote) {
+      if (this.loadingRemote) {
+        leftEl.createSpan({
+          cls: "gemini-helper-edit-history-show-remote-btn",
+          text: t("editHistoryModal.loadingRemote"),
+        });
+      } else {
+        const showRemoteBtn = leftEl.createEl("button", {
+          cls: "gemini-helper-edit-history-show-remote-btn",
+          text: t("editHistoryModal.showRemote"),
+        });
+        showRemoteBtn.addEventListener("click", () => {
+          void this.loadRemoteHistory();
+        });
+      }
+    }
+
+    // Right side: clear all + close
     new Setting(footerEl)
       .addButton((btn) =>
         btn
           .setButtonText(t("editHistoryModal.clearAll"))
           .setWarning()
           .onClick(() => {
-            new ConfirmModal(this.app, t("editHistoryModal.confirmClear"), () => {
+            const confirmMsg = this.driveSyncManager?.isUnlocked
+              ? t("editHistoryModal.confirmClearWithRemote")
+              : t("editHistoryModal.confirmClear");
+            new ConfirmModal(this.app, confirmMsg, async () => {
+              let restoredContent: string | null = null;
+
+              if (this.driveSyncManager?.isUnlocked) {
+                // Drive sync available: fetch remote file, then reverse-apply all remote diffs
+                // to reconstruct content before the first remote edit
+                try {
+                  const remoteContent = await this.driveSyncManager.readRemoteFileByPath(this.filePath);
+                  if (remoteContent !== null) {
+                    const remoteEntries = await this.driveSyncManager.loadRemoteEditHistory(this.filePath);
+                    if (remoteEntries.length > 0) {
+                      // Reverse-apply all diffs from newest to oldest
+                      // Remote diffs are forward (old→new), so reverseApplyDiff undoes each change
+                      let content = remoteContent;
+                      for (let i = remoteEntries.length - 1; i >= 0; i--) {
+                        content = reverseApplyDiff(content, remoteEntries[i].diff, { strict: true });
+                      }
+                      restoredContent = content;
+                    } else {
+                      restoredContent = remoteContent;
+                    }
+                  }
+                } catch (e) {
+                  console.error("Failed to restore from remote history:", formatError(e));
+                  new Notice(formatError(e));
+                }
+              } else {
+                // Drive sync unavailable: restore to the earliest point in local history
+                const localHistory = historyManager.getHistory(this.filePath);
+                if (localHistory.length > 0) {
+                  restoredContent = historyManager.getContentAt(this.filePath, localHistory[0].id);
+                }
+              }
+
+              if (restoredContent !== null) {
+                const file = this.app.vault.getAbstractFileByPath(this.filePath);
+                if (file instanceof TFile) {
+                  await this.app.vault.modify(file, restoredContent);
+                  historyManager.setSnapshot(this.filePath, restoredContent);
+                  globalEventEmitter.emit("file-restored", this.filePath);
+                }
+              }
+
               historyManager.clearHistory(this.filePath);
               this.close();
             }).open();
@@ -306,7 +427,26 @@ export class EditHistoryModal extends Modal {
       );
   }
 
-  private renderHistoryEntry(container: HTMLElement, entry: EditHistoryEntry) {
+  private async loadRemoteHistory() {
+    if (!this.driveSyncManager) return;
+
+    this.loadingRemote = true;
+    await this.render();
+
+    try {
+      const entries = await this.driveSyncManager.loadRemoteEditHistory(this.filePath);
+      this.remoteEntries = entries.map((e: DriveEditHistoryEntry) => ({ ...e, origin: "remote" as const }));
+      this.showRemote = true;
+    } catch (e) {
+      console.error("Failed to load remote history:", formatError(e));
+      new Notice(formatError(e));
+    } finally {
+      this.loadingRemote = false;
+      await this.render();
+    }
+  }
+
+  private renderHistoryEntry(container: HTMLElement, entry: DisplayEntry) {
     const entryEl = container.createDiv({ cls: "gemini-helper-edit-history-entry" });
 
     // Line connector
@@ -327,19 +467,32 @@ export class EditHistoryModal extends Modal {
     const headerEl = contentEl.createDiv({ cls: "gemini-helper-edit-history-entry-header" });
     headerEl.createSpan({ cls: "gemini-helper-edit-history-time", text: timeStr });
 
+    // Origin badge (only when remote entries are loaded)
+    if (this.showRemote) {
+      const badgeCls = entry.origin === "remote"
+        ? "gemini-helper-edit-history-origin-badge gemini-helper-edit-history-origin-remote"
+        : "gemini-helper-edit-history-origin-badge gemini-helper-edit-history-origin-local";
+      const badgeText = entry.origin === "remote"
+        ? t("editHistoryModal.originRemote")
+        : t("editHistoryModal.originLocal");
+      headerEl.createSpan({ cls: badgeCls, text: badgeText });
+    }
+
     // Source label
     const sourceLabel = this.getSourceLabel(entry);
     headerEl.createSpan({ cls: "gemini-helper-edit-history-source", text: ` ${sourceLabel}` });
 
-    // Stats
+    // Stats — local diffs are stored in reverse direction, so swap for display
+    const additions = entry.origin === "local" ? entry.stats.deletions : entry.stats.additions;
+    const deletions = entry.origin === "local" ? entry.stats.additions : entry.stats.deletions;
     const statsEl = contentEl.createDiv({ cls: "gemini-helper-edit-history-stats" });
     statsEl.createSpan({
       cls: "gemini-helper-edit-history-additions",
-      text: t("diffModal.additions", { count: String(entry.stats.additions) }),
+      text: t("diffModal.additions", { count: String(additions) }),
     });
     statsEl.createSpan({
       cls: "gemini-helper-edit-history-deletions",
-      text: ` ${t("diffModal.deletions", { count: String(entry.stats.deletions) })}`,
+      text: ` ${t("diffModal.deletions", { count: String(deletions) })}`,
     });
 
     // Model (if available)
@@ -359,7 +512,14 @@ export class EditHistoryModal extends Modal {
       text: t("editHistoryModal.diff"),
     });
     diffBtn.addEventListener("click", () => {
-      new DiffModal(this.app, entry, this.filePath, this.onRestore).open();
+      new DiffModal(
+        this.app,
+        entry,
+        this.filePath,
+        entry.origin,
+        () => this.handleRestore(entry),
+        (destPath: string) => this.handleCopy(entry, destPath),
+      ).open();
     });
 
     // Restore button
@@ -369,7 +529,7 @@ export class EditHistoryModal extends Modal {
     });
     restoreBtn.addEventListener("click", () => {
       new ConfirmModal(this.app, t("editHistoryModal.confirmRestore"), () => {
-        void this.handleRestore(entry.id, entry.timestamp);
+        void this.handleRestore(entry);
       }).open();
     });
 
@@ -381,7 +541,7 @@ export class EditHistoryModal extends Modal {
     copyBtn.addEventListener("click", () => {
       const defaultPath = generateCopyFilename(this.filePath);
       new CopyInputModal(this.app, defaultPath, async (destPath: string) => {
-        await this.handleCopy(entry.id, destPath);
+        await this.handleCopy(entry, destPath);
       }).open();
     });
   }
@@ -404,47 +564,118 @@ export class EditHistoryModal extends Modal {
     }
   }
 
-  private async handleRestore(entryId: string, timestamp: string) {
+  /**
+   * Get content at a specific entry in the merged timeline.
+   *
+   * Returns the content BEFORE the target entry's change was applied.
+   * This means restoring undoes the target change and all newer changes,
+   * allowing the oldest entry to restore to the initial (basefile) state.
+   *
+   * For remote entries: fetch current remote file from Drive, then
+   * reverse-apply diffs from newest to target (inclusive).
+   *
+   * For local entries: read current vault content and reverse-apply
+   * all diffs from newest to target (inclusive).
+   */
+  private async getContentAtEntry(targetEntry: DisplayEntry): Promise<string | null> {
+    const targetIdx = this.allEntries.indexOf(targetEntry);
+    if (targetIdx < 0) {
+      return null;
+    }
+
+    if (targetEntry.origin === "remote") {
+      if (!this.driveSyncManager?.isUnlocked) return null;
+
+      // Fetch current remote file content as base
+      const remoteContent = await this.driveSyncManager.readRemoteFileByPath(this.filePath);
+      if (remoteContent === null) return null;
+
+      // allEntries is newest-first; filter remote only (also newest-first)
+      const remoteOnly = this.allEntries.filter(e => e.origin === "remote");
+      const targetRemoteIdx = remoteOnly.indexOf(targetEntry);
+      if (targetRemoteIdx < 0) return null;
+
+      // Reverse-apply diffs from newest to target (inclusive)
+      // to get the state BEFORE the target entry's change
+      let content = remoteContent;
+      for (let i = 0; i <= targetRemoteIdx; i++) {
+        content = reverseApplyDiff(content, remoteOnly[i].diff);
+      }
+      return content;
+    }
+
+    // Local entry: read current vault content, reverse-apply all diffs
+    const file = this.app.vault.getAbstractFileByPath(this.filePath);
+    if (!(file instanceof TFile)) return null;
+    const currentContent = await this.app.vault.read(file);
+
+    // Entries from newest up to and including the target (newest first)
+    // Including the target reverses its diff, giving content BEFORE that change
+    const entriesToReverse = this.allEntries.slice(0, targetIdx + 1);
+    return reconstructContent(currentContent, entriesToReverse);
+  }
+
+  private async handleRestore(entry: DisplayEntry) {
     try {
-      if (this.onRestore) {
-        await this.onRestore(entryId);
-      } else {
-        const historyManager = getEditHistoryManager();
-        if (historyManager) {
-          await historyManager.restoreTo(this.filePath, entryId);
-        }
+      const content = await this.getContentAtEntry(entry);
+      if (content === null) {
+        new Notice(t("editHistoryModal.restoreFailed"));
+        return;
       }
 
-      // Notify listeners that file was restored
+      const file = this.app.vault.getAbstractFileByPath(this.filePath);
+      if (!(file instanceof TFile)) {
+        new Notice(t("editHistoryModal.restoreFailed"));
+        return;
+      }
+
+      await this.app.vault.modify(file, content);
+
+      // Record the restore as a new history entry (preserves audit trail)
+      const historyManager = getEditHistoryManager();
+      if (historyManager) {
+        historyManager.saveEdit({
+          path: this.filePath,
+          modifiedContent: content,
+          source: "manual",
+        });
+      }
+
       globalEventEmitter.emit("file-restored", this.filePath);
 
-      const date = new Date(timestamp);
+      const date = new Date(entry.timestamp);
       const timeStr = date.toLocaleString();
       new Notice(t("editHistoryModal.restored", { timestamp: timeStr }));
     } catch (e) {
       console.error("Failed to restore:", formatError(e));
-      new Notice("Failed to restore");
+      new Notice(t("editHistoryModal.restoreFailed"));
     } finally {
       this.close();
     }
   }
 
-  private async handleCopy(entryId: string, destPath: string) {
+  private async handleCopy(entry: DisplayEntry, destPath: string) {
     try {
-      const historyManager = getEditHistoryManager();
-      if (!historyManager) {
+      const content = await this.getContentAtEntry(entry);
+      if (content === null) {
         new Notice(t("editHistoryModal.copyFailed"));
         return;
       }
 
-      const result = await historyManager.copyTo(this.filePath, entryId, destPath);
-      if (result.success) {
-        new Notice(t("editHistoryModal.copied", { path: destPath }));
-      } else if (result.error === "File already exists") {
+      // Check if destination file already exists
+      if (await this.app.vault.adapter.exists(destPath)) {
         new Notice(t("editHistoryModal.fileExists"));
-      } else {
-        new Notice(t("editHistoryModal.copyFailed"));
+        return;
       }
+
+      // Ensure parent folder exists
+      const parentPath = destPath.substring(0, destPath.lastIndexOf("/"));
+      if (parentPath && !(await this.app.vault.adapter.exists(parentPath))) {
+        await this.app.vault.createFolder(parentPath);
+      }
+
+      await this.app.vault.create(destPath, content);
+      new Notice(t("editHistoryModal.copied", { path: destPath }));
     } catch (e) {
       console.error("Failed to copy:", formatError(e));
       new Notice(t("editHistoryModal.copyFailed"));
@@ -456,6 +687,10 @@ export class EditHistoryModal extends Modal {
     contentEl.empty();
   }
 }
+
+// ========================================
+// Diff modals
+// ========================================
 
 /**
  * Modal to show current unsaved changes diff
@@ -544,18 +779,24 @@ class CurrentDiffModal extends Modal {
 export class DiffModal extends Modal {
   private entry: EditHistoryEntry;
   private filePath: string;
-  private onRestore?: (entryId: string) => Promise<void>;
+  private origin: "local" | "remote";
+  private onRestore: (() => Promise<void>) | null;
+  private onCopy: ((destPath: string) => Promise<void>) | null;
 
   constructor(
     app: App,
     entry: EditHistoryEntry,
     filePath: string,
-    onRestore?: (entryId: string) => Promise<void>
+    origin: "local" | "remote",
+    onRestore: (() => Promise<void>) | null,
+    onCopy: ((destPath: string) => Promise<void>) | null,
   ) {
     super(app);
     this.entry = entry;
     this.filePath = filePath;
+    this.origin = origin;
     this.onRestore = onRestore;
+    this.onCopy = onCopy;
   }
 
   onOpen() {
@@ -579,15 +820,17 @@ export class DiffModal extends Modal {
     });
     setupDragHandle(dragHandle, modalEl);
 
-    // Stats
+    // Stats — local diffs are stored in reverse direction, so swap for display
+    const additions = this.origin === "local" ? this.entry.stats.deletions : this.entry.stats.additions;
+    const deletions = this.origin === "local" ? this.entry.stats.additions : this.entry.stats.deletions;
     const statsEl = contentEl.createDiv({ cls: "gemini-helper-diff-stats" });
     statsEl.createSpan({
       cls: "gemini-helper-diff-additions",
-      text: t("diffModal.additions", { count: String(this.entry.stats.additions) }),
+      text: t("diffModal.additions", { count: String(additions) }),
     });
     statsEl.createSpan({
       cls: "gemini-helper-diff-deletions",
-      text: ` ${t("diffModal.deletions", { count: String(this.entry.stats.deletions) })}`,
+      text: ` ${t("diffModal.deletions", { count: String(deletions) })}`,
     });
 
     // Diff content (scrollable)
@@ -597,32 +840,39 @@ export class DiffModal extends Modal {
     // Actions
     const actionsEl = contentEl.createDiv({ cls: "gemini-helper-diff-actions" });
 
-    new Setting(actionsEl)
-      .addButton((btn) =>
+    const setting = new Setting(actionsEl);
+    if (this.onRestore) {
+      const restoreFn = this.onRestore;
+      setting.addButton((btn) =>
         btn
           .setButtonText(t("diffModal.restoreVersion"))
           .setCta()
           .onClick(() => {
             new ConfirmModal(this.app, t("editHistoryModal.confirmRestore"), async () => {
-              await this.handleRestore();
+              await restoreFn();
+              this.close();
             }).open();
           })
-      )
-      .addButton((btn) =>
+      );
+    }
+    if (this.onCopy) {
+      const copyFn = this.onCopy;
+      setting.addButton((btn) =>
         btn
           .setButtonText(t("editHistoryModal.copy"))
           .onClick(() => {
             const defaultPath = generateCopyFilename(this.filePath);
             new CopyInputModal(this.app, defaultPath, async (destPath: string) => {
-              await this.handleCopy(destPath);
+              await copyFn(destPath);
             }).open();
           })
-      )
-      .addButton((btn) =>
-        btn.setButtonText(t("diffModal.close")).onClick(() => {
-          this.close();
-        })
       );
+    }
+    setting.addButton((btn) =>
+      btn.setButtonText(t("diffModal.close")).onClick(() => {
+        this.close();
+      })
+    );
   }
 
   private getSourceLabel(): string {
@@ -644,7 +894,18 @@ export class DiffModal extends Modal {
   }
 
   private renderDiff(container: HTMLElement) {
+    // Legend: always show as forward diff (- = before, + = after)
+    const legendEl = container.createDiv({ cls: "gemini-helper-diff-legend" });
+    const removedLabel = legendEl.createSpan({ cls: "gemini-helper-diff-legend-removed" });
+    removedLabel.textContent = `\u2212 ${t("diffModal.before")}`;
+    const addedLabel = legendEl.createSpan({ cls: "gemini-helper-diff-legend-added" });
+    addedLabel.textContent = `+ ${t("diffModal.after")}`;
+
     const preEl = container.createEl("pre", { cls: "gemini-helper-diff-pre" });
+
+    // Local diffs are stored in reverse direction (new→old),
+    // so swap +/- to normalize display to forward direction (old→new)
+    const swapSigns = this.origin === "local";
 
     const lines = this.entry.diff.split("\n");
     for (const line of lines) {
@@ -652,62 +913,17 @@ export class DiffModal extends Modal {
 
       if (line.startsWith("@@")) {
         lineEl.addClass("gemini-helper-diff-hunk");
+        lineEl.textContent = line;
       } else if (line.startsWith("+")) {
-        lineEl.addClass("gemini-helper-diff-add");
+        lineEl.addClass(swapSigns ? "gemini-helper-diff-remove" : "gemini-helper-diff-add");
+        lineEl.textContent = (swapSigns ? "-" : "+") + line.slice(1);
       } else if (line.startsWith("-")) {
-        lineEl.addClass("gemini-helper-diff-remove");
+        lineEl.addClass(swapSigns ? "gemini-helper-diff-add" : "gemini-helper-diff-remove");
+        lineEl.textContent = (swapSigns ? "+" : "-") + line.slice(1);
       } else {
         lineEl.addClass("gemini-helper-diff-context");
+        lineEl.textContent = line;
       }
-
-      lineEl.textContent = line;
-    }
-  }
-
-  private async handleRestore() {
-    try {
-      if (this.onRestore) {
-        await this.onRestore(this.entry.id);
-      } else {
-        const historyManager = getEditHistoryManager();
-        if (historyManager) {
-          await historyManager.restoreTo(this.filePath, this.entry.id);
-        }
-      }
-
-      // Notify listeners that file was restored
-      globalEventEmitter.emit("file-restored", this.filePath);
-
-      const date = new Date(this.entry.timestamp);
-      const timeStr = date.toLocaleString();
-      new Notice(t("editHistoryModal.restored", { timestamp: timeStr }));
-    } catch (e) {
-      console.error("Failed to restore:", formatError(e));
-      new Notice("Failed to restore");
-    } finally {
-      this.close();
-    }
-  }
-
-  private async handleCopy(destPath: string) {
-    try {
-      const historyManager = getEditHistoryManager();
-      if (!historyManager) {
-        new Notice(t("editHistoryModal.copyFailed"));
-        return;
-      }
-
-      const result = await historyManager.copyTo(this.filePath, this.entry.id, destPath);
-      if (result.success) {
-        new Notice(t("editHistoryModal.copied", { path: destPath }));
-      } else if (result.error === "File already exists") {
-        new Notice(t("editHistoryModal.fileExists"));
-      } else {
-        new Notice(t("editHistoryModal.copyFailed"));
-      }
-    } catch (e) {
-      console.error("Failed to copy:", formatError(e));
-      new Notice(t("editHistoryModal.copyFailed"));
     }
   }
 

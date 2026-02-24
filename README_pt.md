@@ -396,6 +396,8 @@ Workflows podem ser acionados automaticamente por eventos do Obsidian:
 | Gemini 2.5 Flash (Image) | Geração de imagens, 1024px |
 | Gemini 3 Pro (Image) | Geração de imagens Pro, 4K |
 
+> **Modo Thinking:** No chat, o modo thinking é acionado por palavras-chave como "pense", "analise" ou "reflita" na sua mensagem. No entanto, **Gemini 3 Pro** e **Gemini 3.1 Pro** sempre usam o modo thinking independentemente das palavras-chave — estes modelos não suportam a desativação do thinking.
+
 ### Plano Gratuito
 | Modelo | Operações no Vault |
 |--------|---------------------|
@@ -764,6 +766,16 @@ Edite workflows diretamente no editor visual de nós com interface drag-and-drop
 - Servidores MCP (Model Context Protocol) podem ser configurados nas configurações do plugin para nós `mcp` de workflows
 - Servidores MCP são serviços externos que fornecem ferramentas e capacidades adicionais
 
+**Sincronização com Google Drive via GemiHub (opcional):**
+- Quando a sincronização com Google Drive está ativada, os arquivos do vault são enviados para sua própria conta do Google Drive
+- Endpoints de rede utilizados:
+  - `https://www.googleapis.com/drive/v3` — metadados de arquivos e operações de sincronização
+  - `https://www.googleapis.com/upload/drive/v3` — upload de arquivos
+  - `https://gemihub.online/api/obsidian/token` — atualização de token OAuth (veja abaixo)
+- **Fluxo de atualização de token:** Seu token de atualização criptografado é enviado ao proxy GemiHub, que adiciona o segredo do cliente OAuth e encaminha a solicitação ao endpoint de token do Google. O proxy é necessário porque segredos do cliente OAuth não podem ser incorporados de forma segura em código do lado do cliente. O proxy não armazena nem registra tokens. Veja a [Política de Privacidade do GemiHub](https://gemihub.online/privacy).
+- Os dados de autenticação criptografados (RSA + AES-256-GCM) são armazenados nas configurações do plugin; a senha de descriptografia nunca é transmitida
+- Nenhum conteúdo do vault é enviado ao GemiHub — os arquivos são sincronizados diretamente entre o Obsidian e a API do Google Drive
+
 **Notas de segurança:**
 - Revise workflows antes de executar - nós `http` podem transmitir dados do vault para endpoints externos
 - Nós `note` de workflow mostram um diálogo de confirmação antes de gravar arquivos (comportamento padrão)
@@ -775,6 +787,30 @@ Veja os [Termos de Serviço do Google AI](https://ai.google.dev/terms) para pol�
 ## Licença
 
 MIT
+
+## Recursos Experimentais
+
+### Google Drive Sync (GemiHub Connection)
+
+Sincronize seu vault do Obsidian com o Google Drive via [GemiHub](https://gemihub.online). Edite notas no Obsidian e acesse-as pela interface web do GemiHub, ou vice-versa.
+
+![Drive Sync Unlock](docs/images/gemihub_connection/start_with_sync.png)
+
+**Recursos exclusivos do GemiHub** (não disponíveis no plugin do Obsidian):
+
+- **Automatic RAG** - Arquivos sincronizados com o GemiHub são automaticamente indexados para busca semântica a cada sincronização, sem necessidade de configuração manual
+- **OAuth2-enabled MCP** - Use servidores MCP que requerem autenticação OAuth2 (ex.: Google Calendar, Gmail, Google Docs)
+- **Conversão de Markdown para PDF/HTML** - Converta suas notas Markdown em documentos PDF ou HTML formatados
+- **Publicação pública** - Publique documentos HTML/PDF convertidos com uma URL pública compartilhável
+
+**Recursos adicionados ao Obsidian através da conexão:**
+
+- **Sincronização bidirecional com pré-visualização de diff** - Push e pull de arquivos com uma lista detalhada de arquivos e visualização de diff unificado antes de confirmar alterações
+- **Resolução de conflitos com diff** - Quando o mesmo arquivo é editado em ambos os lados, resolva conflitos com um diff unificado com código de cores
+- **Histórico de edições do Drive** - Rastreie alterações feitas tanto no Obsidian quanto no GemiHub, com histórico por arquivo mostrando a origem (local/remoto)
+- **Gerenciamento de backups de conflitos** - Navegue, visualize e restaure backups de conflitos armazenados no Drive
+
+> **Configuração:** Veja o [Guia de Conexão GemiHub](docs/GEMIHUB_CONNECTION.md) para instruções de configuração.
 
 ## Links
 

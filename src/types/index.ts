@@ -105,6 +105,7 @@ export interface GeminiHelperSettings {
 
   // Workspace settings
   workspaceFolder: string;
+  hideWorkspaceFolder: boolean;
   saveChatHistory: boolean;
   systemPrompt: string;
 
@@ -140,6 +141,9 @@ export interface GeminiHelperSettings {
 
   // Last selected workflow path in Run Workflow modal
   lastSelectedWorkflowPath?: string;
+
+  // Google Drive Sync
+  driveSync: DriveSyncSettings;
 }
 
 // Edit history settings
@@ -616,6 +620,42 @@ export const DEFAULT_SLASH_COMMANDS: SlashCommand[] = [
   },
 ];
 
+// Google Drive Sync settings
+export interface DriveSyncSettings {
+  enabled: boolean;
+  encryptedAuth: DriveEncryptedAuth | null;  // Persisted encrypted auth from GemiHub
+  excludePatterns: string[];
+  autoSync: boolean;
+  syncIntervalMinutes: number;
+  rootFolderName: string;
+}
+
+// Persisted: RSA hybrid encrypted auth from GemiHub
+export interface DriveEncryptedAuth {
+  data: string;                // RSA hybrid encrypted {refreshToken, apiOrigin}
+  encryptedPrivateKey: string; // PBKDF2+AES-GCM encrypted RSA private key
+  salt: string;                // PBKDF2 salt
+  rootFolderId: string;
+}
+
+// Session-only: decrypted tokens kept in memory (never persisted)
+export interface DriveSessionTokens {
+  accessToken: string;
+  refreshToken: string;
+  apiOrigin: string;   // GemiHub server URL for token refresh proxy
+  expiryTime: number;
+  rootFolderId: string;
+}
+
+export const DEFAULT_DRIVE_SYNC_SETTINGS: DriveSyncSettings = {
+  enabled: false,
+  encryptedAuth: null,
+  excludePatterns: ["node_modules/"],
+  autoSync: false,
+  syncIntervalMinutes: 5,
+  rootFolderName: "gemihub",
+};
+
 // Default settings
 export const DEFAULT_SETTINGS: GeminiHelperSettings = {
   googleApiKey: "",
@@ -624,6 +664,7 @@ export const DEFAULT_SETTINGS: GeminiHelperSettings = {
   ragEnabled: false,
   ragTopK: 5,  // Default: retrieve 5 chunks
   workspaceFolder: "GeminiHelper",
+  hideWorkspaceFolder: false,
   saveChatHistory: true,
   systemPrompt: "",
   slashCommands: DEFAULT_SLASH_COMMANDS,
@@ -641,4 +682,6 @@ export const DEFAULT_SETTINGS: GeminiHelperSettings = {
   encryption: DEFAULT_ENCRYPTION_SETTINGS,
   // Langfuse
   langfuse: DEFAULT_LANGFUSE_SETTINGS,
+  // Google Drive Sync
+  driveSync: DEFAULT_DRIVE_SYNC_SETTINGS,
 };

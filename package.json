@@ -8,6 +8,7 @@
     "dev:langfuse": "node esbuild.config.mjs langfuse",
     "build": "tsc -noEmit -skipLibCheck && node esbuild.config.mjs production",
     "build:langfuse": "tsc -noEmit -skipLibCheck && node esbuild.config.mjs production langfuse",
+    "test": "vitest run",
     "lint": "eslint .",
     "version": "node version-bump.mjs && git add manifest.json versions.json"
   },
@@ -32,7 +33,7 @@
     "@codemirror/view": "6.38.6",
     "@eslint/json": "^0.14.0",
     "@types/diff": "^7.0.2",
-    "@types/node": "^16.11.6",
+    "@types/node": "^20.0.0",
     "@types/react": "^19.2.2",
     "@types/react-dom": "^19.2.2",
     "builtin-modules": "3.3.0",
@@ -41,12 +42,13 @@
     "obsidian": "^1.10.0",
     "tslib": "^2.4.0",
     "typescript": "^5.0.0",
-    "typescript-eslint": "^8.49.0"
+    "typescript-eslint": "^8.49.0",
+    "vitest": "^4.0.18",
+    "langfuse": "^3.38.6"
   },
   "dependencies": {
     "@google/genai": "^1.32.0",
     "diff": "^8.0.2",
-    "langfuse": "^3.38.6",
     "lucide-react": "^0.503.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"

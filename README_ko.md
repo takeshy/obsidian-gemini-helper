@@ -396,6 +396,8 @@ Obsidian 이벤트에 의해 워크플로우가 자동으로 트리거될 수 �
 | Gemini 2.5 Flash (Image) | 이미지 생성, 1024px |
 | Gemini 3 Pro (Image) | Pro 이미지 생성, 4K |
 
+> **Thinking 모드:** 채팅에서는 메시지에 "생각해", "분석해", "고려해" 같은 키워드가 포함되면 Thinking 모드가 활성화됩니다. 그러나 **Gemini 3 Pro**와 **Gemini 3.1 Pro**는 키워드와 관계없이 항상 Thinking 모드로 작동합니다 — 이 모델들은 Thinking 비활성화를 지원하지 않습니다.
+
 ### 무료 플랜
 | 모델 | Vault 작업 |
 |-------|------------------|
@@ -764,6 +766,16 @@ AI로 워크플로우를 수정할 때 이전 실행 결과를 참조하여 AI�
 - MCP (Model Context Protocol) 서버는 워크플로우 `mcp` 노드에 대해 플러그인 설정에서 구성할 수 있습니다
 - MCP 서버는 추가 도구와 기능을 제공하는 외부 서비스입니다
 
+**GemiHub를 통한 Google Drive 동기화 (선택 사항):**
+- Google Drive 동기화가 활성화되면 Vault 파일이 사용자 본인의 Google Drive 계정에 업로드됩니다
+- 사용되는 네트워크 엔드포인트:
+  - `https://www.googleapis.com/drive/v3` — 파일 메타데이터 및 동기화 작업
+  - `https://www.googleapis.com/upload/drive/v3` — 파일 업로드
+  - `https://gemihub.online/api/obsidian/token` — OAuth 토큰 갱신 (아래 참조)
+- **토큰 갱신 흐름:** 암호화된 갱신 토큰이 GemiHub 프록시로 전송되며, 프록시가 OAuth 클라이언트 시크릿을 추가하여 Google의 토큰 엔드포인트로 전달합니다. OAuth 클라이언트 시크릿은 클라이언트 측 코드에 안전하게 포함할 수 없으므로 프록시가 필요합니다. 프록시는 토큰을 저장하거나 기록하지 않습니다. [GemiHub 개인정보처리방침](https://gemihub.online/privacy)을 참조하세요.
+- 암호화된 인증 데이터(RSA + AES-256-GCM)는 플러그인 설정에 저장됩니다. 복호화 비밀번호는 전송되지 않습니다
+- Vault 콘텐츠는 GemiHub로 전송되지 않습니다 — 파일은 Obsidian과 Google Drive API 간에 직접 동기화됩니다
+
 **보안 참고:**
 - 워크플로우 실행 전 검토하세요 - `http` 노드가 vault 데이터를 외부 엔드포인트로 전송할 수 있습니다
 - 워크플로우 `note` 노드는 파일 쓰기 전 확인 대화상자를 표시합니다 (기본 동작)
@@ -775,6 +787,30 @@ AI로 워크플로우를 수정할 때 이전 실행 결과를 참조하여 AI�
 ## 라이선스
 
 MIT
+
+## 실험적 기능
+
+### Google Drive Sync (GemiHub Connection)
+
+[GemiHub](https://gemihub.online)를 통해 Obsidian vault를 Google Drive와 동기화합니다. Obsidian에서 노트를 편집하고 GemiHub의 웹 인터페이스에서 접근하거나, 그 반대로도 가능합니다.
+
+![Drive Sync Unlock](docs/images/gemihub_connection/start_with_sync.png)
+
+**GemiHub 전용 기능** (Obsidian 플러그인에서는 사용 불가):
+
+- **Automatic RAG** - GemiHub에 동기화된 파일은 매 동기화 시 자동으로 시맨틱 검색을 위해 인덱싱되며, 별도의 수동 설정이 필요 없습니다
+- **OAuth2 지원 MCP** - OAuth2 인증이 필요한 MCP 서버를 사용할 수 있습니다 (예: Google Calendar, Gmail, Google Docs)
+- **Markdown을 PDF/HTML로 변환** - Markdown 노트를 포맷된 PDF 또는 HTML 문서로 변환합니다
+- **공개 퍼블리싱** - 변환된 HTML/PDF 문서를 공유 가능한 공개 URL로 게시합니다
+
+**연결을 통해 Obsidian에 추가되는 기능:**
+
+- **Diff 미리보기가 포함된 양방향 동기화** - 변경 사항을 커밋하기 전에 상세한 파일 목록과 Unified Diff 뷰로 파일을 push 및 pull
+- **Diff를 통한 충돌 해결** - 양쪽에서 동일한 파일을 편집한 경우, 색상 코드가 적용된 Unified Diff로 충돌을 해결
+- **Drive 편집 기록** - Obsidian과 GemiHub 양쪽에서의 변경 사항을 추적하며, 파일별 기록에 출처(local/remote)를 표시
+- **충돌 백업 관리** - Drive에 저장된 충돌 백업을 탐색, 미리보기, 복원
+
+> **설정:** 설정 방법은 [GemiHub 연결 가이드](docs/GEMIHUB_CONNECTION.md)를 참조하세요.
 
 ## 링크
 

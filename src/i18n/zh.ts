@@ -227,6 +227,17 @@ export const zh: Record<string, string> = {
   "chat.unknownError": "未知错误",
   "chat.generationStopped": "_（生成已停止）_",
   "chat.generationInProgress": "AI 正在生成。请先停止再继续。",
+  "chat.welcomeTitle": "开始与 AI 对话",
+  "chat.welcomeHint": "询问关于笔记的问题、创建新笔记或搜索您的库。",
+  "chat.welcomeThinking": "输入\"思考\"或\"分析\"等词语启用深度思考模式",
+  "chat.welcomeImage": "输入\"生成图片\"或\"创建图片\"自动切换到图像模型",
+  "chat.welcomeCompact": "输入 /compact 将长对话压缩为新聊天",
+  "chat.welcomeNewChat": "Gemini 没有记忆，每次都会发送整个聊天记录。切换话题时请务必点击 + 开始新聊天",
+  "chat.compactNotAvailable": "CLI 模式下无法使用压缩功能",
+  "chat.compacted": "对话已压缩：{{before}} 条消息 → {{after}} 条",
+  "chat.compactedContext": "压缩的对话上下文",
+  "chat.compactFailed": "对话压缩失败",
+  "chat.compacting": "压缩中...",
   "chat.yesterday": "昨天",
 
   // InputArea
@@ -296,6 +307,9 @@ export const zh: Record<string, string> = {
   "message.deleted": "已删除",
   "message.cancelledDeletion": "已取消删除",
   "message.failedToDelete": "删除失败",
+  "message.renamed": "已重命名",
+  "message.cancelledRename": "已取消重命名",
+  "message.failedToRename": "重命名失败",
 
   // Tool display labels
   "tool.read": "读取",
@@ -452,6 +466,7 @@ export const zh: Record<string, string> = {
   "workflowModal.appendToFile": "追加到文件",
   "workflowModal.overwriteFile": "覆盖文件",
   "workflowModal.confirmFileDeletion": "确认删除文件",
+  "workflowModal.confirmFileRename": "确认重命名文件",
   "workflowModal.moveToTrash": "移至回收站",
   "workflowModal.contentToBeDeleted": "将被删除的内容：",
   "workflowModal.delete": "删除",
@@ -464,6 +479,8 @@ export const zh: Record<string, string> = {
   "workflowModal.apply": "应用（{{count}}）",
   "workflowModal.confirmBulkDelete": "确认批量删除（{{count}}个文件）",
   "workflowModal.deleteCount": "删除（{{count}}）",
+  "workflowModal.confirmBulkRename": "确认批量重命名（{{count}}个文件）",
+  "workflowModal.renameCount": "重命名（{{count}}）",
   "workflowModal.executionHistory": "执行历史",
   "workflowModal.runs": "运行",
   "workflowModal.details": "详情",
@@ -541,6 +558,7 @@ export const zh: Record<string, string> = {
   "command.encryptFile": "加密当前文件",
   "command.decryptFile": "解密当前文件",
   "command.runWorkflow": "运行工作流",
+  "command.compact": "压缩对话历史",
 
   // Workflow Selector Modal
   "workflowSelector.title": "运行工作流",

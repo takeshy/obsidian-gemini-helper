@@ -4,7 +4,6 @@ import {
   createNote,
   updateNote,
   deleteNote,
-  renameNote,
   getActiveNoteInfo,
   proposeEdit,
   applyEdit,
@@ -12,8 +11,10 @@ import {
   proposeDelete,
   applyDelete,
   discardDelete,
+  proposeRename,
   proposeBulkEdit,
   proposeBulkDelete,
+  proposeBulkRename,
 } from "./notes";
 import {
   searchByName,
@@ -123,7 +124,7 @@ async function executeToolCallInternal(
       if (!args.newPath) {
         return { success: false, error: "Required parameter 'newPath' is missing" };
       }
-      return renameNote(app, args.oldPath as string, args.newPath as string);
+      return proposeRename(app, args.oldPath as string, args.newPath as string);
 
     case "search_notes": {
       if (!args.query) {
@@ -305,7 +306,9 @@ async function executeToolCallInternal(
         args.fileName as string | undefined,
         args.activeNote as boolean | undefined,
         args.newContent as string | undefined,
-        (args.mode as "replace" | "append" | "prepend") || "replace"
+        (args.mode as "replace" | "append" | "prepend" | "patch") || "replace",
+        undefined,
+        args.patches as Array<{ search: string; replace: string }> | undefined
       );
 
     case "apply_edit":
@@ -336,6 +339,17 @@ async function executeToolCallInternal(
         };
       }
       return proposeBulkEdit(app, edits);
+    }
+
+    case "bulk_propose_rename": {
+      const renames = args.renames as Array<{ oldPath: string; newPath: string }>;
+      if (!renames || !Array.isArray(renames) || renames.length === 0) {
+        return {
+          success: false,
+          error: "No renames provided. The 'renames' array is required.",
+        };
+      }
+      return proposeBulkRename(app, renames);
     }
 
     case "bulk_propose_delete": {

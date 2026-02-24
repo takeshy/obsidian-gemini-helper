@@ -1479,3 +1479,414 @@ export function promptForBulkDeleteConfirmation(
   const modal = new BulkDeleteConfirmationModal(app, items);
   return modal.openAndWait();
 }
+
+/**
+ * Modal for confirming file rename
+ */
+export class RenameConfirmationModal extends Modal {
+  private originalPath: string;
+  private newPath: string;
+  private resolvePromise: ((value: boolean) => void) | null = null;
+
+  constructor(app: App, originalPath: string, newPath: string) {
+    super(app);
+    this.originalPath = originalPath;
+    this.newPath = newPath;
+  }
+
+  onOpen() {
+    const { contentEl, modalEl, containerEl } = this;
+
+    // Prevent closing on outside click
+    containerEl.setCssProps({ 'pointer-events': 'none' });
+    modalEl.setCssProps({ 'pointer-events': 'auto' });
+
+    modalEl.addClass("gemini-helper-delete-confirm-modal");
+
+    // Header
+    const header = contentEl.createDiv({
+      cls: "gemini-helper-edit-confirm-header",
+    });
+    header.createEl("h3", { text: t("workflowModal.confirmFileRename") });
+
+    // Path display
+    const pathRow = header.createDiv({ cls: "gemini-helper-edit-confirm-path" });
+    pathRow.createEl("span", { text: "📁 " });
+    pathRow.createEl("strong", { text: this.originalPath });
+    pathRow.createEl("span", { text: " → " });
+    pathRow.createEl("strong", { text: this.newPath });
+
+    // Buttons
+    const btnContainer = contentEl.createDiv({
+      cls: "gemini-helper-edit-confirm-actions",
+    });
+
+    const applyBtn = btnContainer.createEl("button", {
+      text: t("message.apply"),
+      cls: "mod-cta",
+    });
+    applyBtn.addEventListener("click", () => {
+      if (this.resolvePromise) {
+        this.resolvePromise(true);
+        this.resolvePromise = null;
+      }
+      this.close();
+    });
+
+    const cancelBtn = btnContainer.createEl("button", {
+      text: t("common.cancel"),
+    });
+    cancelBtn.addEventListener("click", () => {
+      if (this.resolvePromise) {
+        this.resolvePromise(false);
+        this.resolvePromise = null;
+      }
+      this.close();
+    });
+  }
+
+  onClose() {
+    if (this.resolvePromise) {
+      this.resolvePromise(false);
+      this.resolvePromise = null;
+    }
+    this.contentEl.empty();
+  }
+
+  openAndWait(): Promise<boolean> {
+    return new Promise((resolve) => {
+      this.resolvePromise = resolve;
+      this.open();
+    });
+  }
+}
+
+/**
+ * Helper function to prompt for rename confirmation
+ */
+export function promptForRenameConfirmation(
+  app: App,
+  originalPath: string,
+  newPath: string
+): Promise<boolean> {
+  const modal = new RenameConfirmationModal(app, originalPath, newPath);
+  return modal.openAndWait();
+}
+
+/**
+ * Item for bulk rename confirmation
+ */
+export interface BulkRenameConfirmItem {
+  originalPath: string;
+  newPath: string;
+}
+
+/**
+ * Modal for confirming bulk file renames
+ * Shows a list of renames with checkboxes for selective application
+ */
+export class BulkRenameConfirmationModal extends Modal {
+  private items: BulkRenameConfirmItem[];
+  private selectedPaths: Set<string>;
+  private resolvePromise: ((value: string[]) => void) | null = null;
+
+  // Drag state
+  private isDragging = false;
+  private dragStartX = 0;
+  private dragStartY = 0;
+  private modalStartX = 0;
+  private modalStartY = 0;
+
+  // Resize state
+  private isResizing = false;
+  private resizeDirection = "";
+  private resizeStartWidth = 0;
+  private resizeStartHeight = 0;
+
+  constructor(app: App, items: BulkRenameConfirmItem[]) {
+    super(app);
+    this.items = items;
+    this.selectedPaths = new Set(items.map((i) => i.originalPath));
+  }
+
+  onOpen() {
+    const { contentEl, modalEl, containerEl } = this;
+
+    // Prevent closing on outside click
+    containerEl.setCssProps({ 'pointer-events': 'none' });
+    modalEl.setCssProps({ 'pointer-events': 'auto' });
+
+    modalEl.addClass("gemini-helper-bulk-confirm-modal");
+    modalEl.addClass("gemini-helper-resizable-modal");
+
+    // Header (drag handle)
+    const header = contentEl.createDiv({
+      cls: "gemini-helper-edit-confirm-header gemini-helper-drag-handle",
+    });
+
+    const titleRow = header.createDiv({ cls: "gemini-helper-edit-confirm-title-row" });
+    titleRow.createEl("h3", { text: t("workflowModal.confirmBulkRename", { count: String(this.items.length) }) });
+
+    // Selection controls
+    const selectionControls = header.createDiv({ cls: "gemini-helper-bulk-selection-controls" });
+
+    const selectAllBtn = selectionControls.createEl("button", { text: t("workflowModal.selectAll") });
+    selectAllBtn.addEventListener("click", () => {
+      this.items.forEach((item) => this.selectedPaths.add(item.originalPath));
+      this.updateCheckboxes();
+    });
+
+    const deselectAllBtn = selectionControls.createEl("button", { text: t("workflowModal.deselectAll") });
+    deselectAllBtn.addEventListener("click", () => {
+      this.selectedPaths.clear();
+      this.updateCheckboxes();
+    });
+
+    // File list container
+    const listContainer = contentEl.createDiv({
+      cls: "gemini-helper-bulk-list-container",
+    });
+
+    this.renderFileList(listContainer);
+
+    // Action buttons
+    const actions = contentEl.createDiv({
+      cls: "gemini-helper-edit-confirm-actions",
+    });
+
+    const cancelBtn = actions.createEl("button", { text: t("workflowModal.cancel") });
+    cancelBtn.addEventListener("click", () => {
+      if (this.resolvePromise) {
+        this.resolvePromise([]);
+        this.resolvePromise = null;
+      }
+      this.close();
+    });
+
+    const applyBtn = actions.createEl("button", {
+      text: t("workflowModal.renameCount", { count: String(this.selectedPaths.size) }),
+      cls: "mod-cta",
+    });
+    applyBtn.addEventListener("click", () => {
+      if (this.resolvePromise) {
+        this.resolvePromise(Array.from(this.selectedPaths));
+        this.resolvePromise = null;
+      }
+      this.close();
+    });
+
+    // Store reference for updating button text
+    (this as { applyBtn?: HTMLButtonElement }).applyBtn = applyBtn;
+
+    // Add resize handles
+    this.addResizeHandles(modalEl);
+
+    // Setup drag functionality
+    this.setupDrag(header, modalEl);
+  }
+
+  private renderFileList(container: HTMLElement) {
+    container.empty();
+
+    for (const item of this.items) {
+      const fileRow = container.createDiv({ cls: "gemini-helper-bulk-file-row" });
+
+      // Checkbox
+      const checkbox = fileRow.createEl("input", { type: "checkbox" });
+      checkbox.checked = this.selectedPaths.has(item.originalPath);
+      checkbox.dataset.path = item.originalPath;
+      checkbox.addEventListener("change", () => {
+        if (checkbox.checked) {
+          this.selectedPaths.add(item.originalPath);
+        } else {
+          this.selectedPaths.delete(item.originalPath);
+        }
+        this.updateApplyButton();
+      });
+
+      // Rename info
+      const fileInfo = fileRow.createDiv({ cls: "gemini-helper-bulk-file-info" });
+      const pathEl = fileInfo.createDiv({ cls: "gemini-helper-bulk-file-path" });
+      pathEl.createEl("span", { text: item.originalPath });
+      pathEl.createEl("span", { text: " → ", cls: "gemini-helper-rename-arrow" });
+      pathEl.createEl("span", { text: item.newPath, cls: "gemini-helper-rename-new-path" });
+    }
+  }
+
+  private updateCheckboxes() {
+    const checkboxes = this.contentEl.querySelectorAll<HTMLInputElement>(
+      "input[type='checkbox']"
+    );
+    checkboxes.forEach((cb) => {
+      const path = cb.dataset.path;
+      if (path) {
+        cb.checked = this.selectedPaths.has(path);
+      }
+    });
+    this.updateApplyButton();
+  }
+
+  private updateApplyButton() {
+    const applyBtn = (this as { applyBtn?: HTMLButtonElement }).applyBtn;
+    if (applyBtn) {
+      applyBtn.textContent = t("workflowModal.renameCount", { count: String(this.selectedPaths.size) });
+    }
+  }
+
+  private addResizeHandles(modalEl: HTMLElement) {
+    const directions = ["n", "e", "s", "w", "ne", "nw", "se", "sw"];
+    for (const dir of directions) {
+      const handle = document.createElement("div");
+      handle.className = `gemini-helper-resize-handle gemini-helper-resize-${dir}`;
+      handle.dataset.direction = dir;
+      modalEl.appendChild(handle);
+      this.setupResize(handle, modalEl, dir);
+    }
+  }
+
+  private setupDrag(header: HTMLElement, modalEl: HTMLElement) {
+    const onMouseDown = (e: MouseEvent) => {
+      if ((e.target as HTMLElement).tagName === "BUTTON") return;
+
+      this.isDragging = true;
+      this.dragStartX = e.clientX;
+      this.dragStartY = e.clientY;
+
+      const rect = modalEl.getBoundingClientRect();
+      this.modalStartX = rect.left;
+      this.modalStartY = rect.top;
+
+      modalEl.setCssProps({
+        position: "fixed",
+        margin: "0",
+        transform: "none",
+        left: `${rect.left}px`,
+        top: `${rect.top}px`,
+      });
+
+      document.addEventListener("mousemove", onMouseMove);
+      document.addEventListener("mouseup", onMouseUp);
+      e.preventDefault();
+    };
+
+    const onMouseMove = (e: MouseEvent) => {
+      if (!this.isDragging) return;
+
+      const deltaX = e.clientX - this.dragStartX;
+      const deltaY = e.clientY - this.dragStartY;
+
+      modalEl.setCssProps({
+        left: `${this.modalStartX + deltaX}px`,
+        top: `${this.modalStartY + deltaY}px`,
+      });
+    };
+
+    const onMouseUp = () => {
+      this.isDragging = false;
+      document.removeEventListener("mousemove", onMouseMove);
+      document.removeEventListener("mouseup", onMouseUp);
+    };
+
+    header.addEventListener("mousedown", onMouseDown);
+  }
+
+  private setupResize(handle: HTMLElement, modalEl: HTMLElement, direction: string) {
+    const onMouseDown = (e: MouseEvent) => {
+      this.isResizing = true;
+      this.resizeDirection = direction;
+      this.dragStartX = e.clientX;
+      this.dragStartY = e.clientY;
+
+      const rect = modalEl.getBoundingClientRect();
+      this.resizeStartWidth = rect.width;
+      this.resizeStartHeight = rect.height;
+      this.modalStartX = rect.left;
+      this.modalStartY = rect.top;
+
+      modalEl.setCssProps({
+        position: "fixed",
+        margin: "0",
+        transform: "none",
+        left: `${rect.left}px`,
+        top: `${rect.top}px`,
+        width: `${rect.width}px`,
+        height: `${rect.height}px`,
+      });
+
+      document.addEventListener("mousemove", onMouseMove);
+      document.addEventListener("mouseup", onMouseUp);
+      e.preventDefault();
+      e.stopPropagation();
+    };
+
+    const onMouseMove = (e: MouseEvent) => {
+      if (!this.isResizing) return;
+
+      const deltaX = e.clientX - this.dragStartX;
+      const deltaY = e.clientY - this.dragStartY;
+      const dir = this.resizeDirection;
+
+      let newWidth = this.resizeStartWidth;
+      let newHeight = this.resizeStartHeight;
+      let newLeft = this.modalStartX;
+      let newTop = this.modalStartY;
+
+      if (dir.includes("e")) {
+        newWidth = Math.max(500, this.resizeStartWidth + deltaX);
+      }
+      if (dir.includes("w")) {
+        newWidth = Math.max(500, this.resizeStartWidth - deltaX);
+        newLeft = this.modalStartX + (this.resizeStartWidth - newWidth);
+      }
+      if (dir.includes("s")) {
+        newHeight = Math.max(300, this.resizeStartHeight + deltaY);
+      }
+      if (dir.includes("n")) {
+        newHeight = Math.max(300, this.resizeStartHeight - deltaY);
+        newTop = this.modalStartY + (this.resizeStartHeight - newHeight);
+      }
+
+      modalEl.setCssProps({
+        width: `${newWidth}px`,
+        height: `${newHeight}px`,
+        left: `${newLeft}px`,
+        top: `${newTop}px`,
+      });
+    };
+
+    const onMouseUp = () => {
+      this.isResizing = false;
+      document.removeEventListener("mousemove", onMouseMove);
+      document.removeEventListener("mouseup", onMouseUp);
+    };
+
+    handle.addEventListener("mousedown", onMouseDown);
+  }
+
+  onClose() {
+    this.contentEl.empty();
+    if (this.resolvePromise) {
+      this.resolvePromise([]);
+      this.resolvePromise = null;
+    }
+  }
+
+  openAndWait(): Promise<string[]> {
+    return new Promise((resolve) => {
+      this.resolvePromise = resolve;
+      this.open();
+    });
+  }
+}
+
+/**
+ * Helper function to prompt for bulk rename confirmation
+ * @returns Promise<string[]> - Array of selected original paths to rename
+ */
+export function promptForBulkRenameConfirmation(
+  app: App,
+  items: BulkRenameConfirmItem[]
+): Promise<string[]> {
+  const modal = new BulkRenameConfirmationModal(app, items);
+  return modal.openAndWait();
+}

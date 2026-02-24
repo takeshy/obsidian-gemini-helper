@@ -227,6 +227,17 @@ export const en = {
   "chat.unknownError": "Unknown error",
   "chat.generationStopped": "_(generation stopped)_",
   "chat.generationInProgress": "AI is generating. Please stop it before continuing.",
+  "chat.welcomeTitle": "Start a conversation with AI",
+  "chat.welcomeHint": "Ask questions about your notes, create new ones, or search your vault.",
+  "chat.welcomeThinking": "Use words like \"think\" or \"analyze\" to enable deep thinking mode",
+  "chat.welcomeImage": "Use \"generate image\" or \"create image\" to auto-switch to image model",
+  "chat.welcomeCompact": "Type /compact to compress a long conversation into a new chat",
+  "chat.welcomeNewChat": "Gemini has no memory, so the entire chat history is sent each time. Always click + to start a new chat when changing topics",
+  "chat.compactNotAvailable": "Compact is not available in CLI mode",
+  "chat.compacted": "Conversation compressed: {{before}} messages → {{after}}",
+  "chat.compactedContext": "Compacted conversation context",
+  "chat.compactFailed": "Failed to compress conversation",
+  "chat.compacting": "Compacting...",
   "chat.yesterday": "Yesterday",
 
   // InputArea
@@ -296,6 +307,9 @@ export const en = {
   "message.deleted": "Deleted",
   "message.cancelledDeletion": "Cancelled deletion of",
   "message.failedToDelete": "Failed to delete",
+  "message.renamed": "Renamed",
+  "message.cancelledRename": "Cancelled rename of",
+  "message.failedToRename": "Failed to rename",
 
   // Tool display labels
   "tool.read": "Read",
@@ -452,6 +466,7 @@ export const en = {
   "workflowModal.appendToFile": "Append to file",
   "workflowModal.overwriteFile": "Overwrite file",
   "workflowModal.confirmFileDeletion": "Confirm file deletion",
+  "workflowModal.confirmFileRename": "Confirm file rename",
   "workflowModal.moveToTrash": "Move to trash",
   "workflowModal.contentToBeDeleted": "Content to be deleted:",
   "workflowModal.delete": "Delete",
@@ -464,6 +479,8 @@ export const en = {
   "workflowModal.apply": "Apply ({{count}})",
   "workflowModal.confirmBulkDelete": "Confirm bulk delete ({{count}} files)",
   "workflowModal.deleteCount": "Delete ({{count}})",
+  "workflowModal.confirmBulkRename": "Confirm bulk rename ({{count}} files)",
+  "workflowModal.renameCount": "Rename ({{count}})",
   "workflowModal.executionHistory": "Execution history",
   "workflowModal.runs": "Runs",
   "workflowModal.details": "Details",
@@ -541,6 +558,7 @@ export const en = {
   "command.encryptFile": "Encrypt current file",
   "command.decryptFile": "Decrypt current file",
   "command.runWorkflow": "Run workflow",
+  "command.compact": "Compress conversation history",
 
   // Workflow Selector Modal
   "workflowSelector.title": "Run workflow",

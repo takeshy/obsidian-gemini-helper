@@ -227,6 +227,17 @@ export const de: Record<string, string> = {
   "chat.unknownError": "Unbekannter Fehler",
   "chat.generationStopped": "_(Generierung gestoppt)_",
   "chat.generationInProgress": "Die KI generiert gerade. Bitte stoppen Sie zuerst.",
+  "chat.welcomeTitle": "Starten Sie ein Gespräch mit AI",
+  "chat.welcomeHint": "Stellen Sie Fragen zu Ihren Notizen, erstellen Sie neue oder durchsuchen Sie Ihren Vault.",
+  "chat.welcomeThinking": "\"Nachdenken\" oder \"analysieren\" für den Tiefdenk-Modus",
+  "chat.welcomeImage": "\"Bild generieren\" oder \"Bild erstellen\" für automatische Bildmodell-Umschaltung",
+  "chat.welcomeCompact": "Tippen Sie /compact um ein langes Gespräch in einen neuen Chat zu komprimieren",
+  "chat.welcomeNewChat": "Gemini hat kein Gedächtnis, daher wird jedes Mal der gesamte Chatverlauf gesendet. Klicken Sie immer auf +, um bei einem Themenwechsel einen neuen Chat zu starten",
+  "chat.compactNotAvailable": "Komprimierung ist im CLI-Modus nicht verfügbar",
+  "chat.compacted": "Gespräch komprimiert: {{before}} Nachrichten → {{after}}",
+  "chat.compactedContext": "Komprimierter Gesprächskontext",
+  "chat.compactFailed": "Komprimierung des Gesprächs fehlgeschlagen",
+  "chat.compacting": "Komprimierung...",
   "chat.yesterday": "Gestern",
 
   // InputArea
@@ -296,6 +307,9 @@ export const de: Record<string, string> = {
   "message.deleted": "Gelöscht",
   "message.cancelledDeletion": "Löschung abgebrochen von",
   "message.failedToDelete": "Löschen fehlgeschlagen",
+  "message.renamed": "Umbenannt",
+  "message.cancelledRename": "Umbenennung abgebrochen",
+  "message.failedToRename": "Umbenennung fehlgeschlagen",
 
   // Tool display labels
   "tool.read": "Lesen",
@@ -452,6 +466,7 @@ export const de: Record<string, string> = {
   "workflowModal.appendToFile": "An Datei anhängen",
   "workflowModal.overwriteFile": "Datei überschreiben",
   "workflowModal.confirmFileDeletion": "Dateilöschung bestätigen",
+  "workflowModal.confirmFileRename": "Dateiumbenennung bestätigen",
   "workflowModal.moveToTrash": "In Papierkorb verschieben",
   "workflowModal.contentToBeDeleted": "Zu löschender Inhalt:",
   "workflowModal.delete": "Löschen",
@@ -464,6 +479,8 @@ export const de: Record<string, string> = {
   "workflowModal.apply": "Anwenden ({{count}})",
   "workflowModal.confirmBulkDelete": "Massenlöschung bestätigen ({{count}} Dateien)",
   "workflowModal.deleteCount": "Löschen ({{count}})",
+  "workflowModal.confirmBulkRename": "Massenumbenennung bestätigen ({{count}} Dateien)",
+  "workflowModal.renameCount": "Umbenennen ({{count}})",
   "workflowModal.executionHistory": "Ausführungsverlauf",
   "workflowModal.runs": "Ausführungen",
   "workflowModal.details": "Details",
@@ -541,6 +558,7 @@ export const de: Record<string, string> = {
   "command.encryptFile": "Aktuelle Datei verschlüsseln",
   "command.decryptFile": "Aktuelle Datei entschlüsseln",
   "command.runWorkflow": "Workflow ausführen",
+  "command.compact": "Gesprächsverlauf komprimieren",
 
   // Workflow Selector Modal
   "workflowSelector.title": "Workflow ausführen",

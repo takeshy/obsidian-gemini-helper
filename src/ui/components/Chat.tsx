@@ -22,6 +22,7 @@ import {
 	type Attachment,
 	type PendingEditInfo,
 	type PendingDeleteInfo,
+	type PendingRenameInfo,
 	type SlashCommand,
 	type GeneratedImage,
 	type ChatProvider,
@@ -41,18 +42,26 @@ import {
 	getPendingDelete,
 	applyDelete,
 	discardDelete,
+	getPendingRename,
+	applyRename,
+	discardRename,
 	getPendingBulkEdit,
 	applyBulkEdit,
 	discardBulkEdit,
 	getPendingBulkDelete,
 	applyBulkDelete,
 	discardBulkDelete,
+	getPendingBulkRename,
+	applyBulkRename,
+	discardBulkRename,
 } from "src/vault/notes";
 import {
 	promptForConfirmation,
 	promptForDeleteConfirmation,
+	promptForRenameConfirmation,
 	promptForBulkEditConfirmation,
 	promptForBulkDeleteConfirmation,
+	promptForBulkRenameConfirmation,
 } from "./workflow/EditConfirmationModal";
 import MessageList from "./MessageList";
 import InputArea, { type InputAreaHandle } from "./InputArea";
@@ -64,6 +73,35 @@ import {
 import { cryptoCache } from "src/core/cryptoCache";
 import { formatError } from "src/utils/error";
 import { t } from "src/i18n";
+
+// Keywords that trigger automatic image model switching
+const IMAGE_KEYWORDS = [
+	// Japanese
+	"画像を生成", "画像を作成", "画像を描", "イラストを", "絵を描",
+	"写真を生成", "写真を作成", "画像にして",
+	// English
+	"generate image", "create image", "draw image",
+	"generate a picture", "create a picture", "make an image",
+	// German
+	"bild generieren", "bild erstellen",
+	// Spanish
+	"generar imagen", "crear imagen",
+	// French
+	"générer une image", "créer une image",
+	// Italian
+	"genera immagine", "crea immagine",
+	// Korean
+	"이미지 생성", "그림 그려",
+	// Portuguese
+	"gerar imagem", "criar imagem",
+	// Chinese
+	"生成图片", "创建图片",
+];
+
+function shouldUseImageModel(message: string): boolean {
+	const lower = message.toLowerCase();
+	return IMAGE_KEYWORDS.some(kw => lower.includes(kw));
+}
 
 const PAID_RATE_LIMIT_RETRY_DELAYS_MS = [10000, 30000, 60000];
 
@@ -141,6 +179,7 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 	const [chatHistories, setChatHistories] = useState<ChatHistory[]>([]);
 	const [showHistory, setShowHistory] = useState(false);
 	const [isLoading, setIsLoading] = useState(false);
+	const [isCompacting, setIsCompacting] = useState(false);
 	const [streamingContent, setStreamingContent] = useState("");
 	const [streamingThinking, setStreamingThinking] = useState("");
 	const [currentModel, setCurrentModel] = useState<ModelType>(plugin.getSelectedModel());
@@ -308,6 +347,7 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 			if (msg.imageGenerationUsed) metadata.imageGenerationUsed = msg.imageGenerationUsed;
 			if (msg.generatedImages) metadata.generatedImages = msg.generatedImages;
 			if (msg.mcpApps) metadata.mcpApps = msg.mcpApps;
+			if (msg.pendingRename) metadata.pendingRename = msg.pendingRename;
 			metadata.timestamp = msg.timestamp;
 
 			md += `<!-- msg-meta:${JSON.stringify(metadata)} -->\n\n---\n\n`;
@@ -423,6 +463,7 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 							if (meta.imageGenerationUsed) message.imageGenerationUsed = meta.imageGenerationUsed as boolean;
 							if (meta.generatedImages) message.generatedImages = meta.generatedImages as Message["generatedImages"];
 							if (meta.mcpApps) message.mcpApps = meta.mcpApps as Message["mcpApps"];
+							if (meta.pendingRename) message.pendingRename = meta.pendingRename as Message["pendingRename"];
 							if (meta.timestamp) message.timestamp = meta.timestamp as number;
 						} catch {
 							// Ignore parse errors for backward compatibility
@@ -516,11 +557,11 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 	}, [plugin]);
 
 	// Save current chat to Markdown file
-	const saveCurrentChat = useCallback(async (msgs: Message[], session?: CliSessionInfo) => {
+	const saveCurrentChat = useCallback(async (msgs: Message[], session?: CliSessionInfo, overrideChatId?: string) => {
 		if (msgs.length === 0) return;
 		if (!plugin.settings.saveChatHistory) return;
 
-		const chatId = currentChatId || generateChatId();
+		const chatId = overrideChatId || currentChatId || generateChatId();
 		const title = msgs[0].content.slice(0, 50) + (msgs[0].content.length > 50 ? "..." : "");
 		const folder = getChatHistoryFolder();
 
@@ -1297,11 +1338,26 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 		}
 
 		// Set the current model (fallback if not allowed for plan)
-		const allowedModel = isModelAllowedForPlan(apiPlan, currentModel)
+		let allowedModel = isModelAllowedForPlan(apiPlan, currentModel)
 			? currentModel
 			: getDefaultModelForPlan(apiPlan);
+
+		// Auto-switch to image model when image generation keywords detected
+		let autoSwitchedToImage = false;
+		const originalModel = allowedModel;
+		if (!isImageGenerationModel(allowedModel) && shouldUseImageModel(content)) {
+			if (isModelAllowedForPlan(apiPlan, "gemini-3-pro-image-preview")) {
+				allowedModel = "gemini-3-pro-image-preview";
+				autoSwitchedToImage = true;
+			} else if (isModelAllowedForPlan(apiPlan, "gemini-2.5-flash-image")) {
+				allowedModel = "gemini-2.5-flash-image";
+				autoSwitchedToImage = true;
+			}
+			// If neither is available, keep current model
+		}
+
 		const supportsFunctionCalling = !allowedModel.toLowerCase().includes("gemma");
-		if (allowedModel !== currentModel) {
+		if (allowedModel !== currentModel && !autoSwitchedToImage) {
 			setCurrentModel(allowedModel);
 			void plugin.selectModel(allowedModel);
 		}
@@ -1397,9 +1453,10 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 					})
 					: undefined;
 
-				// Track processed edits/deletes for message display
+				// Track processed edits/deletes/renames for message display
 				const processedEdits: PendingEditInfo[] = [];
 				const processedDeletes: PendingDeleteInfo[] = [];
+				const processedRenames: PendingRenameInfo[] = [];
 				// Track MCP Apps with UI for message display
 				const collectedMcpApps: McpAppInfo[] = [];
 				// Track pending additional request for edit feedback (use container to bypass TS narrowing)
@@ -1517,6 +1574,34 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 							}
 						}
 
+						// Handle rename_note (now proposeRename) with confirmation
+						if (name === "rename_note") {
+							const pendingRn = getPendingRename();
+							if (pendingRn) {
+								const confirmed = await promptForRenameConfirmation(
+									plugin.app,
+									pendingRn.originalPath,
+									pendingRn.newPath
+								);
+
+								if (confirmed) {
+									const renameResult = await applyRename(plugin.app);
+									if (renameResult.success) {
+										processedRenames.push({ originalPath: pendingRn.originalPath, newPath: pendingRn.newPath, status: "applied" });
+										return { ...result, applied: true, message: `Renamed "${pendingRn.originalPath}" to "${pendingRn.newPath}"` };
+									} else {
+										discardRename(plugin.app);
+										processedRenames.push({ originalPath: pendingRn.originalPath, newPath: pendingRn.newPath, status: "failed" });
+										return { ...result, applied: false, error: renameResult.error };
+									}
+								} else {
+									discardRename(plugin.app);
+									processedRenames.push({ originalPath: pendingRn.originalPath, newPath: pendingRn.newPath, status: "discarded" });
+									return { ...result, applied: false, message: "User cancelled the rename" };
+								}
+							}
+						}
+
 						// Handle bulk_propose_edit with immediate confirmation
 						if (name === "bulk_propose_edit") {
 							const pendingBulk = getPendingBulkEdit();
@@ -1583,6 +1668,47 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 										processedDeletes.push({ path: item.path, status: "cancelled" });
 									}
 									return { ...result, deleted: [], message: "User cancelled all deletions" };
+								}
+							}
+						}
+
+						// Handle bulk_propose_rename with immediate confirmation
+						if (name === "bulk_propose_rename") {
+							const pendingBulk = getPendingBulkRename();
+							if (pendingBulk && pendingBulk.items.length > 0) {
+								const selectedPaths = await promptForBulkRenameConfirmation(
+									plugin.app,
+									pendingBulk.items
+								);
+
+								if (selectedPaths.length > 0) {
+									const renameResult = await applyBulkRename(plugin.app, selectedPaths);
+									// Track each renamed file
+									for (const path of renameResult.applied) {
+										const item = pendingBulk.items.find(i => i.originalPath === path);
+										if (item) {
+											processedRenames.push({ originalPath: item.originalPath, newPath: item.newPath, status: "applied" });
+										}
+									}
+									for (const path of renameResult.failed) {
+										const item = pendingBulk.items.find(i => i.originalPath === path);
+										if (item) {
+											processedRenames.push({ originalPath: item.originalPath, newPath: item.newPath, status: "failed" });
+										}
+									}
+									return {
+										...result,
+										applied: renameResult.applied,
+										failed: renameResult.failed,
+										message: renameResult.message,
+									};
+								} else {
+									discardBulkRename();
+									// Track all as discarded
+									for (const item of pendingBulk.items) {
+										processedRenames.push({ originalPath: item.originalPath, newPath: item.newPath, status: "discarded" });
+									}
+									return { ...result, applied: [], message: "User cancelled all renames" };
 								}
 							}
 						}
@@ -1749,9 +1875,10 @@ Always be helpful and provide clear, concise responses. When working with notes,
 					fullContent += `\n\n${t("chat.generationStopped")}`;
 				}
 
-				// Get processed edit/delete info from tool executor (already confirmed during tool execution)
+				// Get processed edit/delete/rename info from tool executor (already confirmed during tool execution)
 				const pendingEditInfo = processedEdits.length > 0 ? processedEdits[processedEdits.length - 1] : undefined;
 				const pendingDeleteInfo = processedDeletes.length > 0 ? processedDeletes[processedDeletes.length - 1] : undefined;
+				const pendingRenameInfo = processedRenames.length > 0 ? processedRenames[processedRenames.length - 1] : undefined;
 
 				// Always clear the slash command ref after message processing
 				currentSlashCommandRef.current = null;
@@ -1765,6 +1892,7 @@ Always be helpful and provide clear, concise responses. When working with notes,
 					toolsUsed: toolsUsed.length > 0 ? toolsUsed : undefined,
 					pendingEdit: pendingEditInfo,
 					pendingDelete: pendingDeleteInfo,
+					pendingRename: pendingRenameInfo,
 					toolCalls: toolCalls.length > 0 ? toolCalls : undefined,
 					toolResults: toolResults.length > 0 ? toolResults : undefined,
 					ragUsed: ragUsed || undefined,
@@ -1831,6 +1959,10 @@ Always be helpful and provide clear, concise responses. When working with notes,
 			};
 			setMessages((prev) => [...prev, errorMessage]);
 		} finally {
+			// Restore original model if auto-switched to image model
+			if (autoSwitchedToImage) {
+				client.setModel(originalModel);
+			}
 			setIsLoading(false);
 			setStreamingContent("");
 			setStreamingThinking("");
@@ -1847,6 +1979,80 @@ Always be helpful and provide clear, concise responses. When working with notes,
 		// even if abort signal is not properly handled by the stream
 		setIsLoading(false);
 		abortControllerRef.current = null;
+	};
+
+	// Compact/compress conversation history
+	// Saves current chat as-is, then starts a new chat with the summary as context
+	const handleCompact = async () => {
+		if (messages.length < 2 || isLoading || isCompacting) return;
+
+		// CLI mode does not support compact
+		if (isCliMode) {
+			new Notice(t("chat.compactNotAvailable"));
+			return;
+		}
+
+		const client = getGeminiClient();
+		if (!client) {
+			new Notice(t("chat.clientNotInitialized"));
+			return;
+		}
+
+		setIsCompacting(true);
+
+		try {
+			// Save current chat first (preserves full history)
+			await saveCurrentChat(messages, cliSession || undefined);
+
+			// Build conversation text for summarization
+			const conversationText = messages.map(msg => {
+				const role = msg.role === "user" ? "User" : "Assistant";
+				return `${role}: ${msg.content}`;
+			}).join("\n\n");
+
+			// Create summarization request
+			const summaryPrompt: Message = {
+				role: "user",
+				content: `Summarize the following conversation concisely. Preserve key information, decisions, file paths, and context that would be needed to continue the conversation. Output the summary in the same language as the conversation.\n\n---\n${conversationText}\n---`,
+				timestamp: Date.now(),
+			};
+
+			const summary = await client.chat([summaryPrompt], "You are a conversation summarizer. Output only the summary without any preamble.");
+
+			if (!summary.trim()) {
+				new Notice(t("chat.compactFailed"));
+				return;
+			}
+
+			// Start a new chat with user's compact request and AI's summary
+			const now = Date.now();
+			const userMessage: Message = {
+				role: "user",
+				content: "/compact",
+				timestamp: now,
+			};
+			const compactedMessage: Message = {
+				role: "assistant",
+				content: `[${t("chat.compactedContext")}]\n\n${summary}`,
+				timestamp: now + 1,
+			};
+
+			const newMessages = [userMessage, compactedMessage];
+			const newChatId = generateChatId();
+			setCurrentChatId(newChatId);
+			setCliSession(null);
+			setMessages(newMessages);
+
+			// Save as a new chat with explicit new ID (avoids stale closure of currentChatId)
+			await saveCurrentChat(newMessages, undefined, newChatId);
+
+			new Notice(t("chat.compacted", { before: String(messages.length), after: "2" }));
+		} catch (error) {
+			const errorMsg = error instanceof Error ? error.message : t("chat.unknownError");
+			new Notice(t("chat.compactFailed") + ": " + errorMsg);
+		} finally {
+			setIsCompacting(false);
+		}
 	};
 
 	// Handle apply edit button click
@@ -2059,6 +2265,9 @@ Always be helpful and provide clear, concise responses. When working with notes,
 						onMcpServerToggle={handleMcpServerToggle}
 						slashCommands={plugin.settings.slashCommands}
 						onSlashCommand={handleSlashCommand}
+						onCompact={() => { void handleCompact(); }}
+						messageCount={messages.length}
+						isCompacting={isCompacting}
 						vaultFiles={vaultFiles}
 						hasSelection={hasSelection}
 						app={plugin.app}

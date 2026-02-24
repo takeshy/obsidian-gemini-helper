@@ -173,7 +173,7 @@ export const obsidianTools: ToolDefinition[] = [
   },
   {
     name: "rename_note",
-    description: "Rename or move a note to a new location.",
+    description: "Propose renaming or moving a note. Changes are NOT applied immediately - a confirmation dialog is shown first. The user must click Apply to rename, or Discard to cancel.",
     parameters: {
       type: "object",
       properties: {
@@ -231,15 +231,33 @@ export const obsidianTools: ToolDefinition[] = [
         },
         newContent: {
           type: "string",
-          description: "The new content to propose",
+          description: "The new content to propose (required for replace/append/prepend modes)",
         },
         mode: {
           type: "string",
-          description: "Edit mode: 'replace' to replace all content, 'append' to add at end, 'prepend' to add at beginning",
-          enum: ["replace", "append", "prepend"],
+          description: "Edit mode: 'replace' replaces all content (requires newContent), 'append' adds at end (requires newContent), 'prepend' adds at beginning (requires newContent), 'patch' applies search-and-replace patches (requires patches)",
+          enum: ["replace", "append", "prepend", "patch"],
+        },
+        patches: {
+          type: "array",
+          description: "Array of search-and-replace patches (required for patch mode). Each patch replaces the first occurrence of 'search' with 'replace'.",
+          items: {
+            type: "object",
+            properties: {
+              search: {
+                type: "string",
+                description: "The text to search for (exact match)",
+              },
+              replace: {
+                type: "string",
+                description: "The replacement text",
+              },
+            },
+            required: ["search", "replace"],
+          },
         },
       },
-      required: ["newContent"],
+      required: ["mode"],
     },
   },
   {
@@ -292,6 +310,35 @@ export const obsidianTools: ToolDefinition[] = [
     },
   },
   {
+    name: "bulk_propose_rename",
+    description:
+      "Propose renaming/moving multiple notes at once. A confirmation dialog shows all renames with checkboxes for selective application. Use this when renaming many files to avoid multiple individual confirmations.",
+    parameters: {
+      type: "object",
+      properties: {
+        renames: {
+          type: "array",
+          description: "Array of rename operations",
+          items: {
+            type: "object",
+            properties: {
+              oldPath: {
+                type: "string",
+                description: "The current path of the note",
+              },
+              newPath: {
+                type: "string",
+                description: "The new path for the note",
+              },
+            },
+            required: ["oldPath", "newPath"],
+          },
+        },
+      },
+      required: ["renames"],
+    },
+  },
+  {
     name: "bulk_propose_delete",
     description:
       "Propose deletion of multiple notes at once. A confirmation dialog shows all files with checkboxes for selective deletion. Use this when deleting many files to avoid multiple individual confirmations.",
@@ -336,7 +383,7 @@ export function getEnabledTools(options: {
 
     // Write operations (update_note is disabled in favor of propose_edit for safer editing)
     if (
-      ["create_note", "create_folder", "rename_note", "propose_edit", "bulk_propose_edit"].includes(tool.name)
+      ["create_note", "create_folder", "rename_note", "propose_edit", "bulk_propose_edit", "bulk_propose_rename"].includes(tool.name)
     ) {
       return allowWrite;
     }

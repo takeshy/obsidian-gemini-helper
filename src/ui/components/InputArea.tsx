@@ -169,6 +169,14 @@ const InputArea = forwardRef<InputAreaHandle, InputAreaProps>(function InputArea
 
   const handleSubmit = () => {
     if ((input.trim() || pendingAttachments.length > 0) && !isLoading) {
+      // Intercept /compact command
+      if (input.trim() === "/compact" && onCompact) {
+        if (messageCount >= 2) {
+          setInput("");
+          onCompact();
+        }
+        return;
+      }
       void onSend(input, pendingAttachments.length > 0 ? pendingAttachments : undefined);
       setInput("");
       setPendingAttachments([]);

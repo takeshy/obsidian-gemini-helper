@@ -61,6 +61,7 @@ export interface ChatWithToolsOptions {
   ragTopK?: number;
   functionCallLimits?: FunctionCallLimitOptions;
   disableTools?: boolean;
+  enableThinking?: boolean;
 }
 
 export class GeminiClient {
@@ -327,8 +328,8 @@ export class GeminiClient {
     // Check if model supports thinking (Gemma models don't support it)
     const supportsThinking = !this.model.toLowerCase().includes("gemma");
 
-    // Enable thinking only when user message contains thinking keywords
-    const enableThinking = supportsThinking && shouldEnableThinkingByKeyword(lastMessage.content || "");
+    // Enable thinking: explicit option overrides keyword detection
+    const enableThinking = supportsThinking && (options?.enableThinking === true || shouldEnableThinkingByKeyword(lastMessage.content || ""));
 
     // Build thinking config based on model
     // - Gemini 2.5 Flash Lite requires thinkingBudget to enable thinking (default is off)

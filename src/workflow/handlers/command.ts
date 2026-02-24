@@ -338,7 +338,7 @@ Please revise the output based on the user's feedback above.`;
         toolExecutor,
         storeIds.length > 0 ? storeIds : undefined, // RAG store IDs
         useWebSearch, // Web search mode
-        undefined // No options
+        { enableThinking: true }
       );
 
   let thinkingContent = "";

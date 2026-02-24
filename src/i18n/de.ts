@@ -760,6 +760,8 @@ export const de: Record<string, string> = {
   "nodeEditor.vaultToolsAll": "Alle (Suche + Lesen/Schreiben)",
   "nodeEditor.vaultToolsNoSearch": "Keine Suche (nur Lesen/Schreiben)",
   "nodeEditor.vaultToolsNone": "Keine",
+  "nodeEditor.enableThinking": "Denkmodus",
+  "nodeEditor.enableThinking.desc": "Aktiviert den tiefen Denkmodus für diesen Befehl",
   "nodeEditor.mcpServers": "MCP-Server",
   "nodeEditor.attachments": "Anhänge",
   "nodeEditor.attachments.placeholder": "Variablennamen mit Dateidaten (kommagetrennt)",

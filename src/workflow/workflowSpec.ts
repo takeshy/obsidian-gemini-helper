@@ -114,6 +114,7 @@ Execute LLM prompt.
 - **ragSetting** (optional): __websearch__, __none__, or RAG setting name. ${ragList}
 - **vaultTools** (optional): "all" (default), "noSearch", "none"
 - **mcpServers** (optional): Comma-separated MCP server names. ${mcpServerList}
+- **enableThinking** (optional): "true" (default) or "false". Enable deep thinking mode
 - **attachments** (optional): Comma-separated variable names containing FileExplorerData
 - **saveTo** (optional): Variable for text response
 - **saveImageTo** (optional): Variable for generated image (FileExplorerData format). Use with file-save node to save.

@@ -760,6 +760,8 @@ export const en = {
   "nodeEditor.vaultToolsAll": "All (search + read/write)",
   "nodeEditor.vaultToolsNoSearch": "No search (read/write only)",
   "nodeEditor.vaultToolsNone": "None",
+  "nodeEditor.enableThinking": "Enable thinking",
+  "nodeEditor.enableThinking.desc": "Enable deep thinking mode for this command",
   "nodeEditor.mcpServers": "Mcp servers",
   "nodeEditor.attachments": "Attachments",
   "nodeEditor.attachments.placeholder": "Variable names with file data (comma-separated)",

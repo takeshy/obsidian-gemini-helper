@@ -760,6 +760,8 @@ export const zh: Record<string, string> = {
   "nodeEditor.vaultToolsAll": "全部（搜索 + 读写）",
   "nodeEditor.vaultToolsNoSearch": "无搜索（仅读写）",
   "nodeEditor.vaultToolsNone": "无",
+  "nodeEditor.enableThinking": "思考模式",
+  "nodeEditor.enableThinking.desc": "为此命令启用深度思考模式",
   "nodeEditor.mcpServers": "MCP 服务器",
   "nodeEditor.attachments": "附件",
   "nodeEditor.attachments.placeholder": "包含文件数据的变量名（逗号分隔）",

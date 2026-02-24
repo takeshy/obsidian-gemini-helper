@@ -760,6 +760,8 @@ export const ko: Record<string, string> = {
   "nodeEditor.vaultToolsAll": "모두 (검색 + 읽기/쓰기)",
   "nodeEditor.vaultToolsNoSearch": "검색 없음 (읽기/쓰기만)",
   "nodeEditor.vaultToolsNone": "없음",
+  "nodeEditor.enableThinking": "사고 모드",
+  "nodeEditor.enableThinking.desc": "이 커맨드에서 깊은 사고 모드를 활성화합니다",
   "nodeEditor.mcpServers": "MCP 서버",
   "nodeEditor.attachments": "첨부 파일",
   "nodeEditor.attachments.placeholder": "파일 데이터가 있는 변수 이름 (쉼표로 구분)",

@@ -758,6 +758,8 @@ export const ja: Record<string, string> = {
   "nodeEditor.vaultToolsAll": "すべて（検索 + 読み書き）",
   "nodeEditor.vaultToolsNoSearch": "検索なし（読み書きのみ）",
   "nodeEditor.vaultToolsNone": "なし",
+  "nodeEditor.enableThinking": "思考モード",
+  "nodeEditor.enableThinking.desc": "このコマンドで深い思考モードを有効にする",
   "nodeEditor.mcpServers": "MCPサーバー",
   "nodeEditor.attachments": "添付ファイル",
   "nodeEditor.attachments.placeholder": "ファイルデータを含む変数名（カンマ区切り）",

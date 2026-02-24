@@ -358,6 +358,17 @@ export class NodeEditorModal extends Modal {
           }
         }
 
+        // Enable thinking toggle
+        new Setting(container)
+          .setName(t("nodeEditor.enableThinking"))
+          .setDesc(t("nodeEditor.enableThinking.desc"))
+          .addToggle((toggle) => {
+            toggle.setValue(this.editedProperties["enableThinking"] !== "false");
+            toggle.onChange((value) => {
+              this.editedProperties["enableThinking"] = value ? "true" : "false";
+            });
+          });
+
         this.addTextField(container, "attachments", t("nodeEditor.attachments"), t("nodeEditor.attachments.placeholder"));
         this.addTextField(container, "saveTo", t("nodeEditor.saveTo"), t("nodeEditor.saveTo.placeholder"));
         this.addTextField(container, "saveImageTo", t("nodeEditor.saveImageTo"), t("nodeEditor.saveImageTo.placeholder"));

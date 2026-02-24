@@ -760,6 +760,8 @@ export const es: Record<string, string> = {
   "nodeEditor.vaultToolsAll": "Todas (búsqueda + lectura/escritura)",
   "nodeEditor.vaultToolsNoSearch": "Sin búsqueda (solo lectura/escritura)",
   "nodeEditor.vaultToolsNone": "Ninguna",
+  "nodeEditor.enableThinking": "Modo de pensamiento",
+  "nodeEditor.enableThinking.desc": "Activar el modo de pensamiento profundo para este comando",
   "nodeEditor.mcpServers": "Servidores MCP",
   "nodeEditor.attachments": "Adjuntos",
   "nodeEditor.attachments.placeholder": "Nombres de variables con datos de archivo (separados por comas)",

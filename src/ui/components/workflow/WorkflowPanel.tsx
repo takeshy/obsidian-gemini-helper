@@ -143,7 +143,7 @@ function getDefaultProperties(type: WorkflowNodeType): Record<string, string> {
     case "while":
       return { condition: "" };
     case "command":
-      return { prompt: "", model: "", ragSetting: "__none__", attachments: "", saveTo: "" };
+      return { prompt: "", model: "", ragSetting: "__none__", enableThinking: "true", attachments: "", saveTo: "" };
     case "http":
       return { url: "", method: "GET", saveTo: "" };
     case "json":

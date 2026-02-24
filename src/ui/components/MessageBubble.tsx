@@ -665,6 +665,27 @@ export default function MessageBubble({
           ❌ {t("message.failedToDelete")}
         </div>
       )}
+
+      {/* Rename applied status */}
+      {message.pendingRename && message.pendingRename.status === "applied" && (
+        <div className="gemini-helper-edit-status gemini-helper-edit-applied">
+          📁 {t("message.renamed")} <strong>{message.pendingRename.originalPath}</strong> → <strong>{message.pendingRename.newPath}</strong>
+        </div>
+      )}
+
+      {/* Rename discarded status */}
+      {message.pendingRename && message.pendingRename.status === "discarded" && (
+        <div className="gemini-helper-edit-status gemini-helper-edit-discarded">
+          ❌ {t("message.cancelledRename")} <strong>{message.pendingRename.originalPath}</strong>
+        </div>
+      )}
+
+      {/* Rename failed status */}
+      {message.pendingRename && message.pendingRename.status === "failed" && (
+        <div className="gemini-helper-edit-status gemini-helper-edit-discarded">
+          ❌ {t("message.failedToRename")}
+        </div>
+      )}
     </div>
   );
 }

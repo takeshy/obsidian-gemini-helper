@@ -227,6 +227,17 @@ export const ja: Record<string, string> = {
   "chat.unknownError": "不明なエラー",
   "chat.generationStopped": "_(生成が停止されました)_",
   "chat.generationInProgress": "生成中のため操作できません。停止してから続行してください。",
+  "chat.welcomeTitle": "AIとの会話を始めましょう",
+  "chat.welcomeHint": "ノートについて質問したり、新規作成したり、Vault内を検索できます。",
+  "chat.welcomeThinking": "「考えて」「分析して」などのキーワードで深い思考モードが有効になります",
+  "chat.welcomeImage": "「画像を生成」「generate image」で自動的に画像モデルに切り替わります",
+  "chat.welcomeCompact": "/compact で長い会話を要約して新しいチャットに引き継げます",
+  "chat.welcomeNewChat": "Geminiは記憶ができないため、毎回このチャットの全会話を送信します。話題を変える時は必ず + ボタンで新しいチャットを始めてください",
+  "chat.compactNotAvailable": "CLIモードではコンパクトは使用できません",
+  "chat.compacted": "会話を圧縮しました: {{before}}メッセージ → {{after}}",
+  "chat.compactedContext": "圧縮された会話コンテキスト",
+  "chat.compactFailed": "会話の圧縮に失敗しました",
+  "chat.compacting": "圧縮中...",
   "chat.yesterday": "昨日",
 
   // InputArea
@@ -296,6 +307,9 @@ export const ja: Record<string, string> = {
   "message.deleted": "削除しました",
   "message.cancelledDeletion": "削除をキャンセルしました：",
   "message.failedToDelete": "削除に失敗しました",
+  "message.renamed": "リネーム済み",
+  "message.cancelledRename": "リネームをキャンセル",
+  "message.failedToRename": "リネームに失敗しました",
 
   // Tool display labels
   "tool.read": "読み取り",
@@ -475,6 +489,7 @@ export const ja: Record<string, string> = {
   "command.encryptFile": "現在のファイルを暗号化",
   "command.decryptFile": "現在のファイルの暗号化を解除",
   "command.runWorkflow": "ワークフローを実行",
+  "command.compact": "会話履歴を圧縮",
 
   // Workflow Selector Modal
   "workflowSelector.title": "ワークフローを実行",
@@ -624,6 +639,7 @@ export const ja: Record<string, string> = {
   "workflowModal.appendToFile": "ファイルに追記",
   "workflowModal.overwriteFile": "ファイルを上書き",
   "workflowModal.confirmFileDeletion": "ファイル削除の確認",
+  "workflowModal.confirmFileRename": "ファイルのリネームを確認",
   "workflowModal.moveToTrash": "ゴミ箱に移動",
   "workflowModal.contentToBeDeleted": "削除される内容:",
   "workflowModal.delete": "削除",
@@ -636,6 +652,8 @@ export const ja: Record<string, string> = {
   "workflowModal.apply": "適用（{{count}}）",
   "workflowModal.confirmBulkDelete": "一括削除の確認（{{count}}ファイル）",
   "workflowModal.deleteCount": "削除（{{count}}）",
+  "workflowModal.confirmBulkRename": "一括リネームの確認（{{count}}ファイル）",
+  "workflowModal.renameCount": "リネーム（{{count}}）",
   "workflowModal.executionHistory": "実行履歴",
   "workflowModal.runs": "実行",
   "workflowModal.details": "詳細",

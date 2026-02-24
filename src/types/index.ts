@@ -454,6 +454,7 @@ export interface Message {
   attachments?: Attachment[];  // 添付ファイル
   pendingEdit?: PendingEditInfo;  // 保留中の編集情報
   pendingDelete?: PendingDeleteInfo;  // 保留中の削除情報
+  pendingRename?: PendingRenameInfo;  // 保留中のリネーム情報
   toolCalls?: ToolCall[];
   toolResults?: ToolResult[];
   ragUsed?: boolean;  // RAG（File Search）が使用されたか
@@ -475,6 +476,13 @@ export interface PendingEditInfo {
 export interface PendingDeleteInfo {
   path: string;
   status: "pending" | "deleted" | "cancelled" | "failed";
+}
+
+// 保留中のリネーム情報
+export interface PendingRenameInfo {
+  originalPath: string;
+  newPath: string;
+  status: "pending" | "applied" | "discarded" | "failed";
 }
 
 // 添付ファイル

@@ -226,6 +226,26 @@
   font-size: 12px;
 }
 
+.gemini-helper-empty-tips {
+  margin-top: 16px;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.gemini-helper-empty-tip {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.gemini-helper-empty-tip-icon {
+  flex-shrink: 0;
+}
+
 /* Message Bubbles */
 .gemini-helper-message {
   padding: 10px 14px;
@@ -6142,6 +6162,10 @@
   to {
     transform: rotate(360deg);
   }
+}
+
+.gemini-helper-spinner {
+  animation: gemini-helper-spin 0.8s linear infinite;
 }
 
 .gemini-helper-mcp-app-error {

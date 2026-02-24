@@ -2,6 +2,7 @@ import { forwardRef } from "react";
 import type { App } from "obsidian";
 import type { Message } from "src/types";
 import MessageBubble from "./MessageBubble";
+import { t } from "src/i18n";
 
 interface MessageListProps {
   messages: Message[];
@@ -52,10 +53,28 @@ const MessageList = forwardRef<HTMLDivElement, MessageListProps>(({
     <div className="gemini-helper-messages" ref={ref}>
       {messages.length === 0 && !streamingContent && (
         <div className="gemini-helper-empty-state">
-          <p>Start a conversation with Gemini</p>
+          <p>{t("chat.welcomeTitle")}</p>
           <p className="gemini-helper-empty-hint">
-            Ask questions about your notes, create new ones, or search your vault.
+            {t("chat.welcomeHint")}
           </p>
+          <div className="gemini-helper-empty-tips">
+            <div className="gemini-helper-empty-tip">
+              <span className="gemini-helper-empty-tip-icon">💭</span>
+              <span>{t("chat.welcomeThinking")}</span>
+            </div>
+            <div className="gemini-helper-empty-tip">
+              <span className="gemini-helper-empty-tip-icon">🎨</span>
+              <span>{t("chat.welcomeImage")}</span>
+            </div>
+            <div className="gemini-helper-empty-tip">
+              <span className="gemini-helper-empty-tip-icon">📦</span>
+              <span>{t("chat.welcomeCompact")}</span>
+            </div>
+            <div className="gemini-helper-empty-tip">
+              <span className="gemini-helper-empty-tip-icon">💡</span>
+              <span>{t("chat.welcomeNewChat")}</span>
+            </div>
+          </div>
         </div>
       )}
 

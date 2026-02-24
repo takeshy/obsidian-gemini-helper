@@ -227,6 +227,17 @@ export const it: Record<string, string> = {
   "chat.unknownError": "Errore sconosciuto",
   "chat.generationStopped": "_(Generazione interrotta)_",
   "chat.generationInProgress": "L'IA sta generando. Fermala prima di continuare.",
+  "chat.welcomeTitle": "Inizia una conversazione con l'AI",
+  "chat.welcomeHint": "Fai domande sulle tue note, creane di nuove o cerca nel tuo vault.",
+  "chat.welcomeThinking": "\"Pensa\" o \"analizza\" per attivare la modalità pensiero profondo",
+  "chat.welcomeImage": "\"Genera immagine\" o \"crea immagine\" per passare automaticamente al modello immagine",
+  "chat.welcomeCompact": "Digita /compact per comprimere una lunga conversazione in una nuova chat",
+  "chat.welcomeNewChat": "Gemini non ha memoria, quindi l'intera cronologia della chat viene inviata ogni volta. Clicca sempre + per iniziare una nuova chat quando cambi argomento",
+  "chat.compactNotAvailable": "La compressione non è disponibile in modalità CLI",
+  "chat.compacted": "Conversazione compressa: {{before}} messaggi → {{after}}",
+  "chat.compactedContext": "Contesto conversazione compresso",
+  "chat.compactFailed": "Compressione della conversazione fallita",
+  "chat.compacting": "Compressione...",
   "chat.yesterday": "Ieri",
 
   // InputArea
@@ -296,6 +307,9 @@ export const it: Record<string, string> = {
   "message.deleted": "Eliminato",
   "message.cancelledDeletion": "Eliminazione annullata di",
   "message.failedToDelete": "Errore eliminazione",
+  "message.renamed": "Rinominato",
+  "message.cancelledRename": "Rinominazione annullata di",
+  "message.failedToRename": "Rinominazione fallita",
 
   // Tool display labels
   "tool.read": "Lettura",
@@ -452,6 +466,7 @@ export const it: Record<string, string> = {
   "workflowModal.appendToFile": "Aggiungi al file",
   "workflowModal.overwriteFile": "Sovrascrivi file",
   "workflowModal.confirmFileDeletion": "Conferma eliminazione file",
+  "workflowModal.confirmFileRename": "Conferma rinominazione file",
   "workflowModal.moveToTrash": "Sposta nel cestino",
   "workflowModal.contentToBeDeleted": "Contenuto da eliminare:",
   "workflowModal.delete": "Elimina",
@@ -464,6 +479,8 @@ export const it: Record<string, string> = {
   "workflowModal.apply": "Applica ({{count}})",
   "workflowModal.confirmBulkDelete": "Conferma eliminazione in blocco ({{count}} file)",
   "workflowModal.deleteCount": "Elimina ({{count}})",
+  "workflowModal.confirmBulkRename": "Conferma rinomina in blocco ({{count}} file)",
+  "workflowModal.renameCount": "Rinomina ({{count}})",
   "workflowModal.executionHistory": "Cronologia esecuzioni",
   "workflowModal.runs": "Esecuzioni",
   "workflowModal.details": "Dettagli",
@@ -541,6 +558,7 @@ export const it: Record<string, string> = {
   "command.encryptFile": "Crittografa file corrente",
   "command.decryptFile": "Decrittografa file corrente",
   "command.runWorkflow": "Esegui workflow",
+  "command.compact": "Comprimi cronologia conversazione",
 
   // Workflow Selector Modal
   "workflowSelector.title": "Esegui workflow",

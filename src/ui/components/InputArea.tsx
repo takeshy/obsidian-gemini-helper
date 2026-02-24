@@ -1,8 +1,16 @@
 import { useState, useRef, useEffect, KeyboardEvent, ChangeEvent, forwardRef, useImperativeHandle } from "react";
-import { Send, Paperclip, StopCircle, Eye, Database, ChevronUp, ChevronDown } from "lucide-react";
+import { Send, Paperclip, StopCircle, Loader2, Eye, Database, ChevronUp, ChevronDown } from "lucide-react";
 import { Platform, type App } from "obsidian";
 import { isImageGenerationModel, type ModelInfo, type ModelType, type Attachment, type SlashCommand, type McpServerConfig, type VaultToolMode } from "src/types";
 import { t } from "src/i18n";
+
+// Built-in command definition (not user-configurable)
+interface BuiltInCommand {
+  id: string;
+  name: string;
+  description: string;
+  isBuiltIn: true;
+}
 
 interface InputAreaProps {
   onSend: (content: string, attachments?: Attachment[]) => void | Promise<void>;
@@ -23,6 +31,9 @@ interface InputAreaProps {
   onMcpServerToggle: (serverName: string, enabled: boolean) => void; // Per-server toggle handler
   slashCommands: SlashCommand[];
   onSlashCommand: (command: SlashCommand) => string;
+  onCompact?: () => void; // Built-in /compact command handler
+  messageCount?: number; // Number of messages (to enable/disable /compact)
+  isCompacting?: boolean; // Whether compact is in progress
   vaultFiles: string[];
   hasSelection: boolean;
   app: App;
@@ -67,6 +78,9 @@ const InputArea = forwardRef<InputAreaHandle, InputAreaProps>(function InputArea
   onMcpServerToggle,
   slashCommands,
   onSlashCommand,
+  onCompact,
+  messageCount = 0,
+  isCompacting = false,
   vaultFiles,
   hasSelection,
   app,
@@ -76,7 +90,7 @@ const InputArea = forwardRef<InputAreaHandle, InputAreaProps>(function InputArea
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [showAutocomplete, setShowAutocomplete] = useState(false);
   const [autocompleteIndex, setAutocompleteIndex] = useState(0);
-  const [filteredCommands, setFilteredCommands] = useState<SlashCommand[]>([]);
+  const [filteredCommands, setFilteredCommands] = useState<(SlashCommand | BuiltInCommand)[]>([]);
   // Mention autocomplete state
   const [showMentionAutocomplete, setShowMentionAutocomplete] = useState(false);
   const [mentionIndex, setMentionIndex] = useState(0);
@@ -167,11 +181,28 @@ const InputArea = forwardRef<InputAreaHandle, InputAreaProps>(function InputArea
     setInput(value);
 
     // Check for slash command trigger (only at start of input)
-    if (value.startsWith("/") && slashCommands.length > 0) {
+    if (value.startsWith("/")) {
       const query = value.slice(1).toLowerCase();
-      const matches = slashCommands.filter((cmd) =>
+
+      // Build built-in commands list
+      const builtInCommands: BuiltInCommand[] = [];
+      if (onCompact && messageCount >= 2) {
+        builtInCommands.push({
+          id: "__compact__",
+          name: "compact",
+          description: t("command.compact"),
+          isBuiltIn: true,
+        });
+      }
+
+      // Filter both user-defined and built-in commands
+      const userMatches = slashCommands.filter((cmd) =>
         cmd.name.toLowerCase().startsWith(query)
       );
+      const builtInMatches = builtInCommands.filter((cmd) =>
+        cmd.name.toLowerCase().startsWith(query)
+      );
+      const matches: (SlashCommand | BuiltInCommand)[] = [...userMatches, ...builtInMatches];
       setFilteredCommands(matches);
       setShowAutocomplete(matches.length > 0);
       setAutocompleteIndex(0);
@@ -197,9 +228,17 @@ const InputArea = forwardRef<InputAreaHandle, InputAreaProps>(function InputArea
     }
   };
 
-  const selectCommand = (command: SlashCommand) => {
+  const selectCommand = (command: SlashCommand | BuiltInCommand) => {
     setShowAutocomplete(false);
-    const resolvedPrompt = onSlashCommand(command);
+    if ("isBuiltIn" in command && command.isBuiltIn) {
+      // Handle built-in commands
+      if (command.id === "__compact__" && onCompact) {
+        setInput("");
+        onCompact();
+      }
+      return;
+    }
+    const resolvedPrompt = onSlashCommand(command as SlashCommand);
     setInput(resolvedPrompt);
     textareaRef.current?.focus();
   };
@@ -392,7 +431,7 @@ const InputArea = forwardRef<InputAreaHandle, InputAreaProps>(function InputArea
                 onMouseEnter={() => setAutocompleteIndex(index)}
               >
                 <span className="gemini-helper-autocomplete-name">/{cmd.name}</span>
-                {cmd.description && (
+                {("description" in cmd) && cmd.description && (
                   <span className="gemini-helper-autocomplete-desc">
                     {cmd.description}
                   </span>
@@ -551,11 +590,20 @@ const InputArea = forwardRef<InputAreaHandle, InputAreaProps>(function InputArea
           value={input}
           onChange={handleInputChange}
           onKeyDown={handleKeyDown}
-          placeholder={Platform.isMobile ? t("input.placeholderMobile") : t("input.placeholder")}
+          placeholder={isCompacting ? t("chat.compacting") : (Platform.isMobile ? t("input.placeholderMobile") : t("input.placeholder"))}
+          disabled={isCompacting}
           rows={3}
         />
         <div className="gemini-helper-send-buttons">
-          {isLoading ? (
+          {isCompacting ? (
+            <button
+              className="gemini-helper-send-btn"
+              disabled={true}
+              title={t("chat.compacting")}
+            >
+              <Loader2 size={18} className="gemini-helper-spinner" />
+            </button>
+          ) : isLoading ? (
             <button
               className="gemini-helper-stop-btn"
               onClick={onStop}

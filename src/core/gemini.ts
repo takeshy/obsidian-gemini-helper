@@ -18,6 +18,39 @@ import {
   type GeneratedImage,
 } from "src/types";
 
+// Keywords that trigger thinking mode
+// Latin-script keywords use word-boundary regex to avoid false positives (e.g. "reason" in "no reason")
+const THINKING_KEYWORDS_REGEX = [
+  // English
+  /\bthink\b/, /\banalyze\b/, /\bconsider\b/, /\breason about\b/, /\breflect\b/,
+  // German
+  /\bnachdenken\b/, /\banalysieren\b/, /\büberlegen\b/,
+  // Spanish
+  /\bpiensa\b/, /\banaliza\b/, /\breflexiona\b/,
+  // French
+  /\bréfléchis\b/, /\banalyse\b/, /\bconsidère\b/,
+  // Italian
+  /\bpensa\b/, /\banalizza\b/, /\brifletti\b/,
+  // Portuguese
+  /\bpense\b/, /\banalise\b/, /\breflita\b/,
+];
+
+// CJK keywords use substring matching (word boundaries don't apply)
+const THINKING_KEYWORDS_CJK = [
+  // Japanese
+  "考えて", "考察", "分析して", "検討して", "深く考", "じっくり", "よく考えて",
+  // Korean
+  "생각해", "분석해", "고려해",
+  // Chinese
+  "思考", "分析一下", "考虑",
+];
+
+function shouldEnableThinkingByKeyword(message: string): boolean {
+  const lower = message.toLowerCase();
+  return THINKING_KEYWORDS_REGEX.some(re => re.test(lower))
+    || THINKING_KEYWORDS_CJK.some(kw => lower.includes(kw));
+}
+
 // Function call limit options
 export interface FunctionCallLimitOptions {
   maxFunctionCalls?: number;           // 最大function call回数 (default: 20)
@@ -284,15 +317,25 @@ export class GeminiClient {
     const historyMessages = messages.slice(0, -1);
     const history = this.messagesToHistory(historyMessages);
 
+    // Get the last user message (needed for keyword-based thinking)
+    const lastMessage = messages[messages.length - 1];
+    if (!lastMessage || lastMessage.role !== "user") {
+      yield { type: "error", error: "No user message to send" };
+      return;
+    }
+
     // Check if model supports thinking (Gemma models don't support it)
     const supportsThinking = !this.model.toLowerCase().includes("gemma");
+
+    // Enable thinking only when user message contains thinking keywords
+    const enableThinking = supportsThinking && shouldEnableThinkingByKeyword(lastMessage.content || "");
 
     // Build thinking config based on model
     // - Gemini 2.5 Flash Lite requires thinkingBudget to enable thinking (default is off)
     // - Other 2.5 models work with just includeThoughts
     // - Gemini 3 models use thinkingLevel (not thinkingBudget)
     const getThinkingConfig = () => {
-      if (!supportsThinking) return undefined;
+      if (!enableThinking) return undefined;
       const modelLower = this.model.toLowerCase();
       if (modelLower.includes("flash-lite")) {
         // Flash Lite requires thinkingBudget to enable thinking (-1 = dynamic)
@@ -308,17 +351,10 @@ export class GeminiClient {
       config: {
         systemInstruction: systemPrompt,
         ...(geminiTools ? { tools: geminiTools } : {}),
-        // Enable thinking for models that support it
-        ...(supportsThinking ? { thinkingConfig: getThinkingConfig() } : {}),
+        // Enable thinking only when keywords detected
+        ...(enableThinking ? { thinkingConfig: getThinkingConfig() } : {}),
       },
     });
-
-    // Get the last user message
-    const lastMessage = messages[messages.length - 1];
-    if (!lastMessage || lastMessage.role !== "user") {
-      yield { type: "error", error: "No user message to send" };
-      return;
-    }
 
     let continueLoop = true;
 
@@ -573,15 +609,24 @@ export class GeminiClient {
     const historyMessages = messages.slice(0, -1);
     const history = this.messagesToHistory(historyMessages);
 
+    // Get the last user message (needed for keyword-based thinking)
+    const lastMessage = messages[messages.length - 1];
+    if (!lastMessage || lastMessage.role !== "user") {
+      yield { type: "error", error: "No user message to send" };
+      return;
+    }
+
     // Check if model supports thinking (Gemma models don't support it)
     const supportsThinking = !this.model.toLowerCase().includes("gemma");
 
+    // Enable thinking only when user message contains thinking keywords
+    const enableThinking = supportsThinking && shouldEnableThinkingByKeyword(lastMessage.content || "");
+
     // Build thinking config based on model
     const getThinkingConfig = () => {
-      if (!supportsThinking) return undefined;
+      if (!enableThinking) return undefined;
       const modelLower = this.model.toLowerCase();
       if (modelLower.includes("flash-lite")) {
-        // Flash Lite requires thinkingBudget to enable thinking (-1 = dynamic)
         return { includeThoughts: true, thinkingBudget: -1 };
       }
       return { includeThoughts: true };
@@ -593,17 +638,9 @@ export class GeminiClient {
       history,
       config: {
         systemInstruction: systemPrompt,
-        // Enable thinking for models that support it
-        ...(supportsThinking ? { thinkingConfig: getThinkingConfig() } : {}),
+        ...(enableThinking ? { thinkingConfig: getThinkingConfig() } : {}),
       },
     });
-
-    // Get the last user message
-    const lastMessage = messages[messages.length - 1];
-    if (!lastMessage || lastMessage.role !== "user") {
-      yield { type: "error", error: "No user message to send" };
-      return;
-    }
 
     // Build message parts with attachments
     const messageParts: Part[] = [];

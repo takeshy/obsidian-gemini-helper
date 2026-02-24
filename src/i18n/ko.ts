@@ -227,6 +227,17 @@ export const ko: Record<string, string> = {
   "chat.unknownError": "알 수 없는 오류",
   "chat.generationStopped": "_(생성 중지됨)_",
   "chat.generationInProgress": "AI가 생성 중입니다. 중지한 다음 계속해 주세요.",
+  "chat.welcomeTitle": "AI와 대화를 시작하세요",
+  "chat.welcomeHint": "노트에 대해 질문하거나, 새로 만들거나, 보관함을 검색하세요.",
+  "chat.welcomeThinking": "\"생각해\" \"분석해\" 등의 키워드로 깊은 사고 모드가 활성화됩니다",
+  "chat.welcomeImage": "\"이미지 생성\"이나 \"그림 그려\"로 이미지 모델로 자동 전환됩니다",
+  "chat.welcomeCompact": "/compact를 입력하면 긴 대화를 요약해 새 채팅으로 이어갑니다",
+  "chat.welcomeNewChat": "Gemini는 기억력이 없어 매번 전체 채팅 기록이 전송됩니다. 주제를 바꿀 때는 반드시 + 버튼을 눌러 새 채팅을 시작하세요",
+  "chat.compactNotAvailable": "CLI 모드에서는 압축을 사용할 수 없습니다",
+  "chat.compacted": "대화 압축 완료: {{before}}개 메시지 → {{after}}개",
+  "chat.compactedContext": "압축된 대화 컨텍스트",
+  "chat.compactFailed": "대화 압축에 실패했습니다",
+  "chat.compacting": "압축 중...",
   "chat.yesterday": "어제",
 
   // InputArea
@@ -296,6 +307,9 @@ export const ko: Record<string, string> = {
   "message.deleted": "삭제됨",
   "message.cancelledDeletion": "삭제 취소됨:",
   "message.failedToDelete": "삭제 실패",
+  "message.renamed": "이름 변경됨",
+  "message.cancelledRename": "이름 변경 취소",
+  "message.failedToRename": "이름 변경 실패",
 
   // Tool display labels
   "tool.read": "읽기",
@@ -452,6 +466,7 @@ export const ko: Record<string, string> = {
   "workflowModal.appendToFile": "파일에 추가",
   "workflowModal.overwriteFile": "파일 덮어쓰기",
   "workflowModal.confirmFileDeletion": "파일 삭제 확인",
+  "workflowModal.confirmFileRename": "파일 이름 변경 확인",
   "workflowModal.moveToTrash": "휴지통으로 이동",
   "workflowModal.contentToBeDeleted": "삭제될 내용:",
   "workflowModal.delete": "삭제",
@@ -464,6 +479,8 @@ export const ko: Record<string, string> = {
   "workflowModal.apply": "적용 ({{count}})",
   "workflowModal.confirmBulkDelete": "일괄 삭제 확인 ({{count}}개 파일)",
   "workflowModal.deleteCount": "삭제 ({{count}})",
+  "workflowModal.confirmBulkRename": "일괄 이름 변경 확인 ({{count}}개 파일)",
+  "workflowModal.renameCount": "이름 변경 ({{count}})",
   "workflowModal.executionHistory": "실행 기록",
   "workflowModal.runs": "실행",
   "workflowModal.details": "상세",
@@ -541,6 +558,7 @@ export const ko: Record<string, string> = {
   "command.encryptFile": "현재 파일 암호화",
   "command.decryptFile": "현재 파일 복호화",
   "command.runWorkflow": "워크플로우 실행",
+  "command.compact": "대화 기록 압축",
 
   // Workflow Selector Modal
   "workflowSelector.title": "워크플로우 실행",

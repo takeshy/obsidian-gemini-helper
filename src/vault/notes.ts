@@ -266,12 +266,26 @@ export async function deleteNote(
   }
 }
 
-// Rename/move a note
-export async function renameNote(
+// Pending rename info stored globally
+export interface PendingRename {
+  originalPath: string;  // Resolved file path
+  newPath: string;       // Target path (with .md extension)
+  createdAt: number;
+}
+
+let pendingRename: PendingRename | null = null;
+
+// Get pending rename
+export function getPendingRename(): PendingRename | null {
+  return pendingRename;
+}
+
+// Propose a rename - stores proposed rename without executing
+export function proposeRename(
   app: App,
   oldPath: string,
   newPath: string
-): Promise<{ success: boolean; path?: string; error?: string }> {
+): { success: boolean; originalPath?: string; newPath?: string; error?: string; message?: string } {
   const file = findFileByName(app, oldPath);
   if (!file) {
     return {
@@ -285,15 +299,90 @@ export async function renameNote(
     newPath += ".md";
   }
 
-  try {
-    await app.fileManager.renameFile(file, newPath);
-    return { success: true, path: newPath };
-  } catch (error) {
+  // Check if target already exists
+  const existing = app.vault.getAbstractFileByPath(newPath);
+  if (existing) {
     return {
       success: false,
-      error: `Failed to rename note: ${formatError(error)}`,
+      error: `A file already exists at "${newPath}".`,
     };
   }
+
+  // Store pending rename (do NOT rename yet)
+  pendingRename = {
+    originalPath: file.path,
+    newPath,
+    createdAt: Date.now(),
+  };
+
+  return {
+    success: true,
+    originalPath: file.path,
+    newPath,
+    message: `Proposed rename: "${file.path}" → "${newPath}". Click "Apply" to rename or "Discard" to cancel.`,
+  };
+}
+
+// Apply the pending rename
+export async function applyRename(
+  app: App
+): Promise<{ success: boolean; path?: string; error?: string; message?: string }> {
+  if (!pendingRename) {
+    return {
+      success: false,
+      error: "No pending rename found.",
+    };
+  }
+
+  try {
+    const file = app.vault.getAbstractFileByPath(pendingRename.originalPath);
+
+    if (!(file instanceof TFile)) {
+      const path = pendingRename.originalPath;
+      pendingRename = null;
+      return {
+        success: false,
+        error: `File "${path}" no longer exists.`,
+      };
+    }
+
+    const newPath = pendingRename.newPath;
+    await app.fileManager.renameFile(file, newPath);
+
+    pendingRename = null;
+
+    return {
+      success: true,
+      path: newPath,
+      message: `Renamed to "${newPath}".`,
+    };
+  } catch (error) {
+    pendingRename = null;
+    return {
+      success: false,
+      error: `Failed to rename: ${formatError(error)}`,
+    };
+  }
+}
+
+// Discard the pending rename
+export function discardRename(
+  _app: App
+): { success: boolean; error?: string; message?: string } {
+  if (!pendingRename) {
+    return {
+      success: false,
+      error: "No pending rename found.",
+    };
+  }
+
+  const discardedPath = pendingRename.originalPath;
+  pendingRename = null;
+
+  return {
+    success: true,
+    message: `Cancelled rename of "${discardedPath}".`,
+  };
 }
 
 // Get info about the active note
@@ -310,6 +399,12 @@ export function getActiveNoteInfo(app: App): NoteInfo | null {
     ctime: file.stat.ctime,
     size: file.stat.size,
   };
+}
+
+// Patch for search-and-replace editing
+export interface EditPatch {
+  search: string;
+  replace: string;
 }
 
 // Pending edit info stored globally
@@ -335,9 +430,10 @@ export async function proposeEdit(
   fileName?: string,
   activeNote?: boolean,
   newContent?: string,
-  mode: "replace" | "append" | "prepend" = "replace",
-  model?: string
-): Promise<{ success: boolean; originalPath?: string; error?: string; message?: string }> {
+  mode: "replace" | "append" | "prepend" | "patch" = "replace",
+  model?: string,
+  patches?: EditPatch[]
+): Promise<{ success: boolean; originalPath?: string; error?: string; message?: string; warning?: string }> {
   let file: TFile | null = null;
 
   if (activeNote) {
@@ -363,7 +459,14 @@ export async function proposeEdit(
     };
   }
 
-  if (!newContent) {
+  if (mode === "patch") {
+    if (!patches || patches.length === 0) {
+      return {
+        success: false,
+        error: "No patches provided for patch mode.",
+      };
+    }
+  } else if (!newContent) {
     return {
       success: false,
       error: "No content provided for edit.",
@@ -375,12 +478,42 @@ export async function proposeEdit(
     const originalContent = await app.vault.read(file);
 
     // Calculate final content
-    let finalContent = newContent;
+    let finalContent: string;
+    let warning: string | undefined;
 
-    if (mode === "append") {
+    if (mode === "patch" && patches) {
+      // Apply patches sequentially
+      finalContent = originalContent;
+      let appliedCount = 0;
+      const failedPatches: number[] = [];
+
+      for (let i = 0; i < patches.length; i++) {
+        const patch = patches[i];
+        if (finalContent.includes(patch.search)) {
+          // Use function replacement to avoid special replacement patterns ($1, $&, etc.)
+          finalContent = finalContent.replace(patch.search, () => patch.replace);
+          appliedCount++;
+        } else {
+          failedPatches.push(i + 1);
+        }
+      }
+
+      if (appliedCount === 0) {
+        return {
+          success: false,
+          error: `None of the ${patches.length} patches matched. No changes were made.`,
+        };
+      }
+
+      if (failedPatches.length > 0) {
+        warning = `${appliedCount}/${patches.length} patches applied. Patches ${failedPatches.join(", ")} did not match.`;
+      }
+    } else if (mode === "append") {
       finalContent = `${originalContent}\n${newContent}`;
     } else if (mode === "prepend") {
       finalContent = `${newContent}\n${originalContent}`;
+    } else {
+      finalContent = newContent!;
     }
 
     // Store pending edit info (do NOT write to file yet)
@@ -396,6 +529,7 @@ export async function proposeEdit(
       success: true,
       originalPath: file.path,
       message: `Proposed changes to "${file.basename}". Click "Apply" to write or "Discard" to cancel.`,
+      warning,
     };
   } catch (error) {
     return {
@@ -860,5 +994,136 @@ export function discardBulkDelete(): { success: boolean; message: string } {
   return {
     success: true,
     message: "Discarded bulk delete.",
+  };
+}
+
+// ============================================
+// Bulk Rename Operations
+// ============================================
+
+export interface BulkRenameItem {
+  originalPath: string;
+  newPath: string;
+}
+
+export interface PendingBulkRename {
+  items: BulkRenameItem[];
+  createdAt: number;
+}
+
+let pendingBulkRename: PendingBulkRename | null = null;
+
+export function getPendingBulkRename(): PendingBulkRename | null {
+  return pendingBulkRename;
+}
+
+export function clearPendingBulkRename(): void {
+  pendingBulkRename = null;
+}
+
+// Propose bulk renames - stores proposed renames without executing
+export function proposeBulkRename(
+  app: App,
+  renames: Array<{ oldPath: string; newPath: string }>
+): { success: boolean; items?: BulkRenameItem[]; errors?: string[]; message?: string } {
+  const items: BulkRenameItem[] = [];
+  const errors: string[] = [];
+
+  for (const rename of renames) {
+    const file = findFileByName(app, rename.oldPath);
+    if (!file) {
+      errors.push(`Could not find note "${rename.oldPath}"`);
+      continue;
+    }
+
+    let newPath = rename.newPath;
+    if (!newPath.endsWith(".md")) {
+      newPath += ".md";
+    }
+
+    const existing = app.vault.getAbstractFileByPath(newPath);
+    if (existing) {
+      errors.push(`A file already exists at "${newPath}"`);
+      continue;
+    }
+
+    items.push({
+      originalPath: file.path,
+      newPath,
+    });
+  }
+
+  if (items.length === 0) {
+    return {
+      success: false,
+      errors,
+      message: "No valid files found for bulk rename.",
+    };
+  }
+
+  pendingBulkRename = {
+    items,
+    createdAt: Date.now(),
+  };
+
+  return {
+    success: true,
+    items,
+    errors: errors.length > 0 ? errors : undefined,
+    message: `Proposed rename of ${items.length} file(s). Select files to rename.`,
+  };
+}
+
+// Apply selected bulk renames
+export async function applyBulkRename(
+  app: App,
+  selectedPaths: string[]
+): Promise<{ success: boolean; applied: string[]; failed: string[]; message?: string }> {
+  if (!pendingBulkRename) {
+    return {
+      success: false,
+      applied: [],
+      failed: [],
+      message: "No pending bulk rename found.",
+    };
+  }
+
+  const applied: string[] = [];
+  const failed: string[] = [];
+
+  for (const item of pendingBulkRename.items) {
+    if (!selectedPaths.includes(item.originalPath)) {
+      continue;
+    }
+
+    try {
+      const file = app.vault.getAbstractFileByPath(item.originalPath);
+      if (file instanceof TFile) {
+        await app.fileManager.renameFile(file, item.newPath);
+        applied.push(item.originalPath);
+      } else {
+        failed.push(item.originalPath);
+      }
+    } catch {
+      failed.push(item.originalPath);
+    }
+  }
+
+  pendingBulkRename = null;
+
+  return {
+    success: applied.length > 0,
+    applied,
+    failed,
+    message: `Renamed ${applied.length} file(s)${failed.length > 0 ? `, ${failed.length} failed` : ""}.`,
+  };
+}
+
+// Discard bulk rename
+export function discardBulkRename(): { success: boolean; message: string } {
+  pendingBulkRename = null;
+  return {
+    success: true,
+    message: "Discarded bulk rename.",
   };
 }

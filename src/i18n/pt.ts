@@ -227,6 +227,17 @@ export const pt: Record<string, string> = {
   "chat.unknownError": "Erro desconhecido",
   "chat.generationStopped": "_(Geracao interrompida)_",
   "chat.generationInProgress": "A IA esta gerando. Pare antes de continuar.",
+  "chat.welcomeTitle": "Inicie uma conversa com a AI",
+  "chat.welcomeHint": "Faça perguntas sobre suas notas, crie novas ou pesquise no seu vault.",
+  "chat.welcomeThinking": "\"Pense\" ou \"analise\" para ativar o modo de pensamento profundo",
+  "chat.welcomeImage": "\"Gerar imagem\" ou \"criar imagem\" para alternar automaticamente para o modelo de imagem",
+  "chat.welcomeCompact": "Digite /compact para comprimir uma conversa longa em um novo chat",
+  "chat.welcomeNewChat": "O Gemini não tem memória, então todo o histórico do chat é enviado a cada vez. Sempre clique em + para iniciar um novo chat ao mudar de assunto",
+  "chat.compactNotAvailable": "Comprimir não está disponível no modo CLI",
+  "chat.compacted": "Conversa comprimida: {{before}} mensagens → {{after}}",
+  "chat.compactedContext": "Contexto de conversa comprimido",
+  "chat.compactFailed": "Falha ao comprimir a conversa",
+  "chat.compacting": "Comprimindo...",
   "chat.yesterday": "Ontem",
 
   // InputArea
@@ -296,6 +307,9 @@ export const pt: Record<string, string> = {
   "message.deleted": "Excluido",
   "message.cancelledDeletion": "Exclusao cancelada de",
   "message.failedToDelete": "Falha ao excluir",
+  "message.renamed": "Renomeado",
+  "message.cancelledRename": "Renomeação cancelada de",
+  "message.failedToRename": "Falha ao renomear",
 
   // Tool display labels
   "tool.read": "Ler",
@@ -452,6 +466,7 @@ export const pt: Record<string, string> = {
   "workflowModal.appendToFile": "Adicionar ao arquivo",
   "workflowModal.overwriteFile": "Sobrescrever arquivo",
   "workflowModal.confirmFileDeletion": "Confirmar exclusao do arquivo",
+  "workflowModal.confirmFileRename": "Confirmar renomeação de arquivo",
   "workflowModal.moveToTrash": "Mover para a lixeira",
   "workflowModal.contentToBeDeleted": "Conteudo a ser excluido:",
   "workflowModal.delete": "Excluir",
@@ -464,6 +479,8 @@ export const pt: Record<string, string> = {
   "workflowModal.apply": "Aplicar ({{count}})",
   "workflowModal.confirmBulkDelete": "Confirmar exclusao em massa ({{count}} arquivos)",
   "workflowModal.deleteCount": "Excluir ({{count}})",
+  "workflowModal.confirmBulkRename": "Confirmar renomeacao em massa ({{count}} arquivos)",
+  "workflowModal.renameCount": "Renomear ({{count}})",
   "workflowModal.executionHistory": "Historico de execucao",
   "workflowModal.runs": "Execucoes",
   "workflowModal.details": "Detalhes",
@@ -541,6 +558,7 @@ export const pt: Record<string, string> = {
   "command.encryptFile": "Criptografar arquivo atual",
   "command.decryptFile": "Descriptografar arquivo atual",
   "command.runWorkflow": "Executar workflow",
+  "command.compact": "Comprimir histórico de conversa",
 
   // Workflow Selector Modal
   "workflowSelector.title": "Executar workflow",

@@ -41,6 +41,7 @@ import {
 import { parseWorkflowFromMarkdown } from "./parser";
 import { ExecutionHistoryManager, EncryptionConfig } from "./history";
 import { isEncryptedFile } from "../core/crypto";
+import { tracing } from "../core/tracingHooks";
 
 const MAX_ITERATIONS = 1000; // Prevent infinite loops
 
@@ -117,6 +118,23 @@ export class WorkflowExecutor {
     if (!workflow.startNode) {
       throw new Error("No workflow nodes found");
     }
+
+    // Convert initial variables to plain object for tracing
+    const initialVarsObj: Record<string, string | number> = {};
+    for (const [key, value] of context.variables) {
+      initialVarsObj[key] = value;
+    }
+
+    const traceId = tracing.traceStart("workflow-execution", {
+      input: {
+        workflowName: options?.workflowName,
+        workflowPath: options?.workflowPath,
+        initialVariables: Object.keys(initialVarsObj).length > 0 ? initialVarsObj : undefined,
+      },
+      metadata: {
+        nodeCount: workflow.nodes.size,
+      },
+    });
 
     const log = (
       nodeId: string,
@@ -253,6 +271,10 @@ export class WorkflowExecutor {
 
       // Track current node input for error reporting
       let currentNodeInput: Record<string, unknown> | undefined;
+
+      const nodeSpanId = tracing.spanStart(traceId, `node:${node.type}:${node.id}`, {
+        metadata: { nodeType: node.type, nodeId: node.id },
+      });
 
       try {
         switch (node.type) {
@@ -408,7 +430,7 @@ export class WorkflowExecutor {
               : promptTemplate;
             log(node.id, node.type, `Executing LLM: ${promptPreview}`, "info");
 
-            const cmdResult = await handleCommandNode(node, context, this.app, this.plugin, promptCallbacks);
+            const cmdResult = await handleCommandNode(node, context, this.app, this.plugin, promptCallbacks, traceId);
 
             // Resolve actual RAG setting name
             let actualRagSetting = node.properties["ragSetting"];
@@ -1189,7 +1211,17 @@ export class WorkflowExecutor {
           }
 
         }
+
+        // Langfuse: end node span on success
+        tracing.spanEnd(nodeSpanId, {
+          metadata: { nodeType: node.type, status: "success" },
+        });
       } catch (error) {
+        tracing.spanEnd(nodeSpanId, {
+          error: error instanceof Error ? error.message : String(error),
+          metadata: { nodeType: node.type },
+        });
+
         // Check if this is a regeneration request
         if (error instanceof RegenerateRequestError && context.regenerateInfo) {
           const regenerateInfo = context.regenerateInfo;
@@ -1232,6 +1264,14 @@ export class WorkflowExecutor {
           await this.historyManager.saveRecord(historyRecord);
         }
 
+        tracing.traceEnd(traceId, {
+          metadata: { status: "error", error: error instanceof Error ? error.message : String(error) },
+        });
+        tracing.score(traceId, {
+          name: "status",
+          value: 0,
+          comment: error instanceof Error ? error.message : String(error),
+        });
         throw error;
       }
     }
@@ -1244,6 +1284,14 @@ export class WorkflowExecutor {
         await this.historyManager.saveRecord(historyRecord);
       }
 
+      tracing.traceEnd(traceId, {
+        metadata: { status: "error", error: errorMsg },
+      });
+      tracing.score(traceId, {
+        name: "status",
+        value: 0,
+        comment: errorMsg,
+      });
       throw new Error(errorMsg);
     }
 
@@ -1252,6 +1300,22 @@ export class WorkflowExecutor {
       this.historyManager.completeRecord(historyRecord, "completed");
       await this.historyManager.saveRecord(historyRecord);
     }
+
+    // Convert variables Map to plain object for tracing
+    const finalVarsObj: Record<string, string | number> = {};
+    for (const [key, value] of context.variables) {
+      finalVarsObj[key] = value;
+    }
+
+    tracing.traceEnd(traceId, {
+      output: finalVarsObj,
+      metadata: { status: "completed", totalIterations },
+    });
+    tracing.score(traceId, {
+      name: "status",
+      value: 1,
+      comment: "completed",
+    });
 
     return { context, historyRecord };
   }

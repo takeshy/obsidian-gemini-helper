@@ -2,6 +2,7 @@ import { App, Modal, Notice, Platform, parseYaml, TFile, setIcon } from "obsidia
 import type { GeminiHelperPlugin } from "src/plugin";
 import { GeminiCliProvider, ClaudeCliProvider, CodexCliProvider } from "src/core/cliProvider";
 import { GeminiClient } from "src/core/gemini";
+import { tracing } from "src/core/tracingHooks";
 import { CLI_MODEL, CLAUDE_CLI_MODEL, CODEX_CLI_MODEL, DEFAULT_CLI_CONFIG, getAvailableModels, type ModelType, type Attachment } from "src/types";
 import { getWorkflowSpecification } from "src/workflow/workflowSpec";
 import type { SidebarNode, WorkflowNodeType, ExecutionStep } from "src/workflow/types";
@@ -705,6 +706,11 @@ export class AIWorkflowModal extends Modal {
     );
     generationModal.open();
 
+    const traceId = tracing.traceStart("workflow-generation", {
+      input: currentRequest,
+      metadata: { model: selectedModel, isModify: !!this.existingYaml, isCliModel },
+    });
+
     try {
       // Build prompts
       const systemPrompt = this.buildSystemPrompt();
@@ -773,7 +779,8 @@ export class AIWorkflowModal extends Modal {
             timestamp: Date.now(),
             attachments: this.pendingAttachments.length > 0 ? this.pendingAttachments : undefined,
           }],
-          systemPrompt
+          systemPrompt,
+          traceId
         )) {
           if (generationCancelled || abortController.signal.aborted) {
             break;
@@ -795,6 +802,8 @@ export class AIWorkflowModal extends Modal {
 
       // Check if cancelled
       if (generationCancelled) {
+        tracing.traceEnd(traceId, { metadata: { status: "cancelled" } });
+        tracing.score(traceId, { name: "status", value: 0.5, comment: "cancelled by user" });
         this.resolvePromise(null);
         return;
       }
@@ -841,9 +850,13 @@ export class AIWorkflowModal extends Modal {
         );
 
         if (confirmResult.result === "ok") {
+          tracing.traceEnd(traceId, { output: result.yaml });
+          tracing.score(traceId, { name: "status", value: 1, comment: "approved" });
           this.resolvePromise(result);
         } else if (confirmResult.result === "no") {
-          // User wants modifications - accumulate request history
+          // User wants modifications - close current trace before recursive call
+          tracing.traceEnd(traceId, { output: result.yaml, metadata: { status: "revision-requested" } });
+          tracing.score(traceId, { name: "status", value: 0.5, comment: "revision requested" });
           const updatedHistory = [...requestHistory, currentRequest];
           await this.runGenerationLoop(
             confirmResult.additionalRequest || "",  // New request from user
@@ -860,6 +873,8 @@ export class AIWorkflowModal extends Modal {
           );
         } else {
           // User cancelled
+          tracing.traceEnd(traceId, { metadata: { status: "cancelled" } });
+          tracing.score(traceId, { name: "status", value: 0.5, comment: "cancelled by user" });
           this.resolvePromise(null);
         }
         return;
@@ -877,9 +892,13 @@ export class AIWorkflowModal extends Modal {
 
       if (previewResult.result === "ok") {
         // User approved - return the result
+        tracing.traceEnd(traceId, { output: result.yaml });
+        tracing.score(traceId, { name: "status", value: 1, comment: "approved" });
         this.resolvePromise(result);
       } else if (previewResult.result === "no") {
-        // User wants modifications - accumulate request history
+        // User wants modifications - close current trace before recursive call
+        tracing.traceEnd(traceId, { output: result.yaml, metadata: { status: "revision-requested" } });
+        tracing.score(traceId, { name: "status", value: 0.5, comment: "revision requested" });
         const updatedHistory = [...requestHistory, currentRequest];
         await this.runGenerationLoop(
           previewResult.additionalRequest || "",  // New request from user
@@ -896,11 +915,15 @@ export class AIWorkflowModal extends Modal {
         );
       } else {
         // User cancelled
+        tracing.traceEnd(traceId, { metadata: { status: "cancelled" } });
+        tracing.score(traceId, { name: "status", value: 0.5, comment: "cancelled by user" });
         this.resolvePromise(null);
       }
     } catch (error) {
       generationModal.close();
       const message = error instanceof Error ? error.message : String(error);
+      tracing.traceEnd(traceId, { metadata: { status: "error", error: message } });
+      tracing.score(traceId, { name: "status", value: 0, comment: message });
       new Notice(`Error: ${message}`);
       this.resolvePromise(null);
     }

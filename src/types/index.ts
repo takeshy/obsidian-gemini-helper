@@ -132,6 +132,9 @@ export interface GeminiHelperSettings {
   // Encryption settings
   encryption: EncryptionSettings;
 
+  // Langfuse observability
+  langfuse: LangfuseSettings;
+
   // Last used model for AI workflow generation
   lastAIWorkflowModel?: string;
 
@@ -146,6 +149,24 @@ export interface EditHistorySettings {
     contextLines: number;
   };
 }
+
+// Langfuse observability settings
+// Tracing is active when both publicKey and secretKey are set.
+export interface LangfuseSettings {
+  publicKey: string;      // Langfuse public key
+  secretKey: string;      // Langfuse secret key
+  baseUrl: string;        // Default: "https://cloud.langfuse.com"
+  logPrompts: boolean;    // Default: false (privacy)
+  logResponses: boolean;  // Default: false (privacy)
+}
+
+export const DEFAULT_LANGFUSE_SETTINGS: LangfuseSettings = {
+  publicKey: "",
+  secretKey: "",
+  baseUrl: "https://cloud.langfuse.com",
+  logPrompts: false,
+  logResponses: false,
+};
 
 // Encryption settings for chat history and workflow logs
 export interface EncryptionSettings {
@@ -606,4 +627,6 @@ export const DEFAULT_SETTINGS: GeminiHelperSettings = {
   editHistory: DEFAULT_EDIT_HISTORY_SETTINGS,
   // Encryption
   encryption: DEFAULT_ENCRYPTION_SETTINGS,
+  // Langfuse
+  langfuse: DEFAULT_LANGFUSE_SETTINGS,
 };

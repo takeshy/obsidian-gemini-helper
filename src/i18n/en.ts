@@ -928,6 +928,29 @@ export const en = {
   "mcpApp.collapse": "Collapse",
   "mcpApp.error": "Mcp app error",
   "mcpApp.decodeError": "Failed to decode binary content",
+
+  // Langfuse settings
+  "settings.langfuse": "Langfuse observability",
+  "settings.langfuseNotAvailable": "Langfuse is not included in this build. Use 'npm run build:langfuse' to build with langfuse support.",
+  "settings.langfusePublicKey": "Public key",
+  "settings.langfusePublicKey.desc": "Langfuse project public key",
+  "settings.langfusePublicKey.placeholder": "Enter your public key",
+  "settings.langfuseSecretKey": "Secret key",
+  "settings.langfuseSecretKey.desc": "Langfuse project secret key",
+  "settings.langfuseSecretKey.placeholder": "Enter your secret key",
+  "settings.langfuseBaseUrl": "Base URL",
+  "settings.langfuseBaseUrl.desc": "Langfuse server URL (leave empty for cloud.langfuse.com)",
+  "settings.langfuseLogPrompts": "Log prompts",
+  "settings.langfuseLogPrompts.desc": "Include prompt content in traces (privacy: disabled by default, sends [redacted] instead)",
+  "settings.langfuseLogResponses": "Log responses",
+  "settings.langfuseLogResponses.desc": "Include response content in traces (privacy: disabled by default, sends [redacted] instead)",
+  "settings.langfuseTestConnection": "Test connection",
+  "settings.langfuseTestConnection.desc": "Send a test trace to verify langfuse connectivity",
+  "settings.langfuseTestBtn": "Send test trace",
+  "settings.langfuseTesting": "Testing...",
+  "settings.langfuseTestSuccess": "Test trace sent successfully! Check your langfuse dashboard.",
+  "settings.langfuseTestFailed": "Test trace failed: {{error}}",
+  "settings.langfuseTestMissingKeys": "Please enter both public and secret keys first",
 };
 
 export type TranslationKey = keyof typeof en;

@@ -3,6 +3,7 @@
 
 import { McpClient } from "./mcpClient";
 import type { McpServerConfig, McpToolInfo, ToolDefinition, ToolPropertyDefinition, McpAppInfo } from "../types";
+import { tracing } from "./tracingHooks";
 
 // Extended tool definition with MCP server info
 export interface McpToolDefinition extends ToolDefinition {
@@ -232,7 +233,8 @@ export interface McpToolExecutor {
  * Returns an executor object with execute and cleanup methods
  */
 export function createMcpToolExecutor(
-  mcpTools: McpToolDefinition[]
+  mcpTools: McpToolDefinition[],
+  traceId?: string | null
 ): McpToolExecutor {
   // Create a map for quick lookup
   const toolMap = new Map<string, McpToolDefinition>();
@@ -262,6 +264,14 @@ export function createMcpToolExecutor(
       return { error: `MCP tool not found: ${toolName}` };
     }
 
+    const spanId = tracing.spanStart(traceId ?? null, `mcp:${tool.mcpToolName}`, {
+      input: args,
+      metadata: {
+        serverUrl: tool.mcpServer.url,
+        toolName: tool.mcpToolName,
+      },
+    });
+
     try {
       const client = await getClient(tool.mcpServer);
       // Use callToolWithUi to get full result including UI metadata
@@ -273,7 +283,9 @@ export function createMcpToolExecutor(
         .map(c => c.text!);
 
       if (appResult.isError) {
-        return { error: `MCP tool execution failed: ${textContents.join("\n")}` };
+        const errorMsg = `MCP tool execution failed: ${textContents.join("\n")}`;
+        tracing.spanEnd(spanId, { error: errorMsg });
+        return { error: errorMsg };
       }
 
       const result: McpToolResult = {
@@ -293,6 +305,8 @@ export function createMcpToolExecutor(
         };
       }
 
+      tracing.spanEnd(spanId, { output: result.result });
+
       return result;
     } catch (error) {
       // On error, remove the client from pool to force reconnection on next call
@@ -304,6 +318,7 @@ export function createMcpToolExecutor(
       }
 
       const errorMessage = error instanceof Error ? error.message : String(error);
+      tracing.spanEnd(spanId, { error: `MCP tool execution failed: ${errorMessage}` });
       return { error: `MCP tool execution failed: ${errorMessage}` };
     }
   };

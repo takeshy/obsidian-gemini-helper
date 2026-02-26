@@ -8,6 +8,7 @@ import { fetchMcpTools, createMcpToolExecutor, type McpToolDefinition } from "..
 import { createToolExecutor } from "../../vault/toolExecutor";
 import { WorkflowNode, ExecutionContext, PromptCallbacks, FileExplorerData } from "../types";
 import { replaceVariables } from "./utils";
+import { tracing } from "../../core/tracingHooks";
 
 // Result type for command node execution
 export interface CommandNodeResult {
@@ -21,7 +22,8 @@ export async function handleCommandNode(
   context: ExecutionContext,
   app: App,
   plugin: GeminiHelperPlugin,
-  promptCallbacks?: PromptCallbacks
+  promptCallbacks?: PromptCallbacks,
+  traceId?: string | null
 ): Promise<CommandNodeResult> {
   // Track collected MCP App info from tool executions
   let collectedMcpAppInfo: McpAppInfo | undefined;
@@ -81,15 +83,29 @@ Please revise the output based on the user's feedback above.`;
     const vaultPath = (app.vault.adapter as { basePath?: string }).basePath || "";
 
     // Execute CLI call
+    const genId = tracing.generationStart(traceId ?? null, "cli-command", {
+      model,
+      input: prompt,
+      metadata: { provider: providerName },
+    });
+
     let fullResponse = "";
     const stream = provider.chatStream(messages, "", vaultPath);
 
-    for await (const chunk of stream) {
-      if (chunk.type === "text") {
-        fullResponse += chunk.content;
-      } else if (chunk.type === "error") {
-        throw new Error(chunk.error);
+    try {
+      for await (const chunk of stream) {
+        if (chunk.type === "text") {
+          fullResponse += chunk.content;
+        } else if (chunk.type === "error") {
+          throw new Error(chunk.error);
+        }
       }
+      tracing.generationEnd(genId, { output: fullResponse });
+    } catch (error) {
+      tracing.generationEnd(genId, {
+        error: error instanceof Error ? error.message : String(error),
+      });
+      throw error;
     }
 
     // Save response to variable if specified
@@ -256,7 +272,7 @@ Please revise the output based on the user's feedback above.`;
           // Add MCP tools to the tools array
           tools = [...tools, ...mcpTools];
           // Create MCP tool executor
-          mcpToolExecutor = createMcpToolExecutor(mcpTools);
+          mcpToolExecutor = createMcpToolExecutor(mcpTools, traceId);
         } catch (error) {
           console.error("Failed to fetch MCP tools:", error);
           // Continue without MCP tools
@@ -295,7 +311,7 @@ Please revise the output based on the user's feedback above.`;
       try {
         const mcpTools = await fetchMcpTools(enabledServers);
         tools = mcpTools;
-        mcpToolExecutor = createMcpToolExecutor(mcpTools);
+        mcpToolExecutor = createMcpToolExecutor(mcpTools, traceId);
         toolExecutor = async (name: string, args: Record<string, unknown>) => {
           if (mcpToolExecutor) {
             const mcpResult = await mcpToolExecutor.execute(name, args);
@@ -329,7 +345,8 @@ Please revise the output based on the user's feedback above.`;
         model as ModelType,
         undefined, // No system prompt for image generation
         useWebSearch,
-        storeIds.length > 0 ? storeIds : undefined
+        storeIds.length > 0 ? storeIds : undefined,
+        traceId
       )
     : client.chatWithToolsStream(
         messages,
@@ -338,7 +355,7 @@ Please revise the output based on the user's feedback above.`;
         toolExecutor,
         storeIds.length > 0 ? storeIds : undefined, // RAG store IDs
         useWebSearch, // Web search mode
-        { enableThinking: node.properties["enableThinking"] !== "false" }
+        { enableThinking: node.properties["enableThinking"] !== "false", traceId }
       );
 
   let thinkingContent = "";

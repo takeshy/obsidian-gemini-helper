@@ -31,6 +31,7 @@ import {
 	isImageGenerationModel,
 } from "src/types";
 import { getGeminiClient } from "src/core/gemini";
+import { tracing } from "src/core/tracingHooks";
 import { getEnabledTools } from "src/core/tools";
 import { fetchMcpTools, createMcpToolExecutor, isMcpTool, type McpToolDefinition, type McpToolExecutor } from "src/core/mcpTools";
 import { GeminiCliProvider, ClaudeCliProvider, CodexCliProvider } from "src/core/cliProvider";
@@ -1217,6 +1218,15 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 		const abortController = new AbortController();
 		abortControllerRef.current = abortController;
 
+		const cliTraceId = tracing.traceStart("chat-message", {
+			sessionId: currentChatId ?? undefined,
+			input: resolvedContent,
+			metadata: {
+				model: currentModel,
+				isCli: true,
+			},
+		});
+
 		try {
 			const allMessages = [...messages, userMessage];
 
@@ -1305,6 +1315,13 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 			setMessages(newMessages);
 			// Save chat history (with session info)
 			await saveCurrentChat(newMessages, newSession || undefined);
+
+			tracing.traceEnd(cliTraceId, { output: fullContent });
+			tracing.score(cliTraceId, {
+				name: "status",
+				value: stopped ? 0.5 : 1,
+				comment: stopped ? "stopped by user" : "completed",
+			});
 		} catch (error) {
 			const errorMessageText = error instanceof Error ? error.message : t("chat.unknownError");
 			const errorMessage: Message = {
@@ -1313,6 +1330,8 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 				timestamp: Date.now(),
 			};
 			setMessages((prev) => [...prev, errorMessage]);
+			tracing.traceEnd(cliTraceId, { output: errorMessageText, metadata: { error: true } });
+			tracing.score(cliTraceId, { name: "status", value: 0, comment: errorMessageText });
 		} finally {
 			setIsLoading(false);
 			setStreamingContent("");
@@ -1383,6 +1402,18 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 		const abortController = new AbortController();
 		abortControllerRef.current = abortController;
 
+		const traceId = tracing.traceStart("chat-message", {
+			sessionId: currentChatId ?? undefined,
+			metadata: {
+				model: allowedModel,
+				ragEnabled: allowRag,
+				webSearchEnabled: selectedRagSetting === "__websearch__",
+				toolsEnabled: supportsFunctionCalling && !isImageGenerationModel(allowedModel),
+				isImageGeneration: isImageGenerationModel(allowedModel),
+			},
+			input: resolvedContent,
+		});
+
 		try {
 			const runStreamOnce = async () => {
 				const { settings } = plugin;
@@ -1409,7 +1440,7 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 
 				// Create MCP tool executor
 				const mcpToolExecutor = mcpTools.length > 0
-					? createMcpToolExecutor(mcpTools)
+					? createMcpToolExecutor(mcpTools, traceId)
 					: undefined;
 
 				// Store for session reuse
@@ -1790,7 +1821,7 @@ Always be helpful and provide clear, concise responses. When working with notes,
 
 				// Use image generation stream or regular chat stream
 				const chunkStream = isImageGeneration
-					? client.generateImageStream(allMessages, allowedModel, systemPromptForModel, isWebSearch, ragStoreIds)
+					? client.generateImageStream(allMessages, allowedModel, systemPromptForModel, isWebSearch, ragStoreIds, traceId)
 					: client.chatWithToolsStream(
 						allMessages,
 						tools,
@@ -1805,6 +1836,7 @@ Always be helpful and provide clear, concise responses. When working with notes,
 								functionCallWarningThreshold: settings.functionCallWarningThreshold,
 							},
 							disableTools: !toolsEnabled,
+							traceId,
 						}
 					);
 
@@ -1910,6 +1942,22 @@ Always be helpful and provide clear, concise responses. When working with notes,
 				// Save chat history
 				await saveCurrentChat(newMessages);
 
+				tracing.traceEnd(traceId, {
+					output: fullContent,
+					metadata: {
+						toolsUsed: toolsUsed.length > 0 ? toolsUsed : undefined,
+						ragUsed,
+						webSearchUsed,
+						imageGenerationUsed,
+						stopped,
+					},
+				});
+				tracing.score(traceId, {
+					name: "status",
+					value: stopped ? 0.5 : 1,
+					comment: stopped ? "stopped by user" : "completed",
+				});
+
 				// Check if user requested changes with feedback - use state to trigger send after re-render
 				if (pendingAdditionalRequestRef.current) {
 					const requestInfo = pendingAdditionalRequestRef.current;
@@ -1930,6 +1978,8 @@ Always be helpful and provide clear, concise responses. When working with notes,
 					if (abortController.signal.aborted) {
 						setStreamingContent("");
 						setStreamingThinking("");
+						tracing.traceEnd(traceId, { metadata: { status: "aborted" } });
+						tracing.score(traceId, { name: "status", value: 0.5, comment: "aborted during retry" });
 						return;
 					}
 					if (apiPlan === "paid" && isRateLimitError(error) && retryCount < retryDelays.length) {
@@ -1958,6 +2008,15 @@ Always be helpful and provide clear, concise responses. When working with notes,
 				timestamp: Date.now(),
 			};
 			setMessages((prev) => [...prev, errorMessage]);
+			tracing.traceEnd(traceId, {
+				output: errorMessageText,
+				metadata: { error: true },
+			});
+			tracing.score(traceId, {
+				name: "status",
+				value: 0,
+				comment: errorMessageText,
+			});
 		} finally {
 			// Restore original model if auto-switched to image model
 			if (autoSwitchedToImage) {
@@ -2017,12 +2076,22 @@ Always be helpful and provide clear, concise responses. When working with notes,
 				timestamp: Date.now(),
 			};
 
-			const summary = await client.chat([summaryPrompt], "You are a conversation summarizer. Output only the summary without any preamble.");
+			const compactTraceId = tracing.traceStart("chat-compact", {
+				sessionId: currentChatId ?? undefined,
+				input: `Compacting ${messages.length} messages`,
+				metadata: { messageCount: messages.length },
+			});
+			const summary = await client.chat([summaryPrompt], "You are a conversation summarizer. Output only the summary without any preamble.", compactTraceId);
 
 			if (!summary.trim()) {
+				tracing.traceEnd(compactTraceId, { metadata: { error: "empty summary" } });
+				tracing.score(compactTraceId, { name: "status", value: 0, comment: "empty summary" });
 				new Notice(t("chat.compactFailed"));
 				return;
 			}
+
+			tracing.traceEnd(compactTraceId, { output: summary });
+			tracing.score(compactTraceId, { name: "status", value: 1, comment: "completed" });
 
 			// Start a new chat with user's compact request and AI's summary
 			const now = Date.now();

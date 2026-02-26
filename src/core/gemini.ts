@@ -17,6 +17,67 @@ import {
   type ModelType,
   type GeneratedImage,
 } from "src/types";
+import { tracing, type TracingUsage } from "src/core/tracingHooks";
+
+// Model pricing per token (USD)
+// Source: https://ai.google.dev/pricing
+const MODEL_PRICING: Record<string, { input: number; output: number }> = {
+  "gemini-2.5-flash":       { input: 0.15 / 1e6, output: 0.60 / 1e6 },
+  "gemini-2.5-flash-lite":  { input: 0.075 / 1e6, output: 0.30 / 1e6 },
+  "gemini-2.5-pro":         { input: 1.25 / 1e6, output: 10.00 / 1e6 },
+  "gemini-3-flash-preview": { input: 0.15 / 1e6, output: 0.60 / 1e6 },
+  "gemini-3-pro-preview":   { input: 1.25 / 1e6, output: 10.00 / 1e6 },
+  "gemini-3.1-pro-preview": { input: 1.25 / 1e6, output: 10.00 / 1e6 },
+  "gemini-3.1-pro-preview-customtools": { input: 1.25 / 1e6, output: 10.00 / 1e6 },
+  "gemini-2.5-flash-image":    { input: 0.15 / 1e6, output: 0.60 / 1e6 },
+  "gemini-3-pro-image-preview": { input: 1.25 / 1e6, output: 10.00 / 1e6 },
+};
+
+// Grounding with Google Search cost per prompt (USD)
+// Gemini 3 models: $14/1K queries, Gemini 2.x: $35/1K prompts
+// Approximated as per-prompt since exact query count is not exposed by the API
+const SEARCH_GROUNDING_COST: Record<string, number> = {
+  "gemini-3-flash-preview": 14 / 1000,
+  "gemini-3-pro-preview":   14 / 1000,
+  "gemini-3.1-pro-preview": 14 / 1000,
+  "gemini-3.1-pro-preview-customtools": 14 / 1000,
+  "gemini-3-pro-image-preview": 14 / 1000,
+  "gemini-2.5-flash":       35 / 1000,
+  "gemini-2.5-flash-lite":  35 / 1000,
+  "gemini-2.5-pro":         35 / 1000,
+  "gemini-2.5-flash-image": 35 / 1000,
+};
+
+// Extract usage metadata from Gemini API response and calculate cost
+interface ExtractUsageOptions {
+  model?: string;
+  webSearchUsed?: boolean;
+}
+
+function extractUsage(usageMetadata: { promptTokenCount?: number; candidatesTokenCount?: number; totalTokenCount?: number } | undefined, options?: ExtractUsageOptions): TracingUsage | undefined {
+  if (!usageMetadata) return undefined;
+  const model = options?.model;
+  const inputTokens = usageMetadata.promptTokenCount ?? 0;
+  const outputTokens = usageMetadata.candidatesTokenCount ?? 0;
+  const pricing = model ? MODEL_PRICING[model] : undefined;
+  const inputCost = pricing ? inputTokens * pricing.input : undefined;
+  const outputCost = pricing ? outputTokens * pricing.output : undefined;
+  let totalCost = inputCost !== undefined && outputCost !== undefined ? inputCost + outputCost : undefined;
+
+  // Add search grounding cost per prompt
+  if (options?.webSearchUsed && model && SEARCH_GROUNDING_COST[model] !== undefined) {
+    totalCost = (totalCost ?? 0) + SEARCH_GROUNDING_COST[model];
+  }
+
+  return {
+    input: usageMetadata.promptTokenCount,
+    output: usageMetadata.candidatesTokenCount,
+    total: usageMetadata.totalTokenCount,
+    inputCost,
+    outputCost,
+    totalCost,
+  };
+}
 
 // Keywords that trigger thinking mode
 // Latin-script keywords use word-boundary regex to avoid false positives (e.g. "reason" in "no reason")
@@ -62,6 +123,7 @@ export interface ChatWithToolsOptions {
   functionCallLimits?: FunctionCallLimitOptions;
   disableTools?: boolean;
   enableThinking?: boolean;
+  traceId?: string | null;
 }
 
 export class GeminiClient {
@@ -179,27 +241,53 @@ export class GeminiClient {
   // Simple chat without streaming
   async chat(
     messages: Message[],
-    systemPrompt?: string
+    systemPrompt?: string,
+    traceId?: string | null
   ): Promise<string> {
     const contents = this.messagesToContents(messages);
+    const lastMsg = messages[messages.length - 1];
 
-    const response = await this.ai.models.generateContent({
+    const genId = tracing.generationStart(traceId ?? null, "chat", {
       model: this.model,
-      contents,
-      config: {
-        systemInstruction: systemPrompt,
-      },
+      input: lastMsg?.content,
     });
 
-    return response.text ?? "";
+    try {
+      const response = await this.ai.models.generateContent({
+        model: this.model,
+        contents,
+        config: {
+          systemInstruction: systemPrompt,
+        },
+      });
+
+      const text = response.text ?? "";
+      tracing.generationEnd(genId, {
+        output: text,
+        usage: extractUsage(response.usageMetadata, { model: this.model }),
+      });
+      return text;
+    } catch (error) {
+      tracing.generationEnd(genId, {
+        error: error instanceof Error ? error.message : "API call failed",
+      });
+      throw error;
+    }
   }
 
   // Streaming chat
   async *chatStream(
     messages: Message[],
-    systemPrompt?: string
+    systemPrompt?: string,
+    traceId?: string | null
   ): AsyncGenerator<StreamChunk> {
     const contents = this.messagesToContents(messages);
+    const lastMsg = messages[messages.length - 1];
+
+    const genId = tracing.generationStart(traceId ?? null, "chatStream", {
+      model: this.model,
+      input: lastMsg?.content,
+    });
 
     try {
       const response = await this.ai.models.generateContentStream({
@@ -211,21 +299,30 @@ export class GeminiClient {
       });
 
       let hasReceivedChunk = false;
+      let accumulatedText = "";
+      let lastUsage: TracingUsage | undefined;
       for await (const chunk of response) {
         hasReceivedChunk = true;
+        if (chunk.usageMetadata) lastUsage = extractUsage(chunk.usageMetadata, { model: this.model });
         const text = chunk.text;
         if (text) {
+          accumulatedText += text;
           yield { type: "text", content: text };
         }
       }
 
       if (!hasReceivedChunk) {
+        tracing.generationEnd(genId, { error: "No response received from API" });
         yield { type: "error", error: "No response received from API (possible server error)" };
         return;
       }
 
+      tracing.generationEnd(genId, { output: accumulatedText, usage: lastUsage });
       yield { type: "done" };
     } catch (error) {
+      tracing.generationEnd(genId, {
+        error: error instanceof Error ? error.message : "API call failed",
+      });
       yield {
         type: "error",
         error: error instanceof Error ? error.message : "API call failed",
@@ -357,6 +454,25 @@ export class GeminiClient {
       },
     });
 
+    // Tracing
+    const traceId = options?.traceId ?? null;
+    const generationId = tracing.generationStart(traceId, "chatWithToolsStream", {
+      model: this.model,
+      input: lastMessage.content,
+      metadata: {
+        ragEnabled: !!ragEnabled,
+        webSearchEnabled: !!webSearchEnabled,
+        toolCount: tools.length,
+        enableThinking,
+      },
+    });
+    let toolCallTraceCount = 0;
+    let accumulatedOutput = "";
+    // Accumulate usage across multiple streaming rounds (tool-call loop)
+    const totalUsage: TracingUsage = { input: 0, output: 0, total: 0 };
+    // Track per-round usage (last chunk in each stream has the round's total)
+    let roundUsage: TracingUsage | undefined;
+
     let continueLoop = true;
 
     // Build message parts with attachments
@@ -389,8 +505,11 @@ export class GeminiClient {
         const accumulatedSources: string[] = [];
         let hasReceivedChunk = false;
 
+        roundUsage = undefined;
         for await (const chunk of response) {
           hasReceivedChunk = true;
+          // Last chunk in each stream round has the round's total usage
+          if (chunk.usageMetadata) roundUsage = extractUsage(chunk.usageMetadata, { model: this.model });
           // Check for function calls
           if (chunk.functionCalls && chunk.functionCalls.length > 0) {
             for (const fc of chunk.functionCalls) {
@@ -457,8 +576,24 @@ export class GeminiClient {
           // Yield text chunks
           const text = chunk.text;
           if (text) {
+            accumulatedOutput += text;
             yield { type: "text", content: text };
           }
+        }
+
+        // Sum this round's usage into total
+        if (roundUsage) {
+          totalUsage.input = (totalUsage.input ?? 0) + (roundUsage.input ?? 0);
+          totalUsage.output = (totalUsage.output ?? 0) + (roundUsage.output ?? 0);
+          totalUsage.total = (totalUsage.total ?? 0) + (roundUsage.total ?? 0);
+          if (roundUsage.inputCost !== undefined) totalUsage.inputCost = (totalUsage.inputCost ?? 0) + roundUsage.inputCost;
+          if (roundUsage.outputCost !== undefined) totalUsage.outputCost = (totalUsage.outputCost ?? 0) + roundUsage.outputCost;
+          if (roundUsage.totalCost !== undefined) totalUsage.totalCost = (totalUsage.totalCost ?? 0) + roundUsage.totalCost;
+        }
+
+        // Add search grounding cost if web search was used in this round
+        if (groundingEmitted && webSearchEnabled && this.model && SEARCH_GROUNDING_COST[this.model] !== undefined) {
+          totalUsage.totalCost = (totalUsage.totalCost ?? 0) + SEARCH_GROUNDING_COST[this.model];
         }
 
         // Emit accumulated RAG sources after processing all chunks
@@ -487,11 +622,22 @@ export class GeminiClient {
             response = await chat.sendMessageStream({
               message: [{ text: "You have reached the function call limit. Please provide a final answer based on the information gathered so far." }],
             });
+            roundUsage = undefined;
             for await (const chunk of response) {
+              if (chunk.usageMetadata) roundUsage = extractUsage(chunk.usageMetadata, { model: this.model });
               const text = chunk.text;
               if (text) {
+                accumulatedOutput += text;
                 yield { type: "text", content: text };
               }
+            }
+            if (roundUsage) {
+              totalUsage.input = (totalUsage.input ?? 0) + (roundUsage.input ?? 0);
+              totalUsage.output = (totalUsage.output ?? 0) + (roundUsage.output ?? 0);
+              totalUsage.total = (totalUsage.total ?? 0) + (roundUsage.total ?? 0);
+              if (roundUsage.inputCost !== undefined) totalUsage.inputCost = (totalUsage.inputCost ?? 0) + roundUsage.inputCost;
+              if (roundUsage.outputCost !== undefined) totalUsage.outputCost = (totalUsage.outputCost ?? 0) + roundUsage.outputCost;
+              if (roundUsage.totalCost !== undefined) totalUsage.totalCost = (totalUsage.totalCost ?? 0) + roundUsage.totalCost;
             }
             continueLoop = false;
             continue;
@@ -522,7 +668,22 @@ export class GeminiClient {
 
             yield { type: "tool_call", toolCall };
 
+            toolCallTraceCount++;
+            const toolSpanId = tracing.spanStart(traceId, `tool:${fc.name}`, {
+              parentId: generationId ?? undefined,
+              input: fc.args,
+              metadata: { toolName: fc.name },
+            });
+
             const result = await executeToolCall(fc.name, fc.args);
+
+            tracing.spanEnd(toolSpanId, { output: result });
+
+            // Record tool call interaction in output (truncate large results)
+            const resultStr = typeof result === "string" ? result : JSON.stringify(result);
+            const truncatedResult = resultStr.length > 500 ? resultStr.substring(0, 500) + "..." : resultStr;
+            accumulatedOutput += `\n[tool_call: ${fc.name}(${JSON.stringify(fc.args)})]\n`;
+            accumulatedOutput += `[tool_result: ${truncatedResult}]\n`;
 
             yield {
               type: "tool_result",
@@ -566,11 +727,22 @@ export class GeminiClient {
             }
 
             // Get final response without processing more function calls
+            roundUsage = undefined;
             for await (const chunk of response) {
+              if (chunk.usageMetadata) roundUsage = extractUsage(chunk.usageMetadata, { model: this.model });
               const text = chunk.text;
               if (text) {
+                accumulatedOutput += text;
                 yield { type: "text", content: text };
               }
+            }
+            if (roundUsage) {
+              totalUsage.input = (totalUsage.input ?? 0) + (roundUsage.input ?? 0);
+              totalUsage.output = (totalUsage.output ?? 0) + (roundUsage.output ?? 0);
+              totalUsage.total = (totalUsage.total ?? 0) + (roundUsage.total ?? 0);
+              if (roundUsage.inputCost !== undefined) totalUsage.inputCost = (totalUsage.inputCost ?? 0) + roundUsage.inputCost;
+              if (roundUsage.outputCost !== undefined) totalUsage.outputCost = (totalUsage.outputCost ?? 0) + roundUsage.outputCost;
+              if (roundUsage.totalCost !== undefined) totalUsage.totalCost = (totalUsage.totalCost ?? 0) + roundUsage.totalCost;
             }
             continueLoop = false;
             continue;
@@ -592,8 +764,20 @@ export class GeminiClient {
         }
       }
 
+      tracing.generationEnd(generationId, {
+        output: accumulatedOutput,
+        usage: totalUsage.total ? totalUsage : undefined,
+        metadata: { toolCallCount: toolCallTraceCount },
+      });
+
       yield { type: "done" };
     } catch (error) {
+      tracing.generationEnd(generationId, {
+        error: error instanceof Error ? error.message : "API call failed",
+        usage: totalUsage.total ? totalUsage : undefined,
+        metadata: { toolCallCount: toolCallTraceCount },
+      });
+
       yield {
         type: "error",
         error: error instanceof Error ? error.message : "API call failed",
@@ -604,7 +788,8 @@ export class GeminiClient {
   // Streaming workflow generation with thinking
   async *generateWorkflowStream(
     messages: Message[],
-    systemPrompt?: string
+    systemPrompt?: string,
+    traceId?: string | null
   ): AsyncGenerator<StreamChunk> {
     // Build history from all messages except the last one
     const historyMessages = messages.slice(0, -1);
@@ -663,10 +848,19 @@ export class GeminiClient {
       messageParts.push({ text: lastMessage.content });
     }
 
+    const genId = tracing.generationStart(traceId ?? null, "generateWorkflowStream", {
+      model: this.model,
+      input: lastMessage.content,
+      metadata: { enableThinking },
+    });
+
     try {
       const response = await chat.sendMessageStream({ message: messageParts });
+      let accumulatedText = "";
+      let lastUsage: TracingUsage | undefined;
 
       for await (const chunk of response) {
+        if (chunk.usageMetadata) lastUsage = extractUsage(chunk.usageMetadata, { model: this.model });
         // Access candidates via type assertion for thought parts
         const chunkWithCandidates = chunk as {
           candidates?: Array<{
@@ -695,12 +889,17 @@ export class GeminiClient {
         // Yield text chunks
         const text = chunk.text;
         if (text) {
+          accumulatedText += text;
           yield { type: "text", content: text };
         }
       }
 
+      tracing.generationEnd(genId, { output: accumulatedText, usage: lastUsage });
       yield { type: "done" };
     } catch (error) {
+      tracing.generationEnd(genId, {
+        error: error instanceof Error ? error.message : "Workflow generation failed",
+      });
       yield {
         type: "error",
         error: error instanceof Error ? error.message : "Workflow generation failed",
@@ -714,7 +913,8 @@ export class GeminiClient {
     imageModel: ModelType,
     systemPrompt?: string,
     webSearchEnabled?: boolean,
-    _ragStoreIds?: string[]  // Reserved for future RAG support in image generation
+    _ragStoreIds?: string[],  // Reserved for future RAG support in image generation
+    traceId?: string | null
   ): AsyncGenerator<StreamChunk> {
     // Build history from all messages except the last one
     const historyMessages = messages.slice(0, -1);
@@ -756,6 +956,12 @@ export class GeminiClient {
       tools.push({ googleSearch: {} } as Tool);
     }
 
+    const genId = tracing.generationStart(traceId ?? null, "generateImageStream", {
+      model: imageModel,
+      input: lastMessage.content,
+      metadata: { webSearchEnabled: !!webSearchEnabled },
+    });
+
     try {
       const response = await this.ai.models.generateContent({
         model: imageModel,
@@ -796,8 +1002,16 @@ export class GeminiClient {
         }
       }
 
+      const imageWebSearchUsed = imageModel === "gemini-3-pro-image-preview" && !!webSearchEnabled;
+      tracing.generationEnd(genId, {
+        output: "[image generation completed]",
+        usage: extractUsage(response.usageMetadata, { model: imageModel, webSearchUsed: imageWebSearchUsed }),
+      });
       yield { type: "done" };
     } catch (error) {
+      tracing.generationEnd(genId, {
+        error: error instanceof Error ? error.message : "Image generation failed",
+      });
       yield {
         type: "error",
         error: error instanceof Error ? error.message : "Image generation failed",

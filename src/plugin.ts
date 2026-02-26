@@ -28,6 +28,7 @@ import {
   getDefaultModelForPlan,
 } from "src/types";
 import { initGeminiClient, resetGeminiClient, getGeminiClient } from "src/core/gemini";
+import { initLangfuse, resetLangfuse } from "src/tracing/langfuse";
 import { WorkflowExecutor } from "src/workflow/executor";
 import { parseWorkflowFromMarkdown } from "src/workflow/parser";
 import type { WorkflowInput } from "src/workflow/types";
@@ -53,7 +54,7 @@ import {
 } from "src/core/editHistory";
 import { EditHistoryModal } from "src/ui/components/EditHistoryModal";
 import { formatError } from "src/utils/error";
-import { DEFAULT_CLI_CONFIG, DEFAULT_EDIT_HISTORY_SETTINGS, hasVerifiedCli } from "src/types";
+import { DEFAULT_CLI_CONFIG, DEFAULT_EDIT_HISTORY_SETTINGS, DEFAULT_LANGFUSE_SETTINGS, hasVerifiedCli } from "src/types";
 import { initLocale, t } from "src/i18n";
 import { isEncryptedFile, encryptFileContent, decryptFileContent } from "src/core/crypto";
 import { cryptoCache } from "src/core/cryptoCache";
@@ -454,6 +455,7 @@ export class GeminiHelperPlugin extends Plugin {
 
   onunload(): void {
     this.clearSelectionHighlight();
+    resetLangfuse();
     resetGeminiClient();
     resetFileSearchManager();
     resetEditHistoryManager();
@@ -495,6 +497,11 @@ export class GeminiHelperPlugin extends Plugin {
           ...DEFAULT_EDIT_HISTORY_SETTINGS.diff,
           ...(loaded.editHistory?.diff ?? {}),
         },
+      },
+      // Deep merge langfuse settings
+      langfuse: {
+        ...DEFAULT_LANGFUSE_SETTINGS,
+        ...(loaded.langfuse ?? {}),
       },
     };
   }
@@ -1143,6 +1150,7 @@ export class GeminiHelperPlugin extends Plugin {
   private initializeClients() {
     initGeminiClient(this.settings.googleApiKey, getDefaultModelForPlan(this.settings.apiPlan));
     initFileSearchManager(this.settings.googleApiKey, this.app);
+    initLangfuse(this.settings.langfuse);
 
     // Initialize CLI provider manager
     initCliProviderManager();

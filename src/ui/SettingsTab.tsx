@@ -20,6 +20,7 @@ import {
   DEFAULT_CLI_CONFIG,
   DEFAULT_EDIT_HISTORY_SETTINGS,
   DEFAULT_ENCRYPTION_SETTINGS,
+  DEFAULT_LANGFUSE_SETTINGS,
   getAvailableModels,
   isModelAllowedForPlan,
   getDefaultModelForPlan,
@@ -31,6 +32,7 @@ import {
   type VaultToolMode,
 } from "src/types";
 import { getEditHistoryManager } from "src/core/editHistory";
+import { sendTestTrace, isLangfuseAvailable } from "src/tracing/langfuse";
 import { Platform } from "obsidian";
 import {
   generateKeyPair,
@@ -1132,6 +1134,9 @@ export class SettingsTab extends PluginSettingTab {
 
     // Encryption settings
     this.displayEncryptionSettings(containerEl);
+
+    // Langfuse observability settings
+    this.displayLangfuseSettings(containerEl);
 
     // Slash commands settings
     new Setting(containerEl).setName(t("settings.slashCommands")).setHeading();
@@ -2392,6 +2397,142 @@ export class SettingsTab extends PluginSettingTab {
         });
       }
     }
+  }
+
+  private displayLangfuseSettings(containerEl: HTMLElement): void {
+    const langfuse = this.plugin.settings.langfuse ?? { ...DEFAULT_LANGFUSE_SETTINGS };
+
+    new Setting(containerEl).setName(t("settings.langfuse")).setHeading();
+
+    // Show message when langfuse is not included in the build
+    if (!isLangfuseAvailable()) {
+      new Setting(containerEl)
+        .setDesc(t("settings.langfuseNotAvailable"));
+      return;
+    }
+
+    // Public key
+    new Setting(containerEl)
+      .setName(t("settings.langfusePublicKey"))
+      .setDesc(t("settings.langfusePublicKey.desc"))
+      .addText((text) =>
+        text
+          .setPlaceholder(t("settings.langfusePublicKey.placeholder"))
+          .setValue(langfuse.publicKey)
+          .onChange(async (value) => {
+            this.plugin.settings.langfuse = {
+              ...this.plugin.settings.langfuse,
+              publicKey: value,
+            };
+            await this.plugin.saveSettings();
+          })
+      );
+
+    // Secret key (with visibility toggle, same pattern as Google API key)
+    const secretKeySetting = new Setting(containerEl)
+      .setName(t("settings.langfuseSecretKey"))
+      .setDesc(t("settings.langfuseSecretKey.desc"));
+
+    let secretKeyInput: HTMLInputElement;
+    secretKeySetting.addText((text) => {
+      secretKeyInput = text.inputEl;
+      text.inputEl.type = "password";
+      text
+        .setPlaceholder(t("settings.langfuseSecretKey.placeholder"))
+        .setValue(langfuse.secretKey)
+        .onChange(async (value) => {
+          this.plugin.settings.langfuse = {
+            ...this.plugin.settings.langfuse,
+            secretKey: value,
+          };
+          await this.plugin.saveSettings();
+        });
+    });
+
+    secretKeySetting.addExtraButton((button) =>
+      button
+        .setIcon("eye")
+        .setTooltip(t("settings.showOrHideApiKey"))
+        .onClick(() => {
+          if (secretKeyInput) {
+            secretKeyInput.type =
+              secretKeyInput.type === "password" ? "text" : "password";
+          }
+        })
+    );
+
+    // Base URL
+    new Setting(containerEl)
+      .setName(t("settings.langfuseBaseUrl"))
+      .setDesc(t("settings.langfuseBaseUrl.desc"))
+      .addText((text) =>
+        text
+          .setPlaceholder("https://cloud.langfuse.com")
+          .setValue(langfuse.baseUrl !== DEFAULT_LANGFUSE_SETTINGS.baseUrl ? langfuse.baseUrl : "")
+          .onChange(async (value) => {
+            this.plugin.settings.langfuse = {
+              ...this.plugin.settings.langfuse,
+              baseUrl: value || DEFAULT_LANGFUSE_SETTINGS.baseUrl,
+            };
+            await this.plugin.saveSettings();
+          })
+      );
+
+    // Log prompts toggle
+    new Setting(containerEl)
+      .setName(t("settings.langfuseLogPrompts"))
+      .setDesc(t("settings.langfuseLogPrompts.desc"))
+      .addToggle((toggle) =>
+        toggle.setValue(langfuse.logPrompts).onChange(async (value) => {
+          this.plugin.settings.langfuse = {
+            ...this.plugin.settings.langfuse,
+            logPrompts: value,
+          };
+          await this.plugin.saveSettings();
+        })
+      );
+
+    // Log responses toggle
+    new Setting(containerEl)
+      .setName(t("settings.langfuseLogResponses"))
+      .setDesc(t("settings.langfuseLogResponses.desc"))
+      .addToggle((toggle) =>
+        toggle.setValue(langfuse.logResponses).onChange(async (value) => {
+          this.plugin.settings.langfuse = {
+            ...this.plugin.settings.langfuse,
+            logResponses: value,
+          };
+          await this.plugin.saveSettings();
+        })
+      );
+
+    // Test connection button
+    new Setting(containerEl)
+      .setName(t("settings.langfuseTestConnection"))
+      .setDesc(t("settings.langfuseTestConnection.desc"))
+      .addButton((button) =>
+        button
+          .setButtonText(t("settings.langfuseTestBtn"))
+          .onClick(async () => {
+            const currentLangfuse = this.plugin.settings.langfuse;
+            if (!currentLangfuse.publicKey || !currentLangfuse.secretKey) {
+              new Notice(t("settings.langfuseTestMissingKeys"));
+              return;
+            }
+            button.setButtonText(t("settings.langfuseTesting"));
+            button.setDisabled(true);
+            try {
+              await sendTestTrace(currentLangfuse);
+              new Notice(t("settings.langfuseTestSuccess"));
+            } catch (error) {
+              const msg = error instanceof Error ? error.message : String(error);
+              new Notice(t("settings.langfuseTestFailed", { error: msg }));
+            } finally {
+              button.setButtonText(t("settings.langfuseTestBtn"));
+              button.setDisabled(false);
+            }
+          })
+      );
   }
 
   private async deleteChatHistoryFiles(): Promise<void> {

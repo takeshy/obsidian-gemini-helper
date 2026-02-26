@@ -5,6 +5,7 @@ import type {
   RagSyncState,
 } from "src/types";
 import { formatError } from "src/utils/error";
+import { tracing } from "src/core/tracingHooks";
 
 // Supported file extensions for RAG upload
 // Note: Gemini File Search API only supports text and application types (not images)
@@ -279,6 +280,14 @@ export class FileSearchManager {
 
     this.syncStatus.isRunning = true;
 
+    const traceId = tracing.traceStart("rag-smart-sync", {
+      metadata: {
+        storeName: this.storeName,
+        includeFolders: filterConfig.includeFolders,
+        excludePatterns: filterConfig.excludePatterns,
+      },
+    });
+
     const result: SyncResult = {
       uploaded: [],
       skipped: [],
@@ -467,6 +476,15 @@ export class FileSearchManager {
       this.syncStatus.lastSync = Date.now();
     } finally {
       this.syncStatus.isRunning = false;
+
+      tracing.traceEnd(traceId, {
+        metadata: {
+          uploaded: result.uploaded.length,
+          skipped: result.skipped.length,
+          deleted: result.deleted.length,
+          errors: result.errors.length,
+        },
+      });
     }
 
     return result;

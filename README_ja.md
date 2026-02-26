@@ -406,6 +406,8 @@ Obsidian のイベントでワークフローを自動実行：
 | Gemini 2.5 Flash (Image) | 画像生成、1024px                          |
 | Gemini 3 Pro (Image)     | プロ画像生成、4K                          |
 
+> **Thinking モード:** チャットでは、メッセージに「考えて」「分析して」「検討して」などのキーワードが含まれると Thinking モードが有効になります。ただし、**Gemini 3 Pro** と **Gemini 3.1 Pro** はキーワードに関係なく常に Thinking モードで動作します。これらのモデルは Thinking の無効化をサポートしていません。
+
 ### 無料プラン
 
 | モデル                  | Vault 操作 |
@@ -806,6 +808,16 @@ AI でワークフローを修正する際、過去の実行結果を参照し�
 - MCP（Model Context Protocol）サーバーは、ワークフローの `mcp` ノード用にプラグイン設定で構成できます
 - MCP サーバーは追加のツールと機能を提供する外部サービスです
 
+**GemiHub 経由の Google Drive 同期（オプション）：**
+- Google Drive 同期が有効な場合、Vault ファイルはご自身の Google Drive アカウントにアップロードされます
+- 使用するネットワークエンドポイント：
+  - `https://www.googleapis.com/drive/v3` — ファイルメタデータと同期操作
+  - `https://www.googleapis.com/upload/drive/v3` — ファイルアップロード
+  - `https://gemihub.online/api/obsidian/token` — OAuth トークンリフレッシュ（下記参照）
+- **トークンリフレッシュの仕組み：** 暗号化されたリフレッシュトークンが GemiHub プロキシに送信され、プロキシが OAuth クライアントシークレットを付加して Google のトークンエンドポイントに転送します。クライアント側のコードに OAuth クライアントシークレットを安全に埋め込むことができないため、プロキシが必要です。プロキシはトークンを保存・記録しません。[GemiHub プライバシーポリシー](https://gemihub.online/privacy)を参照してください。
+- 暗号化された認証データ（RSA + AES-256-GCM）はプラグイン設定に保存されます。復号パスワードが送信されることはありません
+- Vault のコンテンツは GemiHub に送信されません — ファイルは Obsidian と Google Drive API 間で直接同期されます
+
 **セキュリティに関する注意：**
 
 - 実行前にワークフローを確認してください。`http` ノードは Vault データを外部エンドポイントに送信できます
@@ -818,6 +830,30 @@ AI でワークフローを修正する際、過去の実行結果を参照し�
 ## ライセンス
 
 MIT
+
+## 実験的機能
+
+### Google Drive 同期 (GemiHub 連携)
+
+[GemiHub](https://gemihub.online) 経由で Obsidian Vault を Google Drive と同期します。Obsidian でノートを編集し、GemiHub の Web インターフェースからアクセスすることも、その逆も可能です。
+
+![Drive Sync のアンロック](docs/images/gemihub_connection/start_with_sync.png)
+
+**GemiHub 限定機能**（Obsidian プラグインでは利用不可）：
+
+- **自動 RAG** - GemiHub に同期されたファイルは、同期のたびに自動的にセマンティック検索用にインデックスされます。手動セットアップは不要です
+- **OAuth2 対応 MCP** - OAuth2 認証が必要な MCP サーバーを使用可能（例：Google Calendar、Gmail、Google Docs）
+- **Markdown から PDF/HTML への変換** - Markdown ノートをフォーマット済みの PDF または HTML ドキュメントに変換
+- **公開パブリッシュ** - 変換した HTML/PDF ドキュメントを共有可能な公開 URL で公開
+
+**接続により Obsidian に追加される機能：**
+
+- **Diff プレビュー付き双方向同期** - 変更をコミットする前に、詳細なファイル一覧と Unified Diff ビューで Push・Pull を実行
+- **Diff 付きコンフリクト解決** - 同じファイルが両方で編集された場合、カラーコード付き Unified Diff でコンフリクトを解決
+- **Drive 編集履歴** - Obsidian と GemiHub の両方での変更を追跡、ファイルごとの履歴に変更元（ローカル/リモート）を表示
+- **コンフリクトバックアップ管理** - Drive に保存されたコンフリクトバックアップの閲覧、プレビュー、復元
+
+> **セットアップ：** 設定手順は [GemiHub 連携ガイド](docs/GEMIHUB_CONNECTION.md) を参照してください。
 
 ## リンク
 

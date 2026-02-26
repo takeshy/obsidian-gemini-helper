@@ -396,6 +396,8 @@ nodes:
 | Gemini 2.5 Flash (Image) | 图像生成，1024px |
 | Gemini 3 Pro (Image) | Pro 图像生成，4K |
 
+> **Thinking 模式：** 在聊天中，当消息包含"思考"、"分析一下"或"考虑"等关键词时会触发 Thinking 模式。但是，**Gemini 3 Pro** 和 **Gemini 3.1 Pro** 无论是否包含关键词都始终使用 Thinking 模式——这些模型不支持禁用 Thinking。
+
 ### 免费计划
 | 模型 | 仓库操作 |
 |-------|------------------|
@@ -764,6 +766,16 @@ AI 工作流模态框支持拖放定位和从角落调整大小，以提供更�
 - MCP（模型上下文协议）服务器可以在插件设置中为工作流 `mcp` 节点配置
 - MCP 服务器是提供额外工具和功能的外部服务
 
+**通过 GemiHub 同步 Google Drive（可选）：**
+- 启用 Google Drive 同步后，Vault 文件会上传到您自己的 Google Drive 账户
+- 使用的网络端点：
+  - `https://www.googleapis.com/drive/v3` — 文件元数据和同步操作
+  - `https://www.googleapis.com/upload/drive/v3` — 文件上传
+  - `https://gemihub.online/api/obsidian/token` — OAuth 令牌刷新（见下文）
+- **令牌刷新流程：** 您的加密刷新令牌被发送到 GemiHub 代理，代理添加 OAuth 客户端密钥后将请求转发到 Google 的令牌端点。由于 OAuth 客户端密钥无法安全地嵌入客户端代码中，因此需要代理。代理不会存储或记录令牌。请参阅 [GemiHub 隐私政策](https://gemihub.online/privacy)。
+- 加密的认证数据（RSA + AES-256-GCM）存储在插件设置中；解密密码永远不会被传输
+- 不会向 GemiHub 发送任何 Vault 内容 — 文件直接在 Obsidian 和 Google Drive API 之间同步
+
 **安全注意事项：**
 - 运行前请审查工作流 - `http` 节点可以将仓库数据传输到外部端点
 - 工作流 `note` 节点在写入文件前会显示确认对话框（默认行为）
@@ -775,6 +787,30 @@ AI 工作流模态框支持拖放定位和从角落调整大小，以提供更�
 ## 许可证
 
 MIT
+
+## 实验性功能
+
+### Google Drive Sync (GemiHub Connection)
+
+通过 [GemiHub](https://gemihub.online) 将您的 Obsidian vault 与 Google Drive 同步。在 Obsidian 中编辑笔记并从 GemiHub 的网页界面访问，反之亦然。
+
+![Drive Sync 解锁](docs/images/gemihub_connection/start_with_sync.png)
+
+**GemiHub 独有功能**（Obsidian 插件中不可用）：
+
+- **Automatic RAG** - 同步到 GemiHub 的文件会在每次同步时自动索引以进行语义搜索，无需手动设置
+- **OAuth2-enabled MCP** - 使用需要 OAuth2 认证的 MCP 服务器（例如 Google Calendar、Gmail、Google Docs）
+- **Markdown to PDF/HTML conversion** - 将您的 Markdown 笔记转换为格式化的 PDF 或 HTML 文档
+- **Public publishing** - 使用可共享的公开 URL 发布转换后的 HTML/PDF 文档
+
+**通过连接为 Obsidian 添加的功能：**
+
+- **带 diff 预览的双向同步** - Push 和 pull 文件时提供详细的文件列表和 unified diff 视图，在提交更改前进行确认
+- **带 diff 的冲突解决** - 当同一文件在两端都被编辑时，使用彩色 unified diff 解决冲突
+- **Drive 编辑历史** - 跟踪来自 Obsidian 和 GemiHub 两端的更改，按文件显示历史并标注来源（本地/远程）
+- **冲突备份管理** - 浏览、预览和恢复存储在 Drive 上的冲突备份
+
+> **设置：** 请参阅 [GemiHub Connection 指南](docs/GEMIHUB_CONNECTION_zh.md) 获取设置说明。
 
 ## 链接
 

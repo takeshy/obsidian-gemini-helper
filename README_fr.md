@@ -396,6 +396,8 @@ Les workflows peuvent être automatiquement déclenchés par des événements Ob
 | Gemini 2.5 Flash (Image) | Génération d'images, 1024px |
 | Gemini 3 Pro (Image) | Génération d'images Pro, 4K |
 
+> **Mode Thinking :** Dans le chat, le mode thinking est déclenché par des mots-clés comme « réfléchis », « analyse » ou « considère » dans votre message. Cependant, **Gemini 3 Pro** et **Gemini 3.1 Pro** utilisent toujours le mode thinking indépendamment des mots-clés — ces modèles ne permettent pas de désactiver le thinking.
+
 ### Plan Gratuit
 | Modèle | Opérations sur le Coffre |
 |--------|--------------------------|
@@ -764,6 +766,16 @@ Lors de la régénération d'un workflow (en cliquant sur "Non" dans l'aperçu),
 - Les serveurs MCP (Model Context Protocol) peuvent être configurés dans les paramètres du plugin pour les nœuds `mcp` des workflows
 - Les serveurs MCP sont des services externes qui fournissent des outils et capacités supplémentaires
 
+**Synchronisation Google Drive via GemiHub (optionnel) :**
+- Lorsque la synchronisation Google Drive est activée, les fichiers du vault sont téléversés vers votre propre compte Google Drive
+- Points d'accès réseau utilisés :
+  - `https://www.googleapis.com/drive/v3` — métadonnées de fichiers et opérations de synchronisation
+  - `https://www.googleapis.com/upload/drive/v3` — téléversement de fichiers
+  - `https://gemihub.online/api/obsidian/token` — actualisation du jeton OAuth (voir ci-dessous)
+- **Flux d'actualisation des jetons :** Votre jeton d'actualisation chiffré est envoyé au proxy GemiHub, qui ajoute le secret client OAuth et transmet la requête au point d'accès de jetons de Google. Le proxy est nécessaire car les secrets client OAuth ne peuvent pas être intégrés en toute sécurité dans le code côté client. Le proxy ne stocke ni n'enregistre les jetons. Voir la [Politique de confidentialité de GemiHub](https://gemihub.online/privacy).
+- Les données d'authentification chiffrées (RSA + AES-256-GCM) sont stockées dans les paramètres du plugin ; le mot de passe de déchiffrement n'est jamais transmis
+- Aucun contenu du vault n'est envoyé à GemiHub — les fichiers sont synchronisés directement entre Obsidian et l'API Google Drive
+
 **Notes de sécurité :**
 - Vérifiez les workflows avant de les exécuter - les nœuds `http` peuvent transmettre des données du coffre à des endpoints externes
 - Les nœuds `note` des workflows affichent un dialogue de confirmation avant d'écrire des fichiers (comportement par défaut)
@@ -775,6 +787,30 @@ Voir les [Conditions d'Utilisation de Google AI](https://ai.google.dev/terms) po
 ## Licence
 
 MIT
+
+## Fonctionnalités Expérimentales
+
+### Google Drive Sync (GemiHub Connection)
+
+Synchronisez votre coffre Obsidian avec Google Drive via [GemiHub](https://gemihub.online). Modifiez des notes dans Obsidian et accédez-y depuis l'interface web de GemiHub, ou inversement.
+
+![Drive Sync Unlock](docs/images/gemihub_connection/start_with_sync.png)
+
+**Fonctionnalités exclusives à GemiHub** (non disponibles dans le plugin Obsidian) :
+
+- **Automatic RAG** - Les fichiers synchronisés vers GemiHub sont automatiquement indexés pour la recherche sémantique à chaque synchronisation, sans configuration manuelle requise
+- **OAuth2-enabled MCP** - Utilisez des serveurs MCP nécessitant une authentification OAuth2 (ex. Google Calendar, Gmail, Google Docs)
+- **Conversion Markdown vers PDF/HTML** - Convertissez vos notes Markdown en documents PDF ou HTML formatés
+- **Publication publique** - Publiez des documents HTML/PDF convertis avec une URL publique partageable
+
+**Fonctionnalités ajoutées à Obsidian via la connexion :**
+
+- **Synchronisation bidirectionnelle avec aperçu des différences** - Push et pull de fichiers avec une liste détaillée des fichiers et une vue diff unifiée avant de valider les modifications
+- **Résolution de conflits avec diff** - Lorsque le même fichier est modifié des deux côtés, résolvez les conflits avec un diff unifié avec code couleur
+- **Historique d'édition Drive** - Suivez les modifications effectuées depuis Obsidian et GemiHub, avec un historique par fichier indiquant l'origine (local/distant)
+- **Gestion des sauvegardes de conflits** - Parcourez, prévisualisez et restaurez les sauvegardes de conflits stockées sur Drive
+
+> **Configuration :** Voir le [Guide de connexion GemiHub](docs/GEMIHUB_CONNECTION.md) pour les instructions de configuration.
 
 ## Liens
 

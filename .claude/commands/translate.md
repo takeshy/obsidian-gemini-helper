@@ -26,6 +26,10 @@ Translate the following documentation files to all supported languages:
 - Source: `src/i18n/en.ts`
 - Targets: `src/i18n/de.ts`, `src/i18n/es.ts`, `src/i18n/fr.ts`, `src/i18n/it.ts`, `src/i18n/ja.ts`, `src/i18n/ko.ts`, `src/i18n/pt.ts`, `src/i18n/zh.ts`
 
+### 4. GEMIHUB_CONNECTION.md
+- Source: `docs/GEMIHUB_CONNECTION.md`
+- Targets: `docs/GEMIHUB_CONNECTION_de.md`, `docs/GEMIHUB_CONNECTION_es.md`, `docs/GEMIHUB_CONNECTION_fr.md`, `docs/GEMIHUB_CONNECTION_it.md`, `docs/GEMIHUB_CONNECTION_ja.md`, `docs/GEMIHUB_CONNECTION_ko.md`, `docs/GEMIHUB_CONNECTION_pt.md`, `docs/GEMIHUB_CONNECTION_zh.md`
+
 ## Translation Instructions
 
 1. **Read the source file** and compare with existing translations

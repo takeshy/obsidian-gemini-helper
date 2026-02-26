@@ -1,5 +1,5 @@
 import { createRoot, Root } from "react-dom/client";
-import { ItemView, WorkspaceLeaf, IconName, TFile, Notice } from "obsidian";
+import { TextFileView, WorkspaceLeaf, IconName, Notice } from "obsidian";
 import type { GeminiHelperPlugin } from "src/plugin";
 import CryptEditor from "./components/CryptEditor";
 import {
@@ -10,15 +10,10 @@ import { formatError } from "src/utils/error";
 
 export const CRYPT_VIEW_TYPE = "gemini-helper-crypt-view";
 
-interface CryptViewState extends Record<string, unknown> {
-  filePath: string;
-}
-
-export class CryptView extends ItemView {
+export class CryptView extends TextFileView {
   plugin: GeminiHelperPlugin;
   reactRoot: Root | null = null;
-  filePath: string = "";
-  private file: TFile | null = null;
+  private currentData: string = "";
 
   constructor(leaf: WorkspaceLeaf, plugin: GeminiHelperPlugin) {
     super(leaf);
@@ -30,78 +25,54 @@ export class CryptView extends ItemView {
   }
 
   getDisplayText(): string {
-    const fileName = this.filePath.split("/").pop() || "Encrypted";
-    return `🔒 ${fileName}`;
+    const fileName = this.file?.name || "Encrypted";
+    return fileName;
   }
 
   getIcon(): IconName {
     return "lock";
   }
 
-  async setState(state: CryptViewState, result: { history: boolean }): Promise<void> {
-    const oldFilePath = this.filePath;
-    this.filePath = state.filePath || "";
-    await super.setState(state, result);
-    // Only re-render if filePath actually changed (prevents losing edits on mobile)
-    if (this.filePath && this.filePath !== oldFilePath) {
-      // Reset reactRoot to allow re-render for new file
+  // TextFileView required methods
+  getViewData(): string {
+    return this.currentData;
+  }
+
+  setViewData(data: string, clear: boolean): void {
+    this.currentData = data;
+    if (clear) {
       this.reactRoot?.unmount();
       this.reactRoot = null;
-      await this.renderContent();
     }
+    this.renderContent();
   }
 
-  getState(): CryptViewState {
-    return { filePath: this.filePath };
+  clear(): void {
+    this.currentData = "";
+    this.reactRoot?.unmount();
+    this.reactRoot = null;
+    this.contentEl.empty();
   }
 
-  setFile(file: TFile): void {
-    this.file = file;
-    this.filePath = file.path;
-  }
+  private renderContent(): void {
+    if (this.reactRoot) {
+      this.reactRoot.unmount();
+      this.reactRoot = null;
+    }
 
-  async onOpen(): Promise<void> {
-    await Promise.resolve();
-    const container = this.containerEl.children[1];
+    const container = this.contentEl;
+    container.empty();
     container.addClass("gemini-helper-crypt-container");
 
-    // Only render if not already rendered (prevents losing edits on mobile keyboard show)
-    if (this.filePath && !this.reactRoot) {
-      await this.renderContent();
-    }
-  }
-
-  private async renderContent(): Promise<void> {
-    // Skip if already rendered (prevents losing edits on mobile)
-    if (this.reactRoot) {
-      return;
-    }
-
-    const container = this.containerEl.children[1];
-    container.empty();
-
-    if (!this.filePath) {
+    if (!this.currentData) {
       container.createEl("div", {
-        text: "No file specified",
+        text: "No content",
         cls: "gemini-helper-crypt-error",
       });
       return;
     }
 
-    // Get the file
-    const file = this.plugin.app.vault.getAbstractFileByPath(this.filePath);
-    if (!(file instanceof TFile)) {
-      container.createEl("div", {
-        text: "File not found",
-        cls: "gemini-helper-crypt-error",
-      });
-      return;
-    }
-    this.file = file;
-
-    // Read file content
-    const content = await this.plugin.app.vault.read(file);
-    if (!isEncryptedFile(content)) {
+    if (!isEncryptedFile(this.currentData)) {
       container.createEl("div", {
         text: "File is not encrypted",
         cls: "gemini-helper-crypt-error",
@@ -109,13 +80,14 @@ export class CryptView extends ItemView {
       return;
     }
 
-    // Render React component
+    const filePath = this.file?.path || "";
+
     const root = createRoot(container);
     root.render(
       <CryptEditor
         plugin={this.plugin}
-        filePath={this.filePath}
-        encryptedContent={content}
+        filePath={filePath}
+        encryptedContent={this.currentData}
         onSave={async (newContent: string) => {
           await this.saveEncrypted(newContent);
         }}
@@ -125,7 +97,6 @@ export class CryptView extends ItemView {
       />
     );
     this.reactRoot = root;
-
   }
 
   async onClose(): Promise<void> {
@@ -149,7 +120,8 @@ export class CryptView extends ItemView {
         encryption.encryptedPrivateKey,
         encryption.salt
       );
-      await this.plugin.app.vault.modify(this.file, encryptedContent);
+      this.currentData = encryptedContent;
+      this.requestSave();
       new Notice("File saved (encrypted)");
     } catch (error) {
       console.error("Failed to save encrypted file:", formatError(error));
@@ -161,10 +133,11 @@ export class CryptView extends ItemView {
     if (!this.file) return;
 
     try {
-      await this.plugin.app.vault.modify(this.file, content);
+      this.currentData = content;
+      this.requestSave();
 
       // Remove .encrypted extension if present
-      let openPath = this.filePath;
+      let openPath = this.file.path;
       if (this.file.path.endsWith(".encrypted")) {
         const newPath = this.file.path.slice(0, -".encrypted".length);
         await this.plugin.app.vault.rename(this.file, newPath);

@@ -11,6 +11,7 @@ import {
   saveSnapshotToStore,
   deleteSnapshotFromStore,
 } from "./editHistoryStore";
+import { applyDiff } from "./diffUtils";
 
 // Edit history entry stored in history file
 export interface EditHistoryEntry {
@@ -104,6 +105,20 @@ export class EditHistoryManager {
    */
   private saveSnapshot(notePath: string, content: string): void {
     saveSnapshotToStore(notePath, content);
+  }
+
+  /**
+   * Get snapshot content (public accessor for restore from merged timeline)
+   */
+  getSnapshot(path: string): string | null {
+    return this.loadSnapshot(path);
+  }
+
+  /**
+   * Set snapshot content (public accessor for restore from merged timeline)
+   */
+  setSnapshot(path: string, content: string): void {
+    this.saveSnapshot(path, content);
   }
 
   /**
@@ -245,77 +260,6 @@ export class EditHistoryManager {
   }
 
   /**
-   * Apply a patch to get previous content
-   * Since diffs are stored in reverse direction (new → old):
-   * - Lines marked with "-" are in the current (new) content
-   * - Lines marked with "+" are in the target (old) content
-   */
-  private applyPatch(content: string, diff: string): string {
-    const lines = content.split("\n");
-    const diffLines = diff.split("\n");
-
-    // Process each hunk
-    let i = 0;
-    const hunks: Array<{ startIdx: number; searchLines: string[]; replaceLines: string[] }> = [];
-
-    while (i < diffLines.length) {
-      const line = diffLines[i];
-      const hunkMatch = line.match(/^@@ -(\d+),?\d* \+(\d+),?\d* @@/);
-
-      if (hunkMatch) {
-        // For reverse diff (new → old), the "-" side is the new content (what we're searching for)
-        const startIdx = parseInt(hunkMatch[1], 10) - 1;
-        const searchLines: string[] = [];  // Lines marked with - (current content)
-        const replaceLines: string[] = []; // Lines marked with + (target content)
-
-        i++;
-        while (i < diffLines.length && !diffLines[i].startsWith("@@")) {
-          const hunkLine = diffLines[i];
-          if (hunkLine.startsWith("-")) {
-            searchLines.push(hunkLine.substring(1));
-          } else if (hunkLine.startsWith("+")) {
-            replaceLines.push(hunkLine.substring(1));
-          } else if (hunkLine.startsWith(" ")) {
-            searchLines.push(hunkLine.substring(1));
-            replaceLines.push(hunkLine.substring(1));
-          }
-          i++;
-        }
-
-        hunks.push({ startIdx, searchLines, replaceLines });
-      } else {
-        i++;
-      }
-    }
-
-    // Apply hunks in reverse order (from end of file to beginning)
-    hunks.reverse();
-
-    for (const hunk of hunks) {
-      let startIdx = hunk.startIdx;
-
-      // Find exact match location (with some tolerance for line drift)
-      for (let j = Math.max(0, startIdx - 5); j <= Math.min(lines.length - hunk.searchLines.length, startIdx + 5); j++) {
-        let match = true;
-        for (let k = 0; k < hunk.searchLines.length && j + k < lines.length; k++) {
-          if (lines[j + k] !== hunk.searchLines[k]) {
-            match = false;
-            break;
-          }
-        }
-        if (match) {
-          startIdx = j;
-          break;
-        }
-      }
-
-      lines.splice(startIdx, hunk.searchLines.length, ...hunk.replaceLines);
-    }
-
-    return lines.join("\n");
-  }
-
-  /**
    * Get content at a specific history entry
    * Returns the content BEFORE the change recorded in that entry
    * Uses snapshot and applies patches to go back in time
@@ -337,7 +281,7 @@ export class EditHistoryManager {
     // Including the target entry's patch gives us the content BEFORE that change
     let content = snapshot;
     for (let i = history.entries.length - 1; i >= targetIndex; i--) {
-      content = this.applyPatch(content, history.entries[i].diff);
+      content = applyDiff(content, history.entries[i].diff);
     }
 
     return content;

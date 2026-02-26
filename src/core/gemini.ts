@@ -453,8 +453,10 @@ export class GeminiClient {
     // - Gemini 2.5 Flash Lite requires thinkingBudget: -1 to enable thinking
     // - Other models work with just includeThoughts: true
     const getThinkingConfig = () => {
-      if (!enableThinking) return { thinkingBudget: 0 };
+      // gemini-3-pro models require thinking — cannot set thinkingBudget: 0
       const modelLower = this.model.toLowerCase();
+      const thinkingRequired = modelLower.includes("gemini-3-pro") || modelLower.includes("gemini-3.1-pro");
+      if (!enableThinking && !thinkingRequired) return { thinkingBudget: 0 };
       if (modelLower.includes("flash-lite")) {
         return { includeThoughts: true, thinkingBudget: -1 };
       }

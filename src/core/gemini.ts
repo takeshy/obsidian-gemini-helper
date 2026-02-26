@@ -55,12 +55,13 @@ interface ExtractUsageOptions {
   webSearchUsed?: boolean;
 }
 
-function extractUsage(usageMetadata: { promptTokenCount?: number; candidatesTokenCount?: number; totalTokenCount?: number; thoughtsTokenCount?: number } | undefined, options?: ExtractUsageOptions): TracingUsage | undefined {
+function extractUsage(usageMetadata: { promptTokenCount?: number; candidatesTokenCount?: number; totalTokenCount?: number; thoughtsTokenCount?: number; toolUsePromptTokenCount?: number } | undefined, options?: ExtractUsageOptions): TracingUsage | undefined {
   if (!usageMetadata) return undefined;
   const model = options?.model;
   const inputTokens = usageMetadata.promptTokenCount ?? 0;
   const outputTokens = usageMetadata.candidatesTokenCount ?? 0;
   const thinkingTokens = usageMetadata.thoughtsTokenCount ?? 0;
+  const toolUseTokens = usageMetadata.toolUsePromptTokenCount ?? 0;
   const pricing = model ? MODEL_PRICING[model] : undefined;
   const inputCost = pricing ? inputTokens * pricing.input : undefined;
   // candidatesTokenCount already includes thinking tokens in Gemini's accounting
@@ -76,6 +77,7 @@ function extractUsage(usageMetadata: { promptTokenCount?: number; candidatesToke
     input: usageMetadata.promptTokenCount,
     output: usageMetadata.candidatesTokenCount,
     thinking: thinkingTokens > 0 ? thinkingTokens : undefined,
+    toolUsePromptTokens: toolUseTokens > 0 ? toolUseTokens : undefined,
     total: usageMetadata.totalTokenCount,
     inputCost,
     outputCost,
@@ -494,6 +496,7 @@ export class GeminiClient {
     const totalUsage: TracingUsage = { input: 0, output: 0, total: 0 };
     // Track per-round usage (last chunk in each stream has the round's total)
     let roundUsage: TracingUsage | undefined;
+    let roundNumber = 0;
 
     let continueLoop = true;
 
@@ -522,6 +525,11 @@ export class GeminiClient {
       let response = await chat.sendMessageStream({ message: messageParts });
 
       while (continueLoop) {
+        roundNumber++;
+        const roundSpanId = tracing.spanStart(traceId, `round-${roundNumber}`, {
+          parentId: generationId ?? undefined,
+          metadata: { roundNumber },
+        });
         const functionCallsToProcess: Array<{ name: string; args: Record<string, unknown> }> = [];
         let groundingEmitted = false;
         const accumulatedSources: string[] = [];
@@ -608,6 +616,7 @@ export class GeminiClient {
           totalUsage.input = (totalUsage.input ?? 0) + (roundUsage.input ?? 0);
           totalUsage.output = (totalUsage.output ?? 0) + (roundUsage.output ?? 0);
           if (roundUsage.thinking !== undefined) totalUsage.thinking = (totalUsage.thinking ?? 0) + roundUsage.thinking;
+          if (roundUsage.toolUsePromptTokens !== undefined) totalUsage.toolUsePromptTokens = (totalUsage.toolUsePromptTokens ?? 0) + roundUsage.toolUsePromptTokens;
           totalUsage.total = (totalUsage.total ?? 0) + (roundUsage.total ?? 0);
           if (roundUsage.inputCost !== undefined) totalUsage.inputCost = (totalUsage.inputCost ?? 0) + roundUsage.inputCost;
           if (roundUsage.outputCost !== undefined) totalUsage.outputCost = (totalUsage.outputCost ?? 0) + roundUsage.outputCost;
@@ -625,8 +634,23 @@ export class GeminiClient {
           groundingEmitted = true;
         }
 
+        // Add retriever span for RAG/File Search grounding
+        if (groundingEmitted && !webSearchEnabled && accumulatedSources.length > 0) {
+          const retrieverSpanId = tracing.spanStart(traceId, "retriever:file-search", {
+            parentId: roundSpanId ?? undefined,
+            metadata: { sourceCount: accumulatedSources.length },
+          });
+          tracing.spanEnd(retrieverSpanId, {
+            output: accumulatedSources,
+            metadata: {
+              toolUsePromptTokens: roundUsage?.toolUsePromptTokens,
+            },
+          });
+        }
+
         // If no chunks received at all, likely an API error (e.g., 503)
         if (!hasReceivedChunk && functionCallsToProcess.length === 0) {
+          tracing.spanEnd(roundSpanId, { error: "No response received from API" });
           yield { type: "error", error: "No response received from API (possible server error)" };
           return;
         }
@@ -662,6 +686,7 @@ export class GeminiClient {
               if (roundUsage.outputCost !== undefined) totalUsage.outputCost = (totalUsage.outputCost ?? 0) + roundUsage.outputCost;
               if (roundUsage.totalCost !== undefined) totalUsage.totalCost = (totalUsage.totalCost ?? 0) + roundUsage.totalCost;
             }
+            tracing.spanEnd(roundSpanId, { metadata: { reason: "function_call_limit", usage: roundUsage } });
             continueLoop = false;
             continue;
           }
@@ -767,6 +792,7 @@ export class GeminiClient {
               if (roundUsage.outputCost !== undefined) totalUsage.outputCost = (totalUsage.outputCost ?? 0) + roundUsage.outputCost;
               if (roundUsage.totalCost !== undefined) totalUsage.totalCost = (totalUsage.totalCost ?? 0) + roundUsage.totalCost;
             }
+            tracing.spanEnd(roundSpanId, { metadata: { reason: "function_call_limit_with_skipped", usage: roundUsage } });
             continueLoop = false;
             continue;
           }
@@ -779,18 +805,27 @@ export class GeminiClient {
           }
 
           // Send function responses back to the chat
+          tracing.spanEnd(roundSpanId, { metadata: { toolCalls: callsToExecute.map(c => c.name), usage: roundUsage } });
           response = await chat.sendMessageStream({
             message: functionResponseParts,
           });
         } else {
+          tracing.spanEnd(roundSpanId, { metadata: { final: true, usage: roundUsage } });
           continueLoop = false;
         }
       }
 
+      const generationMetadata: Record<string, unknown> = { toolCallCount: toolCallTraceCount, roundCount: roundNumber };
+      if (totalUsage.toolUsePromptTokens) {
+        generationMetadata.toolUsePromptTokens = totalUsage.toolUsePromptTokens;
+        if (totalUsage.total) {
+          generationMetadata.ragTokenRatio = totalUsage.toolUsePromptTokens / totalUsage.total;
+        }
+      }
       tracing.generationEnd(generationId, {
         output: accumulatedOutput,
         usage: totalUsage.total ? totalUsage : undefined,
-        metadata: { toolCallCount: toolCallTraceCount },
+        metadata: generationMetadata,
       });
 
       yield { type: "done", usage: toStreamChunkUsage(totalUsage.total ? totalUsage : undefined) };

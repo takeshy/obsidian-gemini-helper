@@ -448,18 +448,14 @@ export class GeminiClient {
         : shouldEnableThinkingByKeyword(lastMessage.content || ""));
 
     // Build thinking config based on model
-    // - Gemini 2.5 Flash Lite requires thinkingBudget to enable thinking (default is off)
-    // - Other 2.5 models work with just includeThoughts
-    // - Gemini 3 models use thinkingLevel (not thinkingBudget)
-    // - When explicitly disabled (options.enableThinking === false), set thinkingBudget: 0
-    //   to override the model default (which may have thinking enabled)
-    const explicitlyDisabled = options?.enableThinking === false;
+    // - When thinking disabled: set thinkingBudget: 0 to override model default
+    //   (Gemini 2.5+/3 models have thinking enabled by default)
+    // - Gemini 2.5 Flash Lite requires thinkingBudget: -1 to enable thinking
+    // - Other models work with just includeThoughts: true
     const getThinkingConfig = () => {
-      if (explicitlyDisabled) return { thinkingBudget: 0 };
-      if (!enableThinking) return undefined;
+      if (!enableThinking) return { thinkingBudget: 0 };
       const modelLower = this.model.toLowerCase();
       if (modelLower.includes("flash-lite")) {
-        // Flash Lite requires thinkingBudget to enable thinking (-1 = dynamic)
         return { includeThoughts: true, thinkingBudget: -1 };
       }
       return { includeThoughts: true };
@@ -814,8 +810,7 @@ export class GeminiClient {
   async *generateWorkflowStream(
     messages: Message[],
     systemPrompt?: string,
-    traceId?: string | null,
-    options?: { enableThinking?: boolean }
+    traceId?: string | null
   ): AsyncGenerator<StreamChunk> {
     // Build history from all messages except the last one
     const historyMessages = messages.slice(0, -1);
@@ -828,19 +823,11 @@ export class GeminiClient {
       return;
     }
 
-    // Check if model supports thinking (Gemma models don't support it)
+    // Workflow generation always enables thinking (unless model doesn't support it)
     const supportsThinking = !this.model.toLowerCase().includes("gemma");
 
-    // Enable thinking: explicit option overrides keyword detection
-    // When enableThinking is explicitly false, disable regardless of keywords
-    const enableThinking = supportsThinking &&
-      (options?.enableThinking !== undefined
-        ? options.enableThinking
-        : shouldEnableThinkingByKeyword(lastMessage.content || ""));
-
-    // Build thinking config based on model
     const getThinkingConfig = () => {
-      if (!enableThinking) return undefined;
+      if (!supportsThinking) return undefined;
       const modelLower = this.model.toLowerCase();
       if (modelLower.includes("flash-lite")) {
         return { includeThoughts: true, thinkingBudget: -1 };
@@ -854,7 +841,7 @@ export class GeminiClient {
       history,
       config: {
         systemInstruction: systemPrompt,
-        ...(enableThinking ? { thinkingConfig: getThinkingConfig() } : {}),
+        thinkingConfig: getThinkingConfig(),
       },
     });
 
@@ -881,7 +868,7 @@ export class GeminiClient {
     const genId = tracing.generationStart(traceId ?? null, "generateWorkflowStream", {
       model: this.model,
       input: lastMessage.content,
-      metadata: { enableThinking },
+      metadata: { enableThinking: supportsThinking },
     });
 
     try {

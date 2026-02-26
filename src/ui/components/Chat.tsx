@@ -1224,6 +1224,7 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 			metadata: {
 				model: currentModel,
 				isCli: true,
+				pluginVersion: plugin.manifest.version,
 			},
 		});
 
@@ -1410,6 +1411,7 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 				webSearchEnabled: selectedRagSetting === "__websearch__",
 				toolsEnabled: supportsFunctionCalling && !isImageGenerationModel(allowedModel),
 				isImageGeneration: isImageGenerationModel(allowedModel),
+				pluginVersion: plugin.manifest.version,
 			},
 			input: resolvedContent,
 		});
@@ -1947,6 +1949,7 @@ Always be helpful and provide clear, concise responses. When working with notes,
 					metadata: {
 						toolsUsed: toolsUsed.length > 0 ? toolsUsed : undefined,
 						ragUsed,
+						ragSources: ragSources.length > 0 ? ragSources : undefined,
 						webSearchUsed,
 						imageGenerationUsed,
 						stopped,
@@ -2079,7 +2082,7 @@ Always be helpful and provide clear, concise responses. When working with notes,
 			const compactTraceId = tracing.traceStart("chat-compact", {
 				sessionId: currentChatId ?? undefined,
 				input: `Compacting ${messages.length} messages`,
-				metadata: { messageCount: messages.length },
+				metadata: { messageCount: messages.length, pluginVersion: plugin.manifest.version },
 			});
 			const summary = await client.chat([summaryPrompt], "You are a conversation summarizer. Output only the summary without any preamble.", compactTraceId);
 

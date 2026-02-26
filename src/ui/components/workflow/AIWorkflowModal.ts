@@ -708,7 +708,12 @@ export class AIWorkflowModal extends Modal {
 
     const traceId = tracing.traceStart("workflow-generation", {
       input: currentRequest,
-      metadata: { model: selectedModel, isModify: !!this.existingYaml, isCliModel },
+      metadata: {
+        model: selectedModel,
+        isModify: !!this.existingYaml,
+        isCliModel,
+        pluginVersion: this.plugin.manifest.version,
+      },
     });
 
     try {

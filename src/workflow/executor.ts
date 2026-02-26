@@ -133,6 +133,7 @@ export class WorkflowExecutor {
       },
       metadata: {
         nodeCount: workflow.nodes.size,
+        pluginVersion: this.plugin.manifest.version,
       },
     });
 

@@ -3,7 +3,7 @@ import type { GeminiHelperPlugin } from "src/plugin";
 import { GeminiCliProvider, ClaudeCliProvider, CodexCliProvider } from "src/core/cliProvider";
 import { GeminiClient } from "src/core/gemini";
 import { tracing } from "src/core/tracingHooks";
-import { CLI_MODEL, CLAUDE_CLI_MODEL, CODEX_CLI_MODEL, DEFAULT_CLI_CONFIG, getAvailableModels, type ModelType, type Attachment } from "src/types";
+import { CLI_MODEL, CLAUDE_CLI_MODEL, CODEX_CLI_MODEL, DEFAULT_CLI_CONFIG, getAvailableModels, type ModelType, type Attachment, type StreamChunkUsage } from "src/types";
 import { getWorkflowSpecification } from "src/workflow/workflowSpec";
 import type { SidebarNode, WorkflowNodeType, ExecutionStep } from "src/workflow/types";
 import { ExecutionHistoryManager } from "src/workflow/history";
@@ -755,6 +755,7 @@ export class AIWorkflowModal extends Modal {
           (this.plugin.app.vault.adapter as unknown as { basePath?: string }).basePath || ".";
         const cliSystemPrompt = `${systemPrompt}\n\nNote: You are running in CLI mode with limited capabilities. You can read and search vault files, but cannot modify them.`;
 
+        const cliStartTime = Date.now();
         for await (const chunk of provider.chatStream(
           [{ role: "user", content: userPrompt, timestamp: Date.now() }],
           cliSystemPrompt,
@@ -769,6 +770,17 @@ export class AIWorkflowModal extends Modal {
             throw new Error(chunk.error || "Unknown error");
           }
         }
+        const cliElapsedMs = Date.now() - cliStartTime;
+        generationModal.setComplete();
+
+        // Close generation modal
+        generationModal.close();
+
+        // Show usage as Notice
+        const cliNotice = WorkflowGenerationModal.formatUsageNotice(undefined, cliElapsedMs);
+        if (cliNotice && !generationCancelled) {
+          new Notice(cliNotice);
+        }
       } else {
         // API model with streaming thinking support
         const client = new GeminiClient(
@@ -777,6 +789,8 @@ export class AIWorkflowModal extends Modal {
         );
 
         // Use the streaming workflow generation method
+        let streamUsage: StreamChunkUsage | undefined;
+        const apiStartTime = Date.now();
         for await (const chunk of client.generateWorkflowStream(
           [{
             role: "user",
@@ -796,14 +810,24 @@ export class AIWorkflowModal extends Modal {
             generationModal.appendThinking(chunk.content);
           } else if (chunk.type === "text" && chunk.content) {
             response += chunk.content;
+          } else if (chunk.type === "done") {
+            streamUsage = chunk.usage;
           } else if (chunk.type === "error") {
             throw new Error(chunk.error || "Unknown error");
           }
         }
-      }
+        const apiElapsedMs = Date.now() - apiStartTime;
+        generationModal.setComplete();
 
-      // Close generation modal
-      generationModal.close();
+        // Close generation modal
+        generationModal.close();
+
+        // Show usage as Notice
+        const apiNotice = WorkflowGenerationModal.formatUsageNotice(streamUsage, apiElapsedMs);
+        if (apiNotice && !generationCancelled) {
+          new Notice(apiNotice);
+        }
+      }
 
       // Check if cancelled
       if (generationCancelled) {

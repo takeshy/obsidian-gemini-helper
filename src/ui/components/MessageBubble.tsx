@@ -504,6 +504,24 @@ export default function MessageBubble({
 
       <div className="gemini-helper-message-content" ref={contentRef} />
 
+      {/* Usage info (tokens, cost, response time) */}
+      {!isUser && !isStreaming && (message.usage || message.elapsedMs) && (
+        <div className="gemini-helper-usage-info">
+          {message.elapsedMs !== undefined && (
+            <span>{formatElapsed(message.elapsedMs)}</span>
+          )}
+          {message.usage && message.usage.inputTokens !== undefined && message.usage.outputTokens !== undefined && (
+            <span>
+              {formatNumber(message.usage.inputTokens)} → {formatNumber(message.usage.outputTokens)} {t("message.tokens")}
+              {message.usage.thinkingTokens ? ` (${t("message.thinkingTokens")} ${formatNumber(message.usage.thinkingTokens)})` : ""}
+            </span>
+          )}
+          {message.usage?.totalCost !== undefined && (
+            <span>${message.usage.totalCost.toFixed(4)}</span>
+          )}
+        </div>
+      )}
+
       {/* HTML code block actions */}
       {htmlContent && !isStreaming && (
         <div className="gemini-helper-html-actions">
@@ -696,4 +714,13 @@ function formatTime(timestamp: number): string {
     hour: "2-digit",
     minute: "2-digit",
   });
+}
+
+function formatElapsed(ms: number): string {
+  if (ms < 1000) return `${ms}ms`;
+  return `${(ms / 1000).toFixed(1)}s`;
+}
+
+function formatNumber(n: number): string {
+  return n.toLocaleString();
 }

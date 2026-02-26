@@ -310,6 +310,8 @@ export const ja: Record<string, string> = {
   "message.renamed": "リネーム済み",
   "message.cancelledRename": "リネームをキャンセル",
   "message.failedToRename": "リネームに失敗しました",
+  "message.tokens": "トークン",
+  "message.thinkingTokens": "思考",
 
   // Tool display labels
   "tool.read": "読み取り",

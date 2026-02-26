@@ -13,6 +13,7 @@ import {
   type ToolDefinition,
   type ToolPropertyDefinition,
   type StreamChunk,
+  type StreamChunkUsage,
   type ToolCall,
   type ModelType,
   type GeneratedImage,
@@ -22,15 +23,15 @@ import { tracing, type TracingUsage } from "src/core/tracingHooks";
 // Model pricing per token (USD)
 // Source: https://ai.google.dev/pricing
 const MODEL_PRICING: Record<string, { input: number; output: number }> = {
-  "gemini-2.5-flash":       { input: 0.15 / 1e6, output: 0.60 / 1e6 },
-  "gemini-2.5-flash-lite":  { input: 0.075 / 1e6, output: 0.30 / 1e6 },
+  "gemini-2.5-flash":       { input: 0.30 / 1e6, output: 2.50 / 1e6 },
+  "gemini-2.5-flash-lite":  { input: 0.10 / 1e6, output: 0.40 / 1e6 },
   "gemini-2.5-pro":         { input: 1.25 / 1e6, output: 10.00 / 1e6 },
-  "gemini-3-flash-preview": { input: 0.15 / 1e6, output: 0.60 / 1e6 },
-  "gemini-3-pro-preview":   { input: 1.25 / 1e6, output: 10.00 / 1e6 },
-  "gemini-3.1-pro-preview": { input: 1.25 / 1e6, output: 10.00 / 1e6 },
-  "gemini-3.1-pro-preview-customtools": { input: 1.25 / 1e6, output: 10.00 / 1e6 },
-  "gemini-2.5-flash-image":    { input: 0.15 / 1e6, output: 0.60 / 1e6 },
-  "gemini-3-pro-image-preview": { input: 1.25 / 1e6, output: 10.00 / 1e6 },
+  "gemini-3-flash-preview": { input: 0.50 / 1e6, output: 3.00 / 1e6 },
+  "gemini-3-pro-preview":   { input: 2.00 / 1e6, output: 12.00 / 1e6 },
+  "gemini-3.1-pro-preview": { input: 2.00 / 1e6, output: 12.00 / 1e6 },
+  "gemini-3.1-pro-preview-customtools": { input: 2.00 / 1e6, output: 12.00 / 1e6 },
+  "gemini-2.5-flash-image":    { input: 0.30 / 1e6, output: 30.00 / 1e6 },
+  "gemini-3-pro-image-preview": { input: 2.00 / 1e6, output: 120.00 / 1e6 },
 };
 
 // Grounding with Google Search cost per prompt (USD)
@@ -54,13 +55,15 @@ interface ExtractUsageOptions {
   webSearchUsed?: boolean;
 }
 
-function extractUsage(usageMetadata: { promptTokenCount?: number; candidatesTokenCount?: number; totalTokenCount?: number } | undefined, options?: ExtractUsageOptions): TracingUsage | undefined {
+function extractUsage(usageMetadata: { promptTokenCount?: number; candidatesTokenCount?: number; totalTokenCount?: number; thoughtsTokenCount?: number } | undefined, options?: ExtractUsageOptions): TracingUsage | undefined {
   if (!usageMetadata) return undefined;
   const model = options?.model;
   const inputTokens = usageMetadata.promptTokenCount ?? 0;
   const outputTokens = usageMetadata.candidatesTokenCount ?? 0;
+  const thinkingTokens = usageMetadata.thoughtsTokenCount ?? 0;
   const pricing = model ? MODEL_PRICING[model] : undefined;
   const inputCost = pricing ? inputTokens * pricing.input : undefined;
+  // candidatesTokenCount already includes thinking tokens in Gemini's accounting
   const outputCost = pricing ? outputTokens * pricing.output : undefined;
   let totalCost = inputCost !== undefined && outputCost !== undefined ? inputCost + outputCost : undefined;
 
@@ -72,10 +75,23 @@ function extractUsage(usageMetadata: { promptTokenCount?: number; candidatesToke
   return {
     input: usageMetadata.promptTokenCount,
     output: usageMetadata.candidatesTokenCount,
+    thinking: thinkingTokens > 0 ? thinkingTokens : undefined,
     total: usageMetadata.totalTokenCount,
     inputCost,
     outputCost,
     totalCost,
+  };
+}
+
+// Convert TracingUsage to StreamChunkUsage for yielding to the UI
+function toStreamChunkUsage(usage: TracingUsage | undefined): StreamChunkUsage | undefined {
+  if (!usage) return undefined;
+  return {
+    inputTokens: usage.input,
+    outputTokens: usage.output,
+    thinkingTokens: usage.thinking,
+    totalTokens: usage.total,
+    totalCost: usage.totalCost,
   };
 }
 
@@ -318,7 +334,7 @@ export class GeminiClient {
       }
 
       tracing.generationEnd(genId, { output: accumulatedText, usage: lastUsage });
-      yield { type: "done" };
+      yield { type: "done", usage: toStreamChunkUsage(lastUsage) };
     } catch (error) {
       tracing.generationEnd(genId, {
         error: error instanceof Error ? error.message : "API call failed",
@@ -426,13 +442,20 @@ export class GeminiClient {
     const supportsThinking = !this.model.toLowerCase().includes("gemma");
 
     // Enable thinking: explicit option overrides keyword detection
-    const enableThinking = supportsThinking && (options?.enableThinking === true || shouldEnableThinkingByKeyword(lastMessage.content || ""));
+    const enableThinking = supportsThinking &&
+      (options?.enableThinking !== undefined
+        ? options.enableThinking
+        : shouldEnableThinkingByKeyword(lastMessage.content || ""));
 
     // Build thinking config based on model
     // - Gemini 2.5 Flash Lite requires thinkingBudget to enable thinking (default is off)
     // - Other 2.5 models work with just includeThoughts
     // - Gemini 3 models use thinkingLevel (not thinkingBudget)
+    // - When explicitly disabled (options.enableThinking === false), set thinkingBudget: 0
+    //   to override the model default (which may have thinking enabled)
+    const explicitlyDisabled = options?.enableThinking === false;
     const getThinkingConfig = () => {
+      if (explicitlyDisabled) return { thinkingBudget: 0 };
       if (!enableThinking) return undefined;
       const modelLower = this.model.toLowerCase();
       if (modelLower.includes("flash-lite")) {
@@ -442,6 +465,8 @@ export class GeminiClient {
       return { includeThoughts: true };
     };
 
+    const thinkingConfig = getThinkingConfig();
+
     // Create a chat session with history
     const chat: Chat = this.ai.chats.create({
       model: this.model,
@@ -449,8 +474,7 @@ export class GeminiClient {
       config: {
         systemInstruction: systemPrompt,
         ...(geminiTools ? { tools: geminiTools } : {}),
-        // Enable thinking only when keywords detected
-        ...(enableThinking ? { thinkingConfig: getThinkingConfig() } : {}),
+        ...(thinkingConfig ? { thinkingConfig } : {}),
       },
     });
 
@@ -585,6 +609,7 @@ export class GeminiClient {
         if (roundUsage) {
           totalUsage.input = (totalUsage.input ?? 0) + (roundUsage.input ?? 0);
           totalUsage.output = (totalUsage.output ?? 0) + (roundUsage.output ?? 0);
+          if (roundUsage.thinking !== undefined) totalUsage.thinking = (totalUsage.thinking ?? 0) + roundUsage.thinking;
           totalUsage.total = (totalUsage.total ?? 0) + (roundUsage.total ?? 0);
           if (roundUsage.inputCost !== undefined) totalUsage.inputCost = (totalUsage.inputCost ?? 0) + roundUsage.inputCost;
           if (roundUsage.outputCost !== undefined) totalUsage.outputCost = (totalUsage.outputCost ?? 0) + roundUsage.outputCost;
@@ -770,7 +795,7 @@ export class GeminiClient {
         metadata: { toolCallCount: toolCallTraceCount },
       });
 
-      yield { type: "done" };
+      yield { type: "done", usage: toStreamChunkUsage(totalUsage.total ? totalUsage : undefined) };
     } catch (error) {
       tracing.generationEnd(generationId, {
         error: error instanceof Error ? error.message : "API call failed",
@@ -789,7 +814,8 @@ export class GeminiClient {
   async *generateWorkflowStream(
     messages: Message[],
     systemPrompt?: string,
-    traceId?: string | null
+    traceId?: string | null,
+    options?: { enableThinking?: boolean }
   ): AsyncGenerator<StreamChunk> {
     // Build history from all messages except the last one
     const historyMessages = messages.slice(0, -1);
@@ -805,8 +831,12 @@ export class GeminiClient {
     // Check if model supports thinking (Gemma models don't support it)
     const supportsThinking = !this.model.toLowerCase().includes("gemma");
 
-    // Enable thinking only when user message contains thinking keywords
-    const enableThinking = supportsThinking && shouldEnableThinkingByKeyword(lastMessage.content || "");
+    // Enable thinking: explicit option overrides keyword detection
+    // When enableThinking is explicitly false, disable regardless of keywords
+    const enableThinking = supportsThinking &&
+      (options?.enableThinking !== undefined
+        ? options.enableThinking
+        : shouldEnableThinkingByKeyword(lastMessage.content || ""));
 
     // Build thinking config based on model
     const getThinkingConfig = () => {
@@ -895,7 +925,7 @@ export class GeminiClient {
       }
 
       tracing.generationEnd(genId, { output: accumulatedText, usage: lastUsage });
-      yield { type: "done" };
+      yield { type: "done", usage: toStreamChunkUsage(lastUsage) };
     } catch (error) {
       tracing.generationEnd(genId, {
         error: error instanceof Error ? error.message : "Workflow generation failed",
@@ -1003,11 +1033,12 @@ export class GeminiClient {
       }
 
       const imageWebSearchUsed = imageModel === "gemini-3-pro-image-preview" && !!webSearchEnabled;
+      const imageUsage = extractUsage(response.usageMetadata, { model: imageModel, webSearchUsed: imageWebSearchUsed });
       tracing.generationEnd(genId, {
         output: "[image generation completed]",
-        usage: extractUsage(response.usageMetadata, { model: imageModel, webSearchUsed: imageWebSearchUsed }),
+        usage: imageUsage,
       });
-      yield { type: "done" };
+      yield { type: "done", usage: toStreamChunkUsage(imageUsage) };
     } catch (error) {
       tracing.generationEnd(genId, {
         error: error instanceof Error ? error.message : "Image generation failed",

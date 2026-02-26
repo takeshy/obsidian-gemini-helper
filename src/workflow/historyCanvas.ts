@@ -53,7 +53,28 @@ function buildNodeText(step: ExecutionStep, index: number): string {
       : "output: (none)";
   const error = step.error ? `error: ${step.error}` : "";
 
-  return [header, status, input, output, error].filter(Boolean).join("\n");
+  let usageLine = "";
+  if (step.usage || step.elapsedMs) {
+    const parts: string[] = [];
+    if (step.elapsedMs !== undefined) {
+      parts.push(step.elapsedMs < 1000 ? `${step.elapsedMs}ms` : `${(step.elapsedMs / 1000).toFixed(1)}s`);
+    }
+    if (step.usage?.inputTokens !== undefined && step.usage?.outputTokens !== undefined) {
+      let tokens = `${step.usage.inputTokens} → ${step.usage.outputTokens} tokens`;
+      if (step.usage.thinkingTokens) {
+        tokens += ` (thinking ${step.usage.thinkingTokens})`;
+      }
+      parts.push(tokens);
+    }
+    if (step.usage?.totalCost !== undefined) {
+      parts.push(`$${step.usage.totalCost.toFixed(4)}`);
+    }
+    if (parts.length > 0) {
+      usageLine = `usage: ${parts.join(" | ")}`;
+    }
+  }
+
+  return [header, status, input, output, error, usageLine].filter(Boolean).join("\n");
 }
 
 function calculateNodeHeight(text: string): number {

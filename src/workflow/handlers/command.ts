@@ -2,7 +2,7 @@ import { App } from "obsidian";
 import type { GeminiHelperPlugin } from "../../plugin";
 import { getGeminiClient } from "../../core/gemini";
 import { CliProviderManager } from "../../core/cliProvider";
-import { isImageGenerationModel, type ModelType, type ToolDefinition, type McpAppInfo } from "../../types";
+import { isImageGenerationModel, type ModelType, type ToolDefinition, type McpAppInfo, type StreamChunkUsage } from "../../types";
 import { getEnabledTools } from "../../core/tools";
 import { fetchMcpTools, createMcpToolExecutor, type McpToolDefinition } from "../../core/mcpTools";
 import { createToolExecutor } from "../../vault/toolExecutor";
@@ -14,6 +14,8 @@ import { tracing } from "../../core/tracingHooks";
 export interface CommandNodeResult {
   mcpAppInfo?: McpAppInfo;
   usedModel: string;
+  usage?: StreamChunkUsage;
+  elapsedMs?: number;
 }
 
 // Handle command node - execute LLM with prompt directly
@@ -90,6 +92,7 @@ Please revise the output based on the user's feedback above.`;
     });
 
     let fullResponse = "";
+    const cliStartTime = Date.now();
     const stream = provider.chatStream(messages, "", vaultPath);
 
     try {
@@ -119,7 +122,7 @@ Please revise the output based on the user's feedback above.`;
         saveTo,
       };
     }
-    return { usedModel: model };
+    return { usedModel: model, elapsedMs: Date.now() - cliStartTime };
   }
 
   // Non-CLI model: use GeminiClient
@@ -359,6 +362,8 @@ Please revise the output based on the user's feedback above.`;
       );
 
   let thinkingContent = "";
+  let streamUsage: StreamChunkUsage | undefined;
+  const apiStartTime = Date.now();
   for await (const chunk of stream) {
     if (chunk.type === "text") {
       fullResponse += chunk.content;
@@ -371,6 +376,7 @@ Please revise the output based on the user's feedback above.`;
     } else if (chunk.type === "error") {
       throw new Error(chunk.error || chunk.content || "Unknown API error");
     } else if (chunk.type === "done") {
+      streamUsage = chunk.usage;
       break;
     }
   }
@@ -423,5 +429,5 @@ Please revise the output based on the user's feedback above.`;
   }
 
   // Return collected MCP App info and used model
-  return { mcpAppInfo: collectedMcpAppInfo, usedModel: model };
+  return { mcpAppInfo: collectedMcpAppInfo, usedModel: model, usage: streamUsage, elapsedMs: Date.now() - apiStartTime };
 }

@@ -358,6 +358,22 @@ export class HistoryModal extends Modal {
         errorEl.textContent = t("workflowModal.error", { error: step.error });
       }
 
+      // Usage info
+      if (step.usage || step.elapsedMs) {
+        const usageEl = stepEl.createDiv({ cls: "gemini-helper-usage-info" });
+        if (step.elapsedMs !== undefined) {
+          usageEl.createSpan({ text: step.elapsedMs < 1000 ? `${step.elapsedMs}ms` : `${(step.elapsedMs / 1000).toFixed(1)}s` });
+        }
+        if (step.usage?.inputTokens !== undefined && step.usage?.outputTokens !== undefined) {
+          const tokensText = `${step.usage.inputTokens.toLocaleString()} → ${step.usage.outputTokens.toLocaleString()} ${t("message.tokens")}` +
+            (step.usage.thinkingTokens ? ` (${t("message.thinkingTokens")} ${step.usage.thinkingTokens.toLocaleString()})` : "");
+          usageEl.createSpan({ text: tokensText });
+        }
+        if (step.usage?.totalCost !== undefined) {
+          usageEl.createSpan({ text: `$${step.usage.totalCost.toFixed(4)}` });
+        }
+      }
+
       // MCP App button if available
       if (step.mcpAppInfo) {
         const mcpAppSection = stepEl.createDiv({ cls: "workflow-step-section" });

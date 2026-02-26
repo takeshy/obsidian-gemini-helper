@@ -64,7 +64,6 @@ class LangfuseTracingHandler implements TracingHandler {
       output: this.redactOutput(params.output),
       level: params.error ? "ERROR" : undefined,
       statusMessage: params.error,
-      metadata: params.metadata,
       usage: params.usage ? {
         input: params.usage.input,
         output: params.usage.output,
@@ -73,6 +72,10 @@ class LangfuseTracingHandler implements TracingHandler {
         outputCost: params.usage.outputCost,
         totalCost: params.usage.totalCost,
       } : undefined,
+      metadata: {
+        ...params.metadata,
+        ...(params.usage?.thinking !== undefined ? { thinkingTokens: params.usage.thinking } : {}),
+      },
     });
     this.observationTraceMap.delete(id);
   }

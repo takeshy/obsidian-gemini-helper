@@ -1,4 +1,5 @@
 import { App, Modal } from "obsidian";
+import type { StreamChunkUsage } from "src/types";
 import { t } from "src/i18n";
 
 export interface WorkflowGenerationResult {
@@ -188,6 +189,29 @@ export class WorkflowGenerationModal extends Modal {
         loadingDots.remove();
       }
     }
+  }
+
+  /**
+   * Get usage info formatted as a string for Notice display.
+   * Returns null if no usage data is available.
+   */
+  static formatUsageNotice(usage?: StreamChunkUsage, elapsedMs?: number): string | null {
+    if (!usage && elapsedMs === undefined) return null;
+    const parts: string[] = [];
+    if (elapsedMs !== undefined) {
+      parts.push(elapsedMs < 1000 ? `${elapsedMs}ms` : `${(elapsedMs / 1000).toFixed(1)}s`);
+    }
+    if (usage?.inputTokens !== undefined && usage?.outputTokens !== undefined) {
+      let tokens = `${usage.inputTokens.toLocaleString()} → ${usage.outputTokens.toLocaleString()} ${t("message.tokens")}`;
+      if (usage.thinkingTokens) {
+        tokens += ` (${t("message.thinkingTokens")} ${usage.thinkingTokens.toLocaleString()})`;
+      }
+      parts.push(tokens);
+    }
+    if (usage?.totalCost !== undefined) {
+      parts.push(`$${usage.totalCost.toFixed(4)}`);
+    }
+    return parts.length > 0 ? parts.join(" | ") : null;
   }
 
   /**

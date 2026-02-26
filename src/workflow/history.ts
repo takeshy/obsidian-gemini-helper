@@ -1,5 +1,5 @@
 import { App } from "obsidian";
-import type { McpAppInfo } from "../types";
+import type { McpAppInfo, StreamChunkUsage } from "../types";
 import {
   ExecutionRecord,
   ExecutionStatus,
@@ -81,7 +81,9 @@ export class ExecutionHistoryManager {
     status: StepStatus = "success",
     error?: string,
     mcpAppInfo?: McpAppInfo,
-    variablesSnapshot?: Record<string, string | number>
+    variablesSnapshot?: Record<string, string | number>,
+    usage?: StreamChunkUsage,
+    elapsedMs?: number
   ): void {
     record.steps.push({
       nodeId,
@@ -93,6 +95,8 @@ export class ExecutionHistoryManager {
       error,
       mcpAppInfo,
       variablesSnapshot,
+      usage,
+      elapsedMs,
     });
   }
 

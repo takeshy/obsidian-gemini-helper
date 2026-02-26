@@ -1,6 +1,6 @@
 import { App, TFile } from "obsidian";
 import type { GeminiHelperPlugin } from "../plugin";
-import type { McpAppInfo } from "../types";
+import type { McpAppInfo, StreamChunkUsage } from "../types";
 import {
   Workflow,
   WorkflowNode,
@@ -144,7 +144,9 @@ export class WorkflowExecutor {
       status: ExecutionLog["status"] = "info",
       input?: Record<string, unknown>,
       output?: unknown,
-      mcpAppInfo?: McpAppInfo
+      mcpAppInfo?: McpAppInfo,
+      usage?: StreamChunkUsage,
+      elapsedMs?: number
     ) => {
       const logEntry: ExecutionLog = {
         nodeId,
@@ -155,6 +157,8 @@ export class WorkflowExecutor {
         input,
         output,
         mcpAppInfo,
+        usage,
+        elapsedMs,
       };
       context.logs.push(logEntry);
       onLog?.(logEntry);
@@ -211,7 +215,9 @@ export class WorkflowExecutor {
       output?: unknown,
       status: "success" | "error" | "skipped" = "success",
       error?: string,
-      mcpAppInfo?: McpAppInfo
+      mcpAppInfo?: McpAppInfo,
+      usage?: StreamChunkUsage,
+      elapsedMs?: number
     ) => {
       if (historyRecord) {
         this.historyManager.addStep(
@@ -223,7 +229,9 @@ export class WorkflowExecutor {
           status,
           error,
           mcpAppInfo,
-          currentVarsSnapshot
+          currentVarsSnapshot,
+          usage,
+          elapsedMs
         );
       }
     };
@@ -465,12 +473,14 @@ export class WorkflowExecutor {
                 "success",
                 cmdInput,
                 cmdOutput,
-                cmdResult.mcpAppInfo
+                cmdResult.mcpAppInfo,
+                cmdResult.usage,
+                cmdResult.elapsedMs
               );
             } else {
-              log(node.id, node.type, `LLM completed`, "success", cmdInput, cmdOutput, cmdResult.mcpAppInfo);
+              log(node.id, node.type, `LLM completed`, "success", cmdInput, cmdOutput, cmdResult.mcpAppInfo, cmdResult.usage, cmdResult.elapsedMs);
             }
-            addHistoryStep(node.id, node.type, cmdInput, cmdOutput, "success", undefined, cmdResult.mcpAppInfo);
+            addHistoryStep(node.id, node.type, cmdInput, cmdOutput, "success", undefined, cmdResult.mcpAppInfo, cmdResult.usage, cmdResult.elapsedMs);
 
             // Push next nodes
             const cmdNextNodes = getNextNodes(workflow, node.id);

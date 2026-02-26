@@ -6339,3 +6339,13 @@
   color: var(--text-muted);
   text-align: right;
 }
+
+/* Usage info (tokens, cost, response time) */
+.gemini-helper-usage-info {
+  font-size: 0.75em;
+  color: var(--text-muted);
+  padding: 2px 0;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}

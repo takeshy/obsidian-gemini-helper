@@ -310,6 +310,8 @@ export const en = {
   "message.renamed": "Renamed",
   "message.cancelledRename": "Cancelled rename of",
   "message.failedToRename": "Failed to rename",
+  "message.tokens": "Tokens",
+  "message.thinkingTokens": "Thinking",
 
   // Tool display labels
   "tool.read": "Read",

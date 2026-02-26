@@ -1,6 +1,6 @@
 import { App, Modal } from "obsidian";
 import type { Workflow, WorkflowNode, ExecutionLog } from "src/workflow/types";
-import type { McpAppInfo } from "src/types";
+import type { McpAppInfo, StreamChunkUsage } from "src/types";
 import { showMcpApp } from "./McpAppModal";
 import { t } from "src/i18n";
 
@@ -23,6 +23,8 @@ interface NodeLogData {
   timestamp?: Date;
   mcpAppInfo?: McpAppInfo;
   thinking?: string;
+  usage?: StreamChunkUsage;
+  elapsedMs?: number;
 }
 
 /**
@@ -282,6 +284,22 @@ export class WorkflowExecutionModal extends Modal {
       });
     }
 
+    // Usage info
+    if (logData.usage || logData.elapsedMs) {
+      const usageEl = detailEl.createDiv({ cls: "gemini-helper-usage-info" });
+      if (logData.elapsedMs !== undefined) {
+        usageEl.createSpan({ text: logData.elapsedMs < 1000 ? `${logData.elapsedMs}ms` : `${(logData.elapsedMs / 1000).toFixed(1)}s` });
+      }
+      if (logData.usage?.inputTokens !== undefined && logData.usage?.outputTokens !== undefined) {
+        const tokensText = `${logData.usage.inputTokens.toLocaleString()} → ${logData.usage.outputTokens.toLocaleString()} ${t("message.tokens")}` +
+          (logData.usage.thinkingTokens ? ` (${t("message.thinkingTokens")} ${logData.usage.thinkingTokens.toLocaleString()})` : "");
+        usageEl.createSpan({ text: tokensText });
+      }
+      if (logData.usage?.totalCost !== undefined) {
+        usageEl.createSpan({ text: `$${logData.usage.totalCost.toFixed(4)}` });
+      }
+    }
+
     // If no input, output, thinking, or mcpApp, show message
     if (logData.input === undefined && logData.output === undefined && !logData.mcpAppInfo && !logData.thinking) {
       if (logData.message) {
@@ -424,6 +442,8 @@ export class WorkflowExecutionModal extends Modal {
         message: log.message,
         timestamp: log.timestamp,
         mcpAppInfo: log.mcpAppInfo,
+        usage: log.usage,
+        elapsedMs: log.elapsedMs,
       });
     }
 

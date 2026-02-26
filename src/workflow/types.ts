@@ -1,5 +1,5 @@
 import type { EditConfirmationResult } from "src/ui/components/workflow/EditConfirmationModal";
-import type { McpAppInfo } from "src/types";
+import type { McpAppInfo, StreamChunkUsage } from "src/types";
 
 // Workflow node types
 export type WorkflowNodeType =
@@ -84,6 +84,8 @@ export interface ExecutionLog {
   input?: Record<string, unknown>;
   output?: unknown;
   mcpAppInfo?: McpAppInfo;  // MCP Apps UI info if available
+  usage?: StreamChunkUsage;
+  elapsedMs?: number;
 }
 
 // Editor position for selection
@@ -150,6 +152,8 @@ export interface ExecutionStep {
   error?: string;
   mcpAppInfo?: McpAppInfo;  // MCP Apps UI info if available
   variablesSnapshot?: Record<string, string | number>;  // Variables state before this step
+  usage?: StreamChunkUsage;
+  elapsedMs?: number;
 }
 
 export interface ExecutionRecord {

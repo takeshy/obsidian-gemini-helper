@@ -349,6 +349,8 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 			if (msg.generatedImages) metadata.generatedImages = msg.generatedImages;
 			if (msg.mcpApps) metadata.mcpApps = msg.mcpApps;
 			if (msg.pendingRename) metadata.pendingRename = msg.pendingRename;
+			if (msg.usage) metadata.usage = msg.usage;
+			if (msg.elapsedMs) metadata.elapsedMs = msg.elapsedMs;
 			metadata.timestamp = msg.timestamp;
 
 			md += `<!-- msg-meta:${JSON.stringify(metadata)} -->\n\n---\n\n`;
@@ -465,6 +467,8 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 							if (meta.generatedImages) message.generatedImages = meta.generatedImages as Message["generatedImages"];
 							if (meta.mcpApps) message.mcpApps = meta.mcpApps as Message["mcpApps"];
 							if (meta.pendingRename) message.pendingRename = meta.pendingRename as Message["pendingRename"];
+							if (meta.usage) message.usage = meta.usage as Message["usage"];
+							if (meta.elapsedMs) message.elapsedMs = meta.elapsedMs as number;
 							if (meta.timestamp) message.timestamp = meta.timestamp as number;
 						} catch {
 							// Ignore parse errors for backward compatibility
@@ -1818,6 +1822,8 @@ Always be helpful and provide clear, concise responses. When working with notes,
 				let webSearchUsed = false;
 				let imageGenerationUsed = false;
 				const generatedImages: GeneratedImage[] = [];
+				let streamUsage: Message["usage"] = undefined;
+				const startTime = Date.now();
 
 				let stopped = false;
 
@@ -1899,7 +1905,10 @@ Always be helpful and provide clear, concise responses. When working with notes,
 						throw new Error(chunk.error || "Unknown error");
 
 					case "done":
-						// Finalize the message
+						// Capture usage data from the final chunk
+						if (chunk.usage) {
+							streamUsage = chunk.usage;
+						}
 						break;
 				}
 			}
@@ -1936,6 +1945,8 @@ Always be helpful and provide clear, concise responses. When working with notes,
 					generatedImages: generatedImages.length > 0 ? generatedImages : undefined,
 					thinking: thinkingContent || undefined,
 					mcpApps: collectedMcpApps.length > 0 ? collectedMcpApps : undefined,
+					usage: streamUsage,
+					elapsedMs: Date.now() - startTime,
 				};
 
 				const newMessages = [...messages, userMessage, assistantMessage];

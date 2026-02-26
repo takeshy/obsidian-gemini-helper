@@ -485,6 +485,8 @@ export interface Message {
   generatedImages?: GeneratedImage[];  // 生成された画像
   thinking?: string;  // モデルの思考内容（thinkingモデル用）
   mcpApps?: McpAppInfo[];  // MCP Apps with UI (MCP Apps拡張)
+  usage?: StreamChunkUsage;  // Token usage and cost
+  elapsedMs?: number;        // Response time in milliseconds
 }
 
 // 保留中の編集情報
@@ -568,6 +570,15 @@ export interface SyncStatus {
   isRunning: boolean;
 }
 
+// Usage info for streaming chunks and messages
+export interface StreamChunkUsage {
+  inputTokens?: number;
+  outputTokens?: number;
+  thinkingTokens?: number;
+  totalTokens?: number;
+  totalCost?: number;       // USD
+}
+
 // Streaming chunk types
 export interface StreamChunk {
   type: "text" | "thinking" | "tool_call" | "tool_result" | "error" | "done" | "rag_used" | "web_search_used" | "image_generated" | "session_id";
@@ -578,6 +589,7 @@ export interface StreamChunk {
   ragSources?: string[];  // RAG検索で見つかったソースファイル
   generatedImage?: GeneratedImage;  // 生成された画像
   sessionId?: string;  // CLI session ID for resumption
+  usage?: StreamChunkUsage;  // Token usage and cost (populated on "done" chunks)
 }
 
 // Default models by plan

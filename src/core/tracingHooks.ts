@@ -5,6 +5,7 @@
 export interface TracingUsage {
   input?: number;
   output?: number;
+  thinking?: number;
   total?: number;
   inputCost?: number;
   outputCost?: number;

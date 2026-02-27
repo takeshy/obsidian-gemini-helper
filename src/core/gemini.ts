@@ -31,6 +31,7 @@ const MODEL_PRICING: Record<string, { input: number; output: number }> = {
   "gemini-3.1-pro-preview-customtools": { input: 2.00 / 1e6, output: 12.00 / 1e6 },
   "gemini-2.5-flash-image":    { input: 0.30 / 1e6, output: 30.00 / 1e6 },
   "gemini-3-pro-image-preview": { input: 2.00 / 1e6, output: 120.00 / 1e6 },
+  "gemini-3.1-flash-image-preview": { input: 0.25 / 1e6, output: 60.00 / 1e6 },
 };
 
 // Grounding with Google Search cost per prompt (USD)
@@ -41,6 +42,7 @@ const SEARCH_GROUNDING_COST: Record<string, number> = {
   "gemini-3.1-pro-preview": 14 / 1000,
   "gemini-3.1-pro-preview-customtools": 14 / 1000,
   "gemini-3-pro-image-preview": 14 / 1000,
+  "gemini-3.1-flash-image-preview": 14 / 1000,
   "gemini-2.5-flash":       35 / 1000,
   "gemini-2.5-flash-lite":  35 / 1000,
   "gemini-2.5-pro":         35 / 1000,
@@ -1003,10 +1005,11 @@ export class GeminiClient {
 
     // Build tools array
     // - Gemini 2.5 Flash Image: no tools supported
-    // - Gemini 3 Pro Image: Web Search only (no RAG)
+    // - Gemini 3+ Image models: Web Search only (no RAG)
     const tools: Tool[] = [];
+    const imageSupportsWebSearch = imageModel !== "gemini-2.5-flash-image";
 
-    if (imageModel === "gemini-3-pro-image-preview" && webSearchEnabled) {
+    if (imageSupportsWebSearch && webSearchEnabled) {
       tools.push({ googleSearch: {} } as Tool);
     }
 
@@ -1027,8 +1030,8 @@ export class GeminiClient {
         },
       });
 
-      // Emit web search used if enabled (only for 3 Pro)
-      if (imageModel === "gemini-3-pro-image-preview" && webSearchEnabled) {
+      // Emit web search used if enabled (Gemini 3+ image models)
+      if (imageSupportsWebSearch && webSearchEnabled) {
         yield { type: "web_search_used" };
       }
 
@@ -1056,7 +1059,7 @@ export class GeminiClient {
         }
       }
 
-      const imageWebSearchUsed = imageModel === "gemini-3-pro-image-preview" && !!webSearchEnabled;
+      const imageWebSearchUsed = imageSupportsWebSearch && !!webSearchEnabled;
       const imageUsage = extractUsage(response.usageMetadata, { model: imageModel, webSearchUsed: imageWebSearchUsed });
       tracing.generationEnd(genId, {
         output: "[image generation completed]",

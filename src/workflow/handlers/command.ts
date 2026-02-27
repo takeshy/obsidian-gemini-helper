@@ -162,7 +162,7 @@ Please revise the output based on the user's feedback above.`;
 
   // Image generation models don't support RAG (File Search)
   // gemini-2.5-flash-image: no tools at all
-  // gemini-3-pro-image-preview: only Web Search
+  // gemini-3+ image models: Web Search only
   if (isImageGenerationModel(model as ModelType)) {
     storeIds = []; // Disable RAG
     if (model === "gemini-2.5-flash-image") {

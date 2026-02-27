@@ -894,13 +894,12 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 			setMcpServers(servers => servers.map(s => ({ ...s, enabled: false })));
 		} else if (isImageGenerationModel(model)) {
 			// 2.5 Flash Image: no tools supported → force None
-			// 3 Pro Image: Web Search only → keep if Web Search, else None
+			// Gemini 3+ image models: Web Search only → keep if Web Search, else None
 			if (model === "gemini-2.5-flash-image") {
 				if (selectedRagSetting !== null) {
 					handleRagSettingChange(null);
 				}
-			} else if (model === "gemini-3-pro-image-preview") {
-				// Only Web Search is supported, RAG is not
+			} else {
 				if (selectedRagSetting !== null && selectedRagSetting !== "__websearch__") {
 					handleRagSettingChange(null);
 				}
@@ -1370,7 +1369,10 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 		let autoSwitchedToImage = false;
 		const originalModel = allowedModel;
 		if (!isImageGenerationModel(allowedModel) && shouldUseImageModel(content)) {
-			if (isModelAllowedForPlan(apiPlan, "gemini-3-pro-image-preview")) {
+			if (isModelAllowedForPlan(apiPlan, "gemini-3.1-flash-image-preview")) {
+				allowedModel = "gemini-3.1-flash-image-preview";
+				autoSwitchedToImage = true;
+			} else if (isModelAllowedForPlan(apiPlan, "gemini-3-pro-image-preview")) {
 				allowedModel = "gemini-3-pro-image-preview";
 				autoSwitchedToImage = true;
 			} else if (isModelAllowedForPlan(apiPlan, "gemini-2.5-flash-image")) {
@@ -1756,7 +1758,7 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 
 					// Check if Web Search or Image Generation model is selected
 				const isWebSearch = allowWebSearch && selectedRagSetting === "__websearch__"
-					&& (toolsEnabled || allowedModel === "gemini-3-pro-image-preview");
+					&& (toolsEnabled || (isImageGenerationModel(allowedModel) && allowedModel !== "gemini-2.5-flash-image"));
 				const isImageGeneration = isImageGenerationModel(allowedModel);
 
 				// Pass RAG store IDs if RAG is enabled and a setting is selected (not web search)

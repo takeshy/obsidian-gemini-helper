@@ -298,6 +298,7 @@ export type ModelType =
   | "gemini-2.5-flash-lite"
   | "gemini-2.5-flash-image"
   | "gemini-3-pro-image-preview"
+  | "gemini-3.1-flash-image-preview"
   | "gemma-3-27b-it"
   | "gemma-3-12b-it"
   | "gemma-3-4b-it"
@@ -377,6 +378,12 @@ export const PAID_MODELS: ModelInfo[] = [
     name: "gemini-3-pro-image-preview",
     displayName: "Gemini 3 Pro (Image)",
     description: "Pro quality image generation, up to 4K",
+    isImageModel: true,
+  },
+  {
+    name: "gemini-3.1-flash-image-preview",
+    displayName: "Gemini 3.1 Flash (Image)",
+    description: "Fast, low-cost image generation",
     isImageModel: true,
   },
 ];

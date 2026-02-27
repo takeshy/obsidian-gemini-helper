@@ -635,7 +635,7 @@ export class GeminiClient {
         }
 
         // Add retriever span for RAG/File Search grounding
-        if (groundingEmitted && !webSearchEnabled && accumulatedSources.length > 0) {
+        if (!webSearchEnabled && accumulatedSources.length > 0) {
           const retrieverSpanId = tracing.spanStart(traceId, "retriever:file-search", {
             parentId: roundSpanId ?? undefined,
             metadata: { sourceCount: accumulatedSources.length },
@@ -681,6 +681,7 @@ export class GeminiClient {
             if (roundUsage) {
               totalUsage.input = (totalUsage.input ?? 0) + (roundUsage.input ?? 0);
               totalUsage.output = (totalUsage.output ?? 0) + (roundUsage.output ?? 0);
+              if (roundUsage.toolUsePromptTokens !== undefined) totalUsage.toolUsePromptTokens = (totalUsage.toolUsePromptTokens ?? 0) + roundUsage.toolUsePromptTokens;
               totalUsage.total = (totalUsage.total ?? 0) + (roundUsage.total ?? 0);
               if (roundUsage.inputCost !== undefined) totalUsage.inputCost = (totalUsage.inputCost ?? 0) + roundUsage.inputCost;
               if (roundUsage.outputCost !== undefined) totalUsage.outputCost = (totalUsage.outputCost ?? 0) + roundUsage.outputCost;
@@ -787,6 +788,7 @@ export class GeminiClient {
             if (roundUsage) {
               totalUsage.input = (totalUsage.input ?? 0) + (roundUsage.input ?? 0);
               totalUsage.output = (totalUsage.output ?? 0) + (roundUsage.output ?? 0);
+              if (roundUsage.toolUsePromptTokens !== undefined) totalUsage.toolUsePromptTokens = (totalUsage.toolUsePromptTokens ?? 0) + roundUsage.toolUsePromptTokens;
               totalUsage.total = (totalUsage.total ?? 0) + (roundUsage.total ?? 0);
               if (roundUsage.inputCost !== undefined) totalUsage.inputCost = (totalUsage.inputCost ?? 0) + roundUsage.inputCost;
               if (roundUsage.outputCost !== undefined) totalUsage.outputCost = (totalUsage.outputCost ?? 0) + roundUsage.outputCost;
@@ -833,7 +835,7 @@ export class GeminiClient {
       tracing.generationEnd(generationId, {
         error: error instanceof Error ? error.message : "API call failed",
         usage: totalUsage.total ? totalUsage : undefined,
-        metadata: { toolCallCount: toolCallTraceCount },
+        metadata: { toolCallCount: toolCallTraceCount, roundCount: roundNumber },
       });
 
       yield {

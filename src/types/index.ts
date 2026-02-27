@@ -293,7 +293,6 @@ export type ModelType =
   | "gemini-2.5-flash"
   | "gemini-2.5-pro"
   | "gemini-3-flash-preview"
-  | "gemini-3-pro-preview"
   | "gemini-3.1-pro-preview"
   | "gemini-3.1-pro-preview-customtools"
   | "gemini-2.5-flash-lite"
@@ -352,11 +351,6 @@ export const PAID_MODELS: ModelInfo[] = [
     name: "gemini-3-flash-preview",
     displayName: "Gemini 3 Flash Preview",
     description: "Fast model with 1M context, best cost-performance",
-  },
-  {
-    name: "gemini-3-pro-preview",
-    displayName: "Gemini 3 Pro Preview",
-    description: "Flagship model with 1M context",
   },
   {
     name: "gemini-2.5-flash",

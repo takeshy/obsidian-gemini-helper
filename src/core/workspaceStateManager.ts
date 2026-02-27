@@ -93,6 +93,11 @@ export class WorkspaceStateManager {
     const loaded = JSON.parse(content) as Partial<WorkspaceState>;
     this.workspaceState = { ...DEFAULT_WORKSPACE_STATE, ...loaded };
 
+    // Migrate deprecated model names
+    if ((this.workspaceState.selectedModel as string) === "gemini-3-pro-preview") {
+      this.workspaceState.selectedModel = "gemini-3.1-pro-preview";
+    }
+
     // Ensure each RAG setting has all required fields (migration for new fields)
     for (const [settingName, setting] of Object.entries(this.workspaceState.ragSettings)) {
       this.workspaceState.ragSettings[settingName] = {

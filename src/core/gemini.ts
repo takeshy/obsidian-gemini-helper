@@ -541,10 +541,14 @@ export class GeminiClient {
           // Last chunk in each stream round has the round's total usage
           if (chunk.usageMetadata) roundUsage = extractUsage(chunk.usageMetadata, { model: this.model });
           // Check for function calls
+          // Skip internal Gemini tools (e.g. google_file_search for RAG) - their results
+          // come through groundingMetadata, not function call responses
           if (chunk.functionCalls && chunk.functionCalls.length > 0) {
             for (const fc of chunk.functionCalls) {
+              const name = fc.name ?? "";
+              if (name.startsWith("google_")) continue;
               functionCallsToProcess.push({
-                name: fc.name ?? "",
+                name,
                 args: (fc.args as Record<string, unknown>) ?? {},
               });
             }

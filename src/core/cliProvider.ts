@@ -112,7 +112,32 @@ function resolveGeminiCommand(args: string[], customPath?: string): { command: s
     return { command: "node", args: [fallbackPath, ...args] };
   }
 
-  // Non-Windows: use gemini command directly (must be in PATH)
+  // Non-Windows: check common installation paths first (Obsidian may not have full PATH)
+  if (typeof process !== "undefined") {
+    const home = process.env?.HOME;
+    const candidatePaths: string[] = [];
+
+    if (home) {
+      // Linux/Mac: ~/.local/bin/gemini
+      candidatePaths.push(`${home}/.local/bin/gemini`);
+      // npm global with custom prefix: ~/.npm-global/bin/gemini
+      candidatePaths.push(`${home}/.npm-global/bin/gemini`);
+    }
+
+    // Mac: Homebrew paths
+    // Apple Silicon
+    candidatePaths.push("/opt/homebrew/bin/gemini");
+    // Intel Mac
+    candidatePaths.push("/usr/local/bin/gemini");
+
+    for (const path of candidatePaths) {
+      if (fileExistsSync(path)) {
+        return { command: path, args };
+      }
+    }
+  }
+
+  // Fallback: use gemini command directly (must be in PATH)
   return { command: "gemini", args };
 }
 
@@ -948,6 +973,7 @@ export async function verifyCli(customPath?: string): Promise<CliVerifyResult> {
       const proc = spawn(command, args, {
         stdio: ["pipe", "pipe", "pipe"],
         shell: false,
+        env: typeof process !== "undefined" ? process.env : undefined,
       });
 
       let stderr = "";

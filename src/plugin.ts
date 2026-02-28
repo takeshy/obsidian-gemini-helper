@@ -1319,8 +1319,12 @@ export class GeminiHelperPlugin extends Plugin {
   }
 
   private initializeClients() {
-    initGeminiClient(this.settings.googleApiKey, getDefaultModelForPlan(this.settings.apiPlan));
-    initFileSearchManager(this.settings.googleApiKey, this.app);
+    // Only initialize Gemini API client when API key is available
+    // (CLI-only users may not have an API key)
+    if (this.settings.googleApiKey) {
+      initGeminiClient(this.settings.googleApiKey, getDefaultModelForPlan(this.settings.apiPlan));
+      initFileSearchManager(this.settings.googleApiKey, this.app);
+    }
     initLangfuse(this.settings.langfuse);
 
     // Initialize CLI provider manager

@@ -78,6 +78,50 @@ function validateCustomPath(path: string): boolean {
 }
 
 /**
+ * Find the node binary path, checking common installation locations
+ * including version managers (nodenv, nvm, volta, fnm).
+ * Returns the full path to node if found, otherwise "node" as fallback.
+ */
+function findNodeBinary(): string {
+  if (typeof process === "undefined") return "node";
+
+  const home = process.env?.HOME;
+  const candidatePaths: string[] = [];
+
+  if (home) {
+    // nodenv
+    candidatePaths.push(`${home}/.nodenv/shims/node`);
+    // nvm (via NVM_DIR or default location)
+    const nvmDir = process.env?.NVM_DIR || `${home}/.nvm`;
+    candidatePaths.push(`${nvmDir}/current/bin/node`);
+    // volta
+    candidatePaths.push(`${home}/.volta/bin/node`);
+    // fnm
+    candidatePaths.push(`${home}/.fnm/aliases/default/bin/node`);
+    // asdf
+    candidatePaths.push(`${home}/.asdf/shims/node`);
+    // mise (formerly rtx)
+    candidatePaths.push(`${home}/.local/share/mise/shims/node`);
+    // Standard locations
+    candidatePaths.push(`${home}/.local/bin/node`);
+  }
+
+  // Homebrew (macOS)
+  candidatePaths.push("/opt/homebrew/bin/node");
+  // Standard system paths
+  candidatePaths.push("/usr/local/bin/node");
+  candidatePaths.push("/usr/bin/node");
+
+  for (const path of candidatePaths) {
+    if (fileExistsSync(path)) {
+      return path;
+    }
+  }
+
+  return "node";
+}
+
+/**
  * Resolve the Gemini CLI command and arguments
  * Always uses shell: false for security
  *
@@ -90,12 +134,9 @@ function validateCustomPath(path: string): boolean {
 function resolveGeminiCommand(args: string[], customPath?: string): { command: string; args: string[] } {
   // If custom path is specified, validate and use it
   if (customPath && validateCustomPath(customPath)) {
-    if (isWindows()) {
-      // On Windows, run with node
-      return { command: "node", args: [customPath, ...args] };
-    }
-    // Non-Windows: execute directly
-    return { command: customPath, args };
+    // Run with node to avoid shebang/PATH issues (same approach on all platforms)
+    const node = isWindows() ? "node" : findNodeBinary();
+    return { command: node, args: [customPath, ...args] };
   }
 
   // On Windows, find the npm package script (required because .cmd scripts need shell: true)
@@ -248,16 +289,13 @@ function findWindowsNpmScript(packagePath: string): string | undefined {
 function resolveClaudeCommand(args: string[], customPath?: string): { command: string; args: string[] } {
   // If custom path is specified, validate and use it
   if (customPath && validateCustomPath(customPath)) {
-    if (isWindows()) {
-      // Check if it's an .exe file
-      if (customPath.toLowerCase().endsWith(".exe")) {
-        return { command: customPath, args };
-      }
-      // Otherwise, run with node
-      return { command: "node", args: [customPath, ...args] };
+    // Check if it's a native executable (.exe on Windows, ELF binary detection not needed)
+    if (isWindows() && customPath.toLowerCase().endsWith(".exe")) {
+      return { command: customPath, args };
     }
-    // Non-Windows: execute directly
-    return { command: customPath, args };
+    // Run with node to avoid shebang/PATH issues (same approach on all platforms)
+    const node = isWindows() ? "node" : findNodeBinary();
+    return { command: node, args: [customPath, ...args] };
   }
 
   // On Windows, find the npm package script or standalone exe
@@ -343,12 +381,9 @@ function formatWindowsClaudeCliError(message: string | undefined): string | unde
 function resolveCodexCommand(args: string[], customPath?: string): { command: string; args: string[] } {
   // If custom path is specified, validate and use it
   if (customPath && validateCustomPath(customPath)) {
-    if (isWindows()) {
-      // On Windows, run with node
-      return { command: "node", args: [customPath, ...args] };
-    }
-    // Non-Windows: execute directly
-    return { command: customPath, args };
+    // Run with node to avoid shebang/PATH issues (same approach on all platforms)
+    const node = isWindows() ? "node" : findNodeBinary();
+    return { command: node, args: [customPath, ...args] };
   }
 
   // On Windows, find the npm package script (required because .cmd scripts need shell: true)

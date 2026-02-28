@@ -365,7 +365,32 @@ function resolveCodexCommand(args: string[], customPath?: string): { command: st
     return { command: "node", args: [fallbackPath, ...args] };
   }
 
-  // Non-Windows: use codex command directly (must be in PATH)
+  // Non-Windows: check common installation paths first (Obsidian may not have full PATH)
+  if (typeof process !== "undefined") {
+    const home = process.env?.HOME;
+    const candidatePaths: string[] = [];
+
+    if (home) {
+      // Linux/Mac: ~/.local/bin/codex
+      candidatePaths.push(`${home}/.local/bin/codex`);
+      // npm global with custom prefix: ~/.npm-global/bin/codex
+      candidatePaths.push(`${home}/.npm-global/bin/codex`);
+    }
+
+    // Mac: Homebrew paths
+    // Apple Silicon
+    candidatePaths.push("/opt/homebrew/bin/codex");
+    // Intel Mac
+    candidatePaths.push("/usr/local/bin/codex");
+
+    for (const path of candidatePaths) {
+      if (fileExistsSync(path)) {
+        return { command: path, args };
+      }
+    }
+  }
+
+  // Fallback: use codex command directly (must be in PATH)
   return { command: "codex", args };
 }
 

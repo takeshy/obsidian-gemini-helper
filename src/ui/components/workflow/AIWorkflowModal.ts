@@ -452,7 +452,8 @@ export class AIWorkflowModal extends Modal {
     const geminiCliVerified = !Platform.isMobile && cliConfig.cliVerified === true;
     const claudeCliVerified = !Platform.isMobile && cliConfig.claudeCliVerified === true;
     const codexCliVerified = !Platform.isMobile && cliConfig.codexCliVerified === true;
-    const baseModels = getAvailableModels(this.plugin.settings.apiPlan);
+    // Only include API models if API key is configured
+    const baseModels = this.plugin.settings.googleApiKey ? getAvailableModels(this.plugin.settings.apiPlan) : [];
     const cliModels = [
       ...(geminiCliVerified ? [CLI_MODEL] : []),
       ...(claudeCliVerified ? [CLAUDE_CLI_MODEL] : []),
@@ -965,6 +966,7 @@ export class AIWorkflowModal extends Modal {
       cliConfig: this.plugin.settings.cliConfig,
       mcpServers: this.plugin.settings.mcpServers || [],
       ragSettingNames: Object.keys(this.plugin.workspaceState.ragSettings || {}),
+      hasApiKey: !!this.plugin.settings.googleApiKey,
     });
 
     return `You are a workflow generator for Obsidian. You create and modify workflows in YAML format.

@@ -2,7 +2,7 @@ import { App } from "obsidian";
 import type { GeminiHelperPlugin } from "../../plugin";
 import { getGeminiClient } from "../../core/gemini";
 import { CliProviderManager } from "../../core/cliProvider";
-import { isImageGenerationModel, type ModelType, type ToolDefinition, type McpAppInfo, type StreamChunkUsage } from "../../types";
+import { isImageGenerationModel, type ToolDefinition, type McpAppInfo, type StreamChunkUsage } from "../../types";
 import { getEnabledTools } from "../../core/tools";
 import { fetchMcpTools, createMcpToolExecutor, type McpToolDefinition } from "../../core/mcpTools";
 import { createToolExecutor } from "../../vault/toolExecutor";
@@ -56,11 +56,26 @@ Please revise the output based on the user's feedback above.`;
 
   // Get model (use node's model or current selection)
   const modelName = node.properties["model"] || "";
-  // Cast to ModelType - if invalid, it will use default
-  const model = (modelName || plugin.getSelectedModel()) as import("../../types").ModelType;
+  let model = (modelName || plugin.getSelectedModel()) as import("../../types").ModelType;
 
   // Check if this is a CLI model
-  const isCliModel = model === "gemini-cli" || model === "claude-cli" || model === "codex-cli";
+  let isCliModel = model === "gemini-cli" || model === "claude-cli" || model === "codex-cli";
+
+  // If resolved model requires API key but none is configured, fall back to a verified CLI model
+  // Only when the node didn't explicitly specify a non-CLI model
+  if (!isCliModel && !plugin.settings.googleApiKey && !modelName) {
+    const cliConfig = plugin.settings.cliConfig;
+    if (cliConfig?.cliVerified) {
+      model = "gemini-cli";
+    } else if (cliConfig?.claudeCliVerified) {
+      model = "claude-cli";
+    } else if (cliConfig?.codexCliVerified) {
+      model = "codex-cli";
+    } else {
+      throw new Error("No API key or verified CLI configured. Please set up a Google API key or verify a CLI provider in settings.");
+    }
+    isCliModel = true;
+  }
 
   if (isCliModel) {
     // Use CLI provider for CLI models
@@ -163,7 +178,7 @@ Please revise the output based on the user's feedback above.`;
   // Image generation models don't support RAG (File Search)
   // gemini-2.5-flash-image: no tools at all
   // gemini-3+ image models: Web Search only
-  if (isImageGenerationModel(model as ModelType)) {
+  if (isImageGenerationModel(model)) {
     storeIds = []; // Disable RAG
     if (model === "gemini-2.5-flash-image") {
       useWebSearch = false; // No tools supported
@@ -236,7 +251,7 @@ Please revise the output based on the user's feedback above.`;
   let toolExecutor: ((name: string, args: Record<string, unknown>) => Promise<unknown>) | undefined;
   let mcpToolExecutor: ReturnType<typeof createMcpToolExecutor> | null = null;
 
-  const isImageModel = isImageGenerationModel(model as ModelType);
+  const isImageModel = isImageGenerationModel(model);
 
   if (!isImageModel && vaultToolMode !== "none") {
     // Get vault tools based on RAG setting
@@ -345,7 +360,7 @@ Please revise the output based on the user's feedback above.`;
   const stream = isImageModel
     ? client.generateImageStream(
         messages,
-        model as ModelType,
+        model,
         undefined, // No system prompt for image generation
         useWebSearch,
         storeIds.length > 0 ? storeIds : undefined,

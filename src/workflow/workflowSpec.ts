@@ -8,12 +8,16 @@ export interface WorkflowSpecContext {
   cliConfig?: CliProviderConfig;
   mcpServers: McpServerConfig[];
   ragSettingNames: string[];
+  hasApiKey?: boolean;
 }
 
 export function getWorkflowSpecification(context: WorkflowSpecContext): string {
-  // Build available models list
-  const models = getAvailableModels(context.apiPlan);
-  const modelNames = models.map(m => m.name);
+  // Build available models list (only include API models if API key is configured)
+  const modelNames: string[] = [];
+  if (context.hasApiKey !== false) {
+    const models = getAvailableModels(context.apiPlan);
+    modelNames.push(...models.map(m => m.name));
+  }
 
   // Add CLI models if verified
   if (context.cliConfig?.cliVerified) modelNames.push(CLI_MODEL.name);

@@ -1159,20 +1159,33 @@ export class DriveSyncManager {
     }
 
     // Download and write (use vault API to update Obsidian's internal cache/file tree)
+    // Note: getAbstractFileByPath may return null even when the file exists on disk
+    // (e.g., during concurrent batch downloads, or if Obsidian's index hasn't caught up).
+    // Fall back to adapter.exists + modify if vault.create throws.
     const existingFile = this.app.vault.getAbstractFileByPath(vaultPath);
     if (isBinary) {
       const content = await drive.readFileRaw(accessToken, fileId);
       if (existingFile instanceof TFile) {
         await this.app.vault.modifyBinary(existingFile, content);
       } else {
-        await this.app.vault.createBinary(vaultPath, content);
+        try {
+          await this.app.vault.createBinary(vaultPath, content);
+        } catch {
+          // File may already exist on disk; fall back to adapter write
+          await this.app.vault.adapter.writeBinary(vaultPath, content);
+        }
       }
     } else {
       const content = await drive.readFile(accessToken, fileId);
       if (existingFile instanceof TFile) {
         await this.app.vault.modify(existingFile, content);
       } else {
-        await this.app.vault.create(vaultPath, content);
+        try {
+          await this.app.vault.create(vaultPath, content);
+        } catch {
+          // File may already exist on disk; fall back to adapter write
+          await this.app.vault.adapter.write(vaultPath, content);
+        }
       }
     }
 
@@ -1194,7 +1207,11 @@ export class DriveSyncManager {
       current = current ? `${current}/${part}` : part;
       const exists = await this.app.vault.adapter.exists(current);
       if (!exists) {
-        await this.app.vault.adapter.mkdir(current);
+        try {
+          await this.app.vault.adapter.mkdir(current);
+        } catch {
+          // Ignore: concurrent batch may have already created the directory
+        }
       }
     }
   }

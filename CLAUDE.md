@@ -42,6 +42,8 @@ This runs `version-bump.mjs` which updates `package.json`, `manifest.json`, and 
 - **cliProvider.ts** - CLI backend abstraction for Gemini/Claude/Codex CLIs
   - `CliProviderManager` - Manages CLI provider instances
   - Uses `child_process.spawn` with `shell: false` for security
+  - `findNodeBinary()` - Resolves node path from version managers (nodenv, nvm, volta, fnm, asdf, mise)
+  - Custom CLI paths execute via `node <path>` to avoid shebang/PATH issues
 - **mcpClient.ts** - MCP (Model Context Protocol) client for external tool servers
   - Implements Streamable HTTP transport with JSON-RPC
 

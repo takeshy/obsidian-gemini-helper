@@ -455,7 +455,10 @@ npm run build
 
 **CLI-Einschränkungen:** Nur-Lese-Vault-Operationen, keine semantische/Websuche
 
-**Benutzerdefinierter CLI-Pfad:** Wenn die automatische CLI-Erkennung fehlschlägt, klicken Sie auf das Zahnradsymbol (⚙️) neben der Verify-Schaltfläche, um den CLI-Pfad manuell anzugeben.
+> [!NOTE]
+> **Nur-CLI-Nutzung:** Sie können den CLI-Modus ohne Google API-Schlüssel verwenden. Installieren und verifizieren Sie einfach ein CLI-Tool – kein API-Schlüssel erforderlich.
+
+**Benutzerdefinierter CLI-Pfad:** Wenn die automatische CLI-Erkennung fehlschlägt, klicken Sie auf das Zahnradsymbol (⚙️) neben der Verify-Schaltfläche, um den CLI-Pfad manuell anzugeben. Das Plugin durchsucht automatisch gängige Installationspfade, einschließlich Versions-Manager (nodenv, nvm, volta, fnm, asdf, mise).
 
 <details>
 <summary><b>Windows: So finden Sie den CLI-Pfad</b></summary>
@@ -472,6 +475,20 @@ npm run build
 4. Geben Sie diesen vollständigen Pfad in den CLI-Pfad-Einstellungen ein
 
 Für Claude CLI verwenden Sie `Get-Command claude` und navigieren zu `node_modules\@anthropic-ai\claude-code\dist\index.js`.
+</details>
+
+<details>
+<summary><b>macOS / Linux: So finden Sie den CLI-Pfad</b></summary>
+
+1. Öffnen Sie ein Terminal und führen Sie aus:
+   ```bash
+   which gemini
+   ```
+2. Geben Sie den angezeigten Pfad (z.B. `/home/user/.local/bin/gemini`) in den CLI-Pfad-Einstellungen ein
+
+Für Claude CLI verwenden Sie `which claude`. Für Codex CLI verwenden Sie `which codex`.
+
+**Node.js Versions-Manager:** Bei Verwendung von nodenv, nvm, volta, fnm, asdf oder mise erkennt das Plugin die Node-Binary automatisch. Falls die Erkennung fehlschlägt, geben Sie den CLI-Skriptpfad direkt an (z.B. `~/.npm-global/lib/node_modules/@google/gemini-cli/dist/index.js`).
 </details>
 
 > [!TIP]

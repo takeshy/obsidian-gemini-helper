@@ -455,7 +455,10 @@ npm run build
 
 **CLI 限制：** 仅支持只读仓库操作，不支持语义搜索/网页搜索
 
-**自定义 CLI 路径：** 如果 CLI 自动检测失败，点击 Verify 按钮旁边的齿轮图标（⚙️）手动指定 CLI 路径。
+> [!NOTE]
+> **仅使用 CLI：** 您可以在没有 Google API 密钥的情况下使用 CLI 模式。只需安装并验证 CLI 工具即可，无需 API 密钥。
+
+**自定义 CLI 路径：** 如果 CLI 自动检测失败，点击 Verify 按钮旁边的齿轮图标（⚙️）手动指定 CLI 路径。插件会自动搜索常见安装路径，包括版本管理器（nodenv、nvm、volta、fnm、asdf、mise）。
 
 <details>
 <summary><b>Windows：如何查找 CLI 路径</b></summary>
@@ -472,6 +475,20 @@ npm run build
 4. 在 CLI 路径设置中输入此完整路径
 
 对于 Claude CLI，使用 `Get-Command claude` 并导航到 `node_modules\@anthropic-ai\claude-code\dist\index.js`。
+</details>
+
+<details>
+<summary><b>macOS / Linux：如何查找 CLI 路径</b></summary>
+
+1. 打开终端并运行：
+   ```bash
+   which gemini
+   ```
+2. 将显示的路径（例如：`/home/user/.local/bin/gemini`）输入到 CLI 路径设置中
+
+对于 Claude CLI，使用 `which claude`。对于 Codex CLI，使用 `which codex`。
+
+**Node.js 版本管理器：** 如果您使用 nodenv、nvm、volta、fnm、asdf 或 mise，插件会自动从常见位置检测 node 二进制文件。如果检测失败，请直接指定 CLI 脚本路径（例如：`~/.npm-global/lib/node_modules/@google/gemini-cli/dist/index.js`）。
 </details>
 
 > [!TIP]

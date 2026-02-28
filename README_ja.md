@@ -473,7 +473,10 @@ npm run build
 
 **CLI の制限:** Vault 読み取り専用、セマンティック/Web 検索なし
 
-**カスタム CLI パス:** CLI の自動検出に失敗した場合は、Verify ボタンの横にある歯車アイコン（⚙️）をクリックして、CLI パスを手動で指定できます。
+> [!NOTE]
+> **CLI のみの利用:** Google API キーなしで CLI モードを使用できます。CLI ツールをインストールして Verify するだけで、API キーは不要です。
+
+**カスタム CLI パス:** CLI の自動検出に失敗した場合は、Verify ボタンの横にある歯車アイコン（⚙️）をクリックして、CLI パスを手動で指定できます。プラグインはバージョンマネージャー（nodenv、nvm、volta、fnm、asdf、mise）を含む一般的なインストールパスを自動検索します。
 
 <details>
 <summary><b>Windows: CLI パスの確認方法</b></summary>
@@ -490,6 +493,20 @@ npm run build
 4. このフルパスを CLI パス設定に入力
 
 Claude CLI の場合は `Get-Command claude` を実行し、`node_modules\@anthropic-ai\claude-code\dist\index.js` に移動してください。
+</details>
+
+<details>
+<summary><b>macOS / Linux: CLI パスの確認方法</b></summary>
+
+1. ターミナルを開いて以下を実行：
+   ```bash
+   which gemini
+   ```
+2. 表示されたパス（例: `/home/user/.local/bin/gemini`）を CLI パス設定に入力
+
+Claude CLI の場合は `which claude`、Codex CLI の場合は `which codex` を実行してください。
+
+**Node.js バージョンマネージャー:** nodenv、nvm、volta、fnm、asdf、mise を使用している場合、プラグインは一般的な場所から node バイナリを自動検出します。検出に失敗した場合は、CLI スクリプトのパスを直接指定してください（例: `~/.npm-global/lib/node_modules/@google/gemini-cli/dist/index.js`）。
 </details>
 
 > [!TIP]

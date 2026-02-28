@@ -455,7 +455,10 @@ npm run build
 
 **Limitations CLI :** Opérations sur le coffre en lecture seule, pas de recherche sémantique/web
 
-**Chemin CLI personnalisé :** Si la détection automatique du CLI échoue, cliquez sur l'icône d'engrenage (⚙️) à côté du bouton Verify pour spécifier manuellement le chemin du CLI.
+> [!NOTE]
+> **Utilisation CLI uniquement :** Vous pouvez utiliser le mode CLI sans clé API Google. Il suffit d'installer et de vérifier un outil CLI - aucune clé API n'est requise.
+
+**Chemin CLI personnalisé :** Si la détection automatique du CLI échoue, cliquez sur l'icône d'engrenage (⚙️) à côté du bouton Verify pour spécifier manuellement le chemin du CLI. Le plugin recherche automatiquement les chemins d'installation courants, y compris les gestionnaires de versions (nodenv, nvm, volta, fnm, asdf, mise).
 
 <details>
 <summary><b>Windows : Comment trouver le chemin du CLI</b></summary>
@@ -472,6 +475,20 @@ npm run build
 4. Entrez ce chemin complet dans les paramètres du chemin CLI
 
 Pour Claude CLI, utilisez `Get-Command claude` et naviguez vers `node_modules\@anthropic-ai\claude-code\dist\index.js`.
+</details>
+
+<details>
+<summary><b>macOS / Linux : Comment trouver le chemin du CLI</b></summary>
+
+1. Ouvrez un terminal et exécutez :
+   ```bash
+   which gemini
+   ```
+2. Entrez le chemin affiché (ex : `/home/user/.local/bin/gemini`) dans les paramètres du chemin CLI
+
+Pour Claude CLI, utilisez `which claude`. Pour Codex CLI, utilisez `which codex`.
+
+**Gestionnaires de versions Node.js :** Si vous utilisez nodenv, nvm, volta, fnm, asdf ou mise, le plugin détecte automatiquement le binaire node depuis les emplacements courants. Si la détection échoue, spécifiez directement le chemin du script CLI (ex : `~/.npm-global/lib/node_modules/@google/gemini-cli/dist/index.js`).
 </details>
 
 > [!TIP]

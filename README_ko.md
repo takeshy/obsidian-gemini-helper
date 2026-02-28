@@ -455,7 +455,10 @@ npm run build
 
 **CLI 제한 사항:** 읽기 전용 vault 작업, semantic/web search 없음
 
-**사용자 지정 CLI 경로:** 자동 CLI 감지가 실패하면 Verify 버튼 옆의 톱니바퀴 아이콘(⚙️)을 클릭하여 CLI 경로를 수동으로 지정할 수 있습니다.
+> [!NOTE]
+> **CLI 전용 사용:** Google API 키 없이 CLI 모드를 사용할 수 있습니다. CLI 도구를 설치하고 확인하기만 하면 됩니다. API 키는 필요하지 않습니다.
+
+**사용자 지정 CLI 경로:** 자동 CLI 감지가 실패하면 Verify 버튼 옆의 톱니바퀴 아이콘(⚙️)을 클릭하여 CLI 경로를 수동으로 지정할 수 있습니다. 플러그인은 버전 관리자(nodenv, nvm, volta, fnm, asdf, mise)를 포함한 일반적인 설치 경로를 자동으로 검색합니다.
 
 <details>
 <summary><b>Windows: CLI 경로 찾는 방법</b></summary>
@@ -472,6 +475,20 @@ npm run build
 4. CLI 경로 설정에 이 전체 경로를 입력
 
 Claude CLI의 경우, `Get-Command claude`를 사용하고 `node_modules\@anthropic-ai\claude-code\dist\index.js`로 이동하세요.
+</details>
+
+<details>
+<summary><b>macOS / Linux: CLI 경로 찾는 방법</b></summary>
+
+1. 터미널을 열고 실행:
+   ```bash
+   which gemini
+   ```
+2. 표시된 경로 (예: `/home/user/.local/bin/gemini`)를 CLI 경로 설정에 입력
+
+Claude CLI의 경우 `which claude`를 사용하세요. Codex CLI의 경우 `which codex`를 사용하세요.
+
+**Node.js 버전 관리자:** nodenv, nvm, volta, fnm, asdf 또는 mise를 사용하는 경우, 플러그인이 일반적인 위치에서 node 바이너리를 자동으로 감지합니다. 감지에 실패하면 CLI 스크립트 경로를 직접 지정하세요 (예: `~/.npm-global/lib/node_modules/@google/gemini-cli/dist/index.js`).
 </details>
 
 > [!TIP]

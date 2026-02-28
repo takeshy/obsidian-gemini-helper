@@ -455,7 +455,10 @@ npm run build
 
 **Limitaciones de CLI:** Operaciones de vault solo lectura, sin búsqueda semántica/web
 
-**Ruta CLI personalizada:** Si la detección automática de CLI falla, haz clic en el icono de engranaje (⚙️) junto al botón Verify para especificar manualmente la ruta del CLI.
+> [!NOTE]
+> **Uso solo con CLI:** Puedes usar el modo CLI sin una clave API de Google. Solo instala y verifica una herramienta CLI, no se requiere clave API.
+
+**Ruta CLI personalizada:** Si la detección automática de CLI falla, haz clic en el icono de engranaje (⚙️) junto al botón Verify para especificar manualmente la ruta del CLI. El plugin busca automáticamente rutas de instalación comunes, incluyendo gestores de versiones (nodenv, nvm, volta, fnm, asdf, mise).
 
 <details>
 <summary><b>Windows: Cómo encontrar la ruta del CLI</b></summary>
@@ -472,6 +475,20 @@ npm run build
 4. Ingresa esta ruta completa en la configuración de ruta del CLI
 
 Para Claude CLI, usa `Get-Command claude` y navega a `node_modules\@anthropic-ai\claude-code\dist\index.js`.
+</details>
+
+<details>
+<summary><b>macOS / Linux: Cómo encontrar la ruta del CLI</b></summary>
+
+1. Abre un terminal y ejecuta:
+   ```bash
+   which gemini
+   ```
+2. Ingresa la ruta mostrada (ej: `/home/user/.local/bin/gemini`) en la configuración de ruta del CLI
+
+Para Claude CLI, usa `which claude`. Para Codex CLI, usa `which codex`.
+
+**Gestores de versiones Node.js:** Si usas nodenv, nvm, volta, fnm, asdf o mise, el plugin detecta automáticamente el binario de node desde ubicaciones comunes. Si la detección falla, especifica la ruta del script CLI directamente (ej: `~/.npm-global/lib/node_modules/@google/gemini-cli/dist/index.js`).
 </details>
 
 > [!TIP]

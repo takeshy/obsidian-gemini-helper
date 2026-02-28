@@ -269,6 +269,10 @@ class CliPathModal extends Modal {
     contentEl.addClass("gemini-helper-cli-path-modal");
     contentEl.createEl("h2", { text: t("settings.cliPathModal.title") });
 
+    // Description
+    const descEl = contentEl.createDiv({ cls: "gemini-helper-cli-path-desc" });
+    descEl.textContent = t("settings.cliPathModal.desc");
+
     const cliName = this.cliType === "gemini" ? "Gemini" : this.cliType === "claude" ? "Claude" : "Codex";
 
     new Setting(contentEl)
@@ -294,6 +298,12 @@ class CliPathModal extends Modal {
     noteEl.textContent = isWindows()
       ? t("settings.cliPathModal.windowsNote")
       : t("settings.cliPathModal.unixNote");
+
+    // Version manager note (non-Windows only)
+    if (!isWindows()) {
+      const vmNoteEl = contentEl.createDiv({ cls: "gemini-helper-cli-path-note" });
+      vmNoteEl.textContent = t("settings.cliPathModal.versionManagerNote");
+    }
 
     new Setting(contentEl)
       .addButton((btn) =>

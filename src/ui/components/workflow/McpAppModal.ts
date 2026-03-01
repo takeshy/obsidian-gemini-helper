@@ -2,6 +2,7 @@ import { App, Modal } from "obsidian";
 import type { McpAppInfo, McpAppUiResource } from "src/types";
 import { McpClient } from "src/core/mcpClient";
 import { t } from "src/i18n";
+import { formatError } from "src/utils/error";
 
 // JSON-RPC message types for postMessage communication
 interface JsonRpcRequest {
@@ -142,7 +143,7 @@ export class McpAppModal extends Modal {
     } catch (error) {
       loadingDiv.remove();
       container.createEl("p", {
-        text: `${t("mcpApp.fetchError")}: ${error instanceof Error ? error.message : String(error)}`,
+        text: `${t("mcpApp.fetchError")}: ${formatError(error)}`,
         cls: "gemini-helper-mcp-app-error"
       });
     }

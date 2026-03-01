@@ -124,7 +124,7 @@ function isRateLimitError(error: unknown): boolean {
 			return true;
 		}
 	}
-	const message = error instanceof Error ? error.message : String(error);
+	const message = formatError(error);
 	return (
 		/\b429\b/.test(message) ||
 		/RESOURCE_EXHAUSTED/i.test(message) ||

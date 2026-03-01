@@ -2514,7 +2514,7 @@ export class SettingsTab extends PluginSettingTab {
               await sendTestTrace(currentLangfuse);
               new Notice(t("settings.langfuseTestSuccess"));
             } catch (error) {
-              const msg = error instanceof Error ? error.message : String(error);
+              const msg = formatError(error);
               new Notice(t("settings.langfuseTestFailed", { error: msg }));
             } finally {
               button.setButtonText(t("settings.langfuseTestBtn"));

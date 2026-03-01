@@ -1,5 +1,5 @@
 import { parseYaml, stringifyYaml } from "obsidian";
-import { Workflow, WorkflowEdge, WorkflowNode, WorkflowNodeType, WorkflowOptions } from "./types";
+import { Workflow, WorkflowEdge, WorkflowNode, WorkflowOptions, isWorkflowNodeType, normalizeValue } from "./types";
 
 // Workflow code block types
 export interface WorkflowCodeBlock {
@@ -73,46 +73,6 @@ interface FrontmatterWorkflowNode {
   [key: string]: unknown;
 }
 
-function normalizeValue(value: unknown): string {
-  if (value === null || value === undefined) {
-    return "";
-  }
-  if (typeof value === "string") {
-    return value;
-  }
-  if (typeof value === "number" || typeof value === "boolean") {
-    return String(value);
-  }
-  return JSON.stringify(value);
-}
-
-function isWorkflowNodeType(value: unknown): value is WorkflowNodeType {
-  return (
-    value === "variable" ||
-    value === "set" ||
-    value === "if" ||
-    value === "while" ||
-    value === "command" ||
-    value === "http" ||
-    value === "json" ||
-    value === "note" ||
-    value === "note-read" ||
-    value === "note-search" ||
-    value === "note-list" ||
-    value === "folder-list" ||
-    value === "open" ||
-    value === "dialog" ||
-    value === "prompt-file" ||
-    value === "prompt-selection" ||
-    value === "file-explorer" ||
-    value === "file-save" ||
-    value === "workflow" ||
-    value === "rag-sync" ||
-    value === "mcp" ||
-    value === "obsidian-command" ||
-    value === "sleep"
-  );
-}
 
 export interface WorkflowOption {
   label: string;

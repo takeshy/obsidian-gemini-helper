@@ -908,7 +908,7 @@ export class GeminiHelperPlugin extends Plugin {
         new Notice(t("workflow.completedSuccessfully"));
       }
     } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
+      const message = formatError(error);
       if (executionModal) {
         executionModal.setComplete(false);
       }

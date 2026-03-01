@@ -7,6 +7,7 @@ import { HTMLPreviewModal, extractHtmlFromCodeBlock } from "./HTMLPreviewModal";
 import { hasMermaidFlowchart, convertMessageMermaidToCanvas } from "src/utils/mermaidToCanvas";
 import { McpAppRenderer } from "./McpAppRenderer";
 import { t } from "src/i18n";
+import { formatError } from "src/utils/error";
 
 interface MessageBubbleProps {
   message: Message;
@@ -275,7 +276,7 @@ export default function MessageBubble({
 
         new Notice(t("message.savedTo", { path: filePath }));
       } catch (error) {
-        new Notice(t("message.saveFailed", { error: error instanceof Error ? error.message : "Unknown error" }));
+        new Notice(t("message.saveFailed", { error: formatError(error) }));
       }
     } else {
       // PC: Download file
@@ -368,7 +369,7 @@ export default function MessageBubble({
 
         new Notice(t("message.savedTo", { path: filePath }));
       } catch (error) {
-        new Notice(t("message.saveFailed", { error: error instanceof Error ? error.message : "Unknown error" }));
+        new Notice(t("message.saveFailed", { error: formatError(error) }));
       }
     } else {
       // PC: Download file

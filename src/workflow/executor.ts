@@ -42,6 +42,7 @@ import { parseWorkflowFromMarkdown } from "./parser";
 import { ExecutionHistoryManager, EncryptionConfig } from "./history";
 import { isEncryptedFile } from "../core/crypto";
 import { tracing } from "../core/tracingHooks";
+import { formatError } from "../utils/error";
 
 const MAX_ITERATIONS = 1000; // Prevent infinite loops
 
@@ -1229,7 +1230,7 @@ export class WorkflowExecutor {
         });
       } catch (error) {
         tracing.spanEnd(nodeSpanId, {
-          error: error instanceof Error ? error.message : String(error),
+          error: formatError(error),
           metadata: { nodeType: node.type },
         });
 
@@ -1251,7 +1252,7 @@ export class WorkflowExecutor {
         }
 
         const errorMessage =
-          error instanceof Error ? error.message : String(error);
+          formatError(error);
         log(node.id, node.type, `Error: ${errorMessage}`, "error");
         addHistoryStep(
           node.id,
@@ -1276,12 +1277,12 @@ export class WorkflowExecutor {
         }
 
         tracing.traceEnd(traceId, {
-          metadata: { status: "error", error: error instanceof Error ? error.message : String(error) },
+          metadata: { status: "error", error: formatError(error) },
         });
         tracing.score(traceId, {
           name: "status",
           value: 0,
-          comment: error instanceof Error ? error.message : String(error),
+          comment: formatError(error),
         });
         throw error;
       }

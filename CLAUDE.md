@@ -128,6 +128,9 @@ This runs `version-bump.mjs` which updates `package.json`, `manifest.json`, and 
 ### Workflow Types (`src/workflow/types.ts`)
 
 - `WorkflowNodeType` - 21 node types (command, http, note, dialog, mcp, etc.)
+- `WORKFLOW_NODE_TYPES` - Set of all valid node type strings (single source of truth)
+- `isWorkflowNodeType()` - Type guard used by parser.ts and codeblockSync.ts
+- `normalizeValue()` - Converts unknown YAML values to string (shared utility)
 - `Workflow` - Node graph with edges and start node
 - `ExecutionContext` - Variables map and execution logs
 - `PromptCallbacks` - UI callbacks for interactive nodes
@@ -136,24 +139,21 @@ This runs `version-bump.mjs` which updates `package.json`, `manifest.json`, and 
 
 When adding a new workflow node type, **ALL** of the following files must be updated:
 
-1. **`src/workflow/types.ts`** - Add to `WorkflowNodeType` union type
-2. **`src/workflow/parser.ts`** - Add to `isWorkflowNodeType()` function (workflow parsing validation)
-3. **`src/workflow/codeblockSync.ts`** - Add to `isWorkflowNodeType()` function (YAML parsing validation)
-4. **`src/workflow/workflowSpec.ts`** - Add documentation for AI workflow generation
-5. **`src/workflow/nodeHandlers.ts`** - Add `handle*Node()` function and import
-6. **`src/workflow/executor.ts`** - Add `case` in the switch statement to call handler and log
-7. **`src/ui/components/workflow/WorkflowPanel.tsx`**:
+1. **`src/workflow/types.ts`** - Add to `WorkflowNodeType` union type AND `WORKFLOW_NODE_TYPES` set (single source of truth for `isWorkflowNodeType()`)
+2. **`src/workflow/workflowSpec.ts`** - Add documentation for AI workflow generation
+3. **`src/workflow/nodeHandlers.ts`** - Add `handle*Node()` function and import
+4. **`src/workflow/executor.ts`** - Add `case` in the switch statement to call handler and log
+5. **`src/ui/components/workflow/WorkflowPanel.tsx`**:
    - Add to `NODE_TYPE_LABELS` object
    - Add to `ADDABLE_NODE_TYPES` array
    - Add to `getDefaultProperties()` switch
    - Add to `getNodeSummary()` switch
-8. **`src/ui/components/workflow/NodeEditorModal.ts`**:
+6. **`src/ui/components/workflow/NodeEditorModal.ts`**:
    - Add to `NODE_TYPE_LABELS` object
    - Add `case` in `renderPropertyFields()` switch for editor UI
 
 **Common mistakes**:
-- Forgetting `parser.ts` causes nodes to be skipped during workflow execution
-- Forgetting `codeblockSync.ts` causes nodes to disappear from visual workflow when Markdown is edited
+- Forgetting `WORKFLOW_NODE_TYPES` set causes nodes to be skipped during parsing and disappear from visual workflow
 - Forgetting `executor.ts` causes node execution to fail silently
 
 ## Notes

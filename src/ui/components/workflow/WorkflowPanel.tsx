@@ -23,6 +23,7 @@ import { t } from "src/i18n";
 import { openWorkflowAsCanvas } from "src/utils/workflowToCanvas";
 import { cryptoCache } from "src/core/cryptoCache";
 import { globalEventEmitter } from "src/utils/EventEmitter";
+import { formatError } from "src/utils/error";
 
 // Password prompt modal for encrypted files
 function promptForPassword(app: App): Promise<string | null> {
@@ -742,7 +743,7 @@ ${result.nodes.map(node => {
       );
       new Notice(t("workflow.exportedToCanvas"));
     } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
+      const message = formatError(error);
       new Notice(t("workflow.canvasExportFailed", { message }));
     }
   };
@@ -939,7 +940,7 @@ ${result.nodes.map(node => {
       executionModalRef.current?.setComplete(true);
       new Notice(t("workflow.completedSuccessfully"));
     } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
+      const message = formatError(error);
       // Always mark modal as complete (failed state)
       executionModalRef.current?.setComplete(false);
       // Don't show error notice if it was just stopped
@@ -1023,7 +1024,7 @@ ${result.nodes.map(node => {
       executionModalRef.current?.setComplete(true);
       new Notice(t("workflow.completedSuccessfully"));
     } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
+      const message = formatError(error);
       executionModalRef.current?.setComplete(false);
       if (message !== "Workflow execution was stopped") {
         new Notice(t("workflow.failed", { message }));

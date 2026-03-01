@@ -28,6 +28,7 @@ import {
   type FilterConfig,
 } from "src/core/fileSearch";
 import { DEFAULT_SETTINGS, type RagSyncState } from "src/types";
+import { formatError } from "src/utils/error";
 
 export type ToolResult = Record<string, unknown>;
 
@@ -51,7 +52,7 @@ export async function executeToolCall(
   } catch (error) {
     return {
       success: false,
-      error: error instanceof Error ? error.message : "Unknown error occurred",
+      error: formatError(error),
       toolName,
     };
   }

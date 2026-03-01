@@ -185,6 +185,9 @@ export class GeminiHelperPlugin extends Plugin {
       }
       // Emit event to refresh UI after workspace state is loaded
       this.settingsEmitter.emit("workspace-state-loaded", this.workspaceState);
+      // Notify UI components that settings are ready (fixes race condition where
+      // ChatView renders before loadSettings() completes, e.g. after BRAT hot-reload)
+      this.settingsEmitter.emit("settings-updated", this.settings);
     }).catch((e) => {
       console.error("Gemini Helper: Failed to load settings:", formatError(e));
     });

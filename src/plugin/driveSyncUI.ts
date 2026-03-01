@@ -230,10 +230,15 @@ export class DriveSyncUIManager {
     // Show loading notice while computing file list
     const loadingNotice = new Notice(t("driveSync.loadingFileList"), 0);
     try {
-      const [result] = await Promise.all([
-        mgr.computeSyncFileList(direction),
-        mgr.refreshSyncCounts(),
-      ]);
+      const result = await mgr.computeSyncFileList(direction);
+      // Update badge count from the actual file list to avoid race conditions
+      // (refreshSyncCounts independently fetches metadata and may see different state)
+      if (direction === "push") {
+        mgr.localModifiedCount = result.files.length;
+      } else {
+        mgr.remoteModifiedCount = result.files.length;
+      }
+      mgr.onStatusChange?.();
       loadingNotice.hide();
 
       // Block push when remote has unpulled changes

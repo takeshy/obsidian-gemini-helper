@@ -21,7 +21,7 @@ export function promptForPassword(app: App): Promise<string | null> {
           cls: "gemini-helper-password-input",
         });
 
-        const buttonContainer = contentEl.createDiv({ cls: "modal-button-container" });
+        const buttonContainer = contentEl.createDiv({ cls: "gemini-helper-button-container" });
 
         buttonContainer.createEl("button", {
           text: t("common.cancel"),

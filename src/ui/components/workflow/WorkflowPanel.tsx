@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { TFile, Notice, Menu, MarkdownView, stringifyYaml, Modal, App } from "obsidian";
+import { TFile, Notice, Menu, MarkdownView, stringifyYaml } from "obsidian";
 import { FolderOpen, Keyboard, KeyboardOff, LayoutGrid, Plus, Sparkles, Zap, ZapOff } from "lucide-react";
 import { EventTriggerModal } from "./EventTriggerModal";
 import type { WorkflowEventTrigger } from "src/types";
@@ -24,60 +24,7 @@ import { openWorkflowAsCanvas } from "src/utils/workflowToCanvas";
 import { cryptoCache } from "src/core/cryptoCache";
 import { globalEventEmitter } from "src/utils/EventEmitter";
 import { formatError } from "src/utils/error";
-
-// Password prompt modal for encrypted files
-function promptForPassword(app: App): Promise<string | null> {
-  return new Promise((resolve) => {
-    class PasswordModal extends Modal {
-      onOpen(): void {
-        const { contentEl } = this;
-        contentEl.empty();
-        contentEl.addClass("gemini-helper-password-modal");
-
-        contentEl.createEl("h3", { text: t("crypt.enterPassword") });
-        contentEl.createEl("p", { text: t("crypt.enterPasswordDesc") });
-
-        const inputEl = contentEl.createEl("input", {
-          type: "password",
-          placeholder: t("crypt.passwordPlaceholder"),
-          cls: "gemini-helper-password-input",
-        });
-
-        const buttonContainer = contentEl.createDiv({ cls: "gemini-helper-button-container" });
-
-        const cancelBtn = buttonContainer.createEl("button", { text: t("common.cancel") });
-        cancelBtn.addEventListener("click", () => {
-          resolve(null);
-          this.close();
-        });
-
-        const unlockBtn = buttonContainer.createEl("button", { text: t("crypt.unlock"), cls: "mod-cta" });
-        unlockBtn.addEventListener("click", () => {
-          const password = inputEl.value;
-          if (password) {
-            resolve(password);
-            this.close();
-          }
-        });
-
-        inputEl.addEventListener("keydown", (e) => {
-          if (e.key === "Enter" && inputEl.value) {
-            resolve(inputEl.value);
-            this.close();
-          }
-        });
-
-        setTimeout(() => inputEl.focus(), 50);
-      }
-
-      onClose(): void {
-        this.contentEl.empty();
-      }
-    }
-
-    new PasswordModal(app).open();
-  });
-}
+import { promptForPassword } from "src/ui/passwordPrompt";
 
 interface WorkflowPanelProps {
   plugin: GeminiHelperPlugin;

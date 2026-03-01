@@ -551,6 +551,7 @@ export class DriveSyncManager {
           diff.toPull.filter(id => !isExcludedId(id)).length
           + diff.remoteOnly.filter(id => !isExcludedId(id)).length
           + pullLocalOnly.filter(id => !isExcludedId(id)).length
+          + diff.editDeleteConflicts.filter(id => !isExcludedId(id)).length
           + diff.conflicts.filter(c => !isExcludedId(c.fileId)).length;
       }
     } catch (err) {

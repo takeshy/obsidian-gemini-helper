@@ -1,5 +1,6 @@
 import { Modal, App, Notice, Platform } from "obsidian";
 import { t } from "src/i18n";
+import { formatError } from "src/utils/error";
 
 // Sanitize filename to remove characters not allowed in file systems
 function sanitizeFileName(name: string): string {
@@ -244,7 +245,7 @@ export class HTMLPreviewModal extends Modal {
 
         new Notice(`Saved to ${filePath}`);
       } catch (error) {
-        new Notice(`Failed to save: ${error instanceof Error ? error.message : "Unknown error"}`);
+        new Notice(`Failed to save: ${formatError(error)}`);
       }
     } else {
       // Desktop: Download file

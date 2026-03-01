@@ -1,14 +1,10 @@
-import { Plugin, WorkspaceLeaf, Notice, MarkdownView, TFile, Modal, App, Menu } from "obsidian";
-import { EditorView } from "@codemirror/view";
-import { StateEffect } from "@codemirror/state";
+import { Plugin, WorkspaceLeaf, Notice, MarkdownView, TFile, Modal } from "obsidian";
 import { EventEmitter } from "src/utils/EventEmitter";
-import {
-  selectionHighlightField,
-  setSelectionHighlight,
-  type SelectionHighlightInfo,
-  type SelectionLocationInfo,
-} from "src/ui/selectionHighlight";
-import { matchFilePattern } from "src/utils/globMatcher";
+import type { SelectionLocationInfo } from "src/ui/selectionHighlight";
+import { SelectionManager } from "src/plugin/selectionManager";
+import { EncryptionManager } from "src/plugin/encryptionManager";
+import { DriveSyncUIManager } from "src/plugin/driveSyncUI";
+import { WorkflowManager } from "src/plugin/workflowManager";
 import { WorkspaceStateManager } from "src/core/workspaceStateManager";
 import { ChatView, VIEW_TYPE_GEMINI_CHAT } from "src/ui/ChatView";
 import { CryptView, CRYPT_VIEW_TYPE } from "src/ui/CryptView";
@@ -20,26 +16,13 @@ import {
   type RagState,
   type ModelType,
   type SlashCommand,
-  type ObsidianEventType,
-  type WorkflowEventTrigger,
-  type McpAppInfo,
   DEFAULT_SETTINGS,
   DEFAULT_RAG_STATE,
   getDefaultModelForPlan,
 } from "src/types";
 import { initGeminiClient, resetGeminiClient, getGeminiClient } from "src/core/gemini";
 import { initLangfuse, resetLangfuse } from "src/tracing/langfuse";
-import { WorkflowExecutor } from "src/workflow/executor";
-import { parseWorkflowFromMarkdown } from "src/workflow/parser";
-import type { WorkflowInput } from "src/workflow/types";
-import { promptForDialog } from "src/ui/components/workflow/DialogPromptModal";
-import { promptForConfirmation } from "src/ui/components/workflow/EditConfirmationModal";
-import { promptForFile, promptForAnyFile, promptForNewFilePath } from "src/ui/components/workflow/FilePromptModal";
-import { promptForSelection } from "src/ui/components/workflow/SelectionPromptModal";
-import { promptForValue } from "src/ui/components/workflow/ValuePromptModal";
 import { WorkflowSelectorModal } from "src/ui/components/workflow/WorkflowSelectorModal";
-import { WorkflowExecutionModal } from "src/ui/components/workflow/WorkflowExecutionModal";
-import { showMcpApp } from "src/ui/components/workflow/McpAppModal";
 import {
   initFileSearchManager,
   resetFileSearchManager,
@@ -56,35 +39,21 @@ import { EditHistoryModal } from "src/ui/components/EditHistoryModal";
 import { formatError } from "src/utils/error";
 import { DEFAULT_CLI_CONFIG, DEFAULT_EDIT_HISTORY_SETTINGS, DEFAULT_LANGFUSE_SETTINGS, DEFAULT_DRIVE_SYNC_SETTINGS, hasVerifiedCli } from "src/types";
 import { initLocale, t } from "src/i18n";
-import { isEncryptedFile, encryptFileContent, decryptFileContent } from "src/core/crypto";
-import { cryptoCache } from "src/core/cryptoCache";
 import { DriveSyncManager } from "src/core/driveSync";
-import { DriveSyncConflictModal } from "src/ui/components/DriveSyncConflictModal";
-import { DriveSyncDiffModal } from "src/ui/components/DriveSyncDiffModal";
-import { DriveAuthPasswordModal } from "src/ui/components/DriveAuthPasswordModal";
 
 
 export class GeminiHelperPlugin extends Plugin {
   settings: GeminiHelperSettings = { ...DEFAULT_SETTINGS };
   settingsEmitter = new EventEmitter();
   private wsManager!: WorkspaceStateManager;
-  private lastSelection = "";
-  private selectionHighlight: SelectionHighlightInfo | null = null;
-  private selectionLocation: SelectionLocationInfo | null = null;
+  private selectionManager!: SelectionManager;
+  private encryptionManager!: EncryptionManager;
   private lastActiveMarkdownView: MarkdownView | null = null;
-  private registeredWorkflowPaths: string[] = [];
-  private eventListenersRegistered = false;
-  // Event loop prevention: tracks files being modified by workflows
-  private workflowModifiedFiles = new Set<string>();
-  // Debounce timers for modify events (per file)
-  private modifyDebounceTimers = new Map<string, ReturnType<typeof setTimeout>>();
-  private static readonly MODIFY_DEBOUNCE_MS = 5000; // 5 seconds debounce for modify events
+  private workflowMgr!: WorkflowManager;
 
   // Google Drive Sync
   driveSyncManager: DriveSyncManager | null = null;
-  private driveSyncStatusBarEl: HTMLElement | null = null;
-  private driveSyncPushRibbonEl: HTMLElement | null = null;
-  private driveSyncPullRibbonEl: HTMLElement | null = null;
+  private driveSyncUI!: DriveSyncUIManager;
 
   // Hide workspace folder: tracked elements with toggled CSS class
   private hiddenWorkspaceFolderEls: HTMLElement[] = [];
@@ -100,6 +69,18 @@ export class GeminiHelperPlugin extends Plugin {
   onload(): void {
     // Initialize i18n locale
     initLocale();
+
+    // Initialize selection manager
+    this.selectionManager = new SelectionManager(this);
+
+    // Initialize encryption manager
+    this.encryptionManager = new EncryptionManager(this);
+
+    // Initialize Drive Sync UI manager
+    this.driveSyncUI = new DriveSyncUIManager(this);
+
+    // Initialize workflow manager
+    this.workflowMgr = new WorkflowManager(this);
 
     // Initialize workspace state manager
     this.wsManager = new WorkspaceStateManager(
@@ -599,12 +580,8 @@ export class GeminiHelperPlugin extends Plugin {
     }
     this.hiddenWorkspaceFolderEls = [];
 
-    // Clean up debounce timers
-    for (const timer of this.modifyDebounceTimers.values()) {
-      clearTimeout(timer);
-    }
-    this.modifyDebounceTimers.clear();
-    this.workflowModifiedFiles.clear();
+    // Clean up workflow timers
+    this.workflowMgr.cleanup();
 
   }
 
@@ -678,522 +655,16 @@ export class GeminiHelperPlugin extends Plugin {
     this.registerWorkflowHotkeys();
   }
 
-  /**
-   * Register workflows as Obsidian commands for hotkey support.
-   * Note: Obsidian doesn't support unregistering commands, so once registered,
-   * commands remain until plugin reload. We track all registered identifiers to avoid
-   * duplicate registration errors.
-   */
   registerWorkflowHotkeys(): void {
-    for (const workflowId of this.settings.enabledWorkflowHotkeys) {
-      // Skip if already registered in this session (prevents duplicate registration error)
-      if (this.registeredWorkflowPaths.includes(workflowId)) {
-        continue;
-      }
-
-      // Parse path#name format
-      const hashIndex = workflowId.lastIndexOf("#");
-      if (hashIndex === -1) continue;
-
-      const filePath = workflowId.substring(0, hashIndex);
-      const workflowName = workflowId.substring(hashIndex + 1);
-
-      const obsidianCommandId = `workflow-${workflowId.replace(/[^a-zA-Z0-9]/g, "-")}`;
-
-      // Register new command
-      this.addCommand({
-        id: obsidianCommandId,
-        name: `Workflow: ${workflowName}`,
-        callback: () => {
-          void this.executeWorkflowFromHotkey(filePath, workflowName);
-        },
-      });
-
-      // Track as registered (never re-register in this session)
-      this.registeredWorkflowPaths.push(workflowId);
-    }
+    this.workflowMgr.registerHotkeys();
   }
 
-  /**
-   * Prompt for password to decrypt encrypted files
-   */
-  private promptForPassword(): Promise<string | null> {
-    return new Promise((resolve) => {
-      class PasswordModal extends Modal {
-        onOpen(): void {
-          const { contentEl } = this;
-          contentEl.empty();
-          contentEl.addClass("gemini-helper-password-modal");
-
-          contentEl.createEl("h3", { text: t("crypt.enterPassword") });
-          contentEl.createEl("p", { text: t("crypt.enterPasswordDesc") });
-
-          const inputEl = contentEl.createEl("input", {
-            type: "password",
-            placeholder: t("crypt.passwordPlaceholder"),
-            cls: "gemini-helper-password-input",
-          });
-
-          const buttonContainer = contentEl.createDiv({ cls: "gemini-helper-button-container" });
-
-          const cancelBtn = buttonContainer.createEl("button", { text: t("common.cancel") });
-          cancelBtn.addEventListener("click", () => {
-            resolve(null);
-            this.close();
-          });
-
-          const unlockBtn = buttonContainer.createEl("button", { text: t("crypt.unlock"), cls: "mod-cta" });
-          unlockBtn.addEventListener("click", () => {
-            const password = inputEl.value;
-            if (password) {
-              resolve(password);
-              this.close();
-            }
-          });
-
-          inputEl.addEventListener("keydown", (e) => {
-            if (e.key === "Enter" && inputEl.value) {
-              resolve(inputEl.value);
-              this.close();
-            }
-          });
-
-          setTimeout(() => inputEl.focus(), 50);
-        }
-
-        onClose(): void {
-          this.contentEl.empty();
-        }
-      }
-
-      const modal = new PasswordModal(this.app);
-      modal.open();
-    });
-  }
-
-  /**
-   * Execute workflow from hotkey
-   */
   async executeWorkflowFromHotkey(filePath: string, workflowName: string): Promise<void> {
-    // Capture selection before execution
-    this.captureSelection();
-    const selection = this.lastSelection;
-    const selectionLocation = this.selectionLocation;
-
-    // Get active note content
-    let content = "";
-    const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
-    if (activeView?.file) {
-      content = await this.app.vault.read(activeView.file);
-    }
-
-    // Get the workflow file
-    const file = this.app.vault.getAbstractFileByPath(filePath);
-    if (!(file instanceof TFile)) {
-      new Notice(`Workflow file not found: ${filePath}`);
-      return;
-    }
-
-    // Create abort controller for stopping workflow
-    const abortController = new AbortController();
-    let executionModal: WorkflowExecutionModal | null = null;
-
-    try {
-      const fileContent = await this.app.vault.read(file);
-      const workflow = parseWorkflowFromMarkdown(fileContent, workflowName);
-
-      // Check if progress modal should be shown (default: true)
-      const showProgress = workflow.options?.showProgress !== false;
-
-      const executor = new WorkflowExecutor(this.app, this);
-
-      const input: WorkflowInput = {
-        variables: new Map(),
-      };
-
-      // Set hotkey mode internal variables (used by prompt-file and prompt-selection nodes)
-      // The actual "file", "selection", "selectionInfo" variables are set by prompt nodes
-      input.variables.set("__hotkeyContent__", content);
-      input.variables.set("__hotkeySelection__", selection);
-
-      if (activeView?.file) {
-        input.variables.set("__hotkeyActiveFile__", JSON.stringify({
-          path: activeView.file.path,
-          basename: activeView.file.basename,
-          name: activeView.file.name,
-          extension: activeView.file.extension,
-        }));
-      }
-
-      if (selectionLocation) {
-        input.variables.set("__hotkeySelectionInfo__", JSON.stringify({
-          filePath: selectionLocation.filePath,
-          startLine: selectionLocation.startLine,
-          endLine: selectionLocation.endLine,
-          start: selectionLocation.start,
-          end: selectionLocation.end,
-        }));
-      }
-
-      // Create execution modal to show progress (if enabled)
-      if (showProgress) {
-        executionModal = new WorkflowExecutionModal(
-          this.app,
-          workflow,
-          workflowName,
-          abortController,
-          () => {
-            // onAbort callback - nothing special needed for hotkey mode
-          }
-        );
-        executionModal.open();
-      }
-
-      // Prompt callbacks for hotkey execution
-      const promptCallbacks = {
-        promptForFile: (defaultPath?: string) =>
-          promptForFile(this.app, defaultPath || t("workflowModal.selectFile")),
-        promptForSelection: () =>
-          promptForSelection(this.app, t("workflowModal.selectText")),
-        promptForValue: (prompt: string, defaultValue?: string, multiline?: boolean) =>
-          promptForValue(this.app, prompt, defaultValue || "", multiline || false),
-        promptForAnyFile: (extensions?: string[], defaultPath?: string) =>
-          promptForAnyFile(this.app, extensions, defaultPath || "Select a file"),
-        promptForNewFilePath: (extensions?: string[], defaultPath?: string) =>
-          promptForNewFilePath(this.app, extensions, defaultPath),
-        promptForConfirmation: (filePath: string, content: string, mode: string) =>
-          promptForConfirmation(this.app, filePath, content, mode),
-        promptForDialog: (title: string, message: string, options: string[], multiSelect: boolean, button1: string, button2?: string, markdown?: boolean, inputTitle?: string, defaults?: { input?: string; selected?: string[] }, multiline?: boolean) =>
-          promptForDialog(this.app, title, message, options, multiSelect, button1, button2, markdown, inputTitle, defaults, multiline),
-        openFile: async (notePath: string) => {
-          const noteFile = this.app.vault.getAbstractFileByPath(notePath);
-          if (noteFile instanceof TFile) {
-            await this.app.workspace.getLeaf().openFile(noteFile);
-          }
-        },
-        promptForPassword: async () => {
-          // Try cached password first
-          const cached = cryptoCache.getPassword();
-          if (cached) return cached;
-          // Prompt for password
-          return this.promptForPassword();
-        },
-        showMcpApp: async (mcpApp: McpAppInfo) => {
-          // Only show MCP App UI if execution modal is displayed
-          if (executionModal) {
-            await showMcpApp(this.app, mcpApp);
-          }
-        },
-      };
-
-      await executor.execute(
-        workflow,
-        input,
-        (log) => {
-          // Update execution modal with progress
-          executionModal?.updateFromLog(log);
-        },
-        {
-          workflowPath: filePath,
-          workflowName: workflowName,
-          recordHistory: true,
-        },
-        promptCallbacks
-      );
-
-      // Mark as completed
-      if (executionModal) {
-        executionModal.setComplete(true);
-      } else {
-        new Notice(t("workflow.completedSuccessfully"));
-      }
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      if (executionModal) {
-        executionModal.setComplete(false);
-      }
-      new Notice(`Workflow failed: ${message}`);
-    }
+    return this.workflowMgr.executeFromHotkey(filePath, workflowName);
   }
 
-  /**
-   * Register event listeners for workflow triggers.
-   * Unlike hotkeys, event listeners can be dynamically updated.
-   */
   registerWorkflowEventListeners(): void {
-    // Only register once to avoid duplicate listeners
-    if (this.eventListenersRegistered) {
-      return;
-    }
-    this.eventListenersRegistered = true;
-
-    // File created
-    this.registerEvent(
-      this.app.vault.on("create", (file) => {
-        if (file instanceof TFile) {
-          void this.handleWorkflowEvent("create", file.path, { file });
-        }
-      })
-    );
-
-    // File modified
-    this.registerEvent(
-      this.app.vault.on("modify", (file) => {
-        if (file instanceof TFile) {
-          void this.handleWorkflowEvent("modify", file.path, { file });
-        }
-      })
-    );
-
-    // File deleted
-    this.registerEvent(
-      this.app.vault.on("delete", (file) => {
-        if (file instanceof TFile) {
-          void this.handleWorkflowEvent("delete", file.path, { file });
-        }
-      })
-    );
-
-    // File renamed
-    this.registerEvent(
-      this.app.vault.on("rename", (file, oldPath) => {
-        if (file instanceof TFile) {
-          void this.handleWorkflowEvent("rename", file.path, { file, oldPath });
-        }
-      })
-    );
-
-    // File opened
-    this.registerEvent(
-      this.app.workspace.on("file-open", (file) => {
-        if (file instanceof TFile) {
-          void (async () => {
-            // Skip encrypted files - they will be handled by CryptView
-            try {
-              const content = await this.app.vault.read(file);
-              if (isEncryptedFile(content)) {
-                return;
-              }
-            } catch {
-              // Ignore read errors
-            }
-            void this.handleWorkflowEvent("file-open", file.path, { file });
-          })();
-        }
-      })
-    );
-  }
-
-  /**
-   * Handle a workflow event trigger.
-   * Includes event loop prevention and debouncing for modify events.
-   */
-  private async handleWorkflowEvent(
-    eventType: ObsidianEventType,
-    filePath: string,
-    eventData: { file?: TFile; oldPath?: string }
-  ): Promise<void> {
-    const triggers = this.settings.enabledWorkflowEventTriggers;
-    if (!triggers || triggers.length === 0) {
-      return;
-    }
-
-    // Event loop prevention: skip if this file was recently modified by a workflow
-    if (this.workflowModifiedFiles.has(filePath)) {
-      return;
-    }
-
-    // For modify events, use debouncing to avoid triggering on every autosave
-    if (eventType === "modify") {
-      // Clear existing timer for this file
-      const existingTimer = this.modifyDebounceTimers.get(filePath);
-      if (existingTimer) {
-        clearTimeout(existingTimer);
-      }
-
-      // Set new debounced handler
-      const timer = setTimeout(() => {
-        this.modifyDebounceTimers.delete(filePath);
-        void this.executeMatchingWorkflows(eventType, filePath, eventData, triggers);
-      }, GeminiHelperPlugin.MODIFY_DEBOUNCE_MS);
-
-      this.modifyDebounceTimers.set(filePath, timer);
-      return;
-    }
-
-    // For other events, execute immediately
-    await this.executeMatchingWorkflows(eventType, filePath, eventData, triggers);
-  }
-
-  /**
-   * Find and execute all matching workflows for an event.
-   * Uses Promise.allSettled for proper error handling.
-   */
-  private async executeMatchingWorkflows(
-    eventType: ObsidianEventType,
-    filePath: string,
-    eventData: { file?: TFile; oldPath?: string },
-    triggers: WorkflowEventTrigger[]
-  ): Promise<void> {
-    // Find all matching triggers for this event
-    const matchingTriggers = triggers.filter((trigger) => {
-      // Check if this trigger responds to this event type
-      if (!trigger.events.includes(eventType)) {
-        return false;
-      }
-
-      // Check file pattern if specified
-      if (trigger.filePattern) {
-        if (!matchFilePattern(trigger.filePattern, filePath)) {
-          return false;
-        }
-      }
-
-      return true;
-    });
-
-    if (matchingTriggers.length === 0) {
-      return;
-    }
-
-    // Execute all matching workflows and collect results
-    const results = await Promise.allSettled(
-      matchingTriggers.map((trigger) =>
-        this.executeWorkflowFromEvent(trigger, eventType, filePath, eventData)
-      )
-    );
-
-    // Log any failures
-    results.forEach((result, index) => {
-      if (result.status === "rejected") {
-        const trigger = matchingTriggers[index];
-        const workflowName = trigger.workflowId.split("#").pop() || trigger.workflowId;
-        console.error(
-          `Workflow (${workflowName}) triggered by ${eventType} failed:`,
-          formatError(result.reason)
-        );
-      }
-    });
-  }
-
-  /**
-   * Execute workflow from event trigger.
-   * Includes event loop prevention by tracking modified files.
-   */
-  private async executeWorkflowFromEvent(
-    trigger: WorkflowEventTrigger,
-    eventType: ObsidianEventType,
-    filePath: string,
-    eventData: { file?: TFile; oldPath?: string }
-  ): Promise<void> {
-    // Parse path#name format
-    const hashIndex = trigger.workflowId.lastIndexOf("#");
-    if (hashIndex === -1) return;
-
-    const workflowFilePath = trigger.workflowId.substring(0, hashIndex);
-    const workflowName = trigger.workflowId.substring(hashIndex + 1);
-
-    // Get the workflow file
-    const workflowFile = this.app.vault.getAbstractFileByPath(workflowFilePath);
-    if (!(workflowFile instanceof TFile)) {
-      throw new Error(`Workflow file not found: ${workflowFilePath}`);
-    }
-
-    // Event loop prevention: mark the trigger file as being processed
-    // This prevents workflows from re-triggering on the same file they just modified
-    this.workflowModifiedFiles.add(filePath);
-
-    // Also mark the workflow file itself to prevent self-modification loops
-    this.workflowModifiedFiles.add(workflowFilePath);
-
-    // Set up cleanup timer to remove the file from the blocked set
-    // Use a longer timeout to account for async file operations
-    const cleanupTimeout = setTimeout(() => {
-      this.workflowModifiedFiles.delete(filePath);
-      this.workflowModifiedFiles.delete(workflowFilePath);
-    }, 2000); // 2 seconds should be enough for most workflows
-
-    try {
-      const fileContent = await this.app.vault.read(workflowFile);
-      const workflow = parseWorkflowFromMarkdown(fileContent, workflowName);
-
-      const executor = new WorkflowExecutor(this.app, this);
-
-      const input: WorkflowInput = {
-        variables: new Map(),
-      };
-
-      // Set event-specific variables
-      input.variables.set("__eventType__", eventType);
-      input.variables.set("__eventFilePath__", filePath);
-
-      if (eventData.file) {
-        input.variables.set("__eventFile__", JSON.stringify({
-          path: eventData.file.path,
-          basename: eventData.file.basename,
-          name: eventData.file.name,
-          extension: eventData.file.extension,
-        }));
-      }
-
-      if (eventData.oldPath) {
-        input.variables.set("__eventOldPath__", eventData.oldPath);
-      }
-
-      // Read file content for created/modified/opened events
-      if (eventData.file && (eventType === "create" || eventType === "modify" || eventType === "file-open")) {
-        try {
-          const content = await this.app.vault.read(eventData.file);
-          input.variables.set("__eventFileContent__", content);
-        } catch {
-          // File might not be readable (e.g., binary file)
-        }
-      }
-
-      // Prompt callbacks for event execution (minimal interaction)
-      // Track files modified by this workflow for event loop prevention
-      const promptCallbacks = {
-        promptForFile: () => Promise.resolve(null),
-        promptForSelection: () => Promise.resolve(null),
-        promptForValue: () => Promise.resolve(null),
-        promptForConfirmation: (confirmPath: string, content: string, mode: string) => {
-          // Track the file being confirmed for modification
-          this.workflowModifiedFiles.add(confirmPath);
-          setTimeout(() => this.workflowModifiedFiles.delete(confirmPath), 2000);
-          return promptForConfirmation(this.app, confirmPath, content, mode);
-        },
-        promptForDialog: (title: string, message: string, options: string[], multiSelect: boolean, button1: string, button2?: string, markdown?: boolean, inputTitle?: string, defaults?: { input?: string; selected?: string[] }, multiline?: boolean) =>
-          promptForDialog(this.app, title, message, options, multiSelect, button1, button2, markdown, inputTitle, defaults, multiline),
-        openFile: async (notePath: string) => {
-          const noteFile = this.app.vault.getAbstractFileByPath(notePath);
-          if (noteFile instanceof TFile) {
-            await this.app.workspace.getLeaf().openFile(noteFile);
-          }
-        },
-        showMcpApp: async () => {
-          // Event-triggered workflows don't show execution modal, skip MCP App UI
-        },
-      };
-
-      await executor.execute(
-        workflow,
-        input,
-        () => {}, // Log callback
-        {
-          workflowPath: workflowFilePath,
-          workflowName: workflowName,
-          recordHistory: true,
-        },
-        promptCallbacks
-      );
-
-      // Silent success for event-triggered workflows to avoid notification spam
-    } finally {
-      // Clean up the timer if workflow completed before timeout
-      clearTimeout(cleanupTimeout);
-      // Note: We don't immediately remove from workflowModifiedFiles here
-      // because the file system events might still be propagating
-    }
+    this.workflowMgr.registerEventListeners();
   }
 
   // ========================================
@@ -1346,255 +817,32 @@ export class GeminiHelperPlugin extends Plugin {
     }
   }
 
-  /**
-   * Prompt user for password to unlock Drive sync session.
-   */
   async promptDriveSyncUnlock(): Promise<void> {
-    while (this.driveSyncManager?.isConfigured && !this.driveSyncManager.isUnlocked) {
-      const modal = new DriveAuthPasswordModal(this.app);
-      const password = await modal.openAndWait();
-      if (!password) return; // User skipped/cancelled
-
-      try {
-        await this.driveSyncManager.unlockWithPassword(password);
-        new Notice(t("driveSync.unlocked"));
-        this.updateDriveSyncStatusBar();
-        return;
-      } catch (err) {
-        console.error("Drive sync unlock failed:", formatError(err));
-        new Notice(t("driveSync.unlockFailed", { error: formatError(err) }));
-      }
-    }
+    return this.driveSyncUI.promptDriveSyncUnlock();
   }
 
   private teardownDriveSyncUI(): void {
-    this.driveSyncStatusBarEl?.remove();
-    this.driveSyncStatusBarEl = null;
-    this.driveSyncPushRibbonEl?.remove();
-    this.driveSyncPushRibbonEl = null;
-    this.driveSyncPullRibbonEl?.remove();
-    this.driveSyncPullRibbonEl = null;
-    if (this.driveSyncManager) {
-      this.driveSyncManager.onStatusChange = null;
-    }
+    this.driveSyncUI.teardown();
   }
 
   public setupDriveSyncUI(): void {
-    const mgr = this.driveSyncManager;
-    if (!mgr) return;
-
-    if (!this.settings.driveSync.enabled) {
-      this.teardownDriveSyncUI();
-      return;
-    }
-
-    // Create status bar element if not exists
-    if (!this.driveSyncStatusBarEl) {
-      this.driveSyncStatusBarEl = this.addStatusBarItem();
-      this.driveSyncStatusBarEl.addClass("gemini-helper-drive-sync-status");
-      this.driveSyncStatusBarEl.addEventListener("click", (e) => {
-        this.showDriveSyncMenu(e);
-      });
-    }
-
-    // Create ribbon icons for Push/Pull
-    if (!this.driveSyncPushRibbonEl) {
-      this.driveSyncPushRibbonEl = this.addRibbonIcon("upload", t("driveSync.ribbonPush"), () => {
-        const currentMgr = this.driveSyncManager;
-        if (!currentMgr?.isUnlocked) {
-          void this.promptDriveSyncUnlock();
-          return;
-        }
-        void this.showSyncDiffAndExecute(currentMgr, "push");
-      });
-      this.driveSyncPushRibbonEl.addClass("gemini-helper-drive-sync-ribbon");
-    }
-
-    if (!this.driveSyncPullRibbonEl) {
-      this.driveSyncPullRibbonEl = this.addRibbonIcon("download", t("driveSync.ribbonPull"), () => {
-        const currentMgr = this.driveSyncManager;
-        if (!currentMgr?.isUnlocked) {
-          void this.promptDriveSyncUnlock();
-          return;
-        }
-        void this.showSyncDiffAndExecute(currentMgr, "pull");
-      });
-      this.driveSyncPullRibbonEl.addClass("gemini-helper-drive-sync-ribbon");
-    }
-
-    // Listen for status changes
-    mgr.onStatusChange = () => {
-      this.updateDriveSyncStatusBar();
-      this.updateDriveSyncRibbonBadges();
-    };
-
-    this.updateDriveSyncStatusBar();
-    this.updateDriveSyncRibbonBadges();
+    this.driveSyncUI.setup();
   }
 
   private updateDriveSyncRibbonBadges(): void {
-    const mgr = this.driveSyncManager;
-    const local = mgr?.localModifiedCount ?? 0;
-    const remote = mgr?.remoteModifiedCount ?? 0;
-
-    if (this.driveSyncPushRibbonEl) {
-      const label = local > 0 ? t("driveSync.ribbonPushCount", { count: local }) : t("driveSync.ribbonPush");
-      this.driveSyncPushRibbonEl.setAttribute("aria-label", label);
-      // Update badge
-      let badge = this.driveSyncPushRibbonEl.querySelector(".gemini-helper-sync-badge");
-      if (local > 0) {
-        if (!badge) {
-          badge = this.driveSyncPushRibbonEl.createSpan({ cls: "gemini-helper-sync-badge" });
-        }
-        badge.textContent = String(local);
-      } else {
-        badge?.remove();
-      }
-    }
-
-    if (this.driveSyncPullRibbonEl) {
-      const label = remote > 0 ? t("driveSync.ribbonPullCount", { count: remote }) : t("driveSync.ribbonPull");
-      this.driveSyncPullRibbonEl.setAttribute("aria-label", label);
-      // Update badge
-      let badge = this.driveSyncPullRibbonEl.querySelector(".gemini-helper-sync-badge");
-      if (remote > 0) {
-        if (!badge) {
-          badge = this.driveSyncPullRibbonEl.createSpan({ cls: "gemini-helper-sync-badge" });
-        }
-        badge.textContent = String(remote);
-      } else {
-        badge?.remove();
-      }
-    }
+    this.driveSyncUI.updateRibbonBadges();
   }
 
   private updateDriveSyncStatusBar(): void {
-    const el = this.driveSyncStatusBarEl;
-    if (!el) return;
-
-    const mgr = this.driveSyncManager;
-    if (!mgr || !mgr.isConfigured) {
-      el.toggleClass("gemini-helper-hidden", true);
-      return;
-    }
-
-    el.toggleClass("gemini-helper-hidden", false);
-
-    if (!mgr.isUnlocked) {
-      el.setText(t("driveSync.statusLocked"));
-      el.setAttribute("aria-label", t("driveSync.statusLockedTooltip"));
-      return;
-    }
-
-    const status = mgr.syncStatus;
-    const local = mgr.localModifiedCount;
-    const remote = mgr.remoteModifiedCount;
-
-    let text: string;
-    switch (status) {
-      case "pushing":
-        text = t("driveSync.statusPushing");
-        break;
-      case "pulling":
-        text = t("driveSync.statusPulling");
-        break;
-      case "conflict":
-        text = t("driveSync.statusConflict");
-        break;
-      case "error":
-        text = "Drive: error";
-        break;
-      default: {
-        const parts: string[] = [];
-        if (local > 0) parts.push(`↑${local}`);
-        if (remote > 0) parts.push(`↓${remote}`);
-        text = parts.length > 0 ? t("driveSync.statusChanges", { changes: parts.join(" ") }) : t("driveSync.statusSynced");
-        break;
-      }
-    }
-
-    el.setText(text);
-    el.setAttribute("aria-label", mgr.lastError ? t("driveSync.statusError", { error: mgr.lastError }) : t("driveSync.statusTooltip"));
+    this.driveSyncUI.updateStatusBar();
   }
 
-  private showDriveSyncMenu(e: MouseEvent): void {
-    const mgr = this.driveSyncManager;
-    if (!mgr) return;
-
-    const menu = new Menu();
-
-    if (!mgr.isUnlocked) {
-      menu.addItem((item) => {
-        item.setTitle(t("driveSync.unlock")).setIcon("lock").onClick(() => {
-          void this.promptDriveSyncUnlock();
-        });
-      });
-    } else {
-      menu.addItem((item) => {
-        item.setTitle(t("driveSync.push")).setIcon("upload").onClick(() => {
-          void this.showSyncDiffAndExecute(mgr, "push");
-        });
-      });
-      menu.addItem((item) => {
-        item.setTitle(t("driveSync.pull")).setIcon("download").onClick(() => {
-          void this.showSyncDiffAndExecute(mgr, "pull");
-        });
-      });
-      menu.addSeparator();
-      menu.addItem((item) => {
-        item.setTitle(t("driveSync.refreshCounts")).setIcon("refresh-cw").onClick(() => {
-          void mgr.refreshSyncCounts();
-        });
-      });
-    }
-
-    menu.showAtMouseEvent(e);
-  }
-
-  private async showSyncDiffAndExecute(mgr: DriveSyncManager, direction: "push" | "pull"): Promise<void> {
-    // Show loading notice while computing file list
-    const loadingNotice = new Notice(t("driveSync.loadingFileList"), 0);
-    try {
-      const [result] = await Promise.all([
-        mgr.computeSyncFileList(direction),
-        mgr.refreshSyncCounts(),
-      ]);
-      loadingNotice.hide();
-
-      // Block push when remote has unpulled changes
-      if (direction === "push" && result.hasRemoteChanges) {
-        new Notice(t("driveSync.pushBlockedByRemote"));
-        return;
-      }
-
-      const modal = new DriveSyncDiffModal(this.app, result.files, direction, mgr);
-      const confirmed = await modal.openAndWait();
-      if (!confirmed) return;
-
-      if (direction === "push") {
-        await mgr.push();
-      } else {
-        await mgr.pull();
-      }
-
-      if (mgr.syncStatus === "conflict") {
-        this.openConflictModal(mgr);
-      }
-    } catch (err) {
-      loadingNotice.hide();
-      const key = direction === "push" ? "driveSync.pushFailed" as const : "driveSync.pullFailed" as const;
-      new Notice(t(key, { error: formatError(err) }));
-    }
+  private showSyncDiffAndExecute(mgr: DriveSyncManager, direction: "push" | "pull"): Promise<void> {
+    return this.driveSyncUI.showSyncDiffAndExecute(mgr, direction);
   }
 
   private openConflictModal(mgr: DriveSyncManager): void {
-    new DriveSyncConflictModal(this.app, mgr, mgr.conflicts, () => {
-      // After all conflicts resolved, pull() runs automatically inside resolveConflict.
-      // If pull() detects new conflicts, re-open the modal.
-      if (mgr.syncStatus === "conflict") {
-        this.openConflictModal(mgr);
-      }
-    }).open();
+    this.driveSyncUI.openConflictModal(mgr);
   }
 
   private async ensureChatViewExists() {
@@ -1664,173 +912,27 @@ export class GeminiHelperPlugin extends Plugin {
 
   // Capture selection from a specific markdown view
   private captureSelectionFromView(view: MarkdownView | null): void {
-    // Clear previous highlight and location first
-    this.clearSelectionHighlight();
-    this.selectionLocation = null;
-
-    if (!view?.editor) {
-      // Fallback to searching all markdown leaves
-      this.captureSelection();
-      return;
-    }
-
-    const editor = view.editor;
-    const selection = editor.getSelection();
-    if (selection) {
-      this.lastSelection = selection;
-      // Get selection range for highlighting
-      const fromPos = editor.getCursor("from");
-      const toPos = editor.getCursor("to");
-      const from = editor.posToOffset(fromPos);
-      const to = editor.posToOffset(toPos);
-      this.applySelectionHighlight(view, from, to);
-      // Store file path, line numbers, and character offsets
-      const file = view.file;
-      if (file) {
-        this.selectionLocation = {
-          filePath: file.path,
-          startLine: fromPos.line + 1,
-          endLine: toPos.line + 1,
-          start: from,
-          end: to,
-        };
-      }
-    }
+    this.selectionManager.captureSelectionFromView(view);
   }
 
-  // Capture current selection from any markdown editor and apply highlight
   captureSelection(): void {
-    // Clear previous highlight and location first
-    this.clearSelectionHighlight();
-    this.selectionLocation = null;
-
-    // First try active view
-    const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
-    if (activeView) {
-      const editor = activeView.editor;
-      const selection = editor.getSelection();
-      if (selection) {
-        this.lastSelection = selection;
-        // Get selection range for highlighting
-        const fromPos = editor.getCursor("from");
-        const toPos = editor.getCursor("to");
-        const from = editor.posToOffset(fromPos);
-        const to = editor.posToOffset(toPos);
-        this.applySelectionHighlight(activeView, from, to);
-        // Store file path, line numbers, and character offsets
-        const file = activeView.file;
-        if (file) {
-          this.selectionLocation = {
-            filePath: file.path,
-            startLine: fromPos.line + 1, // 1-indexed for display
-            endLine: toPos.line + 1,
-            start: from,
-            end: to,
-          };
-        }
-        return;
-      }
-    }
-
-    // Fallback: search all markdown leaves for a selection
-    const leaves = this.app.workspace.getLeavesOfType("markdown");
-    for (const leaf of leaves) {
-      const view = leaf.view as MarkdownView;
-      if (view?.editor) {
-        const editor = view.editor;
-        const selection = editor.getSelection();
-        if (selection) {
-          this.lastSelection = selection;
-          // Get selection range for highlighting
-          const fromPos = editor.getCursor("from");
-          const toPos = editor.getCursor("to");
-          const from = editor.posToOffset(fromPos);
-          const to = editor.posToOffset(toPos);
-          this.applySelectionHighlight(view, from, to);
-          // Store file path, line numbers, and character offsets
-          const file = view.file;
-          if (file) {
-            this.selectionLocation = {
-              filePath: file.path,
-              startLine: fromPos.line + 1,
-              endLine: toPos.line + 1,
-              start: from,
-              end: to,
-            };
-          }
-          return;
-        }
-      }
-    }
+    this.selectionManager.captureSelection();
   }
 
-  // Apply highlight decoration to the selection range
-  private applySelectionHighlight(view: MarkdownView, from: number, to: number): void {
-    try {
-      // Access CodeMirror EditorView through the editor
-      // @ts-expect-error - Obsidian's editor.cm is the CodeMirror EditorView
-      const editorView = view.editor.cm as EditorView;
-      if (!editorView) return;
-
-      // Check if the StateField is already installed by directly querying the state
-      const hasField = editorView.state.field(selectionHighlightField, false) !== undefined;
-      if (!hasField) {
-        editorView.dispatch({
-          effects: StateEffect.appendConfig.of([selectionHighlightField]),
-        });
-      }
-
-      // Apply the highlight
-      editorView.dispatch({
-        effects: setSelectionHighlight.of({ from, to }),
-      });
-
-      // Store the highlight info for later cleanup
-      this.selectionHighlight = { view, from, to };
-    } catch {
-      // Ignore errors - highlight is optional
-    }
-  }
-
-  // Clear the selection highlight
   clearSelectionHighlight(): void {
-    if (!this.selectionHighlight) return;
-
-    try {
-      const { view } = this.selectionHighlight;
-      // @ts-expect-error - Obsidian's editor.cm is the CodeMirror EditorView
-      const editorView = view.editor?.cm as EditorView;
-      if (editorView) {
-        // Check if the field is installed before trying to clear
-        const hasField = editorView.state.field(selectionHighlightField, false) !== undefined;
-        if (hasField) {
-          editorView.dispatch({
-            effects: setSelectionHighlight.of(null),
-          });
-        }
-      }
-    } catch {
-      // Ignore errors
-    }
-
-    this.selectionHighlight = null;
+    this.selectionManager.clearSelectionHighlight();
   }
 
-  // Get the last captured selection
   getLastSelection(): string {
-    return this.lastSelection;
+    return this.selectionManager.getLastSelection();
   }
 
-  // Get the location info of the last captured selection
   getSelectionLocation(): SelectionLocationInfo | null {
-    return this.selectionLocation;
+    return this.selectionManager.getSelectionLocation();
   }
 
-  // Clear the cached selection (call after using it)
   clearLastSelection(): void {
-    this.lastSelection = "";
-    this.selectionLocation = null;
-    this.clearSelectionHighlight();
+    this.selectionManager.clearLastSelection();
   }
 
   async syncVaultForRAG(
@@ -2109,217 +1211,14 @@ export class GeminiHelperPlugin extends Plugin {
    * Encrypt a file
    */
   async encryptFile(file: TFile): Promise<void> {
-    const encryption = this.settings.encryption;
-
-    // Check if encryption keys are configured (password has been set)
-    if (!encryption?.publicKey || !encryption?.encryptedPrivateKey || !encryption?.salt) {
-      new Notice(t("crypt.notConfigured"));
-      throw new Error(t("crypt.notConfigured"));
-    }
-
-    try {
-      // Read current content
-      const content = await this.app.vault.read(file);
-
-      // Check if already encrypted
-      if (isEncryptedFile(content)) {
-        new Notice(t("crypt.alreadyEncrypted"));
-        return;
-      }
-
-      // Encrypt the content
-      const encryptedContent = await encryptFileContent(
-        content,
-        encryption.publicKey,
-        encryption.encryptedPrivateKey,
-        encryption.salt
-      );
-
-      // Save encrypted content
-      await this.app.vault.modify(file, encryptedContent);
-
-      // Rename file to add .encrypted extension
-      const newPath = file.path + ".encrypted";
-      await this.app.vault.rename(file, newPath);
-
-      new Notice(t("crypt.encryptSuccess"));
-
-      // Reopen the file in CryptView
-      await this.openCryptView(file);
-    } catch (error) {
-      console.error("Failed to encrypt file:", formatError(error));
-      new Notice(t("crypt.encryptFailed"));
-    }
+    return this.encryptionManager.encryptFile(file);
   }
 
-  /**
-   * Check if a file is encrypted and open it in CryptView
-   */
   private async checkAndOpenEncryptedFile(file: TFile): Promise<void> {
-    try {
-      const content = await this.app.vault.read(file);
-      if (isEncryptedFile(content)) {
-        // Small delay to let the markdown view finish opening
-        setTimeout(() => {
-          void this.openCryptView(file);
-        }, 50);
-      }
-    } catch {
-      // Ignore read errors
-    }
+    return this.encryptionManager.checkAndOpenEncryptedFile(file);
   }
 
-  /**
-   * Open a file in CryptView
-   */
-  async openCryptView(file: TFile): Promise<void> {
-    // Check if there's already a CryptView for this file
-    const cryptLeaves = this.app.workspace.getLeavesOfType(CRYPT_VIEW_TYPE);
-    for (const leaf of cryptLeaves) {
-      const view = leaf.view as CryptView;
-      if (view.file?.path === file.path) {
-        this.app.workspace.setActiveLeaf(leaf, { focus: true });
-        return;
-      }
-    }
-
-    // Find existing markdown view for this file and replace it with CryptView
-    const allLeaves = this.app.workspace.getLeavesOfType("markdown");
-    for (const leaf of allLeaves) {
-      const view = leaf.view as MarkdownView;
-      if (view.file?.path === file.path) {
-        // Replace the view in the same leaf
-        await leaf.setViewState({
-          type: CRYPT_VIEW_TYPE,
-          active: true,
-          state: { file: file.path },
-        });
-        return;
-      }
-    }
-
-    // If no existing leaf found, create new CryptView in a new tab
-    const leaf = this.app.workspace.getLeaf("tab");
-    await leaf.setViewState({
-      type: CRYPT_VIEW_TYPE,
-      active: true,
-      state: { file: file.path },
-    });
-  }
-
-  /**
-   * Decrypt a file (remove encryption)
-   */
-  async decryptFile(file: TFile, decryptedContent: string): Promise<void> {
-    try {
-      await this.app.vault.modify(file, decryptedContent);
-
-      // Remove .encrypted extension if present
-      if (file.path.endsWith(".encrypted")) {
-        const newPath = file.path.slice(0, -".encrypted".length);
-        await this.app.vault.rename(file, newPath);
-      }
-
-      new Notice(t("crypt.decryptSuccess"));
-    } catch (error) {
-      console.error("Failed to decrypt file:", formatError(error));
-      new Notice(t("crypt.decryptFailed"));
-    }
-  }
-
-  // Decrypt current file (command handler)
   async decryptCurrentFile(file: TFile): Promise<void> {
-    try {
-      const content = await this.app.vault.read(file);
-
-      // Check if file is encrypted
-      if (!isEncryptedFile(content)) {
-        new Notice(t("crypt.notEncrypted"));
-        return;
-      }
-
-      // Try cached password first
-      let password = cryptoCache.getPassword();
-
-      if (!password) {
-        // Prompt for password
-        password = await new Promise<string | null>((resolve) => {
-          class PasswordModal extends Modal {
-            result: string | null = null;
-
-            constructor(app: App) {
-              super(app);
-            }
-
-            onOpen() {
-              this.contentEl.createEl("h3", { text: t("crypt.enterPassword") });
-              this.contentEl.createEl("p", { text: t("crypt.enterPasswordDesc") });
-
-              const inputEl = this.contentEl.createEl("input", {
-                type: "password",
-                placeholder: t("crypt.passwordPlaceholder"),
-                cls: "gemini-helper-password-input",
-              });
-
-              inputEl.addEventListener("keydown", (e) => {
-                if (e.key === "Enter") {
-                  this.result = inputEl.value;
-                  this.close();
-                }
-              });
-
-              const buttonContainer = this.contentEl.createDiv({ cls: "modal-button-container" });
-
-              buttonContainer.createEl("button", {
-                text: t("common.cancel"),
-              }).onclick = () => {
-                this.close();
-              };
-
-              buttonContainer.createEl("button", {
-                text: t("crypt.unlock"),
-                cls: "mod-cta",
-              }).onclick = () => {
-                this.result = inputEl.value;
-                this.close();
-              };
-
-              // Focus input
-              setTimeout(() => inputEl.focus(), 10);
-            }
-
-            onClose() {
-              resolve(this.result);
-            }
-          }
-
-          new PasswordModal(this.app).open();
-        });
-
-        if (!password) {
-          return; // User cancelled
-        }
-      }
-
-      // Decrypt the file
-      const decryptedContent = await decryptFileContent(content, password);
-
-      // Cache the password
-      cryptoCache.setPassword(password);
-
-      // Write decrypted content back
-      await this.app.vault.modify(file, decryptedContent);
-
-      // Remove .encrypted extension if present
-      if (file.path.endsWith(".encrypted")) {
-        const newPath = file.path.slice(0, -".encrypted".length);
-        await this.app.vault.rename(file, newPath);
-      }
-
-      new Notice(t("crypt.decryptSuccess"));
-    } catch (error) {
-      console.error("Failed to decrypt file:", formatError(error));
-      new Notice(t("crypt.decryptFailed"));
-    }
+    return this.encryptionManager.decryptCurrentFile(file);
   }
 }

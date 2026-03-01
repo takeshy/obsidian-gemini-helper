@@ -2,7 +2,7 @@
 // Manages push/pull sync between Obsidian Vault and Google Drive.
 // Adapted from GemiHub's useSync.ts hook — restructured as a class.
 
-import { App, TFile, Notice } from "obsidian";
+import { App, TFile, Notice, type EventRef } from "obsidian";
 import { t } from "src/i18n";
 import type { GeminiHelperPlugin } from "src/plugin";
 import type { DriveSyncSettings, DriveSessionTokens } from "src/types";
@@ -117,6 +117,8 @@ export class DriveSyncManager {
   private plugin: GeminiHelperPlugin;
   private syncLock = false;
   private autoSyncInterval: ReturnType<typeof setInterval> | null = null;
+  private vaultEventRefs: EventRef[] = [];
+  private vaultChangeDebounceTimer: ReturnType<typeof setTimeout> | null = null;
 
   // Session-only tokens (never persisted to disk)
   private sessionTokens: DriveSessionTokens | null = null;
@@ -258,6 +260,7 @@ export class DriveSyncManager {
     }
 
     this.startAutoSync();
+    this.startVaultWatcher();
 
     // If autoSync is disabled, still refresh counts once after unlock
     if (!this.settings.autoSync) {
@@ -551,6 +554,7 @@ export class DriveSyncManager {
           diff.toPull.filter(id => !isExcludedId(id)).length
           + diff.remoteOnly.filter(id => !isExcludedId(id)).length
           + pullLocalOnly.filter(id => !isExcludedId(id)).length
+          + diff.editDeleteConflicts.filter(id => !isExcludedId(id)).length
           + diff.conflicts.filter(c => !isExcludedId(c.fileId)).length;
       }
     } catch (err) {
@@ -558,6 +562,78 @@ export class DriveSyncManager {
       console.debug("[DriveSync] refreshSyncCounts failed:", err);
     }
     this.onStatusChange?.();
+  }
+
+  // ========================================
+  // Lightweight local-only push count refresh
+  // ========================================
+
+  /**
+   * Refresh only the local push count without network access.
+   * Compares vault files against local sync metadata to count local changes.
+   */
+  async refreshLocalCounts(): Promise<void> {
+    if (!this.settings.enabled || !this.sessionTokens) return;
+
+    try {
+      const localMeta = await readLocalSyncMeta(this.app, this.workspaceFolder);
+      const vaultFiles = this.getAllVaultFiles();
+      const { checksums } = await this.computeVaultChecksums(vaultFiles, localMeta);
+      const { modifiedIds, newPaths, renames, deletedIds } = this.findLocallyModifiedFiles(localMeta, checksums);
+
+      const idToPath = buildIdToPathMap(localMeta);
+
+      const pushCount =
+        [...modifiedIds].filter(id => {
+          const path = idToPath[id];
+          return !path || !this.isExcludedPath(path);
+        }).length
+        + [...newPaths].filter(p => !this.isExcludedPath(p)).length
+        + [...renames].filter(([, newPath]) => !this.isExcludedPath(newPath)).length
+        + [...deletedIds].filter(id => {
+          const path = idToPath[id];
+          return !path || !this.isExcludedPath(path);
+        }).length;
+
+      this.localModifiedCount = pushCount;
+    } catch (err) {
+      console.debug("[DriveSync] refreshLocalCounts failed:", err);
+    }
+    this.onStatusChange?.();
+  }
+
+  // ========================================
+  // Vault change watcher (debounced local count refresh)
+  // ========================================
+
+  startVaultWatcher(): void {
+    this.stopVaultWatcher();
+    if (!this.settings.enabled || !this.sessionTokens) return;
+
+    const debouncedRefresh = () => {
+      if (this.vaultChangeDebounceTimer) clearTimeout(this.vaultChangeDebounceTimer);
+      this.vaultChangeDebounceTimer = setTimeout(() => {
+        void this.refreshLocalCounts();
+      }, 5000);
+    };
+
+    this.vaultEventRefs.push(
+      this.app.vault.on("modify", debouncedRefresh),
+      this.app.vault.on("create", debouncedRefresh),
+      this.app.vault.on("delete", debouncedRefresh),
+      this.app.vault.on("rename", debouncedRefresh),
+    );
+  }
+
+  stopVaultWatcher(): void {
+    for (const ref of this.vaultEventRefs) {
+      this.app.vault.offref(ref);
+    }
+    this.vaultEventRefs = [];
+    if (this.vaultChangeDebounceTimer) {
+      clearTimeout(this.vaultChangeDebounceTimer);
+      this.vaultChangeDebounceTimer = null;
+    }
   }
 
   // ========================================
@@ -2016,6 +2092,7 @@ export class DriveSyncManager {
 
   destroy(): void {
     this.stopAutoSync();
+    this.stopVaultWatcher();
     this.sessionTokens = null;
     this.conflicts = [];
     this.lastError = null;

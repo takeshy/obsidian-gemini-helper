@@ -951,7 +951,7 @@ export class AIWorkflowModal extends Modal {
       }
     } catch (error) {
       generationModal.close();
-      const message = error instanceof Error ? error.message : String(error);
+      const message = formatError(error);
       tracing.traceEnd(traceId, { metadata: { status: "error", error: message } });
       tracing.score(traceId, { name: "status", value: 0, comment: message });
       new Notice(`Error: ${message}`);

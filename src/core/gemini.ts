@@ -19,6 +19,7 @@ import {
   type GeneratedImage,
 } from "src/types";
 import { tracing, type TracingUsage } from "src/core/tracingHooks";
+import { formatError } from "src/utils/error";
 
 // Model pricing per token (USD)
 // Source: https://ai.google.dev/pricing
@@ -83,6 +84,18 @@ function extractUsage(usageMetadata: { promptTokenCount?: number; candidatesToke
     outputCost,
     totalCost,
   };
+}
+
+// Accumulate per-round usage into a running total
+function accumulateUsage(total: TracingUsage, round: TracingUsage): void {
+  total.input = (total.input ?? 0) + (round.input ?? 0);
+  total.output = (total.output ?? 0) + (round.output ?? 0);
+  if (round.thinking !== undefined) total.thinking = (total.thinking ?? 0) + round.thinking;
+  if (round.toolUsePromptTokens !== undefined) total.toolUsePromptTokens = (total.toolUsePromptTokens ?? 0) + round.toolUsePromptTokens;
+  total.total = (total.total ?? 0) + (round.total ?? 0);
+  if (round.inputCost !== undefined) total.inputCost = (total.inputCost ?? 0) + round.inputCost;
+  if (round.outputCost !== undefined) total.outputCost = (total.outputCost ?? 0) + round.outputCost;
+  if (round.totalCost !== undefined) total.totalCost = (total.totalCost ?? 0) + round.totalCost;
 }
 
 // Convert TracingUsage to StreamChunkUsage for yielding to the UI
@@ -157,33 +170,31 @@ export class GeminiClient {
     this.model = model;
   }
 
+  // Build Gemini Part[] from a Message's attachments and text content
+  private static buildMessageParts(msg: Message): Part[] {
+    const parts: Part[] = [];
+    if (msg.attachments && msg.attachments.length > 0) {
+      for (const attachment of msg.attachments) {
+        parts.push({
+          inlineData: {
+            mimeType: attachment.mimeType,
+            data: attachment.data,
+          },
+        });
+      }
+    }
+    if (msg.content) {
+      parts.push({ text: msg.content });
+    }
+    return parts;
+  }
+
   // Convert our Message format to Gemini Content format
   private messagesToContents(messages: Message[]): Content[] {
-    return messages.map((msg) => {
-      const parts: Part[] = [];
-
-      // Add attachments first if present
-      if (msg.attachments && msg.attachments.length > 0) {
-        for (const attachment of msg.attachments) {
-          parts.push({
-            inlineData: {
-              mimeType: attachment.mimeType,
-              data: attachment.data,
-            },
-          });
-        }
-      }
-
-      // Add text content
-      if (msg.content) {
-        parts.push({ text: msg.content });
-      }
-
-      return {
-        role: msg.role === "user" ? "user" : "model",
-        parts,
-      };
-    });
+    return messages.map((msg) => ({
+      role: msg.role === "user" ? "user" : "model",
+      parts: GeminiClient.buildMessageParts(msg),
+    }));
   }
 
   // Convert tool definitions to Gemini format
@@ -287,7 +298,7 @@ export class GeminiClient {
       return text;
     } catch (error) {
       tracing.generationEnd(genId, {
-        error: error instanceof Error ? error.message : "API call failed",
+        error: formatError(error),
       });
       throw error;
     }
@@ -339,43 +350,15 @@ export class GeminiClient {
       yield { type: "done", usage: toStreamChunkUsage(lastUsage) };
     } catch (error) {
       tracing.generationEnd(genId, {
-        error: error instanceof Error ? error.message : "API call failed",
+        error: formatError(error),
       });
       yield {
         type: "error",
-        error: error instanceof Error ? error.message : "API call failed",
+        error: formatError(error),
       };
     }
   }
 
-  // Convert messages to Gemini history format (for chat sessions)
-  private messagesToHistory(messages: Message[]): Content[] {
-    return messages.map((msg) => {
-      const parts: Part[] = [];
-
-      // Add attachments if present
-      if (msg.attachments && msg.attachments.length > 0) {
-        for (const attachment of msg.attachments) {
-          parts.push({
-            inlineData: {
-              mimeType: attachment.mimeType,
-              data: attachment.data,
-            },
-          });
-        }
-      }
-
-      // Add text content
-      if (msg.content) {
-        parts.push({ text: msg.content });
-      }
-
-      return {
-        role: msg.role === "user" ? "user" : "model",
-        parts,
-      };
-    });
-  }
 
   // Streaming chat with Function Calling using SDK Chat (handles thought_signature automatically)
   async *chatWithToolsStream(
@@ -431,7 +414,7 @@ export class GeminiClient {
 
     // Build history from all messages except the last one
     const historyMessages = messages.slice(0, -1);
-    const history = this.messagesToHistory(historyMessages);
+    const history = this.messagesToContents(historyMessages);
 
     // Get the last user message (needed for keyword-based thinking)
     const lastMessage = messages[messages.length - 1];
@@ -499,26 +482,7 @@ export class GeminiClient {
     let roundNumber = 0;
 
     let continueLoop = true;
-
-    // Build message parts with attachments
-    const messageParts: Part[] = [];
-
-    // Add attachments first if present
-    if (lastMessage.attachments && lastMessage.attachments.length > 0) {
-      for (const attachment of lastMessage.attachments) {
-        messageParts.push({
-          inlineData: {
-            mimeType: attachment.mimeType,
-            data: attachment.data,
-          },
-        });
-      }
-    }
-
-    // Add text content
-    if (lastMessage.content) {
-      messageParts.push({ text: lastMessage.content });
-    }
+    const messageParts = GeminiClient.buildMessageParts(lastMessage);
 
     try {
       // Send initial message
@@ -616,16 +580,7 @@ export class GeminiClient {
         }
 
         // Sum this round's usage into total
-        if (roundUsage) {
-          totalUsage.input = (totalUsage.input ?? 0) + (roundUsage.input ?? 0);
-          totalUsage.output = (totalUsage.output ?? 0) + (roundUsage.output ?? 0);
-          if (roundUsage.thinking !== undefined) totalUsage.thinking = (totalUsage.thinking ?? 0) + roundUsage.thinking;
-          if (roundUsage.toolUsePromptTokens !== undefined) totalUsage.toolUsePromptTokens = (totalUsage.toolUsePromptTokens ?? 0) + roundUsage.toolUsePromptTokens;
-          totalUsage.total = (totalUsage.total ?? 0) + (roundUsage.total ?? 0);
-          if (roundUsage.inputCost !== undefined) totalUsage.inputCost = (totalUsage.inputCost ?? 0) + roundUsage.inputCost;
-          if (roundUsage.outputCost !== undefined) totalUsage.outputCost = (totalUsage.outputCost ?? 0) + roundUsage.outputCost;
-          if (roundUsage.totalCost !== undefined) totalUsage.totalCost = (totalUsage.totalCost ?? 0) + roundUsage.totalCost;
-        }
+        if (roundUsage) accumulateUsage(totalUsage, roundUsage);
 
         // Add search grounding cost if web search was used in this round
         if (groundingEmitted && webSearchEnabled && this.model && SEARCH_GROUNDING_COST[this.model] !== undefined) {
@@ -682,15 +637,7 @@ export class GeminiClient {
                 yield { type: "text", content: text };
               }
             }
-            if (roundUsage) {
-              totalUsage.input = (totalUsage.input ?? 0) + (roundUsage.input ?? 0);
-              totalUsage.output = (totalUsage.output ?? 0) + (roundUsage.output ?? 0);
-              if (roundUsage.toolUsePromptTokens !== undefined) totalUsage.toolUsePromptTokens = (totalUsage.toolUsePromptTokens ?? 0) + roundUsage.toolUsePromptTokens;
-              totalUsage.total = (totalUsage.total ?? 0) + (roundUsage.total ?? 0);
-              if (roundUsage.inputCost !== undefined) totalUsage.inputCost = (totalUsage.inputCost ?? 0) + roundUsage.inputCost;
-              if (roundUsage.outputCost !== undefined) totalUsage.outputCost = (totalUsage.outputCost ?? 0) + roundUsage.outputCost;
-              if (roundUsage.totalCost !== undefined) totalUsage.totalCost = (totalUsage.totalCost ?? 0) + roundUsage.totalCost;
-            }
+            if (roundUsage) accumulateUsage(totalUsage, roundUsage);
             tracing.spanEnd(roundSpanId, { metadata: { reason: "function_call_limit", usage: roundUsage } });
             continueLoop = false;
             continue;
@@ -789,15 +736,7 @@ export class GeminiClient {
                 yield { type: "text", content: text };
               }
             }
-            if (roundUsage) {
-              totalUsage.input = (totalUsage.input ?? 0) + (roundUsage.input ?? 0);
-              totalUsage.output = (totalUsage.output ?? 0) + (roundUsage.output ?? 0);
-              if (roundUsage.toolUsePromptTokens !== undefined) totalUsage.toolUsePromptTokens = (totalUsage.toolUsePromptTokens ?? 0) + roundUsage.toolUsePromptTokens;
-              totalUsage.total = (totalUsage.total ?? 0) + (roundUsage.total ?? 0);
-              if (roundUsage.inputCost !== undefined) totalUsage.inputCost = (totalUsage.inputCost ?? 0) + roundUsage.inputCost;
-              if (roundUsage.outputCost !== undefined) totalUsage.outputCost = (totalUsage.outputCost ?? 0) + roundUsage.outputCost;
-              if (roundUsage.totalCost !== undefined) totalUsage.totalCost = (totalUsage.totalCost ?? 0) + roundUsage.totalCost;
-            }
+            if (roundUsage) accumulateUsage(totalUsage, roundUsage);
             tracing.spanEnd(roundSpanId, { metadata: { reason: "function_call_limit_with_skipped", usage: roundUsage } });
             continueLoop = false;
             continue;
@@ -837,14 +776,14 @@ export class GeminiClient {
       yield { type: "done", usage: toStreamChunkUsage(totalUsage.total ? totalUsage : undefined) };
     } catch (error) {
       tracing.generationEnd(generationId, {
-        error: error instanceof Error ? error.message : "API call failed",
+        error: formatError(error),
         usage: totalUsage.total ? totalUsage : undefined,
         metadata: { toolCallCount: toolCallTraceCount, roundCount: roundNumber },
       });
 
       yield {
         type: "error",
-        error: error instanceof Error ? error.message : "API call failed",
+        error: formatError(error),
       };
     }
   }
@@ -857,7 +796,7 @@ export class GeminiClient {
   ): AsyncGenerator<StreamChunk> {
     // Build history from all messages except the last one
     const historyMessages = messages.slice(0, -1);
-    const history = this.messagesToHistory(historyMessages);
+    const history = this.messagesToContents(historyMessages);
 
     // Get the last user message (needed for keyword-based thinking)
     const lastMessage = messages[messages.length - 1];
@@ -888,25 +827,7 @@ export class GeminiClient {
       },
     });
 
-    // Build message parts with attachments
-    const messageParts: Part[] = [];
-
-    // Add attachments first if present
-    if (lastMessage.attachments && lastMessage.attachments.length > 0) {
-      for (const attachment of lastMessage.attachments) {
-        messageParts.push({
-          inlineData: {
-            mimeType: attachment.mimeType,
-            data: attachment.data,
-          },
-        });
-      }
-    }
-
-    // Add text content
-    if (lastMessage.content) {
-      messageParts.push({ text: lastMessage.content });
-    }
+    const messageParts = GeminiClient.buildMessageParts(lastMessage);
 
     const genId = tracing.generationStart(traceId ?? null, "generateWorkflowStream", {
       model: this.model,
@@ -958,11 +879,11 @@ export class GeminiClient {
       yield { type: "done", usage: toStreamChunkUsage(lastUsage) };
     } catch (error) {
       tracing.generationEnd(genId, {
-        error: error instanceof Error ? error.message : "Workflow generation failed",
+        error: formatError(error),
       });
       yield {
         type: "error",
-        error: error instanceof Error ? error.message : "Workflow generation failed",
+        error: formatError(error),
       };
     }
   }
@@ -978,7 +899,7 @@ export class GeminiClient {
   ): AsyncGenerator<StreamChunk> {
     // Build history from all messages except the last one
     const historyMessages = messages.slice(0, -1);
-    const history = this.messagesToHistory(historyMessages);
+    const history = this.messagesToContents(historyMessages);
 
     // Get the last user message
     const lastMessage = messages[messages.length - 1];
@@ -987,25 +908,7 @@ export class GeminiClient {
       return;
     }
 
-    // Build message parts with attachments
-    const messageParts: Part[] = [];
-
-    // Add attachments first if present
-    if (lastMessage.attachments && lastMessage.attachments.length > 0) {
-      for (const attachment of lastMessage.attachments) {
-        messageParts.push({
-          inlineData: {
-            mimeType: attachment.mimeType,
-            data: attachment.data,
-          },
-        });
-      }
-    }
-
-    // Add text content
-    if (lastMessage.content) {
-      messageParts.push({ text: lastMessage.content });
-    }
+    const messageParts = GeminiClient.buildMessageParts(lastMessage);
 
     // Build tools array
     // - Gemini 2.5 Flash Image: no tools supported
@@ -1072,11 +975,11 @@ export class GeminiClient {
       yield { type: "done", usage: toStreamChunkUsage(imageUsage) };
     } catch (error) {
       tracing.generationEnd(genId, {
-        error: error instanceof Error ? error.message : "Image generation failed",
+        error: formatError(error),
       });
       yield {
         type: "error",
-        error: error instanceof Error ? error.message : "Image generation failed",
+        error: formatError(error),
       };
     }
   }

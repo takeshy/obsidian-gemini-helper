@@ -27,6 +27,34 @@ export type WorkflowNodeType =
   | "obsidian-command"
   | "sleep";
 
+/** All valid workflow node type values. Single source of truth for validation. */
+const WORKFLOW_NODE_TYPES: ReadonlySet<string> = new Set<WorkflowNodeType>([
+  "variable", "set", "if", "while", "command", "http", "json",
+  "note", "note-read", "note-search", "note-list", "folder-list",
+  "open", "dialog", "prompt-file", "prompt-selection",
+  "workflow", "rag-sync", "file-explorer", "file-save",
+  "mcp", "obsidian-command", "sleep",
+]);
+
+/** Type guard for WorkflowNodeType. Used by parser.ts and codeblockSync.ts. */
+export function isWorkflowNodeType(value: unknown): value is WorkflowNodeType {
+  return typeof value === "string" && WORKFLOW_NODE_TYPES.has(value);
+}
+
+/** Normalize unknown YAML values to string. Shared between parser and codeblock sync. */
+export function normalizeValue(value: unknown): string {
+  if (value === null || value === undefined) {
+    return "";
+  }
+  if (typeof value === "string") {
+    return value;
+  }
+  if (typeof value === "number" || typeof value === "boolean") {
+    return String(value);
+  }
+  return JSON.stringify(value);
+}
+
 export interface WorkflowNode {
   id: string;
   type: WorkflowNodeType;

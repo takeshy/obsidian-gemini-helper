@@ -4,6 +4,7 @@
 import { McpClient } from "./mcpClient";
 import type { McpServerConfig, McpToolInfo, ToolDefinition, ToolPropertyDefinition, McpAppInfo } from "../types";
 import { tracing } from "./tracingHooks";
+import { formatError } from "../utils/error";
 
 // Extended tool definition with MCP server info
 export interface McpToolDefinition extends ToolDefinition {
@@ -317,7 +318,7 @@ export function createMcpToolExecutor(
         clientPool.delete(key);
       }
 
-      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorMessage = formatError(error);
       tracing.spanEnd(spanId, { error: `MCP tool execution failed: ${errorMessage}` });
       return { error: `MCP tool execution failed: ${errorMessage}` };
     }

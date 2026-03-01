@@ -9,6 +9,7 @@ import { createToolExecutor } from "../../vault/toolExecutor";
 import { WorkflowNode, ExecutionContext, PromptCallbacks, FileExplorerData } from "../types";
 import { replaceVariables } from "./utils";
 import { tracing } from "../../core/tracingHooks";
+import { formatError } from "../../utils/error";
 
 // Result type for command node execution
 export interface CommandNodeResult {
@@ -121,7 +122,7 @@ Please revise the output based on the user's feedback above.`;
       tracing.generationEnd(genId, { output: fullResponse });
     } catch (error) {
       tracing.generationEnd(genId, {
-        error: error instanceof Error ? error.message : String(error),
+        error: formatError(error),
       });
       throw error;
     }

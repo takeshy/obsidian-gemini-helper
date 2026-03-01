@@ -1,6 +1,6 @@
 {
   "name": "obsidian-gemini-helper",
-  "version": "1.8.8",
+  "version": "1.8.9",
   "description": "AI-powered assistant using Google Gemini with File Search RAG capabilities",
   "main": "main.js",
   "scripts": {

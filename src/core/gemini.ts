@@ -359,12 +359,6 @@ export class GeminiClient {
     }
   }
 
-  // Convert messages to Gemini history format (for chat sessions)
-  // Functionally identical to messagesToContents — kept as separate method
-  // in case history format diverges in the future.
-  private messagesToHistory(messages: Message[]): Content[] {
-    return this.messagesToContents(messages);
-  }
 
   // Streaming chat with Function Calling using SDK Chat (handles thought_signature automatically)
   async *chatWithToolsStream(
@@ -420,7 +414,7 @@ export class GeminiClient {
 
     // Build history from all messages except the last one
     const historyMessages = messages.slice(0, -1);
-    const history = this.messagesToHistory(historyMessages);
+    const history = this.messagesToContents(historyMessages);
 
     // Get the last user message (needed for keyword-based thinking)
     const lastMessage = messages[messages.length - 1];
@@ -802,7 +796,7 @@ export class GeminiClient {
   ): AsyncGenerator<StreamChunk> {
     // Build history from all messages except the last one
     const historyMessages = messages.slice(0, -1);
-    const history = this.messagesToHistory(historyMessages);
+    const history = this.messagesToContents(historyMessages);
 
     // Get the last user message (needed for keyword-based thinking)
     const lastMessage = messages[messages.length - 1];
@@ -905,7 +899,7 @@ export class GeminiClient {
   ): AsyncGenerator<StreamChunk> {
     // Build history from all messages except the last one
     const historyMessages = messages.slice(0, -1);
-    const history = this.messagesToHistory(historyMessages);
+    const history = this.messagesToContents(historyMessages);
 
     // Get the last user message
     const lastMessage = messages[messages.length - 1];

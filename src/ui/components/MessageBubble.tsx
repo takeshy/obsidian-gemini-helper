@@ -485,6 +485,8 @@ export default function MessageBubble({
               {attachment.type === "image" && "🖼️"}
               {attachment.type === "pdf" && "📄"}
               {attachment.type === "text" && "📃"}
+              {attachment.type === "audio" && "🎵"}
+              {attachment.type === "video" && "🎬"}
               {" "}{attachment.name}
             </span>
           ))}

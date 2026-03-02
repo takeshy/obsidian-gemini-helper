@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, KeyboardEvent, ChangeEvent, forwardRef, useImperativeHandle } from "react";
 import { Send, Paperclip, StopCircle, Loader2, Eye, Database, ChevronUp, ChevronDown } from "lucide-react";
-import { Platform, type App } from "obsidian";
+import { Notice, Platform, type App } from "obsidian";
 import { isImageGenerationModel, type ModelInfo, type ModelType, type Attachment, type SlashCommand, type McpServerConfig, type VaultToolMode } from "src/types";
 import { t } from "src/i18n";
 
@@ -57,7 +57,11 @@ const SUPPORTED_TYPES = {
   image: ["image/png", "image/jpeg", "image/gif", "image/webp"],
   pdf: ["application/pdf"],
   text: ["text/plain", "text/markdown", "text/csv", "application/json"],
+  audio: ["audio/mpeg", "audio/wav", "audio/flac", "audio/aac", "audio/mp4", "audio/opus", "audio/ogg"],
+  video: ["video/mp4", "video/webm", "video/quicktime", "video/x-msvideo", "video/x-matroska"],
 };
+
+const MAX_ATTACHMENT_SIZE = 20 * 1024 * 1024; // 20MB
 
 const InputArea = forwardRef<InputAreaHandle, InputAreaProps>(function InputArea({
   onSend,
@@ -357,6 +361,12 @@ const InputArea = forwardRef<InputAreaHandle, InputAreaProps>(function InputArea
   const processFile = async (file: File): Promise<Attachment | null> => {
     const mimeType = file.type;
 
+    // ファイルサイズチェック（20MB制限）
+    if (file.size > MAX_ATTACHMENT_SIZE) {
+      new Notice(t("input.fileTooLarge", { name: file.name }));
+      return null;
+    }
+
     // 画像
     if (SUPPORTED_TYPES.image.includes(mimeType)) {
       const data = await fileToBase64(file);
@@ -373,6 +383,18 @@ const InputArea = forwardRef<InputAreaHandle, InputAreaProps>(function InputArea
     if (SUPPORTED_TYPES.text.includes(mimeType) || file.name.endsWith(".md") || file.name.endsWith(".txt")) {
       const data = await fileToBase64(file);
       return { name: file.name, type: "text", mimeType: mimeType || "text/plain", data };
+    }
+
+    // 音声
+    if (SUPPORTED_TYPES.audio.includes(mimeType)) {
+      const data = await fileToBase64(file);
+      return { name: file.name, type: "audio", mimeType, data };
+    }
+
+    // 動画
+    if (SUPPORTED_TYPES.video.includes(mimeType)) {
+      const data = await fileToBase64(file);
+      return { name: file.name, type: "video", mimeType, data };
     }
 
     // Unsupported file type
@@ -398,7 +420,7 @@ const InputArea = forwardRef<InputAreaHandle, InputAreaProps>(function InputArea
   };
 
   const getAllAcceptedTypes = () => {
-    return [...SUPPORTED_TYPES.image, ...SUPPORTED_TYPES.pdf, ...SUPPORTED_TYPES.text, ".md", ".txt"].join(",");
+    return [...SUPPORTED_TYPES.image, ...SUPPORTED_TYPES.pdf, ...SUPPORTED_TYPES.text, ...SUPPORTED_TYPES.audio, ...SUPPORTED_TYPES.video, ".md", ".txt"].join(",");
   };
 
   return (
@@ -411,6 +433,8 @@ const InputArea = forwardRef<InputAreaHandle, InputAreaProps>(function InputArea
               {attachment.type === "image" && "🖼️"}
               {attachment.type === "pdf" && "📄"}
               {attachment.type === "text" && "📃"}
+              {attachment.type === "audio" && "🎵"}
+              {attachment.type === "video" && "🎬"}
               {" "}{attachment.name}
               <button
                 className="gemini-helper-pending-attachment-remove"

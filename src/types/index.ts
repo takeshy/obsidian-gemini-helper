@@ -516,7 +516,7 @@ export interface PendingRenameInfo {
 // 添付ファイル
 export interface Attachment {
   name: string;
-  type: "image" | "pdf" | "text";
+  type: "image" | "pdf" | "text" | "audio" | "video";
   mimeType: string;
   data: string;  // Base64エンコードされたデータ
 }

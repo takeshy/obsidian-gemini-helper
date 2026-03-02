@@ -206,11 +206,15 @@ Please revise the output based on the user's feedback above.`;
           const fileData: FileExplorerData = JSON.parse(varValue);
           if (fileData.contentType === "binary" && fileData.data) {
             // Determine attachment type from MIME type
-            let attachmentType: "image" | "pdf" | "text" = "text";
+            let attachmentType: "image" | "pdf" | "text" | "audio" | "video" = "text";
             if (fileData.mimeType.startsWith("image/")) {
               attachmentType = "image";
             } else if (fileData.mimeType === "application/pdf") {
               attachmentType = "pdf";
+            } else if (fileData.mimeType.startsWith("audio/")) {
+              attachmentType = "audio";
+            } else if (fileData.mimeType.startsWith("video/")) {
+              attachmentType = "video";
             }
             attachments.push({
               name: fileData.basename,

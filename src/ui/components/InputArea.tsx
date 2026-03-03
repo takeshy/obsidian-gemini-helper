@@ -27,6 +27,10 @@ interface InputAreaProps {
   vaultToolMode: VaultToolMode;
   onVaultToolModeChange: (mode: VaultToolMode) => void;
   vaultToolModeOnlyNone: boolean; // When true, only "none" option is available
+  thinkFlash: boolean;
+  thinkFlashLite: boolean;
+  onThinkFlashChange: (value: boolean) => void;
+  onThinkFlashLiteChange: (value: boolean) => void;
   mcpServers: McpServerConfig[]; // MCP server configurations
   onMcpServerToggle: (serverName: string, enabled: boolean) => void; // Per-server toggle handler
   slashCommands: SlashCommand[];
@@ -78,6 +82,10 @@ const InputArea = forwardRef<InputAreaHandle, InputAreaProps>(function InputArea
   vaultToolMode,
   onVaultToolModeChange,
   vaultToolModeOnlyNone,
+  thinkFlash,
+  thinkFlashLite,
+  onThinkFlashChange,
+  onThinkFlashLiteChange,
   mcpServers,
   onMcpServerToggle,
   slashCommands,
@@ -563,6 +571,16 @@ const InputArea = forwardRef<InputAreaHandle, InputAreaProps>(function InputArea
                 >
                   {t("input.vaultToolNone")}
                 </div>
+                <div className="gemini-helper-vault-tool-separator" />
+                <div className="gemini-helper-vault-tool-section-label">{t("input.thinkingLabel")}</div>
+                <label className="gemini-helper-vault-tool-checkbox">
+                  <input type="checkbox" checked={thinkFlash} onChange={(e) => onThinkFlashChange(e.target.checked)} />
+                  <span>{t("input.thinkFlash")}</span>
+                </label>
+                <label className="gemini-helper-vault-tool-checkbox">
+                  <input type="checkbox" checked={thinkFlashLite} onChange={(e) => onThinkFlashLiteChange(e.target.checked)} />
+                  <span>{t("input.thinkFlashLite")}</span>
+                </label>
               </div>
             )}
             {/* Modal for vault tool + MCP settings when MCP servers are configured */}
@@ -602,6 +620,19 @@ const InputArea = forwardRef<InputAreaHandle, InputAreaProps>(function InputArea
                           </label>
                         );
                       })}
+                    </div>
+                  </div>
+                  <div className="gemini-helper-tool-settings-row">
+                    <label>{t("input.thinkingLabel")}</label>
+                    <div className="gemini-helper-mcp-server-list">
+                      <label className="gemini-helper-mcp-server-item">
+                        <input type="checkbox" checked={thinkFlash} onChange={(e) => onThinkFlashChange(e.target.checked)} />
+                        <span className="gemini-helper-mcp-server-name">{t("input.thinkFlash")}</span>
+                      </label>
+                      <label className="gemini-helper-mcp-server-item">
+                        <input type="checkbox" checked={thinkFlashLite} onChange={(e) => onThinkFlashLiteChange(e.target.checked)} />
+                        <span className="gemini-helper-mcp-server-name">{t("input.thinkFlashLite")}</span>
+                      </label>
                     </div>
                   </div>
                   <button

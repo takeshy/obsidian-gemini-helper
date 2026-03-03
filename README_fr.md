@@ -398,6 +398,17 @@ Les workflows peuvent être automatiquement déclenchés par des événements Ob
 
 > **Mode Thinking :** Dans le chat, le mode thinking est déclenché par des mots-clés comme « réfléchis », « analyse » ou « considère » dans votre message. Cependant, **Gemini 3 Pro** et **Gemini 3.1 Pro** utilisent toujours le mode thinking indépendamment des mots-clés — ces modèles ne permettent pas de désactiver le thinking.
 
+**Bascule Always Think :**
+
+Vous pouvez forcer le mode thinking à ON pour les modèles Flash sans utiliser de mots-clés. Cliquez sur l'icône de base de données (📦) pour ouvrir le menu des outils, et cochez les cases sous **Always Think** :
+
+- **Flash** — OFF par défaut. Cochez pour toujours activer le thinking pour les modèles Flash.
+- **Flash Lite** — ON par défaut. Flash Lite a une différence de coût et de vitesse minimale avec le thinking activé, il est donc recommandé de le garder activé.
+
+Quand une bascule est ON, le thinking est toujours actif pour cette famille de modèles indépendamment du contenu du message. Quand elle est OFF, la détection basée sur les mots-clés existante est utilisée.
+
+![Always Think Settings](docs/images/setting_thinking.png)
+
 ### Plan Gratuit
 | Modèle | Opérations sur le Coffre |
 |--------|--------------------------|

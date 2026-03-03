@@ -398,6 +398,17 @@ Workflows podem ser acionados automaticamente por eventos do Obsidian:
 
 > **Modo Thinking:** No chat, o modo thinking é acionado por palavras-chave como "pense", "analise" ou "reflita" na sua mensagem. No entanto, **Gemini 3 Pro** e **Gemini 3.1 Pro** sempre usam o modo thinking independentemente das palavras-chave — estes modelos não suportam a desativação do thinking.
 
+**Toggle Always Think:**
+
+Você pode forçar o modo thinking para os modelos Flash sem usar palavras-chave. Clique no ícone de banco de dados (📦) para abrir o menu de ferramentas e marque os toggles em **Always Think**:
+
+- **Flash** — Desativado por padrão. Marque para sempre habilitar o thinking nos modelos Flash.
+- **Flash Lite** — Ativado por padrão. O Flash Lite tem diferença mínima de custo e velocidade com o thinking ativado, por isso é recomendado mantê-lo ligado.
+
+Quando um toggle está ativado, o thinking está sempre ativo para aquela família de modelos, independentemente do conteúdo da mensagem. Quando desativado, a detecção existente baseada em palavras-chave é utilizada.
+
+![Always Think Settings](docs/images/setting_thinking.png)
+
 ### Plano Gratuito
 | Modelo | Operações no Vault |
 |--------|---------------------|

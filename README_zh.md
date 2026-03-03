@@ -398,6 +398,17 @@ nodes:
 
 > **Thinking 模式：** 在聊天中，当消息包含"思考"、"分析一下"或"考虑"等关键词时会触发 Thinking 模式。但是，**Gemini 3 Pro** 和 **Gemini 3.1 Pro** 无论是否包含关键词都始终使用 Thinking 模式——这些模型不支持禁用 Thinking。
 
+**Always Think 开关：**
+
+您可以不使用关键词，直接强制为 Flash 模型开启 Thinking 模式。点击数据库图标（📦）打开工具菜单，在 **Always Think** 下勾选对应的开关：
+
+- **Flash** — 默认关闭。勾选后，Flash 模型将始终启用 Thinking。
+- **Flash Lite** — 默认开启。启用 Thinking 后，Flash Lite 的成本和速度几乎没有差异，建议保持开启。
+
+开关处于开启状态时，无论消息内容如何，该模型系列都将始终启用 Thinking。关闭时，将使用现有的基于关键词的检测机制。
+
+![Always Think Settings](docs/images/setting_thinking.png)
+
 ### 免费计划
 | 模型 | 仓库操作 |
 |-------|------------------|

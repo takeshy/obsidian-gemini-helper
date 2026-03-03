@@ -11,6 +11,7 @@ interface MessageListProps {
   isLoading: boolean;
   onApplyEdit?: (messageIndex: number) => Promise<void>;
   onDiscardEdit?: (messageIndex: number) => void;
+  alwaysThink?: boolean;
   app: App;
   workspaceFolder: string;
 }
@@ -34,6 +35,7 @@ const MessageList = forwardRef<HTMLDivElement, MessageListProps>(({
   isLoading,
   onApplyEdit,
   onDiscardEdit,
+  alwaysThink,
   app,
   workspaceFolder,
 }, ref) => {
@@ -58,10 +60,12 @@ const MessageList = forwardRef<HTMLDivElement, MessageListProps>(({
             {t("chat.welcomeHint")}
           </p>
           <div className="gemini-helper-empty-tips">
-            <div className="gemini-helper-empty-tip">
-              <span className="gemini-helper-empty-tip-icon">💭</span>
-              <span>{t("chat.welcomeThinking")}</span>
-            </div>
+            {!alwaysThink && (
+              <div className="gemini-helper-empty-tip">
+                <span className="gemini-helper-empty-tip-icon">💭</span>
+                <span>{t("chat.welcomeThinking")}</span>
+              </div>
+            )}
             <div className="gemini-helper-empty-tip">
               <span className="gemini-helper-empty-tip-icon">🎨</span>
               <span>{t("chat.welcomeImage")}</span>

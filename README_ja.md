@@ -408,6 +408,17 @@ Obsidian のイベントでワークフローを自動実行：
 
 > **Thinking モード:** チャットでは、メッセージに「考えて」「分析して」「検討して」などのキーワードが含まれると Thinking モードが有効になります。ただし、**Gemini 3 Pro** と **Gemini 3.1 Pro** はキーワードに関係なく常に Thinking モードで動作します。これらのモデルは Thinking の無効化をサポートしていません。
 
+**Always Think トグル:**
+
+キーワードなしで Flash モデルの Thinking モードを強制的に ON にできます。Database icon（📦）をクリックしてツールメニューを開き、**Always Think** のトグルを確認してください：
+
+- **Flash** — デフォルトは OFF。チェックすると Flash モデルで常に Thinking を有効にします。
+- **Flash Lite** — デフォルトは ON。Flash Lite は Thinking を有効にしてもコストと速度の差がほとんどないため、ON のままにすることを推奨します。
+
+トグルが ON の場合、メッセージの内容に関わらずそのモデルファミリーで常に Thinking が有効になります。OFF の場合は、既存のキーワードベースの検出が使用されます。
+
+![Always Think Settings](docs/images/setting_thinking.png)
+
 ### 無料プラン
 
 | モデル                  | Vault 操作 |

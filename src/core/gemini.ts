@@ -6,6 +6,7 @@ import {
   type Tool,
   type Schema,
   type Chat,
+  type ThinkingLevel,
 } from "@google/genai";
 import {
   DEFAULT_SETTINGS,
@@ -438,8 +439,14 @@ export class GeminiClient {
     // - Gemini 2.5 Flash Lite requires thinkingBudget: -1 to enable thinking
     // - Other models work with just includeThoughts: true
     const getThinkingConfig = () => {
-      // gemini-3-pro models require thinking — cannot set thinkingBudget: 0
       const modelLower = this.model.toLowerCase();
+      // gemini-3.1-flash-lite: uses thinkingLevel instead of thinkingBudget
+      // Default is "minimal" (no thinking). thinkingBudget: 0 is invalid for this model.
+      if (modelLower.includes("gemini-3.1-flash-lite")) {
+        if (!enableThinking) return undefined;
+        return { includeThoughts: true, thinkingLevel: "HIGH" as ThinkingLevel };
+      }
+      // gemini-3-pro models require thinking — cannot set thinkingBudget: 0
       const thinkingRequired = modelLower.includes("gemini-3-pro") || modelLower.includes("gemini-3.1-pro");
       if (!enableThinking && !thinkingRequired) return { thinkingBudget: 0 };
       if (modelLower === "gemini-2.5-flash-lite") {
@@ -811,6 +818,9 @@ export class GeminiClient {
     const getThinkingConfig = () => {
       if (!supportsThinking) return undefined;
       const modelLower = this.model.toLowerCase();
+      if (modelLower.includes("gemini-3.1-flash-lite")) {
+        return { includeThoughts: true, thinkingLevel: "HIGH" as ThinkingLevel };
+      }
       if (modelLower === "gemini-2.5-flash-lite") {
         return { includeThoughts: true, thinkingBudget: -1 };
       }

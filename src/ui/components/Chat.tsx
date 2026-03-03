@@ -640,16 +640,9 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 			setVaultToolNoneReason("gemma");
 			setMcpServers(servers => servers.map(s => ({ ...s, enabled: false })));
 		} else if (isImageGenerationModel(model)) {
-			// 2.5 Flash Image: no tools supported → force None
-			// Gemini 3+ image models: Web Search only → keep if Web Search, else None
-			if (model === "gemini-2.5-flash-image") {
-				if (selectedRagSetting !== null) {
-					handleRagSettingChange(null);
-				}
-			} else {
-				if (selectedRagSetting !== null && selectedRagSetting !== "__websearch__") {
-					handleRagSettingChange(null);
-				}
+			// Image models: Web Search only → keep if Web Search, else None
+			if (selectedRagSetting !== null && selectedRagSetting !== "__websearch__") {
+				handleRagSettingChange(null);
 			}
 			// Reset vault tool mode for image generation models
 			setVaultToolMode("all");
@@ -1122,9 +1115,6 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 			} else if (isModelAllowedForPlan(apiPlan, "gemini-3-pro-image-preview")) {
 				allowedModel = "gemini-3-pro-image-preview";
 				autoSwitchedToImage = true;
-			} else if (isModelAllowedForPlan(apiPlan, "gemini-2.5-flash-image")) {
-				allowedModel = "gemini-2.5-flash-image";
-				autoSwitchedToImage = true;
 			}
 			// If neither is available, keep current model
 		}
@@ -1505,7 +1495,7 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 
 					// Check if Web Search or Image Generation model is selected
 				const isWebSearch = allowWebSearch && selectedRagSetting === "__websearch__"
-					&& (toolsEnabled || (isImageGenerationModel(allowedModel) && allowedModel !== "gemini-2.5-flash-image"));
+					&& (toolsEnabled || isImageGenerationModel(allowedModel));
 				const isImageGeneration = isImageGenerationModel(allowedModel);
 
 				// Pass RAG store IDs if RAG is enabled and a setting is selected (not web search)

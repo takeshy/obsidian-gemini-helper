@@ -177,13 +177,9 @@ Please revise the output based on the user's feedback above.`;
   // If ragSettingName === "", use no RAG (storeIds stays empty)
 
   // Image generation models don't support RAG (File Search)
-  // gemini-2.5-flash-image: no tools at all
-  // gemini-3+ image models: Web Search only
+  // Image models: Web Search only
   if (isImageGenerationModel(model)) {
     storeIds = []; // Disable RAG
-    if (model === "gemini-2.5-flash-image") {
-      useWebSearch = false; // No tools supported
-    }
   }
 
   // Get GeminiClient

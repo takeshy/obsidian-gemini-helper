@@ -295,8 +295,8 @@ export type ModelType =
   | "gemini-3-flash-preview"
   | "gemini-3.1-pro-preview"
   | "gemini-3.1-pro-preview-customtools"
+  | "gemini-3.1-flash-lite-preview"
   | "gemini-2.5-flash-lite"
-  | "gemini-2.5-flash-image"
   | "gemini-3-pro-image-preview"
   | "gemini-3.1-flash-image-preview"
   | "gemma-3-27b-it"
@@ -354,6 +354,11 @@ export const PAID_MODELS: ModelInfo[] = [
     description: "Fast model with 1M context, best cost-performance",
   },
   {
+    name: "gemini-3.1-flash-lite-preview",
+    displayName: "Gemini 3.1 Flash Lite Preview",
+    description: "Most cost-effective model with high performance",
+  },
+  {
     name: "gemini-2.5-flash",
     displayName: "Gemini 2.5 Flash",
     description: "Fast model with 1M context",
@@ -362,17 +367,6 @@ export const PAID_MODELS: ModelInfo[] = [
     name: "gemini-2.5-pro",
     displayName: "Gemini 2.5 Pro",
     description: "Pro model with 1M context",
-  },
-  {
-    name: "gemini-2.5-flash-lite",
-    displayName: "Gemini 2.5 Flash Lite",
-    description: "Lightweight flash model",
-  },
-  {
-    name: "gemini-2.5-flash-image",
-    displayName: "Gemini 2.5 Flash (Image)",
-    description: "Fast image generation, max 1024px",
-    isImageModel: true,
   },
   {
     name: "gemini-3-pro-image-preview",
@@ -403,6 +397,11 @@ export const FREE_MODELS: ModelInfo[] = [
     name: "gemini-3-flash-preview",
     displayName: "Gemini 3 Flash Preview",
     description: "Free tier preview model",
+  },
+  {
+    name: "gemini-3.1-flash-lite-preview",
+    displayName: "Gemini 3.1 Flash Lite Preview",
+    description: "Free tier cost-effective model",
   },
   {
     name: "gemma-3-27b-it",

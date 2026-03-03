@@ -703,7 +703,6 @@ const InputArea = forwardRef<InputAreaHandle, InputAreaProps>(function InputArea
             {allowWebSearch && (
               <option
                 value="__websearch__"
-                disabled={model === "gemini-2.5-flash-image"}
               >
                 {t("input.webSearch")}
               </option>

@@ -28,9 +28,9 @@ const MODEL_PRICING: Record<string, { input: number; output: number }> = {
   "gemini-2.5-flash-lite":  { input: 0.10 / 1e6, output: 0.40 / 1e6 },
   "gemini-2.5-pro":         { input: 1.25 / 1e6, output: 10.00 / 1e6 },
   "gemini-3-flash-preview": { input: 0.50 / 1e6, output: 3.00 / 1e6 },
+  "gemini-3.1-flash-lite-preview": { input: 0.25 / 1e6, output: 1.50 / 1e6 },
   "gemini-3.1-pro-preview": { input: 2.00 / 1e6, output: 12.00 / 1e6 },
   "gemini-3.1-pro-preview-customtools": { input: 2.00 / 1e6, output: 12.00 / 1e6 },
-  "gemini-2.5-flash-image":    { input: 0.30 / 1e6, output: 30.00 / 1e6 },
   "gemini-3-pro-image-preview": { input: 2.00 / 1e6, output: 120.00 / 1e6 },
   "gemini-3.1-flash-image-preview": { input: 0.25 / 1e6, output: 60.00 / 1e6 },
 };
@@ -44,10 +44,10 @@ const SEARCH_GROUNDING_COST: Record<string, number> = {
   "gemini-3.1-pro-preview-customtools": 14 / 1000,
   "gemini-3-pro-image-preview": 14 / 1000,
   "gemini-3.1-flash-image-preview": 14 / 1000,
+  "gemini-3.1-flash-lite-preview": 14 / 1000,
   "gemini-2.5-flash":       35 / 1000,
   "gemini-2.5-flash-lite":  35 / 1000,
   "gemini-2.5-pro":         35 / 1000,
-  "gemini-2.5-flash-image": 35 / 1000,
 };
 
 // Extract usage metadata from Gemini API response and calculate cost
@@ -911,12 +911,10 @@ export class GeminiClient {
     const messageParts = GeminiClient.buildMessageParts(lastMessage);
 
     // Build tools array
-    // - Gemini 2.5 Flash Image: no tools supported
-    // - Gemini 3+ Image models: Web Search only (no RAG)
+    // Image models: Web Search only (no RAG)
     const tools: Tool[] = [];
-    const imageSupportsWebSearch = imageModel !== "gemini-2.5-flash-image";
 
-    if (imageSupportsWebSearch && webSearchEnabled) {
+    if (webSearchEnabled) {
       tools.push({ googleSearch: {} } as Tool);
     }
 
@@ -937,8 +935,8 @@ export class GeminiClient {
         },
       });
 
-      // Emit web search used if enabled (Gemini 3+ image models)
-      if (imageSupportsWebSearch && webSearchEnabled) {
+      // Emit web search used if enabled
+      if (webSearchEnabled) {
         yield { type: "web_search_used" };
       }
 
@@ -966,7 +964,7 @@ export class GeminiClient {
         }
       }
 
-      const imageWebSearchUsed = imageSupportsWebSearch && !!webSearchEnabled;
+      const imageWebSearchUsed = !!webSearchEnabled;
       const imageUsage = extractUsage(response.usageMetadata, { model: imageModel, webSearchUsed: imageWebSearchUsed });
       tracing.generationEnd(genId, {
         output: "[image generation completed]",

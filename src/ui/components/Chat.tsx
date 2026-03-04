@@ -17,6 +17,8 @@ import {
 	CLI_MODEL,
 	CLAUDE_CLI_MODEL,
 	CODEX_CLI_MODEL,
+	LOCAL_LLM_MODEL,
+	DEFAULT_LOCAL_LLM_CONFIG,
 	type Message,
 	type ModelType,
 	type Attachment,
@@ -35,6 +37,7 @@ import { tracing } from "src/core/tracingHooks";
 import { getEnabledTools } from "src/core/tools";
 import { fetchMcpTools, createMcpToolExecutor, isMcpTool, type McpToolDefinition, type McpToolExecutor } from "src/core/mcpTools";
 import { GeminiCliProvider, ClaudeCliProvider, CodexCliProvider } from "src/core/cliProvider";
+import { localLlmChatStream } from "src/core/localLlmProvider";
 import { createToolExecutor } from "src/vault/toolExecutor";
 import {
 	getPendingEdit,
@@ -119,7 +122,7 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 	const [vaultToolMode, setVaultToolMode] = useState<"all" | "noSearch" | "none">(() => {
 		const ragSetting = plugin.workspaceState.selectedRagSetting;
 		const initialModel = plugin.getSelectedModel();
-		const isInitialCli = initialModel === "gemini-cli" || initialModel === "claude-cli" || initialModel === "codex-cli";
+		const isInitialCli = initialModel === "gemini-cli" || initialModel === "claude-cli" || initialModel === "codex-cli" || initialModel === "local-llm";
 		const isInitialGemma = initialModel.toLowerCase().includes("gemma");
 
 		// CLI and Gemma models: always "none"
@@ -139,7 +142,7 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 	const [, setVaultToolNoneReason] = useState<VaultToolNoneReason | null>(() => {
 		const ragSetting = plugin.workspaceState.selectedRagSetting;
 		const initialModel = plugin.getSelectedModel();
-		const isInitialCli = initialModel === "gemini-cli" || initialModel === "claude-cli" || initialModel === "codex-cli";
+		const isInitialCli = initialModel === "gemini-cli" || initialModel === "claude-cli" || initialModel === "codex-cli" || initialModel === "local-llm";
 		const isInitialGemma = initialModel.toLowerCase().includes("gemma");
 
 		if (isInitialCli) {
@@ -162,7 +165,7 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 	const [mcpServers, setMcpServers] = useState(() => {
 		const ragSetting = plugin.workspaceState.selectedRagSetting;
 		const initialModel = plugin.getSelectedModel();
-		const isInitialCli = initialModel === "gemini-cli" || initialModel === "claude-cli" || initialModel === "codex-cli";
+		const isInitialCli = initialModel === "gemini-cli" || initialModel === "claude-cli" || initialModel === "codex-cli" || initialModel === "local-llm";
 		const isInitialGemma = initialModel.toLowerCase().includes("gemma");
 
 		// Check if MCP should be disabled (same logic as vaultToolNoneReason)
@@ -196,11 +199,13 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 	const geminiCliVerified = !Platform.isMobile && cliConfig.cliVerified === true;
 	const claudeCliVerified = !Platform.isMobile && cliConfig.claudeCliVerified === true;
 	const codexCliVerified = !Platform.isMobile && cliConfig.codexCliVerified === true;
-	const anyCliVerified = geminiCliVerified || claudeCliVerified || codexCliVerified;
+	const localLlmVerified = cliConfig.localLlmVerified === true;
+	const anyCliVerified = geminiCliVerified || claudeCliVerified || codexCliVerified || localLlmVerified;
 	const isGeminiCliMode = !Platform.isMobile && currentModel === "gemini-cli";
 	const isClaudeCliMode = !Platform.isMobile && currentModel === "claude-cli";
 	const isCodexCliMode = !Platform.isMobile && currentModel === "codex-cli";
-	const isCliMode = isGeminiCliMode || isClaudeCliMode || isCodexCliMode;
+	const isLocalLlmMode = currentModel === "local-llm";
+	const isCliMode = isGeminiCliMode || isClaudeCliMode || isCodexCliMode || isLocalLlmMode;
 
 	// Check if configuration is ready (API key set OR any CLI verified)
 	const isConfigReady = hasApiKey || anyCliVerified;
@@ -222,6 +227,7 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 		...(geminiCliVerified ? [CLI_MODEL] : []),
 		...(claudeCliVerified ? [CLAUDE_CLI_MODEL] : []),
 		...(codexCliVerified ? [CODEX_CLI_MODEL] : []),
+		...(localLlmVerified ? [LOCAL_LLM_MODEL] : []),
 	];
 	const availableModels = [...cliModels, ...baseModels];
 
@@ -559,7 +565,7 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 
 	useEffect(() => {
 		// Skip plan check for CLI models
-		if (currentModel === "gemini-cli" || currentModel === "claude-cli" || currentModel === "codex-cli") return;
+		if (currentModel === "gemini-cli" || currentModel === "claude-cli" || currentModel === "codex-cli" || currentModel === "local-llm") return;
 		if (!isModelAllowedForPlan(apiPlan, currentModel)) {
 			const defaultModel = getDefaultModelForPlan(apiPlan);
 			setCurrentModel(defaultModel);
@@ -630,7 +636,7 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 		setCurrentModel(model);
 		void plugin.selectModel(model);
 
-		const isNewModelCli = model === "gemini-cli" || model === "claude-cli" || model === "codex-cli";
+		const isNewModelCli = model === "gemini-cli" || model === "claude-cli" || model === "codex-cli" || model === "local-llm";
 		const isNewModelGemma = model.toLowerCase().includes("gemma");
 
 		// Auto-adjust search setting and vault tool mode for CLI mode and special models
@@ -942,10 +948,143 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 		new Notice(t("chat.chatDeleted"));
 	};
 
+	// Send message via Local LLM (OpenAI-compatible API)
+	const sendMessageViaLocalLlm = async (content: string, attachments?: Attachment[]) => {
+		const llmConfig = plugin.settings.cliConfig.localLlmConfig || DEFAULT_LOCAL_LLM_CONFIG;
+
+		// Resolve variables in the content
+		const resolvedContent = await resolveMessageVariables(content);
+
+		// Add user message
+		const userMessage: Message = {
+			role: "user",
+			content: resolvedContent.trim() || (attachments ? `[${attachments.length} file(s) attached]` : ""),
+			timestamp: Date.now(),
+			attachments,
+		};
+
+		setMessages((prev) => [...prev, userMessage]);
+		setIsLoading(true);
+		setStreamingContent("");
+		setStreamingThinking("");
+
+		// Create abort controller for this request
+		const abortController = new AbortController();
+		abortControllerRef.current = abortController;
+
+		const llmTraceId = tracing.traceStart("chat-message", {
+			sessionId: currentChatId ?? undefined,
+			input: resolvedContent,
+			metadata: {
+				model: `local-llm:${llmConfig.model}`,
+				isLocalLlm: true,
+				pluginVersion: plugin.manifest.version,
+			},
+		});
+
+		try {
+			const allMessages = [...messages, userMessage];
+
+			// Build system prompt
+			let systemPrompt = "You are a helpful AI assistant integrated with Obsidian.";
+			systemPrompt += `\n\nNote: You are running in Local LLM mode with limited capabilities. Vault operations are not available.`;
+
+			if (plugin.settings.systemPrompt) {
+				systemPrompt += `\n\nAdditional instructions: ${plugin.settings.systemPrompt}`;
+			}
+
+			let fullContent = "";
+			let thinkingContent = "";
+			let stopped = false;
+
+			for await (const chunk of localLlmChatStream(
+				llmConfig,
+				allMessages,
+				systemPrompt,
+				abortController.signal,
+			)) {
+				if (abortController.signal.aborted) {
+					stopped = true;
+					break;
+				}
+
+				switch (chunk.type) {
+					case "text":
+						fullContent += chunk.content || "";
+						setStreamingContent(fullContent);
+						break;
+
+					case "thinking":
+						thinkingContent += chunk.content || "";
+						setStreamingThinking(thinkingContent);
+						break;
+
+					case "error":
+						throw new Error(chunk.error || "Unknown error");
+
+					case "done":
+						break;
+				}
+			}
+
+			if (stopped && fullContent) {
+				fullContent += `\n\n${t("chat.generationStopped")}`;
+			}
+
+			// Add assistant message
+			const assistantMessage: Message = {
+				role: "assistant",
+				content: fullContent,
+				timestamp: Date.now(),
+				model: "local-llm",
+				thinking: thinkingContent || undefined,
+			};
+
+			const newMessages = [...messages, userMessage, assistantMessage];
+			setMessages(newMessages);
+			setStreamingContent("");
+			setStreamingThinking("");
+
+			tracing.traceEnd(llmTraceId, {
+				output: fullContent,
+				metadata: { stopped },
+			});
+
+			// Auto-save chat history
+			await saveCurrentChat(newMessages, undefined);
+		} catch (error) {
+			const errorMessage = buildErrorMessage(error, apiPlan);
+
+			const assistantMessage: Message = {
+				role: "assistant",
+				content: errorMessage,
+				timestamp: Date.now(),
+				model: "local-llm",
+			};
+
+			setMessages((prev) => [...prev, assistantMessage]);
+			setStreamingContent("");
+			setStreamingThinking("");
+
+			tracing.traceEnd(llmTraceId, { metadata: { error: String(error) } });
+		} finally {
+			setIsLoading(false);
+			abortControllerRef.current = null;
+		}
+	};
+
 	// Send message via CLI provider
 	const sendMessageViaCli = async (content: string, attachments?: Attachment[]) => {
 		const isClaudeCli = currentModel === "claude-cli";
 		const isCodexCli = currentModel === "codex-cli";
+		const isLocalLlm = currentModel === "local-llm";
+
+		// Local LLM uses HTTP streaming, not CLI subprocess
+		if (isLocalLlm) {
+			await sendMessageViaLocalLlm(content, attachments);
+			return;
+		}
+
 		const provider = isClaudeCli
 			? new ClaudeCliProvider()
 			: isCodexCli

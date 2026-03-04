@@ -1,8 +1,10 @@
 import { Setting, Notice, Platform } from "obsidian";
 import { verifyCli, verifyClaudeCli, verifyCodexCli } from "src/core/cliProvider";
+import { verifyLocalLlm } from "src/core/localLlmProvider";
 import { t } from "src/i18n";
-import { DEFAULT_CLI_CONFIG } from "src/types";
+import { DEFAULT_CLI_CONFIG, DEFAULT_LOCAL_LLM_CONFIG } from "src/types";
 import { CliPathModal, type CliType } from "./CliPathModal";
+import { LocalLlmModal } from "./LocalLlmModal";
 import type { SettingsContext } from "./settingsContext";
 
 export function displayCliSettings(containerEl: HTMLElement, ctx: SettingsContext): void {
@@ -67,6 +69,73 @@ export function displayCliSettings(containerEl: HTMLElement, ctx: SettingsContex
       new Notice(t("settings.codexCliDisabled"));
     },
     onSettings: (cliType, customPath) => openCliPathModal(app, cliType, customPath, plugin, display),
+  });
+
+  // Local LLM row
+  createLocalLlmRow(containerEl, {
+    isVerified: !!cliConfig.localLlmVerified,
+    config: cliConfig.localLlmConfig || DEFAULT_LOCAL_LLM_CONFIG,
+    onVerify: async (statusEl) => {
+      statusEl.empty();
+      statusEl.removeClass("gemini-helper-cli-status--success", "gemini-helper-cli-status--error");
+      statusEl.setText(t("settings.localLlmVerifying"));
+
+      try {
+        const llmConfig = plugin.settings.cliConfig.localLlmConfig || DEFAULT_LOCAL_LLM_CONFIG;
+        const result = await verifyLocalLlm(llmConfig);
+
+        if (!result.success) {
+          statusEl.addClass("gemini-helper-cli-status--error");
+          plugin.settings.cliConfig = { ...plugin.settings.cliConfig, localLlmVerified: false };
+          await plugin.saveSettings();
+          statusEl.empty();
+          statusEl.createEl("strong", { text: t("settings.localLlmConnectionFailed") });
+          statusEl.createSpan({ text: result.error || "" });
+          return;
+        }
+
+        if (!llmConfig.model) {
+          statusEl.addClass("gemini-helper-cli-status--error");
+          statusEl.empty();
+          statusEl.createEl("strong", { text: t("settings.localLlmNoModel") });
+          return;
+        }
+
+        plugin.settings.cliConfig = { ...plugin.settings.cliConfig, localLlmVerified: true };
+        await plugin.saveSettings();
+        display();
+        new Notice(t("settings.localLlmVerified"));
+      } catch (err) {
+        plugin.settings.cliConfig = { ...plugin.settings.cliConfig, localLlmVerified: false };
+        await plugin.saveSettings();
+        statusEl.addClass("gemini-helper-cli-status--error");
+        statusEl.empty();
+        statusEl.createEl("strong", { text: t("common.error") });
+        statusEl.createSpan({ text: String(err) });
+      }
+    },
+    onDisable: async () => {
+      plugin.settings.cliConfig = { ...cliConfig, localLlmVerified: false };
+      await plugin.saveSettings();
+      display();
+      new Notice(t("settings.localLlmDisabled"));
+    },
+    onSettings: () => {
+      new LocalLlmModal(
+        app,
+        cliConfig.localLlmConfig || DEFAULT_LOCAL_LLM_CONFIG,
+        async (config) => {
+          plugin.settings.cliConfig = {
+            ...plugin.settings.cliConfig,
+            localLlmConfig: config,
+            localLlmVerified: false, // Reset verification when config changes
+          };
+          await plugin.saveSettings();
+          display();
+          new Notice(t("settings.localLlmConfigSaved"));
+        },
+      ).open();
+    },
   });
 
   // CLI limitations notice
@@ -214,4 +283,50 @@ async function handleVerifyCli(
     statusEl.createEl("strong", { text: t("common.error") });
     statusEl.createSpan({ text: String(err) });
   }
+}
+
+function createLocalLlmRow(
+  containerEl: HTMLElement,
+  options: {
+    isVerified: boolean;
+    config: import("src/types").LocalLlmConfig;
+    onVerify: (statusEl: HTMLElement) => Promise<void>;
+    onDisable: () => Promise<void>;
+    onSettings: () => void;
+  }
+): void {
+  const modelInfo = options.config.model
+    ? ` (${options.config.model})`
+    : "";
+  const setting = new Setting(containerEl)
+    .setName(`Local LLM${modelInfo}`)
+    .setDesc(t("settings.localLlmDesc"));
+
+  const statusEl = setting.controlEl.createDiv({ cls: "gemini-helper-cli-row-status" });
+
+  if (options.isVerified) {
+    statusEl.addClass("gemini-helper-cli-status--success");
+    statusEl.textContent = t("settings.cliVerified");
+    setting.addButton((button) =>
+      button
+        .setButtonText(t("settings.cliDisable"))
+        .onClick(() => void options.onDisable())
+    );
+  } else {
+    setting.addButton((button) =>
+      button
+        .setButtonText(t("settings.cliVerify"))
+        .setCta()
+        .onClick(() => void options.onVerify(statusEl))
+    );
+  }
+
+  setting.addExtraButton((button) =>
+    button
+      .setIcon("settings")
+      .setTooltip(t("settings.localLlmSettings"))
+      .onClick(() => {
+        options.onSettings();
+      })
+  );
 }

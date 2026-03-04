@@ -266,26 +266,41 @@ export type RagSyncState = Pick<RagState, "files" | "lastFullSync">;
 export type ApiPlan = "paid" | "free";
 
 // Chat provider types
-export type ChatProvider = "api" | "gemini-cli" | "claude-cli" | "codex-cli";
+export type ChatProvider = "api" | "gemini-cli" | "claude-cli" | "codex-cli" | "local-llm";
+
+// Local LLM configuration (OpenAI-compatible API)
+export interface LocalLlmConfig {
+  baseUrl: string;              // e.g. "http://localhost:11434" (Ollama) or "http://localhost:1234" (LM Studio)
+  model: string;                // e.g. "llama3", "mistral", "gemma2"
+  apiKey?: string;              // Optional API key (for services that require it)
+}
+
+export const DEFAULT_LOCAL_LLM_CONFIG: LocalLlmConfig = {
+  baseUrl: "http://localhost:11434",
+  model: "",
+};
 
 export interface CliProviderConfig {
   cliVerified?: boolean;        // Whether Gemini CLI has been verified
   claudeCliVerified?: boolean;  // Whether Claude CLI has been verified
   codexCliVerified?: boolean;   // Whether Codex CLI has been verified
+  localLlmVerified?: boolean;   // Whether Local LLM has been verified
   geminiCliPath?: string;       // Custom path for Gemini CLI
   claudeCliPath?: string;       // Custom path for Claude CLI
   codexCliPath?: string;        // Custom path for Codex CLI
+  localLlmConfig?: LocalLlmConfig;  // Local LLM configuration
 }
 
 export const DEFAULT_CLI_CONFIG: CliProviderConfig = {
   cliVerified: false,
   claudeCliVerified: false,
   codexCliVerified: false,
+  localLlmVerified: false,
 };
 
 // Helper to check if any CLI is verified
 export function hasVerifiedCli(config: CliProviderConfig): boolean {
-  return !!(config.cliVerified || config.claudeCliVerified || config.codexCliVerified);
+  return !!(config.cliVerified || config.claudeCliVerified || config.codexCliVerified || config.localLlmVerified);
 }
 
 // Model types (includes both chat and image generation models)
@@ -305,7 +320,8 @@ export type ModelType =
   | "gemma-3-1b-it"
   | "gemini-cli"
   | "claude-cli"
-  | "codex-cli";
+  | "codex-cli"
+  | "local-llm";
 
 export interface ModelInfo {
   name: ModelType;
@@ -334,6 +350,13 @@ export const CODEX_CLI_MODEL: ModelInfo = {
   name: "codex-cli",
   displayName: "Codex CLI",
   description: "OpenAI Codex via command line (requires OpenAI account)",
+  isCliModel: true,
+};
+
+export const LOCAL_LLM_MODEL: ModelInfo = {
+  name: "local-llm",
+  displayName: "Local LLM",
+  description: "Local LLM via OpenAI-compatible API (Ollama, LM Studio, llama.cpp, etc.)",
   isCliModel: true,
 };
 

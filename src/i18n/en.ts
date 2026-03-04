@@ -55,6 +55,44 @@ export const en = {
   "settings.cliPathSaved": "CLI path saved",
   "settings.cliPathCleared": "CLI path cleared",
 
+  // Settings - Local LLM
+  // eslint-disable-next-line obsidianmd/ui/sentence-case-locale-module -- LLM/OpenAI are proper nouns/acronyms
+  "settings.localLlmDesc": "OpenAI-compatible API (Ollama, LM Studio, llama.cpp, vLLM, etc.)",
+  // eslint-disable-next-line obsidianmd/ui/sentence-case-locale-module -- LLM is an acronym
+  "settings.localLlmSettings": "Configure local LLM",
+  "settings.localLlmVerifying": "Verifying connection...",
+  // eslint-disable-next-line obsidianmd/ui/sentence-case-locale-module -- LLM is an acronym
+  "settings.localLlmVerified": "Local LLM verified",
+  // eslint-disable-next-line obsidianmd/ui/sentence-case-locale-module -- LLM is an acronym
+  "settings.localLlmDisabled": "Local LLM disabled",
+  "settings.localLlmConnectionFailed": "Connection failed: ",
+  "settings.localLlmNoModel": "Please configure a model name in settings first",
+  // eslint-disable-next-line obsidianmd/ui/sentence-case-locale-module -- LLM is an acronym
+  "settings.localLlmConfigSaved": "Local LLM settings saved",
+  // eslint-disable-next-line obsidianmd/ui/sentence-case-locale-module -- LLM is an acronym
+  "settings.localLlmModal.title": "Local LLM settings",
+  // eslint-disable-next-line obsidianmd/ui/sentence-case-locale-module -- LLM/OpenAI are proper nouns/acronyms
+  "settings.localLlmModal.desc": "Configure a local LLM server with OpenAI-compatible API. Supports Ollama, LM Studio, llama.cpp, vLLM, LocalAI, and more.",
+  "settings.localLlmModal.baseUrl": "Base URL",
+  "settings.localLlmModal.baseUrlDesc": "Server endpoint URL (e.g. http://localhost:11434 for Ollama, http://localhost:1234 for LM Studio)",
+  "settings.localLlmModal.baseUrlRequired": "Base URL is required",
+  "settings.localLlmModal.apiKey": "API key (optional)",
+  "settings.localLlmModal.apiKeyDesc": "Required by some providers for authentication",
+  // eslint-disable-next-line obsidianmd/ui/sentence-case-locale-module -- placeholder value
+  "settings.localLlmModal.apiKeyPlaceholder": "sk-...",
+  "settings.localLlmModal.model": "Model",
+  "settings.localLlmModal.modelDesc": "Select from server or type manually",
+  // eslint-disable-next-line obsidianmd/ui/sentence-case-locale-module -- placeholder with model names
+  "settings.localLlmModal.modelPlaceholder": "e.g. llama3, mistral, gemma2",
+  "settings.localLlmModal.fetchModels": "Fetch models",
+  "settings.localLlmModal.fetching": "Fetching...",
+  "settings.localLlmModal.noModelsFound": "No models found on the server",
+  "settings.localLlmModal.modelsLoaded": "{{count}} model(s) loaded",
+  "settings.localLlmModal.testConnection": "Test connection",
+  "settings.localLlmModal.testing": "Testing...",
+  "settings.localLlmModal.connectionSuccess": "Connected successfully",
+  "settings.localLlmModal.connectionFailed": "Connection failed",
+
   // Settings - Workspace
   "settings.workspaceFolder": "Workspace folder",
   "settings.workspaceFolder.desc": "Folder to store chat histories and semantic search settings",

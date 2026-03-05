@@ -1022,7 +1022,7 @@ export class DriveSyncManager {
   // Pull
   // ========================================
 
-  async pull(): Promise<void> {
+  async pull(ignoredIds?: Set<string>): Promise<void> {
     if (this.syncLock) {
       console.warn("[DriveSync] pull skipped: sync already in progress");
       return;
@@ -1105,10 +1105,11 @@ export class DriveSyncManager {
       }
 
       // 5. Process the diff
-      await this.applyPullDiff(accessToken, rootFolderId, localMeta, remoteMeta, diff);
+      await this.applyPullDiff(accessToken, rootFolderId, localMeta, remoteMeta, diff, ignoredIds);
 
       this.syncStatus = "idle";
-      const pullCount = diff.toPull.length + diff.remoteOnly.length;
+      const ignoredCount = ignoredIds?.size ?? 0;
+      const pullCount = diff.toPull.length + diff.remoteOnly.length - ignoredCount;
       const deleteCount = diff.localOnly.length;
       const parts: string[] = [];
       if (pullCount > 0) parts.push(`pulled ${pullCount}`);
@@ -1136,7 +1137,8 @@ export class DriveSyncManager {
     rootFolderId: string,
     localMeta: LocalDriveSyncMeta,
     remoteMeta: SyncMeta,
-    diff: SyncDiff
+    diff: SyncDiff,
+    ignoredIds?: Set<string>
   ): Promise<void> {
     const idToPath = buildIdToPathMap(localMeta);
     const historyManager = getEditHistoryManager();
@@ -1160,7 +1162,9 @@ export class DriveSyncManager {
     }
 
     // 2. Handle remote renames: remove old local file before downloading to new path
+    //    Skip ignored files — they keep local content at the original path
     for (const fileId of diff.toPull) {
+      if (ignoredIds?.has(fileId)) continue;
       const oldPath = idToPath[fileId];
       const remotePath = remoteMeta.files[fileId]?.path || remoteMeta.files[fileId]?.name;
       if (oldPath && remotePath && oldPath !== remotePath) {
@@ -1176,8 +1180,9 @@ export class DriveSyncManager {
       }
     }
 
-    // 2b. Download toPull + remoteOnly files
-    const filesToPull = [...diff.toPull, ...diff.remoteOnly];
+    // 2b. Download toPull + remoteOnly files (excluding ignored)
+    const allFilesToPull = [...diff.toPull, ...diff.remoteOnly];
+    const filesToPull = ignoredIds?.size ? allFilesToPull.filter(id => !ignoredIds.has(id)) : allFilesToPull;
 
     for (let i = 0; i < filesToPull.length; i += CONCURRENCY) {
       const batch = filesToPull.slice(i, i + CONCURRENCY);

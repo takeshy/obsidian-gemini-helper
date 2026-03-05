@@ -18,8 +18,10 @@ export class DriveSyncDiffModal extends Modal {
   private files: SyncFileListItem[];
   private direction: "push" | "pull";
   private syncManager: DriveSyncManager;
-  private resolve: ((confirmed: boolean) => void) | null = null;
+  private resolve: ((result: { confirmed: boolean; ignoredIds?: Set<string> }) => void) | null = null;
   private diffStates: Record<string, DiffState> = {};
+  private ignoredIds: Set<string> = new Set();
+  private headerTitleEl: HTMLElement | null = null;
 
   constructor(
     app: App,
@@ -33,7 +35,7 @@ export class DriveSyncDiffModal extends Modal {
     this.syncManager = syncManager;
   }
 
-  openAndWait(): Promise<boolean> {
+  openAndWait(): Promise<{ confirmed: boolean; ignoredIds?: Set<string> }> {
     return new Promise((resolve) => {
       this.resolve = resolve;
       this.open();
@@ -46,7 +48,7 @@ export class DriveSyncDiffModal extends Modal {
     contentEl.addClass("gemini-helper-sync-diff-modal");
 
     const title = this.direction === "push" ? t("driveSync.pushChanges") : t("driveSync.pullChanges");
-    contentEl.createEl("h2", { text: `${title} (${this.files.length})` });
+    this.headerTitleEl = contentEl.createEl("h2", { text: `${title} (${this.files.length})` });
 
     if (this.files.length === 0) {
       contentEl.createEl("p", {
@@ -67,7 +69,7 @@ export class DriveSyncDiffModal extends Modal {
         const resolve = this.resolve;
         this.resolve = null;
         this.close();
-        resolve?.(false);
+        resolve?.({ confirmed: false });
       })
     );
 
@@ -80,7 +82,7 @@ export class DriveSyncDiffModal extends Modal {
             const resolve = this.resolve;
             this.resolve = null;
             this.close();
-            resolve?.(true);
+            resolve?.({ confirmed: true, ignoredIds: this.ignoredIds.size > 0 ? this.ignoredIds : undefined });
           })
       );
     }
@@ -153,8 +155,34 @@ export class DriveSyncDiffModal extends Modal {
         const resolve = this.resolve;
         this.resolve = null;
         this.close();
-        resolve?.(false);
+        resolve?.({ confirmed: false });
         void this.app.workspace.openLinkText(file.name, "", false);
+      });
+    }
+
+    // Ignore toggle (pull only, modified files only)
+    if (this.direction === "pull" && file.type === "modified") {
+      const ignoreBtn = headerEl.createEl("button", { cls: "gemini-helper-sync-diff-toggle" });
+      const ignoreIconEl = ignoreBtn.createSpan();
+      setIcon(ignoreIconEl, "eye-off");
+      const ignoreLabel = ignoreBtn.createSpan();
+      ignoreLabel.setText(t("driveSync.ignore"));
+
+      ignoreBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const ignored = this.ignoredIds.has(file.id);
+        if (ignored) {
+          this.ignoredIds.delete(file.id);
+          setIcon(ignoreIconEl, "eye-off");
+          ignoreLabel.setText(t("driveSync.ignore"));
+          itemEl.removeClass("gemini-helper-sync-diff-ignored");
+        } else {
+          this.ignoredIds.add(file.id);
+          setIcon(ignoreIconEl, "eye");
+          ignoreLabel.setText(t("driveSync.unignore"));
+          itemEl.addClass("gemini-helper-sync-diff-ignored");
+        }
+        this.updateTitle();
       });
     }
 
@@ -305,12 +333,24 @@ export class DriveSyncDiffModal extends Modal {
     }
   }
 
+  private updateTitle(): void {
+    if (!this.headerTitleEl) return;
+    const title = this.direction === "push" ? t("driveSync.pushChanges") : t("driveSync.pullChanges");
+    if (this.ignoredIds.size > 0) {
+      this.headerTitleEl.setText(`${title} (${this.files.length - this.ignoredIds.size} / ${this.files.length})`);
+    } else {
+      this.headerTitleEl.setText(`${title} (${this.files.length})`);
+    }
+  }
+
   onClose(): void {
     if (this.resolve) {
-      this.resolve(false);
+      this.resolve({ confirmed: false });
       this.resolve = null;
     }
     this.diffStates = {};
+    this.ignoredIds.clear();
+    this.headerTitleEl = null;
     this.contentEl.empty();
   }
 }

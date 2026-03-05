@@ -949,6 +949,8 @@ export const zh: Record<string, string> = {
   "driveSync.diff": "Diff",
   "driveSync.hide": "隐藏",
   "driveSync.binary": "二进制",
+  "driveSync.ignore": "忽略",
+  "driveSync.unignore": "取消忽略",
   "driveSync.loading": "加载中...",
   "driveSync.failedToLoadDiff": "加载 diff 失败",
 

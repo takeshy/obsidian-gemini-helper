@@ -949,6 +949,8 @@ export const ja: Record<string, string> = {
   "driveSync.diff": "差分",
   "driveSync.hide": "非表示",
   "driveSync.binary": "バイナリ",
+  "driveSync.ignore": "無視",
+  "driveSync.unignore": "無視解除",
   "driveSync.loading": "読み込み中...",
   "driveSync.failedToLoadDiff": "差分の読み込みに失敗しました",
 

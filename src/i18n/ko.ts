@@ -949,6 +949,8 @@ export const ko: Record<string, string> = {
   "driveSync.diff": "Diff",
   "driveSync.hide": "숨기기",
   "driveSync.binary": "바이너리",
+  "driveSync.ignore": "무시",
+  "driveSync.unignore": "무시 해제",
   "driveSync.loading": "로딩 중...",
   "driveSync.failedToLoadDiff": "diff 불러오기 실패",
 

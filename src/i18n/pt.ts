@@ -949,6 +949,8 @@ export const pt: Record<string, string> = {
   "driveSync.diff": "Diff",
   "driveSync.hide": "Ocultar",
   "driveSync.binary": "binário",
+  "driveSync.ignore": "Ignorar",
+  "driveSync.unignore": "Não ignorar",
   "driveSync.loading": "Carregando...",
   "driveSync.failedToLoadDiff": "Falha ao carregar diff",
 

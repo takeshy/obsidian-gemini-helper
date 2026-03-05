@@ -4825,6 +4825,10 @@
   opacity: 0.6;
 }
 
+.gemini-helper-sync-diff-file.gemini-helper-sync-diff-ignored {
+  opacity: 0.5;
+}
+
 .gemini-helper-sync-diff-name {
   flex: 1;
   overflow: hidden;

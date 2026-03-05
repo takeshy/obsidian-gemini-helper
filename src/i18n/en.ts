@@ -949,6 +949,8 @@ export const en = {
   "driveSync.diff": "Diff",
   "driveSync.hide": "Hide",
   "driveSync.binary": "Binary",
+  "driveSync.ignore": "Ignore",
+  "driveSync.unignore": "Unignore",
   "driveSync.loading": "Loading...",
   "driveSync.failedToLoadDiff": "Failed to load diff",
 

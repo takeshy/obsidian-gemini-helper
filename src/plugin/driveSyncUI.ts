@@ -248,13 +248,13 @@ export class DriveSyncUIManager {
       }
 
       const modal = new DriveSyncDiffModal(this.plugin.app, result.files, direction, mgr);
-      const confirmed = await modal.openAndWait();
-      if (!confirmed) return;
+      const modalResult = await modal.openAndWait();
+      if (!modalResult.confirmed) return;
 
       if (direction === "push") {
         await mgr.push();
       } else {
-        await mgr.pull();
+        await mgr.pull(modalResult.ignoredIds);
       }
 
       if (mgr.syncStatus === "conflict") {

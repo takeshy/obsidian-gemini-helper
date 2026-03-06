@@ -1287,6 +1287,9 @@ export class DriveSyncManager {
         } catch {
           // File may already exist on disk; fall back to adapter write
           await this.app.vault.adapter.writeBinary(vaultPath, content);
+          // On case-insensitive FS, the actual path may differ from vaultPath
+          const found = this.app.vault.getAbstractFileByPath(vaultPath);
+          if (found instanceof TFile) actualPath = found.path;
         }
       }
     } else {
@@ -1301,6 +1304,9 @@ export class DriveSyncManager {
         } catch {
           // File may already exist on disk; fall back to adapter write
           await this.app.vault.adapter.write(vaultPath, content);
+          // On case-insensitive FS, the actual path may differ from vaultPath
+          const found = this.app.vault.getAbstractFileByPath(vaultPath);
+          if (found instanceof TFile) actualPath = found.path;
         }
       }
     }

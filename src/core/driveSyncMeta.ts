@@ -229,20 +229,24 @@ export function toLocalSyncMeta(
     ? { ...existingLocal.pathToId }
     : {};
 
+  // Build reverse map (id → path) to avoid O(n²) lookup inside the loop
+  const idToExistingPath = new Map<string, string>();
+  for (const [existingPath, existingId] of Object.entries(pathToId)) {
+    idToExistingPath.set(existingId, existingPath);
+  }
+
   for (const [id, f] of Object.entries(remoteMeta.files)) {
     const remotePath = f.path || f.name;
     // On case-insensitive FS (NTFS, macOS), the existing local path may differ
     // in case from the remote path. Prefer the local (actual vault) path when
     // paths match case-insensitively to avoid path mismatches in subsequent syncs.
     let resolvedPath = remotePath;
-    for (const [existingPath, existingId] of Object.entries(pathToId)) {
-      if (existingId === id) {
-        if (existingPath.toLowerCase() === remotePath.toLowerCase()) {
-          resolvedPath = existingPath;
-        } else {
-          delete pathToId[existingPath];
-        }
-        break;
+    const existingPath = idToExistingPath.get(id);
+    if (existingPath) {
+      if (existingPath.toLowerCase() === remotePath.toLowerCase()) {
+        resolvedPath = existingPath;
+      } else {
+        delete pathToId[existingPath];
       }
     }
     const stats = vaultStats?.get(resolvedPath);

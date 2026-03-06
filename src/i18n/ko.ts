@@ -83,6 +83,13 @@ export const ko: Record<string, string> = {
   "settings.localLlmModal.testing": "테스트 중...",
   "settings.localLlmModal.connectionSuccess": "연결 성공",
   "settings.localLlmModal.connectionFailed": "연결 실패",
+  "settings.localLlmModal.enableThinking": "사고 활성화",
+  "settings.localLlmModal.enableThinkingDesc": "사고/추론을 지원하는 모델에 활성화 (예: DeepSeek, QwQ). 채팅에 토글이 표시됩니다.",
+  "settings.localLlmModal.temperature": "Temperature",
+  "settings.localLlmModal.temperatureDesc": "무작위성을 제어합니다 (0.0-2.0). 서버 기본값을 사용하려면 비워두세요.",
+  "settings.localLlmModal.maxTokens": "최대 토큰",
+  "settings.localLlmModal.maxTokensDesc": "최대 응답 토큰 수. 서버 기본값을 사용하려면 비워두세요.",
+  "settings.localLlmModal.serverDefault": "서버 기본값",
 
   // Settings - Workspace
   "settings.workspaceFolder": "워크스페이스 폴더",
@@ -293,6 +300,7 @@ export const ko: Record<string, string> = {
   "input.close": "닫기",
   "input.thinkFlash": "Flash",
   "input.thinkFlashLite": "Flash Lite",
+  "input.thinkLocalLlm": "Local LLM",
   "input.thinkingLabel": "항상 사고",
   "input.selectionVariable": "편집기에서 선택한 텍스트",
   "input.contentVariable": "활성 노트 내용",

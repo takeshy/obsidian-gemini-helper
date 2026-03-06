@@ -83,6 +83,13 @@ export const es: Record<string, string> = {
   "settings.localLlmModal.testing": "Probando...",
   "settings.localLlmModal.connectionSuccess": "Conexión exitosa",
   "settings.localLlmModal.connectionFailed": "Conexión fallida",
+  "settings.localLlmModal.enableThinking": "Habilitar pensamiento",
+  "settings.localLlmModal.enableThinkingDesc": "Habilitar para modelos que admiten pensamiento/razonamiento (ej. DeepSeek, QwQ). Muestra un interruptor en el chat.",
+  "settings.localLlmModal.temperature": "Temperature",
+  "settings.localLlmModal.temperatureDesc": "Controla la aleatoriedad (0.0-2.0). Dejar vacío para valor predeterminado del servidor.",
+  "settings.localLlmModal.maxTokens": "Máximo de tokens",
+  "settings.localLlmModal.maxTokensDesc": "Tokens máximos de respuesta. Dejar vacío para valor predeterminado del servidor.",
+  "settings.localLlmModal.serverDefault": "Predeterminado del servidor",
 
   // Settings - Workspace
   "settings.workspaceFolder": "Carpeta del espacio de trabajo",
@@ -293,6 +300,7 @@ export const es: Record<string, string> = {
   "input.close": "Cerrar",
   "input.thinkFlash": "Flash",
   "input.thinkFlashLite": "Flash Lite",
+  "input.thinkLocalLlm": "Local LLM",
   "input.thinkingLabel": "Pensar siempre",
   "input.selectionVariable": "Texto seleccionado en el editor",
   "input.contentVariable": "Contenido de la nota activa",

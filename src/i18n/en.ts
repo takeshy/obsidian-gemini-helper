@@ -92,6 +92,13 @@ export const en = {
   "settings.localLlmModal.testing": "Testing...",
   "settings.localLlmModal.connectionSuccess": "Connected successfully",
   "settings.localLlmModal.connectionFailed": "Connection failed",
+  "settings.localLlmModal.enableThinking": "Enable thinking",
+  "settings.localLlmModal.enableThinkingDesc": "Enable for models that support thinking/reasoning (e.g. DeepSeek, QwQ). Shows a toggle in chat.",
+  "settings.localLlmModal.temperature": "Temperature",
+  "settings.localLlmModal.temperatureDesc": "Controls randomness (0.0-2.0). Leave empty for server default.",
+  "settings.localLlmModal.maxTokens": "Max tokens",
+  "settings.localLlmModal.maxTokensDesc": "Maximum response tokens. Leave empty for server default.",
+  "settings.localLlmModal.serverDefault": "Server default",
 
   // Settings - Workspace
   "settings.workspaceFolder": "Workspace folder",
@@ -302,6 +309,7 @@ export const en = {
   "input.close": "Close",
   "input.thinkFlash": "Flash",
   "input.thinkFlashLite": "Flash lite",
+  "input.thinkLocalLlm": "Local llm",
   "input.thinkingLabel": "Always think",
   "input.selectionVariable": "Selected text in editor",
   "input.contentVariable": "Active note content",

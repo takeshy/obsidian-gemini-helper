@@ -83,6 +83,13 @@ export const zh: Record<string, string> = {
   "settings.localLlmModal.testing": "测试中...",
   "settings.localLlmModal.connectionSuccess": "连接成功",
   "settings.localLlmModal.connectionFailed": "连接失败",
+  "settings.localLlmModal.enableThinking": "启用思考",
+  "settings.localLlmModal.enableThinkingDesc": "为支持思考/推理的模型启用（如 DeepSeek、QwQ）。在聊天中显示切换开关。",
+  "settings.localLlmModal.temperature": "Temperature",
+  "settings.localLlmModal.temperatureDesc": "控制随机性（0.0-2.0）。留空使用服务器默认值。",
+  "settings.localLlmModal.maxTokens": "最大令牌数",
+  "settings.localLlmModal.maxTokensDesc": "最大响应令牌数。留空使用服务器默认值。",
+  "settings.localLlmModal.serverDefault": "服务器默认",
 
   // Settings - Workspace
   "settings.workspaceFolder": "工作区文件夹",
@@ -293,6 +300,7 @@ export const zh: Record<string, string> = {
   "input.close": "关闭",
   "input.thinkFlash": "Flash",
   "input.thinkFlashLite": "Flash Lite",
+  "input.thinkLocalLlm": "Local LLM",
   "input.thinkingLabel": "始终思考",
   "input.selectionVariable": "编辑器中选中的文本",
   "input.contentVariable": "活动笔记内容",

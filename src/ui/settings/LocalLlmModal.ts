@@ -121,6 +121,53 @@ export class LocalLlmModal extends Modal {
         });
     });
 
+    // Enable thinking
+    new Setting(contentEl)
+      .setName(t("settings.localLlmModal.enableThinking"))
+      .setDesc(t("settings.localLlmModal.enableThinkingDesc"))
+      .addToggle((toggle) => {
+        toggle
+          .setValue(this.config.enableThinking ?? false)
+          .onChange((value) => {
+            this.config.enableThinking = value || undefined;
+          });
+      });
+
+    // Temperature
+    new Setting(contentEl)
+      .setName(t("settings.localLlmModal.temperature"))
+      .setDesc(t("settings.localLlmModal.temperatureDesc"))
+      .addText((text) => {
+        text
+          .setPlaceholder(t("settings.localLlmModal.serverDefault"))
+          .setValue(this.config.temperature != null ? String(this.config.temperature) : "")
+          .onChange((value) => {
+            const trimmed = value.trim();
+            this.config.temperature = trimmed ? parseFloat(trimmed) : undefined;
+          });
+        text.inputEl.type = "number";
+        text.inputEl.min = "0";
+        text.inputEl.max = "2";
+        text.inputEl.step = "0.1";
+      });
+
+    // Max tokens
+    new Setting(contentEl)
+      .setName(t("settings.localLlmModal.maxTokens"))
+      .setDesc(t("settings.localLlmModal.maxTokensDesc"))
+      .addText((text) => {
+        text
+          .setPlaceholder(t("settings.localLlmModal.serverDefault"))
+          .setValue(this.config.maxTokens != null ? String(this.config.maxTokens) : "")
+          .onChange((value) => {
+            const trimmed = value.trim();
+            this.config.maxTokens = trimmed ? parseInt(trimmed, 10) : undefined;
+          });
+        text.inputEl.type = "number";
+        text.inputEl.min = "1";
+        text.inputEl.step = "1";
+      });
+
     // Test connection button
     const testSetting = new Setting(contentEl);
     const testStatusEl = testSetting.controlEl.createDiv({ cls: "gemini-helper-cli-row-status" });

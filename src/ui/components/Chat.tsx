@@ -191,20 +191,21 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 	const [decryptPassword, setDecryptPassword] = useState("");
 	// Pending feedback for edit rejection (to be sent after state update)
 	const [pendingEditFeedback, setPendingEditFeedback] = useState<{ filePath: string; request: string } | null>(null);
-	// Thinking toggles for Flash / Flash Lite models
+	// Thinking toggles for Flash / Flash Lite / Local LLM models
 	const [thinkFlash, setThinkFlash] = useState(false);
 	const [thinkFlashLite, setThinkFlashLite] = useState(true);
+	const [thinkLocalLlm, setThinkLocalLlm] = useState(false);
 
 	// CLI provider state (CLI not available on mobile)
 	const geminiCliVerified = !Platform.isMobile && cliConfig.cliVerified === true;
 	const claudeCliVerified = !Platform.isMobile && cliConfig.claudeCliVerified === true;
 	const codexCliVerified = !Platform.isMobile && cliConfig.codexCliVerified === true;
-	const localLlmVerified = cliConfig.localLlmVerified === true;
+	const localLlmVerified = !Platform.isMobile && cliConfig.localLlmVerified === true;
 	const anyCliVerified = geminiCliVerified || claudeCliVerified || codexCliVerified || localLlmVerified;
 	const isGeminiCliMode = !Platform.isMobile && currentModel === "gemini-cli";
 	const isClaudeCliMode = !Platform.isMobile && currentModel === "claude-cli";
 	const isCodexCliMode = !Platform.isMobile && currentModel === "codex-cli";
-	const isLocalLlmMode = currentModel === "local-llm";
+	const isLocalLlmMode = !Platform.isMobile && currentModel === "local-llm";
 	const isCliMode = isGeminiCliMode || isClaudeCliMode || isCodexCliMode || isLocalLlmMode;
 
 	// Check if configuration is ready (API key set OR any CLI verified)
@@ -1002,6 +1003,7 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 				allMessages,
 				systemPrompt,
 				abortController.signal,
+				llmConfig.enableThinking ? thinkLocalLlm : undefined,
 			)) {
 				if (abortController.signal.aborted) {
 					stopped = true;
@@ -2220,8 +2222,11 @@ Always be helpful and provide clear, concise responses. When working with notes,
 						vaultToolModeOnlyNone={isCliMode || isGemmaModel || !!selectedRagSetting}
 						thinkFlash={thinkFlash}
 						thinkFlashLite={thinkFlashLite}
+						thinkLocalLlm={thinkLocalLlm}
+						localLlmThinkingAvailable={!!(cliConfig.localLlmConfig?.enableThinking)}
 						onThinkFlashChange={setThinkFlash}
 						onThinkFlashLiteChange={setThinkFlashLite}
+						onThinkLocalLlmChange={setThinkLocalLlm}
 						mcpServers={mcpServers}
 						onMcpServerToggle={handleMcpServerToggle}
 						slashCommands={plugin.settings.slashCommands}

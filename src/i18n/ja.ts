@@ -83,6 +83,13 @@ export const ja: Record<string, string> = {
   "settings.localLlmModal.testing": "テスト中...",
   "settings.localLlmModal.connectionSuccess": "接続に成功しました",
   "settings.localLlmModal.connectionFailed": "接続に失敗しました",
+  "settings.localLlmModal.enableThinking": "思考を有効化",
+  "settings.localLlmModal.enableThinkingDesc": "思考/推論をサポートするモデル向け（例: DeepSeek, QwQ）。チャットにトグルが表示されます。",
+  "settings.localLlmModal.temperature": "Temperature",
+  "settings.localLlmModal.temperatureDesc": "ランダム性を制御（0.0〜2.0）。空欄でサーバーデフォルト。",
+  "settings.localLlmModal.maxTokens": "最大トークン数",
+  "settings.localLlmModal.maxTokensDesc": "応答の最大トークン数。空欄でサーバーデフォルト。",
+  "settings.localLlmModal.serverDefault": "サーバーデフォルト",
 
   // Settings - Workspace
   "settings.workspaceFolder": "ワークスペースフォルダ",
@@ -293,6 +300,7 @@ export const ja: Record<string, string> = {
   "input.close": "閉じる",
   "input.thinkFlash": "Flash",
   "input.thinkFlashLite": "Flash Lite",
+  "input.thinkLocalLlm": "Local LLM",
   "input.thinkingLabel": "常に思考",
   "input.selectionVariable": "エディタで選択したテキスト",
   "input.contentVariable": "アクティブノートの内容",

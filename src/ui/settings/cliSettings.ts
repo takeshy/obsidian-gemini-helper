@@ -125,14 +125,22 @@ export function displayCliSettings(containerEl: HTMLElement, ctx: SettingsContex
         app,
         cliConfig.localLlmConfig || DEFAULT_LOCAL_LLM_CONFIG,
         async (config) => {
+          // Auto-verify if model is set
+          let verified = false;
+          if (config.model && config.baseUrl) {
+            try {
+              const result = await verifyLocalLlm(config);
+              verified = result.success;
+            } catch { /* ignore */ }
+          }
           plugin.settings.cliConfig = {
             ...plugin.settings.cliConfig,
             localLlmConfig: config,
-            localLlmVerified: false, // Reset verification when config changes
+            localLlmVerified: verified,
           };
           await plugin.saveSettings();
           display();
-          new Notice(t("settings.localLlmConfigSaved"));
+          new Notice(verified ? t("settings.localLlmVerified") : t("settings.localLlmConfigSaved"));
         },
       ).open();
     },

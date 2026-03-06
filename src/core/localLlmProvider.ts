@@ -2,8 +2,12 @@
  * Local LLM Provider
  * Connects to local LLM servers via OpenAI-compatible API
  * Supports: Ollama, LM Studio, llama.cpp, vLLM, LocalAI, etc.
+ *
+ * Uses Obsidian's requestUrl for non-streaming requests (bypasses CORS)
+ * and Node.js http/https for streaming (bypasses CORS).
  */
 
+import { requestUrl } from "obsidian";
 import type { Message, StreamChunk, LocalLlmConfig } from "../types";
 
 // OpenAI-compatible API types
@@ -35,36 +39,33 @@ export async function verifyLocalLlm(config: LocalLlmConfig): Promise<{
       headers["Authorization"] = `Bearer ${config.apiKey}`;
     }
 
-    const response = await fetch(`${config.baseUrl}/v1/models`, {
-      method: "GET",
-      headers,
-      signal: AbortSignal.timeout(10000),
-    });
-
-    if (!response.ok) {
-      // Ollama may not have /v1/models, try /api/tags
-      const ollamaResponse = await fetch(`${config.baseUrl}/api/tags`, {
+    let response;
+    try {
+      response = await requestUrl({
+        url: `${config.baseUrl}/v1/models`,
         method: "GET",
-        signal: AbortSignal.timeout(10000),
+        headers,
       });
-
-      if (!ollamaResponse.ok) {
-        return { success: false, error: `Server returned ${response.status}` };
+    } catch {
+      // requestUrl throws on non-2xx; try Ollama's /api/tags
+      try {
+        const ollamaResponse = await requestUrl({
+          url: `${config.baseUrl}/api/tags`,
+          method: "GET",
+        });
+        const ollamaData = ollamaResponse.json as { models?: { name: string }[] };
+        const models = ollamaData.models?.map((m: { name: string }) => m.name) || [];
+        return { success: true, models };
+      } catch {
+        return { success: false, error: `Cannot connect to ${config.baseUrl}. Is the server running?` };
       }
-
-      const ollamaData = await ollamaResponse.json() as { models?: { name: string }[] };
-      const models = ollamaData.models?.map((m: { name: string }) => m.name) || [];
-      return { success: true, models };
     }
 
-    const data = await response.json() as OpenAiModelsResponse;
+    const data = response.json as OpenAiModelsResponse;
     const models = data.data?.map((m: OpenAiModel) => m.id) || [];
     return { success: true, models };
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
-    if (message.includes("fetch") || message.includes("ECONNREFUSED") || message.includes("network")) {
-      return { success: false, error: `Cannot connect to ${config.baseUrl}. Is the server running?` };
-    }
     return { success: false, error: message };
   }
 }
@@ -85,6 +86,7 @@ export async function* localLlmChatStream(
   messages: Message[],
   systemPrompt: string,
   signal?: AbortSignal,
+  enableThinking?: boolean,
 ): AsyncGenerator<StreamChunk> {
   const openaiMessages: OpenAiMessage[] = [
     { role: "system", content: systemPrompt },
@@ -102,100 +104,254 @@ export async function* localLlmChatStream(
     headers["Authorization"] = `Bearer ${config.apiKey}`;
   }
 
-  let response: Response;
-  try {
-    response = await fetch(`${config.baseUrl}/v1/chat/completions`, {
+  const requestBody: Record<string, unknown> = {
+    model: config.model,
+    messages: openaiMessages,
+    stream: true,
+    ...(config.temperature != null && { temperature: config.temperature }),
+    ...(config.maxTokens != null && { max_tokens: config.maxTokens }),
+  };
+  // When thinking is disabled, send chat_template_kwargs to tell the server
+  // (works with vLLM; LM Studio may ignore this but will work when supported)
+  if (enableThinking === false) {
+    requestBody.chat_template_kwargs = { enable_thinking: false };
+  }
+  const body = JSON.stringify(requestBody);
+
+  // Use Node.js http/https to bypass CORS (Electron renderer blocks cross-origin fetch)
+  const url = new URL(`${config.baseUrl}/v1/chat/completions`);
+  const httpModule = getHttpModule(url.protocol);
+
+  // Wrap Node.js streaming into an async iterator
+  const chunks: StreamChunk[] = [];
+  let streamResolve: (() => void) | null = null;
+  let streamDone = false;
+  let streamError: Error | null = null;
+
+  const CONNECTION_TIMEOUT_MS = 30_000;
+
+  const req = httpModule.request(
+    {
+      hostname: url.hostname,
+      port: url.port,
+      path: url.pathname,
       method: "POST",
       headers,
-      body: JSON.stringify({
-        model: config.model,
-        messages: openaiMessages,
-        stream: true,
-      }),
-      signal,
-    });
-  } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    if (signal?.aborted) return;
-    yield { type: "error", error: `Connection failed: ${message}` };
-    return;
-  }
+      timeout: CONNECTION_TIMEOUT_MS,
+    },
+    (res) => {
+      if (res.statusCode && (res.statusCode < 200 || res.statusCode >= 300)) {
+        let errorBody = "";
+        res.on("data", (chunk: Buffer) => { errorBody += chunk.toString(); });
+        res.on("end", () => {
+          chunks.push({ type: "error", error: `HTTP ${res.statusCode}: ${errorBody.slice(0, 200) || res.statusMessage}` });
+          streamDone = true;
+          streamResolve?.();
+        });
+        return;
+      }
 
-  if (!response.ok) {
-    let errorDetail = "";
-    try {
-      const errorBody = await response.text();
-      errorDetail = errorBody.slice(0, 200);
-    } catch { /* ignore */ }
-    yield { type: "error", error: `HTTP ${response.status}: ${errorDetail || response.statusText}` };
-    return;
-  }
+      let buffer = "";
+      let inThinkTag = false;
+      let tagBuffer = "";
 
-  const reader = response.body?.getReader();
-  if (!reader) {
-    yield { type: "error", error: "No response body" };
-    return;
-  }
+      res.on("data", (chunk: Buffer) => {
+        buffer += chunk.toString();
+        const lines = buffer.split("\n");
+        buffer = lines.pop() || "";
 
-  const decoder = new TextDecoder();
-  let buffer = "";
+        for (const line of lines) {
+          const trimmed = line.trim();
+          if (!trimmed || !trimmed.startsWith("data: ")) continue;
 
-  try {
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      if (signal?.aborted) break;
-
-      buffer += decoder.decode(value, { stream: true });
-      const lines = buffer.split("\n");
-      buffer = lines.pop() || "";
-
-      for (const line of lines) {
-        const trimmed = line.trim();
-        if (!trimmed || !trimmed.startsWith("data: ")) continue;
-
-        const data = trimmed.slice(6);
-        if (data === "[DONE]") {
-          yield { type: "done" };
-          return;
-        }
-
-        try {
-          const chunk = JSON.parse(data) as {
-            choices?: { delta?: { content?: string; reasoning_content?: string } }[];
-            usage?: { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number };
-          };
-          const delta = chunk.choices?.[0]?.delta;
-
-          // Support thinking/reasoning content (e.g. DeepSeek, QwQ)
-          if (delta?.reasoning_content) {
-            yield { type: "thinking", content: delta.reasoning_content };
-          }
-
-          if (delta?.content) {
-            yield { type: "text", content: delta.content };
-          }
-
-          // Some servers send usage in the final chunk
-          if (chunk.usage) {
-            yield {
-              type: "done",
-              usage: {
-                inputTokens: chunk.usage.prompt_tokens,
-                outputTokens: chunk.usage.completion_tokens,
-                totalTokens: chunk.usage.total_tokens,
-              },
-            };
+          const data = trimmed.slice(6);
+          if (data === "[DONE]") {
+            chunks.push({ type: "done" });
+            streamDone = true;
+            streamResolve?.();
             return;
           }
-        } catch {
-          // Skip unparseable lines
+
+          try {
+            const parsed = JSON.parse(data) as {
+              choices?: { delta?: { content?: string; reasoning_content?: string } }[];
+              usage?: { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number };
+            };
+            const delta = parsed.choices?.[0]?.delta;
+
+            if (delta?.reasoning_content) {
+              if (enableThinking !== false) {
+                chunks.push({ type: "thinking", content: delta.reasoning_content });
+              }
+            }
+
+            if (delta?.content) {
+              const thinkParsed = parseThinkTags(delta.content, inThinkTag, tagBuffer);
+              inThinkTag = thinkParsed.inThinkTag;
+              tagBuffer = thinkParsed.tagBuffer;
+              for (const item of thinkParsed.items) {
+                // Drop thinking chunks when thinking is disabled
+                if (item.type === "thinking" && enableThinking === false) continue;
+                chunks.push(item);
+              }
+            }
+
+            if (parsed.usage) {
+              chunks.push({
+                type: "done",
+                usage: {
+                  inputTokens: parsed.usage.prompt_tokens,
+                  outputTokens: parsed.usage.completion_tokens,
+                  totalTokens: parsed.usage.total_tokens,
+                },
+              });
+              streamDone = true;
+              streamResolve?.();
+              return;
+            }
+          } catch {
+            // Skip unparseable lines
+          }
+        }
+        streamResolve?.();
+      });
+
+      res.on("end", () => {
+        if (!streamDone) {
+          chunks.push({ type: "done" });
+          streamDone = true;
+        }
+        streamResolve?.();
+      });
+
+      res.on("error", (err: Error) => {
+        streamError = err;
+        streamResolve?.();
+      });
+    },
+  );
+
+  req.on("error", (err: Error) => {
+    streamError = err;
+    streamDone = true;
+    streamResolve?.();
+  });
+
+  req.on("timeout", () => {
+    req.destroy(new Error("Connection timed out"));
+  });
+
+  // Abort handling
+  const onAbort = () => {
+    req.destroy();
+    streamDone = true;
+    streamResolve?.();
+  };
+  signal?.addEventListener("abort", onAbort, { once: true });
+
+  req.write(body);
+  req.end();
+
+  // Yield chunks as they arrive
+  try {
+    while (!streamDone || chunks.length > 0) {
+      if (chunks.length > 0) {
+        yield chunks.shift()!;
+        continue;
+      }
+      if (streamDone) break;
+      if (streamError !== null) {
+        yield { type: "error", error: `Connection failed: ${(streamError as Error).message}` };
+        return;
+      }
+      if (signal?.aborted) return;
+      // Wait for more data
+      await new Promise<void>((resolve) => { streamResolve = resolve; });
+    }
+  } finally {
+    signal?.removeEventListener("abort", onAbort);
+  }
+}
+
+/** Load Node.js http or https module (desktop only, bypasses CORS). */
+function getHttpModule(protocol: string): typeof import("http") {
+  const loader =
+    (globalThis as unknown as { require?: (id: string) => unknown }).require ||
+    (globalThis as unknown as { module?: { require?: (id: string) => unknown } }).module?.require;
+  if (!loader) {
+    throw new Error("Node.js http module is not available in this environment");
+  }
+  const moduleName = protocol === "https:" ? "https" : "http";
+  return loader(moduleName) as typeof import("http");
+}
+
+/**
+ * Parse <think>...</think> tags from streaming content.
+ * Tags may be split across chunks, so we track state and buffer partial tags.
+ */
+function parseThinkTags(
+  content: string,
+  inThinkTag: boolean,
+  tagBuffer: string,
+): { items: StreamChunk[]; inThinkTag: boolean; tagBuffer: string } {
+  const items: StreamChunk[] = [];
+  let text = tagBuffer + content;
+  tagBuffer = "";
+
+  while (text.length > 0) {
+    if (!inThinkTag) {
+      const openIdx = text.indexOf("<think>");
+      if (openIdx !== -1) {
+        if (openIdx > 0) {
+          items.push({ type: "text", content: text.slice(0, openIdx) });
+        }
+        inThinkTag = true;
+        text = text.slice(openIdx + 7);
+      } else {
+        const partial = getPartialTagMatch(text, "<think>");
+        if (partial > 0) {
+          const safe = text.slice(0, text.length - partial);
+          if (safe) items.push({ type: "text", content: safe });
+          tagBuffer = text.slice(text.length - partial);
+          text = "";
+        } else {
+          items.push({ type: "text", content: text });
+          text = "";
+        }
+      }
+    } else {
+      const closeIdx = text.indexOf("</think>");
+      if (closeIdx !== -1) {
+        if (closeIdx > 0) {
+          items.push({ type: "thinking", content: text.slice(0, closeIdx) });
+        }
+        inThinkTag = false;
+        text = text.slice(closeIdx + 8);
+      } else {
+        const partial = getPartialTagMatch(text, "</think>");
+        if (partial > 0) {
+          const safe = text.slice(0, text.length - partial);
+          if (safe) items.push({ type: "thinking", content: safe });
+          tagBuffer = text.slice(text.length - partial);
+          text = "";
+        } else {
+          items.push({ type: "thinking", content: text });
+          text = "";
         }
       }
     }
-  } finally {
-    reader.releaseLock();
   }
 
-  yield { type: "done" };
+  return { items, inThinkTag, tagBuffer };
+}
+
+/** Check if the end of `text` is a prefix of `tag`. Returns match length (0 if none). */
+function getPartialTagMatch(text: string, tag: string): number {
+  const maxCheck = Math.min(text.length, tag.length - 1);
+  for (let len = maxCheck; len > 0; len--) {
+    if (text.endsWith(tag.slice(0, len))) {
+      return len;
+    }
+  }
+  return 0;
 }

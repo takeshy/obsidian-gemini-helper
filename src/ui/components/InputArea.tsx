@@ -29,8 +29,11 @@ interface InputAreaProps {
   vaultToolModeOnlyNone: boolean; // When true, only "none" option is available
   thinkFlash: boolean;
   thinkFlashLite: boolean;
+  thinkLocalLlm: boolean;
+  localLlmThinkingAvailable: boolean;
   onThinkFlashChange: (value: boolean) => void;
   onThinkFlashLiteChange: (value: boolean) => void;
+  onThinkLocalLlmChange: (value: boolean) => void;
   mcpServers: McpServerConfig[]; // MCP server configurations
   onMcpServerToggle: (serverName: string, enabled: boolean) => void; // Per-server toggle handler
   slashCommands: SlashCommand[];
@@ -84,8 +87,11 @@ const InputArea = forwardRef<InputAreaHandle, InputAreaProps>(function InputArea
   vaultToolModeOnlyNone,
   thinkFlash,
   thinkFlashLite,
+  thinkLocalLlm,
+  localLlmThinkingAvailable,
   onThinkFlashChange,
   onThinkFlashLiteChange,
+  onThinkLocalLlmChange,
   mcpServers,
   onMcpServerToggle,
   slashCommands,
@@ -581,6 +587,12 @@ const InputArea = forwardRef<InputAreaHandle, InputAreaProps>(function InputArea
                   <input type="checkbox" checked={thinkFlashLite} onChange={(e) => onThinkFlashLiteChange(e.target.checked)} />
                   <span>{t("input.thinkFlashLite")}</span>
                 </label>
+                {localLlmThinkingAvailable && (
+                <label className="gemini-helper-vault-tool-checkbox">
+                  <input type="checkbox" checked={thinkLocalLlm} onChange={(e) => onThinkLocalLlmChange(e.target.checked)} />
+                  <span>{t("input.thinkLocalLlm")}</span>
+                </label>
+                )}
               </div>
             )}
             {/* Modal for vault tool + MCP settings when MCP servers are configured */}
@@ -633,6 +645,12 @@ const InputArea = forwardRef<InputAreaHandle, InputAreaProps>(function InputArea
                         <input type="checkbox" checked={thinkFlashLite} onChange={(e) => onThinkFlashLiteChange(e.target.checked)} />
                         <span className="gemini-helper-mcp-server-name">{t("input.thinkFlashLite")}</span>
                       </label>
+                      {localLlmThinkingAvailable && (
+                      <label className="gemini-helper-mcp-server-item">
+                        <input type="checkbox" checked={thinkLocalLlm} onChange={(e) => onThinkLocalLlmChange(e.target.checked)} />
+                        <span className="gemini-helper-mcp-server-name">{t("input.thinkLocalLlm")}</span>
+                      </label>
+                      )}
                     </div>
                   </div>
                   <button

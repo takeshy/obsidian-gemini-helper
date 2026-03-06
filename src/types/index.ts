@@ -273,6 +273,9 @@ export interface LocalLlmConfig {
   baseUrl: string;              // e.g. "http://localhost:11434" (Ollama) or "http://localhost:1234" (LM Studio)
   model: string;                // e.g. "llama3", "mistral", "gemma2"
   apiKey?: string;              // Optional API key (for services that require it)
+  temperature?: number;         // 0.0-2.0 (undefined = server default)
+  maxTokens?: number;           // Max response tokens (undefined = server default)
+  enableThinking?: boolean;     // Whether the model supports thinking (e.g. DeepSeek, QwQ)
 }
 
 export const DEFAULT_LOCAL_LLM_CONFIG: LocalLlmConfig = {

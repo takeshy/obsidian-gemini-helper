@@ -11,8 +11,8 @@ export interface WorkflowCodeBlock {
   parseError?: string; // YAML parse error message if parsing failed
 }
 
-// Match workflow code blocks - end marker must be at start of line
-const BLOCK_REGEX = /^```workflow[^\n]*\r?\n([\s\S]*?)\r?\n```\s*$/gm;
+// Match workflow code blocks - supports 3+ backticks, end marker must match opening count
+const BLOCK_REGEX = /^(`{3,})workflow[^\n]*\r?\n([\s\S]*?)\r?\n\1\s*$/gm;
 
 export function findWorkflowBlocks(content: string): WorkflowCodeBlock[] {
   const blocks: WorkflowCodeBlock[] = [];
@@ -22,7 +22,7 @@ export function findWorkflowBlocks(content: string): WorkflowCodeBlock[] {
 
   while ((match = BLOCK_REGEX.exec(content))) {
     const raw = match[0];
-    const yamlText = match[1];
+    const yamlText = match[2];
 
     let parsed: Record<string, unknown> = {};
     let parseError: string | undefined;

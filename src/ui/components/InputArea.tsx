@@ -15,7 +15,7 @@ interface BuiltInCommand {
 }
 
 interface InputAreaProps {
-  onSend: (content: string, attachments?: Attachment[]) => void | Promise<void>;
+  onSend: (content: string, attachments?: Attachment[], skillPath?: string) => void | Promise<void>;
   onStop?: () => void;
   isLoading: boolean;
   model: ModelType;
@@ -197,28 +197,18 @@ const InputArea = forwardRef<InputAreaHandle, InputAreaProps>(function InputArea
         }
         return;
       }
-      // Intercept /skillFolder [message] command
+      // Intercept /skillFolder command — send with skill path as metadata
       if (input.trim().startsWith("/")) {
         const trimmed = input.trim();
-        // Match skill folder name (no spaces) at the start, rest is the message
         for (const skill of availableSkills) {
           const folderName = skill.folderPath.split("/").pop() || "";
           const prefix = `/${folderName}`;
           if (trimmed.toLowerCase().startsWith(prefix.toLowerCase()) &&
               (trimmed.length === prefix.length || trimmed[prefix.length] === " ")) {
-            const message = trimmed.slice(prefix.length).trim();
-            // Activate skill if not already active
-            if (!activeSkillPaths.includes(skill.folderPath)) {
-              onToggleSkill(skill.folderPath);
-            }
-            // Send the message part (skill instructions are injected via system prompt)
-            if (message) {
-              void onSend(message, pendingAttachments.length > 0 ? pendingAttachments : undefined);
-              setInput("");
-              setPendingAttachments([]);
-            } else {
-              setInput("");
-            }
+            const userMessage = trimmed.slice(prefix.length).trim();
+            void onSend(userMessage, pendingAttachments.length > 0 ? pendingAttachments : undefined, skill.folderPath);
+            setInput("");
+            setPendingAttachments([]);
             return;
           }
         }
@@ -249,17 +239,15 @@ const InputArea = forwardRef<InputAreaHandle, InputAreaProps>(function InputArea
         });
       }
 
-      // Add inactive skills as built-in commands (use folder name as command name)
+      // Add all skills as built-in commands (use folder name as command name)
       for (const skill of availableSkills) {
-        if (!activeSkillPaths.includes(skill.folderPath)) {
-          const folderName = skill.folderPath.split("/").pop() || "";
-          builtInCommands.push({
-            id: `__skill__${skill.folderPath}`,
-            name: folderName,
-            description: `${skill.name}${skill.description ? ` - ${skill.description}` : ""}`,
-            isBuiltIn: true,
-          });
-        }
+        const folderName = skill.folderPath.split("/").pop() || "";
+        builtInCommands.push({
+          id: `__skill__${skill.folderPath}`,
+          name: folderName,
+          description: `${skill.name}${skill.description ? ` - ${skill.description}` : ""}`,
+          isBuiltIn: true,
+        });
       }
 
       // Filter both user-defined and built-in commands
@@ -303,14 +291,13 @@ const InputArea = forwardRef<InputAreaHandle, InputAreaProps>(function InputArea
         setInput("");
         onCompact();
       }
-      // Handle skill activation — activate and clear input for user to type message
+      // Handle skill — send immediately with skill path
       if (command.id.startsWith("__skill__")) {
         const folderPath = command.id.slice("__skill__".length);
-        if (!activeSkillPaths.includes(folderPath)) {
-          onToggleSkill(folderPath);
-        }
+        const userMessage = input.replace(/^\/\S*\s*/, "").trim();
+        void onSend(userMessage, pendingAttachments.length > 0 ? pendingAttachments : undefined, folderPath);
         setInput("");
-        textareaRef.current?.focus();
+        setPendingAttachments([]);
       }
       return;
     }

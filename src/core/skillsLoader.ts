@@ -128,8 +128,9 @@ export async function loadSkill(app: App, metadata: SkillMetadata): Promise<Load
 /**
  * Build a system prompt section from loaded skills.
  */
-export function buildSkillSystemPrompt(skills: LoadedSkill[]): string {
+export function buildSkillSystemPrompt(skills: LoadedSkill[], options?: { cliMode?: boolean }): string {
   if (skills.length === 0) return "";
+  const isCli = options?.cliMode ?? false;
 
   const parts = skills.map(skill => {
     let section = `## Skill: ${skill.name}\n\n${skill.instructions}`;
@@ -137,7 +138,11 @@ export function buildSkillSystemPrompt(skills: LoadedSkill[]): string {
       section += `\n\n### References\n\n${skill.references.join("\n\n")}`;
     }
     if (skill.workflows.length > 0) {
-      section += `\n\n### Available Workflows\nUse the run_skill_workflow tool to execute these workflows:`;
+      if (isCli) {
+        section += `\n\n### Available Workflows\nTo execute a workflow, output the following marker on its own line (do NOT wrap it in backticks or code blocks):\n[RUN_WORKFLOW: workflowId]({"key": "value"})\nThe JSON part is optional variables to pass. Available workflows:`;
+      } else {
+        section += `\n\n### Available Workflows\nUse the run_skill_workflow tool to execute these workflows:`;
+      }
       for (const wf of skill.workflows) {
         const id = buildWorkflowToolId(skill.name, wf);
         section += `\n- \`${id}\`: ${wf.description}`;
@@ -146,7 +151,7 @@ export function buildSkillSystemPrompt(skills: LoadedSkill[]): string {
     return section;
   });
 
-  return `\n\nThe following agent skills are active:\n\n${parts.join("\n\n---\n\n")}`;
+  return `\n\nThe following agent skills are active. Proactively use the skill's instructions and workflows to fulfill the user's request.\nWhen you encounter {{variableName}} placeholders in skill instructions or workflow definitions, interpret the variable name and replace it with an appropriate value (e.g., {{today}} → today's date, {{monday}} → this week's Monday date).\n\n${parts.join("\n\n---\n\n")}`;
 }
 
 /**

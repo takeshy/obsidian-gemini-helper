@@ -957,7 +957,7 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 	};
 
 	// Send message via CLI provider
-	const sendMessageViaCli = async (content: string, attachments?: Attachment[]) => {
+	const sendMessageViaCli = async (content: string, attachments?: Attachment[], skillPath?: string) => {
 		const isClaudeCli = currentModel === "claude-cli";
 		const isCodexCli = currentModel === "codex-cli";
 		const provider = isClaudeCli
@@ -966,13 +966,27 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 				? new CodexCliProvider()
 				: new GeminiCliProvider();
 
+		// Activate skill if invoked via slash command
+		let effectiveSkillPaths = activeSkillPaths;
+		if (skillPath && !effectiveSkillPaths.includes(skillPath)) {
+			effectiveSkillPaths = [...effectiveSkillPaths, skillPath];
+			setActiveSkillPaths(effectiveSkillPaths);
+		}
+
 		// Resolve variables in the content
 		const resolvedContent = await resolveMessageVariables(content);
+
+		// When skill is invoked without message, use skill name as trigger
+		let displayContent = resolvedContent.trim();
+		if (!displayContent && skillPath) {
+			const skillMeta = availableSkills.find(s => s.folderPath === skillPath);
+			displayContent = skillMeta ? `/${skillMeta.name}` : "/skill";
+		}
 
 		// Add user message
 		const userMessage: Message = {
 			role: "user",
-			content: resolvedContent.trim() || (attachments ? `[${attachments.length} file(s) attached]` : ""),
+			content: displayContent || (attachments ? `[${attachments.length} file(s) attached]` : ""),
 			timestamp: Date.now(),
 			attachments,
 		};
@@ -1008,6 +1022,21 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 
 			if (plugin.settings.systemPrompt) {
 				systemPrompt += `\n\nAdditional instructions: ${plugin.settings.systemPrompt}`;
+			}
+
+			// Inject active agent skills into system prompt
+			let cliLoadedSkills: LoadedSkill[] = [];
+			if (effectiveSkillPaths.length > 0) {
+				const activeMetadata = availableSkills.filter(s => effectiveSkillPaths.includes(s.folderPath));
+				if (activeMetadata.length > 0) {
+					cliLoadedSkills = await Promise.all(
+						activeMetadata.map(m => loadSkill(plugin.app, m))
+					);
+					const skillPrompt = buildSkillSystemPrompt(cliLoadedSkills, { cliMode: true });
+					if (skillPrompt) {
+						systemPrompt += skillPrompt;
+					}
+				}
 			}
 
 			let fullContent = "";
@@ -1072,10 +1101,26 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 				setCliSession(newSession);
 			}
 
+			// Detect and execute [RUN_WORKFLOW: id](variables) markers from skill workflows
+			const workflowMarkerRegex = /\[RUN_WORKFLOW:\s*(.+?)\](?:\((\{[\s\S]*?\})\))?/g;
+			let workflowMatch: RegExpExecArray | null;
+			let processedContent = fullContent;
+			if (cliLoadedSkills.length > 0 && (workflowMatch = workflowMarkerRegex.exec(fullContent)) !== null) {
+				const workflowId = workflowMatch[1].trim();
+				const variablesJson = workflowMatch[2] || undefined;
+				const skillWorkflowMap = collectSkillWorkflows(cliLoadedSkills);
+				const workflowResult = await executeSkillWorkflow(plugin, workflowId, variablesJson, skillWorkflowMap);
+				// Replace marker with execution result
+				const resultText = JSON.stringify(workflowResult, null, 2);
+				processedContent = fullContent.replace(workflowMatch[0],
+					`**Workflow executed: ${workflowId}**\n\`\`\`json\n${resultText}\n\`\`\``
+				);
+			}
+
 			// Add assistant message with CLI model info
 			const assistantMessage: Message = {
 				role: "assistant",
-				content: fullContent,
+				content: processedContent,
 				timestamp: Date.now(),
 				model: currentProvider,
 			};
@@ -1085,7 +1130,7 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 			// Save chat history (with session info)
 			await saveCurrentChat(newMessages, newSession || undefined);
 
-			tracing.traceEnd(cliTraceId, { output: fullContent });
+			tracing.traceEnd(cliTraceId, { output: processedContent });
 			tracing.score(cliTraceId, {
 				name: "status",
 				value: stopped ? 0.5 : 1,
@@ -1110,12 +1155,12 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 	};
 
 	// Send message to Gemini
-	const sendMessage = async (content: string, attachments?: Attachment[]) => {
-		if ((!content.trim() && (!attachments || attachments.length === 0)) || isLoading) return;
+	const sendMessage = async (content: string, attachments?: Attachment[], skillPath?: string) => {
+		if ((!content.trim() && !skillPath && (!attachments || attachments.length === 0)) || isLoading) return;
 
 		// Use CLI provider if in CLI mode
 		if (isCliMode) {
-			await sendMessageViaCli(content, attachments);
+			await sendMessageViaCli(content, attachments, skillPath);
 			return;
 		}
 
@@ -1154,10 +1199,17 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 		// Resolve variables in the content ({selection}, {content}, file paths)
 		const resolvedContent = await resolveMessageVariables(content);
 
+		// When skill is invoked without message, use skill name as trigger
+		let displayContent = resolvedContent.trim();
+		if (!displayContent && skillPath) {
+			const skillMeta = availableSkills.find(s => s.folderPath === skillPath);
+			displayContent = skillMeta ? `/${skillMeta.name}` : "/skill";
+		}
+
 		// Add user message
 		const userMessage: Message = {
 			role: "user",
-			content: resolvedContent.trim() || (attachments ? `[${attachments.length} file(s) attached]` : ""),
+			content: displayContent || (attachments ? `[${attachments.length} file(s) attached]` : ""),
 			timestamp: Date.now(),
 			attachments,
 		};
@@ -1194,10 +1246,17 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 					ragEnabled: allowRag,
 				}) : [];
 
+				// Activate skill if invoked via slash command
+				let effectiveSkillPaths = activeSkillPaths;
+				if (skillPath && !effectiveSkillPaths.includes(skillPath)) {
+					effectiveSkillPaths = [...effectiveSkillPaths, skillPath];
+					setActiveSkillPaths(effectiveSkillPaths);
+				}
+
 				// Load active skills (needed for both workflow tools and system prompt)
 				let loadedSkillsList: LoadedSkill[] = [];
-				if (activeSkillPaths.length > 0) {
-					const activeMetadata = availableSkills.filter(s => activeSkillPaths.includes(s.folderPath));
+				if (effectiveSkillPaths.length > 0) {
+					const activeMetadata = availableSkills.filter(s => effectiveSkillPaths.includes(s.folderPath));
 					if (activeMetadata.length > 0) {
 						loadedSkillsList = await Promise.all(
 							activeMetadata.map(m => loadSkill(plugin.app, m))
@@ -2118,8 +2177,8 @@ Always be helpful and provide clear, concise responses. When working with notes,
 
 					<InputArea
 						ref={inputAreaRef}
-						onSend={(content, attachments) => {
-							void sendMessage(content, attachments);
+						onSend={(content, attachments, skillPath) => {
+							void sendMessage(content, attachments, skillPath);
 						}}
 						onStop={stopMessage}
 						isLoading={isLoading}

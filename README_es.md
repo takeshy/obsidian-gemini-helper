@@ -249,6 +249,17 @@ Algunas herramientas MCP devuelven UI interactiva que te permite interactuar vis
 
 > **Seguridad:** Todo el contenido de MCP App se ejecuta en un iframe aislado con permisos restringidos. El iframe no puede acceder al DOM, cookies o almacenamiento local de la página principal. Solo están habilitados `allow-scripts` y `allow-forms`.
 
+## Skills de Agente
+
+Extienda las capacidades de la IA con instrucciones personalizadas, materiales de referencia y flujos de trabajo ejecutables. Los skills siguen el patrón estándar de la industria para skills de agente (p. ej., [OpenAI Codex](https://github.com/openai/codex) `.codex/skills/`).
+
+- **Instrucciones personalizadas** - Defina comportamiento específico del dominio mediante archivos `SKILL.md`
+- **Materiales de referencia** - Incluya guías de estilo, plantillas y listas de verificación en `references/`
+- **Integración con flujos de trabajo** - Los skills pueden exponer flujos de trabajo como herramientas de Function Calling
+- **Activación selectiva** - Elija qué skills están activos por conversación
+
+> **Para instrucciones de configuración y ejemplos, consulte [SKILLS.md](docs/SKILLS_es.md)**
+
 ---
 
 # Constructor de Flujos de Trabajo

@@ -725,6 +725,16 @@ export const ko: Record<string, string> = {
   // Input - MCP tool hint
   "input.mcpToolHint": "({{count}}개 도구: {{tools}})",
 
+  // Skills Settings
+  "settings.skills": "에이전트 스킬",
+  "settings.skillsFolder": "스킬 폴더",
+  "settings.skillsFolder.desc": "에이전트 스킬 폴더의 상대 경로입니다. skill.md 파일이 있는 각 하위 폴더가 스킬로 처리됩니다.",
+  "settings.skillsFolder.placeholder": "Skills",
+
+  // Skills UI
+  "skills.add": "스킬 추가",
+  "message.skillsUsed": "스킬",
+
   // HTML Preview Modal
   "htmlPreview.title": "인포그래픽 미리보기",
   "htmlPreview.copyCode": "코드 복사",
@@ -746,6 +756,8 @@ export const ko: Record<string, string> = {
   "aiWorkflow.namePlaceholder": "내 워크플로우",
   "aiWorkflow.pathHint": "워크플로우 이름에 {{name}}을 사용하세요. .md 확장자가 자동으로 추가됩니다.",
   "aiWorkflow.confirmCheckbox": "적용 전 변경 사항 확인",
+  "aiWorkflow.createAsSkill": "에이전트 스킬로 생성",
+  "aiWorkflow.skillCreated": "스킬 \"{{name}}\"이(가) {{path}}에 생성되었습니다",
   "aiWorkflow.generate": "생성",
   "aiWorkflow.modify": "수정",
   "aiWorkflow.enterName": "워크플로우 이름을 입력하세요",

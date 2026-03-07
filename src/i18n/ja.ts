@@ -695,6 +695,16 @@ export const ja: Record<string, string> = {
   "crypt.save": "保存",
   "crypt.editorPlaceholder": "内容を入力...",
 
+  // Skills Settings
+  "settings.skills": "エージェントスキル",
+  "settings.skillsFolder": "スキルフォルダ",
+  "settings.skillsFolder.desc": "エージェントスキルフォルダへの相対パス。SKILL.mdファイルを含むサブフォルダがスキルとして認識されます。",
+  "settings.skillsFolder.placeholder": "skills",
+
+  // Skills UI
+  "skills.add": "スキルを追加",
+  "message.skillsUsed": "スキル",
+
   // MCP Server Settings
   "settings.mcpServers": "MCPサーバー",
   "settings.mcpServers.desc": "追加ツールを使用するための外部MCP（Model Context Protocol）サーバーを設定",
@@ -746,6 +756,8 @@ export const ja: Record<string, string> = {
   "aiWorkflow.namePlaceholder": "マイワークフロー",
   "aiWorkflow.pathHint": "{{name}}をワークフロー名に使用できます。.md拡張子は自動的に追加されます。",
   "aiWorkflow.confirmCheckbox": "適用前に変更を確認",
+  "aiWorkflow.createAsSkill": "エージェントスキルとして作成",
+  "aiWorkflow.skillCreated": "スキル「{{name}}」を{{path}}に作成しました",
   "aiWorkflow.generate": "生成",
   "aiWorkflow.modify": "変更",
   "aiWorkflow.enterName": "ワークフロー名を入力してください",

@@ -118,6 +118,9 @@ export interface GeminiHelperSettings {
   // Workflow event triggers
   enabledWorkflowEventTriggers: WorkflowEventTrigger[];  // Event-triggered workflows
 
+  // Skills
+  skillsFolderPath: string;  // Relative path for agent skills folder (default: "skills")
+
   // MCP servers
   mcpServers: McpServerConfig[];  // External MCP server configurations
 
@@ -488,6 +491,7 @@ export interface Message {
   imageGenerationUsed?: boolean;  // Image Generationが使用されたか
   generatedImages?: GeneratedImage[];  // 生成された画像
   thinking?: string;  // モデルの思考内容（thinkingモデル用）
+  skillsUsed?: string[];  // Names of active skills used
   mcpApps?: McpAppInfo[];  // MCP Apps with UI (MCP Apps拡張)
   usage?: StreamChunkUsage;  // Token usage and cost
   elapsedMs?: number;        // Response time in milliseconds
@@ -670,6 +674,7 @@ export const DEFAULT_SETTINGS: GeminiHelperSettings = {
   slashCommands: DEFAULT_SLASH_COMMANDS,
   enabledWorkflowHotkeys: [],
   enabledWorkflowEventTriggers: [],
+  skillsFolderPath: "skills",
   mcpServers: [],
   // Function call limits
   maxFunctionCalls: 20,

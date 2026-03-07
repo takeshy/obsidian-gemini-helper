@@ -60,6 +60,7 @@ export async function messagesToMarkdown(
 		if (msg.webSearchUsed) metadata.webSearchUsed = msg.webSearchUsed;
 		if (msg.imageGenerationUsed) metadata.imageGenerationUsed = msg.imageGenerationUsed;
 		if (msg.generatedImages) metadata.generatedImages = msg.generatedImages;
+		if (msg.skillsUsed) metadata.skillsUsed = msg.skillsUsed;
 		if (msg.mcpApps) metadata.mcpApps = msg.mcpApps;
 		if (msg.pendingRename) metadata.pendingRename = msg.pendingRename;
 		if (msg.usage) metadata.usage = msg.usage;
@@ -177,6 +178,7 @@ export function parseMarkdownToMessages(content: string): { messages: Message[];
 						if (meta.webSearchUsed) message.webSearchUsed = meta.webSearchUsed as boolean;
 						if (meta.imageGenerationUsed) message.imageGenerationUsed = meta.imageGenerationUsed as boolean;
 						if (meta.generatedImages) message.generatedImages = meta.generatedImages as Message["generatedImages"];
+						if (meta.skillsUsed) message.skillsUsed = meta.skillsUsed as string[];
 						if (meta.mcpApps) message.mcpApps = meta.mcpApps as Message["mcpApps"];
 						if (meta.pendingRename) message.pendingRename = meta.pendingRename as Message["pendingRename"];
 						if (meta.usage) message.usage = meta.usage as Message["usage"];

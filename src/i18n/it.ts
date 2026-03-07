@@ -725,6 +725,16 @@ export const it: Record<string, string> = {
   // Input - MCP tool hint
   "input.mcpToolHint": "({{count}} strumenti: {{tools}})",
 
+  // Skills Settings
+  "settings.skills": "Skill dell'agente",
+  "settings.skillsFolder": "Cartella degli skill",
+  "settings.skillsFolder.desc": "Percorso relativo alla cartella degli skill dell'agente. Ogni sottocartella con un file skill.md viene trattata come uno skill.",
+  "settings.skillsFolder.placeholder": "Skills",
+
+  // Skills UI
+  "skills.add": "Aggiungi skill",
+  "message.skillsUsed": "Skills",
+
   // HTML Preview Modal
   "htmlPreview.title": "Anteprima infografica",
   "htmlPreview.copyCode": "Copia codice",
@@ -746,6 +756,8 @@ export const it: Record<string, string> = {
   "aiWorkflow.namePlaceholder": "Il mio flusso di lavoro",
   "aiWorkflow.pathHint": "Usa {{name}} per il nome del flusso di lavoro. L'estensione .md viene aggiunta automaticamente.",
   "aiWorkflow.confirmCheckbox": "Conferma le modifiche prima di applicare",
+  "aiWorkflow.createAsSkill": "Crea come skill dell'agente",
+  "aiWorkflow.skillCreated": "Skill \"{{name}}\" creato in {{path}}",
   "aiWorkflow.generate": "Genera",
   "aiWorkflow.modify": "Modifica",
   "aiWorkflow.enterName": "Inserisci un nome per il flusso di lavoro",

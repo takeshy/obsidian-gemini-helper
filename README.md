@@ -249,6 +249,17 @@ Some MCP tools return interactive UI that allows you to interact with the tool r
 
 > **Security:** All MCP App content runs in a sandboxed iframe with restricted permissions. The iframe cannot access the parent page's DOM, cookies, or local storage. Only `allow-scripts` and `allow-forms` are enabled.
 
+## Agent Skills
+
+Extend the AI with custom instructions, reference materials, and executable workflows. Skills follow the industry-standard agent skills pattern (e.g., [OpenAI Codex](https://github.com/openai/codex) `.codex/skills/`).
+
+- **Custom instructions** - Define domain-specific behavior via `SKILL.md` files
+- **Reference materials** - Include style guides, templates, and checklists in `references/`
+- **Workflow integration** - Skills can expose workflows as function calling tools
+- **Selective activation** - Choose which skills are active per conversation
+
+> **For setup instructions and examples, see [SKILLS.md](docs/SKILLS.md)**
+
 ---
 
 # Workflow Builder

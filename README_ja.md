@@ -254,6 +254,17 @@ MCP（Model Context Protocol）サーバーは、Vault操作以外のAI機能を
 
 > **セキュリティ：** すべてのMCP Appコンテンツは制限された権限でサンドボックス化されたiframe内で実行されます。iframeは親ページのDOM、Cookie、ローカルストレージにアクセスできません。`allow-scripts`と`allow-forms`のみが有効です。
 
+## エージェントスキル
+
+カスタム指示、参考資料、実行可能なワークフローでAIの機能を拡張します。スキルは[OpenAI Codex](https://github.com/openai/codex)の`.codex/skills/`など、業界標準のエージェントスキルパターンに従います。
+
+- **カスタム指示** - `SKILL.md`ファイルでドメイン固有の動作を定義
+- **参考資料** - `references/`にスタイルガイド、テンプレート、チェックリストを含める
+- **ワークフロー統合** - スキルがワークフローをFunction Callingツールとして公開可能
+- **選択的有効化** - 会話ごとにアクティブなスキルを選択
+
+> **セットアップ手順と例については、[SKILLS.md](docs/SKILLS_ja.md)を参照してください**
+
 ---
 
 # ワークフロービルダー

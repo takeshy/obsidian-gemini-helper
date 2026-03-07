@@ -6771,3 +6771,144 @@
   gap: 8px;
   flex-wrap: wrap;
 }
+
+/* Skill Selector */
+.gemini-helper-skill-selector {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 12px 4px 12px;
+  flex-wrap: wrap;
+}
+
+.gemini-helper-skill-icon {
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.gemini-helper-skill-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 1px 6px;
+  font-size: 11px;
+  background: var(--interactive-accent);
+  color: var(--text-on-accent);
+  border-radius: 10px;
+  white-space: nowrap;
+}
+
+.gemini-helper-skill-chip-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  color: var(--text-on-accent);
+  cursor: pointer;
+  padding: 0;
+  margin-left: 2px;
+  opacity: 0.7;
+  box-shadow: none;
+}
+
+.gemini-helper-skill-chip-remove:hover {
+  opacity: 1;
+}
+
+.gemini-helper-skill-dropdown-wrapper {
+  position: relative;
+  display: inline-flex;
+}
+
+.gemini-helper-skill-add-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: 1px dashed var(--text-muted);
+  border-radius: 50%;
+  background: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  box-shadow: none;
+}
+
+.gemini-helper-skill-add-btn:hover {
+  border-color: var(--text-normal);
+  color: var(--text-normal);
+}
+
+.gemini-helper-skill-dropdown {
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  min-width: 200px;
+  max-height: 200px;
+  overflow-y: auto;
+  background: var(--background-primary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 6px;
+  box-shadow: var(--shadow-s);
+  z-index: 100;
+  padding: 4px;
+  margin-bottom: 4px;
+}
+
+.gemini-helper-skill-dropdown-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 4px 6px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.gemini-helper-skill-dropdown-item:hover {
+  background: var(--background-modifier-hover);
+}
+
+.gemini-helper-skill-dropdown-item input[type="checkbox"] {
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+
+.gemini-helper-skill-dropdown-info {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.gemini-helper-skill-dropdown-name {
+  font-weight: 500;
+  color: var(--text-normal);
+}
+
+.gemini-helper-skill-dropdown-desc {
+  font-size: 11px;
+  color: var(--text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Skills used indicator in message */
+.gemini-helper-skills-used {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.75em;
+  color: var(--text-muted);
+  padding: 2px 0;
+  flex-wrap: wrap;
+}
+
+.gemini-helper-skills-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}

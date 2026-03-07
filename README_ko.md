@@ -249,6 +249,17 @@ MCP(Model Context Protocol) 서버는 Vault 작업 이외의 AI 기능을 확장
 
 > **보안:** 모든 MCP App 콘텐츠는 제한된 권한으로 샌드박스된 iframe 내에서 실행됩니다. iframe은 상위 페이지의 DOM, 쿠키 또는 로컬 스토리지에 접근할 수 없습니다. `allow-scripts`와 `allow-forms`만 활성화됩니다.
 
+## 에이전트 스킬
+
+맞춤 지시, 참조 자료, 실행 가능한 워크플로우로 AI의 기능을 확장합니다. 스킬은 [OpenAI Codex](https://github.com/openai/codex)의 `.codex/skills/` 등 업계 표준 에이전트 스킬 패턴을 따릅니다.
+
+- **맞춤 지시** - `SKILL.md` 파일로 도메인별 동작 정의
+- **참조 자료** - `references/`에 스타일 가이드, 템플릿, 체크리스트 포함
+- **워크플로우 통합** - 스킬이 워크플로우를 Function Calling 도구로 노출 가능
+- **선택적 활성화** - 대화별로 활성화할 스킬 선택
+
+> **설정 방법과 예제는 [SKILLS.md](docs/SKILLS_ko.md)를 참조하세요**
+
 ---
 
 # Workflow Builder

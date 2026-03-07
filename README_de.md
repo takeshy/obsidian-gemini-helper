@@ -249,6 +249,17 @@ Einige MCP-Werkzeuge geben interaktive UI zurück, die es Ihnen ermöglicht, vis
 
 > **Sicherheit:** Alle MCP-App-Inhalte werden in einem Sandbox-iframe mit eingeschränkten Berechtigungen ausgeführt. Das iframe kann nicht auf das DOM der übergeordneten Seite, Cookies oder lokalen Speicher zugreifen. Nur `allow-scripts` und `allow-forms` sind aktiviert.
 
+## Agent-Skills
+
+Erweitern Sie die KI mit benutzerdefinierten Anweisungen, Referenzmaterialien und ausführbaren Workflows. Skills folgen dem branchenüblichen Agent-Skills-Muster (z.B. [OpenAI Codex](https://github.com/openai/codex) `.codex/skills/`).
+
+- **Benutzerdefinierte Anweisungen** - Definieren Sie domänenspezifisches Verhalten über `SKILL.md`-Dateien
+- **Referenzmaterialien** - Styleguides, Vorlagen und Checklisten in `references/` einbinden
+- **Workflow-Integration** - Skills können Workflows als Function-Calling-Werkzeuge bereitstellen
+- **Selektive Aktivierung** - Wählen Sie, welche Skills pro Konversation aktiv sind
+
+> **Für Einrichtungsanleitungen und Beispiele siehe [SKILLS.md](docs/SKILLS_de.md)**
+
 ---
 
 # Workflow Builder

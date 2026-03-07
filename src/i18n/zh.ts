@@ -725,6 +725,16 @@ export const zh: Record<string, string> = {
   // Input - MCP tool hint
   "input.mcpToolHint": "（{{count}} 个工具：{{tools}}）",
 
+  // Skills Settings
+  "settings.skills": "代理技能",
+  "settings.skillsFolder": "技能文件夹",
+  "settings.skillsFolder.desc": "代理技能文件夹的相对路径。每个包含 skill.md 文件的子文件夹将被视为一个技能。",
+  "settings.skillsFolder.placeholder": "Skills",
+
+  // Skills UI
+  "skills.add": "添加技能",
+  "message.skillsUsed": "技能",
+
   // HTML Preview Modal
   "htmlPreview.title": "信息图预览",
   "htmlPreview.copyCode": "复制代码",
@@ -746,6 +756,8 @@ export const zh: Record<string, string> = {
   "aiWorkflow.namePlaceholder": "我的工作流",
   "aiWorkflow.pathHint": "使用 {{name}} 作为工作流名称。.md 扩展名将自动添加。",
   "aiWorkflow.confirmCheckbox": "应用前确认更改",
+  "aiWorkflow.createAsSkill": "创建为代理技能",
+  "aiWorkflow.skillCreated": "技能 \"{{name}}\" 已创建于 {{path}}",
   "aiWorkflow.generate": "生成",
   "aiWorkflow.modify": "修改",
   "aiWorkflow.enterName": "请输入工作流名称",

@@ -249,6 +249,17 @@ MCP（Model Context Protocol）服务器提供额外的工具，扩展 AI 在 Va
 
 > **安全性：** 所有 MCP App 内容都在具有受限权限的沙盒 iframe 中运行。iframe 无法访问父页面的 DOM、Cookie 或本地存储。仅启用 `allow-scripts` 和 `allow-forms`。
 
+## 代理技能
+
+通过自定义指令、参考资料和可执行工作流扩展 AI 的能力。技能遵循业界标准的代理技能模式（如 [OpenAI Codex](https://github.com/openai/codex) 的 `.codex/skills/`）。
+
+- **自定义指令** - 通过 `SKILL.md` 文件定义特定领域的行为
+- **参考资料** - 在 `references/` 中包含风格指南、模板和检查清单
+- **工作流集成** - 技能可以将工作流作为 Function Calling 工具公开
+- **选择性激活** - 按对话选择哪些技能处于活动状态
+
+> **有关设置说明和示例，请参阅 [SKILLS.md](docs/SKILLS_zh.md)**
+
 ---
 
 # 工作流构建器

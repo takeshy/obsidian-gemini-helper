@@ -2,6 +2,8 @@ import { useState, useRef, useEffect, KeyboardEvent, ChangeEvent, forwardRef, us
 import { Send, Paperclip, StopCircle, Loader2, Eye, Database, ChevronUp, ChevronDown } from "lucide-react";
 import { Notice, Platform, type App } from "obsidian";
 import { isImageGenerationModel, type ModelInfo, type ModelType, type Attachment, type SlashCommand, type McpServerConfig, type VaultToolMode } from "src/types";
+import type { SkillMetadata } from "src/core/skillsLoader";
+import SkillSelector from "./SkillSelector";
 import { t } from "src/i18n";
 
 // Built-in command definition (not user-configurable)
@@ -35,6 +37,9 @@ interface InputAreaProps {
   onMcpServerToggle: (serverName: string, enabled: boolean) => void; // Per-server toggle handler
   slashCommands: SlashCommand[];
   onSlashCommand: (command: SlashCommand) => string;
+  availableSkills: SkillMetadata[];
+  activeSkillPaths: string[];
+  onToggleSkill: (folderPath: string) => void;
   onCompact?: () => void; // Built-in /compact command handler
   messageCount?: number; // Number of messages (to enable/disable /compact)
   isCompacting?: boolean; // Whether compact is in progress
@@ -90,6 +95,9 @@ const InputArea = forwardRef<InputAreaHandle, InputAreaProps>(function InputArea
   onMcpServerToggle,
   slashCommands,
   onSlashCommand,
+  availableSkills,
+  activeSkillPaths,
+  onToggleSkill,
   onCompact,
   messageCount = 0,
   isCompacting = false,
@@ -189,6 +197,32 @@ const InputArea = forwardRef<InputAreaHandle, InputAreaProps>(function InputArea
         }
         return;
       }
+      // Intercept /skillFolder [message] command
+      if (input.trim().startsWith("/")) {
+        const trimmed = input.trim();
+        // Match skill folder name (no spaces) at the start, rest is the message
+        for (const skill of availableSkills) {
+          const folderName = skill.folderPath.split("/").pop() || "";
+          const prefix = `/${folderName}`;
+          if (trimmed.toLowerCase().startsWith(prefix.toLowerCase()) &&
+              (trimmed.length === prefix.length || trimmed[prefix.length] === " ")) {
+            const message = trimmed.slice(prefix.length).trim();
+            // Activate skill if not already active
+            if (!activeSkillPaths.includes(skill.folderPath)) {
+              onToggleSkill(skill.folderPath);
+            }
+            // Send the message part (skill instructions are injected via system prompt)
+            if (message) {
+              void onSend(message, pendingAttachments.length > 0 ? pendingAttachments : undefined);
+              setInput("");
+              setPendingAttachments([]);
+            } else {
+              setInput("");
+            }
+            return;
+          }
+        }
+      }
       void onSend(input, pendingAttachments.length > 0 ? pendingAttachments : undefined);
       setInput("");
       setPendingAttachments([]);
@@ -213,6 +247,19 @@ const InputArea = forwardRef<InputAreaHandle, InputAreaProps>(function InputArea
           description: t("command.compact"),
           isBuiltIn: true,
         });
+      }
+
+      // Add inactive skills as built-in commands (use folder name as command name)
+      for (const skill of availableSkills) {
+        if (!activeSkillPaths.includes(skill.folderPath)) {
+          const folderName = skill.folderPath.split("/").pop() || "";
+          builtInCommands.push({
+            id: `__skill__${skill.folderPath}`,
+            name: folderName,
+            description: `${skill.name}${skill.description ? ` - ${skill.description}` : ""}`,
+            isBuiltIn: true,
+          });
+        }
       }
 
       // Filter both user-defined and built-in commands
@@ -255,6 +302,15 @@ const InputArea = forwardRef<InputAreaHandle, InputAreaProps>(function InputArea
       if (command.id === "__compact__" && onCompact) {
         setInput("");
         onCompact();
+      }
+      // Handle skill activation — activate and clear input for user to type message
+      if (command.id.startsWith("__skill__")) {
+        const folderPath = command.id.slice("__skill__".length);
+        if (!activeSkillPaths.includes(folderPath)) {
+          onToggleSkill(folderPath);
+        }
+        setInput("");
+        textareaRef.current?.focus();
       }
       return;
     }
@@ -470,7 +526,9 @@ const InputArea = forwardRef<InputAreaHandle, InputAreaProps>(function InputArea
                 onClick={() => selectCommand(cmd)}
                 onMouseEnter={() => setAutocompleteIndex(index)}
               >
-                <span className="gemini-helper-autocomplete-name">/{cmd.name}</span>
+                <span className="gemini-helper-autocomplete-name">
+                  {"id" in cmd && (cmd as BuiltInCommand).id?.startsWith("__skill__") ? `✨ /${cmd.name}` : `/${cmd.name}`}
+                </span>
                 {("description" in cmd) && cmd.description && (
                   <span className="gemini-helper-autocomplete-desc">
                     {cmd.description}
@@ -749,6 +807,14 @@ const InputArea = forwardRef<InputAreaHandle, InputAreaProps>(function InputArea
             ))}
           </select>
         </div>
+      )}
+      {!isCollapsed && availableSkills.length > 0 && (
+        <SkillSelector
+          skills={availableSkills}
+          activeSkillPaths={activeSkillPaths}
+          onToggleSkill={onToggleSkill}
+          disabled={isLoading}
+        />
       )}
     </div>
   );

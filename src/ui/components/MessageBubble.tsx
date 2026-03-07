@@ -427,6 +427,15 @@ export default function MessageBubble({
         </div>
       )}
 
+      {/* Skills used indicator */}
+      {message.skillsUsed && message.skillsUsed.length > 0 && (
+        <div className="gemini-helper-skills-used">
+          <span className="gemini-helper-skills-indicator">
+            ✨ {t("message.skillsUsed")}: {message.skillsUsed.join(", ")}
+          </span>
+        </div>
+      )}
+
       {/* Semantic search indicator with sources */}
       {message.ragUsed && (
         <div className="gemini-helper-rag-used">

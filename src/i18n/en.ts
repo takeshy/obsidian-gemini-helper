@@ -695,6 +695,16 @@ export const en = {
   "crypt.save": "Save",
   "crypt.editorPlaceholder": "Enter content...",
 
+  // Skills Settings
+  "settings.skills": "Agent skills",
+  "settings.skillsFolder": "Skills folder",
+  "settings.skillsFolder.desc": "Relative path to the agent skills folder. Each subfolder with a skill.md file is treated as a skill.",
+  "settings.skillsFolder.placeholder": "Skills",
+
+  // Skills UI
+  "skills.add": "Add skill",
+  "message.skillsUsed": "Skills",
+
   // MCP Server Settings
   "settings.mcpServers": "Mcp servers",
   "settings.mcpServers.desc": "Configure external mcp (model context protocol) servers for additional tools",
@@ -746,6 +756,8 @@ export const en = {
   "aiWorkflow.namePlaceholder": "My workflow",
   "aiWorkflow.pathHint": "Use {{name}} for workflow name. .md extension added automatically.",
   "aiWorkflow.confirmCheckbox": "Confirm changes before applying",
+  "aiWorkflow.createAsSkill": "Create as agent skill",
+  "aiWorkflow.skillCreated": "Skill \"{{name}}\" created at {{path}}",
   "aiWorkflow.generate": "Generate",
   "aiWorkflow.modify": "Modify",
   "aiWorkflow.enterName": "Please enter a workflow name",

@@ -421,6 +421,31 @@ nodes:
 
 ### Data Processing
 
+#### script
+Execute JavaScript code in a sandboxed environment (no DOM, network, or storage access). Useful for string manipulation, data transformation, calculations, and encoding/decoding that the set node cannot handle.
+- **code** (required): JavaScript code (supports {{variables}}). Use \`return\` to return a value. Non-string return values are JSON-serialized.
+- **saveTo** (optional): Variable for the result
+- **timeout** (optional): Timeout in milliseconds (default: "10000")
+
+Example — split and sort a comma-separated list:
+\`\`\`yaml
+- id: sort-items
+  type: script
+  code: |
+    var items = '{{rawList}}'.split(',').map(function(s){ return s.trim(); });
+    items.sort();
+    return items.join('\\n');
+  saveTo: sortedList
+\`\`\`
+
+Example — Base64 encode:
+\`\`\`yaml
+- id: encode
+  type: script
+  code: "return btoa('{{plainText}}')"
+  saveTo: encoded
+\`\`\`
+
 #### json
 Parse JSON string.
 - **source** (required): Variable containing JSON string

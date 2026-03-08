@@ -80,6 +80,7 @@ function getNodeTypeLabel(type: WorkflowNodeType): string {
     mcp: "workflow.nodeType.mcp",
     "obsidian-command": "workflow.nodeType.obsidianCommand",
     sleep: "workflow.nodeType.sleep",
+    script: "workflow.nodeType.script",
   };
   return t(keyMap[type]);
 }
@@ -510,6 +511,12 @@ export class NodeEditorModal extends Modal {
 
       case "sleep":
         this.addTextField(container, "duration", t("nodeEditor.duration"), t("nodeEditor.duration.placeholder"));
+        break;
+
+      case "script":
+        this.addTextArea(container, "code", t("nodeEditor.code"), t("nodeEditor.code.placeholder"), true);
+        this.addTextField(container, "saveTo", t("nodeEditor.saveTo"), t("nodeEditor.saveTo.placeholder"));
+        this.addTextField(container, "timeout", t("nodeEditor.timeout"), t("nodeEditor.timeout.placeholder"));
         break;
     }
 

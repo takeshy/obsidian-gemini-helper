@@ -25,7 +25,8 @@ export type WorkflowNodeType =
   | "file-save"
   | "mcp"
   | "obsidian-command"
-  | "sleep";
+  | "sleep"
+  | "script";
 
 /** All valid workflow node type values. Single source of truth for validation. */
 const WORKFLOW_NODE_TYPES: ReadonlySet<string> = new Set<WorkflowNodeType>([
@@ -33,7 +34,7 @@ const WORKFLOW_NODE_TYPES: ReadonlySet<string> = new Set<WorkflowNodeType>([
   "note", "note-read", "note-search", "note-list", "folder-list",
   "open", "dialog", "prompt-file", "prompt-selection",
   "workflow", "rag-sync", "file-explorer", "file-save",
-  "mcp", "obsidian-command", "sleep",
+  "mcp", "obsidian-command", "sleep", "script",
 ]);
 
 /** Type guard for WorkflowNodeType. Used by parser.ts and codeblockSync.ts. */

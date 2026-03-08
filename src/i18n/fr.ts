@@ -361,6 +361,7 @@ export const fr: Record<string, string> = {
   "workflow.nodeType.mcp": "MCP",
   "workflow.nodeType.obsidianCommand": "Commande Obsidian",
   "workflow.nodeType.sleep": "Pause",
+  "workflow.nodeType.script": "Script",
   "workflow.nodeType.imageGeneration": "Génération d'images",
 
   // Workflow Panel - UI Strings
@@ -939,6 +940,10 @@ export const fr: Record<string, string> = {
   "nodeEditor.saveTo.commandResult": "Nom de variable pour stocker le résultat d'exécution (optionnel)",
   "nodeEditor.duration": "Durée (ms)",
   "nodeEditor.duration.placeholder": "Durée de pause en millisecondes (ex., 1000 pour 1 seconde)",
+  "nodeEditor.code": "Code",
+  "nodeEditor.code.placeholder": "var items = '{{data}}'.split(',');\nreturn items.map(s => s.trim()).join('\\n');",
+  "nodeEditor.timeout": "Délai d'attente (ms)",
+  "nodeEditor.timeout.placeholder": "Délai d'exécution en millisecondes (par défaut : 10000)",
   "nodeEditor.trueNext": "Suivant si vrai",
   "nodeEditor.trueNext.placeholder": "ID du nœud suivant pour la branche vraie",
   "nodeEditor.falseNext": "Suivant si faux",

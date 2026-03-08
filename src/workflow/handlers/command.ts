@@ -10,6 +10,7 @@ import { WorkflowNode, ExecutionContext, PromptCallbacks, FileExplorerData } fro
 import { replaceVariables } from "./utils";
 import { tracing } from "../../core/tracingHooks";
 import { formatError } from "../../utils/error";
+import { handleExecuteJavascriptTool, EXECUTE_JAVASCRIPT_TOOL } from "../../core/sandboxExecutor";
 
 // Result type for command node execution
 export interface CommandNodeResult {
@@ -299,6 +300,9 @@ Please revise the output based on the user's feedback above.`;
       }
     }
 
+    // Add execute_javascript tool
+    tools.push(EXECUTE_JAVASCRIPT_TOOL);
+
     // Create combined tool executor
     if (tools.length > 0) {
       toolExecutor = async (name: string, args: Record<string, unknown>) => {
@@ -317,6 +321,10 @@ Please revise the output based on the user's feedback above.`;
           }
           return { result: mcpResult.result };
         }
+        // JavaScript sandbox tool
+        if (name === "execute_javascript") {
+          return await handleExecuteJavascriptTool(args);
+        }
         // Otherwise use Obsidian tool executor
         return await obsidianToolExecutor(name, args);
       };
@@ -329,9 +337,12 @@ Please revise the output based on the user's feedback above.`;
     if (enabledServers.length > 0) {
       try {
         const mcpTools = await fetchMcpTools(enabledServers);
-        tools = mcpTools;
+        tools = [...mcpTools, EXECUTE_JAVASCRIPT_TOOL];
         mcpToolExecutor = createMcpToolExecutor(mcpTools, traceId);
         toolExecutor = async (name: string, args: Record<string, unknown>) => {
+          if (name === "execute_javascript") {
+            return await handleExecuteJavascriptTool(args);
+          }
           if (mcpToolExecutor) {
             const mcpResult = await mcpToolExecutor.execute(name, args);
             // Show MCP App UI if available and collect the info
@@ -352,6 +363,17 @@ Please revise the output based on the user's feedback above.`;
         console.error("Failed to fetch MCP tools:", error);
       }
     }
+  }
+
+  // If no tools but not image model, still add execute_javascript
+  if (!isImageModel && tools.length === 0) {
+    tools = [EXECUTE_JAVASCRIPT_TOOL];
+    toolExecutor = async (name: string, args: Record<string, unknown>) => {
+      if (name === "execute_javascript") {
+        return await handleExecuteJavascriptTool(args);
+      }
+      return { error: `Unknown tool: ${name}` };
+    };
   }
 
   // Execute LLM call - use generateImageStream for image models

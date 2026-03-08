@@ -33,6 +33,7 @@ import {
 import { getGeminiClient } from "src/core/gemini";
 import { tracing } from "src/core/tracingHooks";
 import { getEnabledTools, skillWorkflowTool } from "src/core/tools";
+import { handleExecuteJavascriptTool, EXECUTE_JAVASCRIPT_TOOL } from "src/core/sandboxExecutor";
 import { fetchMcpTools, createMcpToolExecutor, isMcpTool, type McpToolDefinition, type McpToolExecutor } from "src/core/mcpTools";
 import { GeminiCliProvider, ClaudeCliProvider, CodexCliProvider } from "src/core/cliProvider";
 import { createToolExecutor } from "src/vault/toolExecutor";
@@ -1316,6 +1317,11 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 					tools.push(skillWorkflowTool);
 				}
 
+				// Add execute_javascript tool
+				if (toolsEnabled) {
+					tools.push(EXECUTE_JAVASCRIPT_TOOL);
+				}
+
 				// Create context for RAG tools (Obsidian tools only)
 				const obsidianToolExecutor = toolsEnabled
 					? createToolExecutor(plugin.app, {
@@ -1367,6 +1373,10 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 								args.variables as string | undefined,
 								skillWorkflowMap,
 							);
+						}
+						// JavaScript sandbox tool
+						if (name === "execute_javascript") {
+							return await handleExecuteJavascriptTool(args);
 						}
 						// Otherwise use Obsidian tool executor
 						if (obsidianToolExecutor) {

@@ -33,6 +33,7 @@ const getNodeTypeLabels = (): Record<WorkflowNodeType, string> => ({
   mcp: t("workflow.nodeType.mcp"),
   "obsidian-command": t("workflow.nodeType.obsidianCommand"),
   sleep: t("workflow.nodeType.sleep"),
+  script: t("workflow.nodeType.script"),
 });
 
 /**

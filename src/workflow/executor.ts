@@ -35,6 +35,7 @@ import {
   handleMcpNode,
   handleObsidianCommandNode,
   handleSleepNode,
+  handleScriptNode,
   replaceVariables,
   RegenerateRequestError,
 } from "./nodeHandlers";
@@ -1217,6 +1218,44 @@ export class WorkflowExecutor {
             // Push next nodes
             const sleepNextNodes = getNextNodes(workflow, node.id);
             for (const nextId of sleepNextNodes.reverse()) {
+              stack.push({ nodeId: nextId, iterationCount: 0 });
+            }
+            break;
+          }
+
+          case "script": {
+            const scriptCode = replaceVariables(node.properties["code"] || "", context);
+            const scriptInput: Record<string, unknown> = {
+              code: scriptCode,
+              timeout: node.properties["timeout"] || "10000",
+            };
+            log(node.id, node.type, `Executing script`, "info", scriptInput);
+
+            await handleScriptNode(node, context);
+
+            const scriptSaveTo = node.properties["saveTo"];
+            const scriptResult = scriptSaveTo
+              ? context.variables.get(scriptSaveTo)
+              : undefined;
+            log(
+              node.id,
+              node.type,
+              `Script executed successfully`,
+              "success",
+              scriptInput,
+              scriptResult
+            );
+            addHistoryStep(
+              node.id,
+              node.type,
+              scriptInput,
+              scriptResult,
+              "success"
+            );
+
+            // Push next nodes
+            const scriptNextNodes = getNextNodes(workflow, node.id);
+            for (const nextId of scriptNextNodes.reverse()) {
               stack.push({ nodeId: nextId, iterationCount: 0 });
             }
             break;

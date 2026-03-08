@@ -361,6 +361,7 @@ export const en = {
   "workflow.nodeType.mcp": "MCP",
   "workflow.nodeType.obsidianCommand": "Obsidian command",
   "workflow.nodeType.sleep": "Sleep",
+  "workflow.nodeType.script": "Script",
   "workflow.nodeType.imageGeneration": "Image generation",
 
   // Workflow Panel - UI Strings
@@ -939,6 +940,10 @@ export const en = {
   "nodeEditor.saveTo.commandResult": "Variable name to store execution result (optional)",
   "nodeEditor.duration": "Duration (ms)",
   "nodeEditor.duration.placeholder": "Sleep duration in milliseconds (e.g., 1000 for 1 second)",
+  "nodeEditor.code": "Code",
+  "nodeEditor.code.placeholder": "var items = '{{data}}'.split(',');\nreturn items.map(s => s.trim()).join('\\n');",
+  "nodeEditor.timeout": "Timeout (ms)",
+  "nodeEditor.timeout.placeholder": "Execution timeout in milliseconds (default: 10000)",
   "nodeEditor.trueNext": "True next",
   "nodeEditor.trueNext.placeholder": "Next node ID for true branch",
   "nodeEditor.falseNext": "False next",

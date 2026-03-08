@@ -361,6 +361,7 @@ export const zh: Record<string, string> = {
   "workflow.nodeType.mcp": "MCP",
   "workflow.nodeType.obsidianCommand": "Obsidian 命令",
   "workflow.nodeType.sleep": "暂停",
+  "workflow.nodeType.script": "脚本",
   "workflow.nodeType.imageGeneration": "图片生成",
 
   // Workflow Panel - UI Strings
@@ -939,6 +940,10 @@ export const zh: Record<string, string> = {
   "nodeEditor.saveTo.commandResult": "用于存储执行结果的变量名（可选）",
   "nodeEditor.duration": "持续时间（毫秒）",
   "nodeEditor.duration.placeholder": "休眠持续时间（毫秒，例如 1000 表示 1 秒）",
+  "nodeEditor.code": "代码",
+  "nodeEditor.code.placeholder": "var items = '{{data}}'.split(',');\nreturn items.map(s => s.trim()).join('\\n');",
+  "nodeEditor.timeout": "超时（毫秒）",
+  "nodeEditor.timeout.placeholder": "执行超时（毫秒，默认：10000）",
   "nodeEditor.trueNext": "True 时的下一个",
   "nodeEditor.trueNext.placeholder": "true 分支的下一个节点 ID",
   "nodeEditor.falseNext": "False 时的下一个",

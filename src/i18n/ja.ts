@@ -361,6 +361,7 @@ export const ja: Record<string, string> = {
   "workflow.nodeType.mcp": "MCP",
   "workflow.nodeType.obsidianCommand": "Obsidianコマンド",
   "workflow.nodeType.sleep": "スリープ",
+  "workflow.nodeType.script": "スクリプト",
   "workflow.nodeType.imageGeneration": "画像生成",
 
   // Workflow Panel - UI Strings
@@ -939,6 +940,10 @@ export const ja: Record<string, string> = {
   "nodeEditor.saveTo.commandResult": "実行結果を保存する変数名（任意）",
   "nodeEditor.duration": "待機時間（ms）",
   "nodeEditor.duration.placeholder": "スリープ時間（ミリ秒、例: 1000で1秒）",
+  "nodeEditor.code": "コード",
+  "nodeEditor.code.placeholder": "var items = '{{data}}'.split(',');\nreturn items.map(s => s.trim()).join('\\n');",
+  "nodeEditor.timeout": "タイムアウト（ms）",
+  "nodeEditor.timeout.placeholder": "実行タイムアウト（ミリ秒、デフォルト: 10000）",
   "nodeEditor.trueNext": "True時の次",
   "nodeEditor.trueNext.placeholder": "true分岐の次のノードID",
   "nodeEditor.falseNext": "False時の次",

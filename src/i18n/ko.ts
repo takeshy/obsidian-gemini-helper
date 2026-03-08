@@ -361,6 +361,7 @@ export const ko: Record<string, string> = {
   "workflow.nodeType.mcp": "MCP",
   "workflow.nodeType.obsidianCommand": "Obsidian 명령",
   "workflow.nodeType.sleep": "대기",
+  "workflow.nodeType.script": "스크립트",
   "workflow.nodeType.imageGeneration": "이미지 생성",
 
   // Workflow Panel - UI Strings
@@ -939,6 +940,10 @@ export const ko: Record<string, string> = {
   "nodeEditor.saveTo.commandResult": "실행 결과를 저장할 변수 이름 (선택 사항)",
   "nodeEditor.duration": "기간 (ms)",
   "nodeEditor.duration.placeholder": "슬립 기간(밀리초) (예: 1000은 1초)",
+  "nodeEditor.code": "코드",
+  "nodeEditor.code.placeholder": "var items = '{{data}}'.split(',');\nreturn items.map(s => s.trim()).join('\\n');",
+  "nodeEditor.timeout": "타임아웃 (ms)",
+  "nodeEditor.timeout.placeholder": "실행 타임아웃(밀리초) (기본값: 10000)",
   "nodeEditor.trueNext": "True 시 다음",
   "nodeEditor.trueNext.placeholder": "true 분기의 다음 노드 ID",
   "nodeEditor.falseNext": "False 시 다음",

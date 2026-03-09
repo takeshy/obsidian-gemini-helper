@@ -40,6 +40,7 @@ export interface AIWorkflowResult {
   resolvedMentions?: ResolvedMention[]; // File contents that were embedded
   createAsSkill?: boolean; // If true, create as agent skill
   rawMarkdown?: string; // Complete markdown from external LLM (saved as-is)
+  skillInstructions?: string; // AI-generated SKILL.md instructions body
 }
 
 // Result type for confirmation modal
@@ -697,13 +698,15 @@ export class AIWorkflowModal extends Modal {
     this.cachedResolvedDescription = resolved;
     this.cachedResolvedMentions = mentions;
 
-    const systemPrompt = this.buildSystemPrompt(true);
+    const isSkill = this.skillCheckbox?.checked || false;
+    const systemPrompt = this.buildSystemPrompt(true, isSkill);
     const userPrompt = this.buildUserPrompt(
       resolved,
       workflowName,
       undefined,
       [],
-      this.selectedExecutionSteps.length > 0 ? this.selectedExecutionSteps : undefined
+      this.selectedExecutionSteps.length > 0 ? this.selectedExecutionSteps : undefined,
+      isSkill
     );
 
     const fullPrompt = `${systemPrompt}\n\n---\n\n${userPrompt}`;
@@ -745,6 +748,8 @@ export class AIWorkflowModal extends Modal {
       : undefined;
 
     if (this.mode === "create") {
+      const isSkill = this.skillCheckbox?.checked || false;
+
       // Create mode: save markdown directly (validate it has workflow blocks)
       const options = listWorkflowOptions(pastedText);
       if (options.length === 0) {
@@ -761,10 +766,30 @@ export class AIWorkflowModal extends Modal {
         parsed.resolvedMentions = resolvedMentions;
         const outputPathTemplate = this.outputPathEl?.value?.trim() || "workflows/{{name}}";
         parsed.outputPath = outputPathTemplate.replace(/\{\{name\}\}/g, workflowName);
-        if (this.skillCheckbox?.checked) parsed.createAsSkill = true;
+        if (isSkill) {
+          parsed.createAsSkill = true;
+          // Extract skill instructions from explanation (text before YAML, strip trailing ---)
+          if (parsed.explanation) {
+            parsed.skillInstructions = parsed.explanation.replace(/\n---\s*$/, "").trim();
+          }
+        }
         this.resolvePromise(parsed);
         this.close();
         return;
+      }
+
+      // Extract skill instructions from text before first ```workflow block
+      let skillInstructions: string | undefined;
+      let workflowMarkdown = pastedText;
+      if (isSkill) {
+        const workflowBlockMatch = pastedText.match(/^`{3,}workflow/m);
+        if (workflowBlockMatch && workflowBlockMatch.index !== undefined && workflowBlockMatch.index > 0) {
+          const textBefore = pastedText.substring(0, workflowBlockMatch.index).trim();
+          if (textBefore) {
+            skillInstructions = textBefore;
+          }
+          workflowMarkdown = pastedText.substring(workflowBlockMatch.index);
+        }
       }
 
       // Save as raw markdown
@@ -777,8 +802,9 @@ export class AIWorkflowModal extends Modal {
         description,
         mode: "create",
         resolvedMentions,
-        createAsSkill: this.skillCheckbox?.checked || false,
-        rawMarkdown: pastedText,
+        createAsSkill: isSkill,
+        rawMarkdown: workflowMarkdown,
+        skillInstructions,
       };
       this.resolvePromise(result);
       this.close();
@@ -921,8 +947,9 @@ export class AIWorkflowModal extends Modal {
 
     try {
       // Build prompts
-      const systemPrompt = this.buildSystemPrompt();
-      const userPrompt = this.buildUserPrompt(currentRequest, workflowName, previousYaml, requestHistory, selectedExecutionSteps);
+      const isSkill = this.skillCheckbox?.checked || false;
+      const systemPrompt = this.buildSystemPrompt(false, isSkill);
+      const userPrompt = this.buildUserPrompt(currentRequest, workflowName, previousYaml, requestHistory, selectedExecutionSteps, isSkill);
 
       let response = "";
 
@@ -1059,6 +1086,10 @@ export class AIWorkflowModal extends Modal {
       result.resolvedMentions = resolvedMentions.length > 0 ? resolvedMentions : undefined;
       if (this.skillCheckbox?.checked) {
         result.createAsSkill = true;
+        // Extract skill instructions from explanation (text before YAML, strip trailing ---)
+        if (result.explanation) {
+          result.skillInstructions = result.explanation.replace(/\n---\s*$/, "").trim();
+        }
       }
 
       // Override name with user input for create mode
@@ -1164,7 +1195,7 @@ export class AIWorkflowModal extends Modal {
     }
   }
 
-  private buildSystemPrompt(outputAsMarkdown = false): string {
+  private buildSystemPrompt(outputAsMarkdown = false, isSkill = false): string {
     // Build dynamic workflow specification with current settings
     const workflowSpec = getWorkflowSpecification({
       apiPlan: this.plugin.settings.apiPlan,
@@ -1174,26 +1205,79 @@ export class AIWorkflowModal extends Modal {
       hasApiKey: !!this.plugin.settings.googleApiKey,
     });
 
-    const outputRules = outputAsMarkdown
-      ? `1. Output a Markdown document containing the workflow inside a \`\`\`workflow code block
+    const skillSpec = isSkill
+      ? `
+
+## Agent Skill Output Format
+
+When creating a skill, generate TWO components:
+
+### 1. SKILL.md Instructions
+The body text that guides the AI assistant when this skill is activated in chat. Include:
+- Role description (e.g., "You are a code review assistant")
+- Step-by-step behavioral guidelines
+- Rules and constraints for the AI to follow
+- When and how to use the workflow
+
+Example:
+\`\`\`
+You are a code review assistant. When reviewing code:
+
+1. Check for common bugs and anti-patterns
+2. Suggest improvements for readability
+3. Verify error handling is adequate
+4. Use the workflow to run linting checks
+\`\`\`
+
+### 2. Workflow
+An executable workflow in YAML format that the skill provides as a tool.
+`
+      : "";
+
+    let outputRules: string;
+    if (isSkill && outputAsMarkdown) {
+      outputRules = `1. Output a Markdown document with two parts:
+   a. SKILL.md instructions body (detailed AI behavioral guidelines) as plain text
+   b. The workflow inside a \`\`\`workflow code block
+2. The text before the \`\`\`workflow code block will be used as the SKILL.md instructions body
+3. The YAML inside the code block must be valid and parseable
+4. Include a descriptive "name" field
+5. Use unique, descriptive node IDs (e.g., "read-input", "process-data", "save-result")
+6. Ensure all variables are initialized before use
+7. Use proper control flow (next, trueNext, falseNext)
+8. Use the "comment" property on nodes to describe each step's purpose`;
+    } else if (isSkill) {
+      outputRules = `1. First, output the SKILL.md instructions body (detailed AI behavioral guidelines)
+2. Then output a line containing only "---"
+3. Then output the workflow YAML starting with "name:"
+4. The YAML must be valid and parseable
+5. Include a descriptive "name" field
+6. Use unique, descriptive node IDs (e.g., "read-input", "process-data", "save-result")
+7. Ensure all variables are initialized before use
+8. Use proper control flow (next, trueNext, falseNext)`;
+    } else if (outputAsMarkdown) {
+      outputRules = `1. Output a Markdown document containing the workflow inside a \`\`\`workflow code block
 2. The YAML inside the code block must be valid and parseable
 3. Include a descriptive "name" field
 4. Use unique, descriptive node IDs (e.g., "read-input", "process-data", "save-result")
 5. Ensure all variables are initialized before use
 6. Use proper control flow (next, trueNext, falseNext)
 7. Include a processing overview and description BEFORE the workflow code block as Markdown text
-8. Use the "comment" property on nodes to describe each step's purpose`
-      : `1. Output ONLY the workflow YAML, no explanation or markdown code fences
+8. Use the "comment" property on nodes to describe each step's purpose`;
+    } else {
+      outputRules = `1. Output ONLY the workflow YAML, no explanation or markdown code fences
 2. The YAML must be valid and parseable
 3. Include a descriptive "name" field
 4. Use unique, descriptive node IDs (e.g., "read-input", "process-data", "save-result")
 5. Ensure all variables are initialized before use
 6. Use proper control flow (next, trueNext, falseNext)
 7. Start output directly with "name:" - no code fences, no explanation`;
+    }
 
-    return `You are a workflow generator for Obsidian. You create and modify workflows in YAML format.
+    const generatorType = isSkill ? "skill" : "workflow";
+    return `You are a ${generatorType} generator for Obsidian. You create and modify workflows in YAML format.
 
-${workflowSpec}
+${workflowSpec}${skillSpec}
 
 IMPORTANT RULES:
 ${outputRules}`;
@@ -1204,9 +1288,12 @@ ${outputRules}`;
     workflowName?: string,
     previousYaml?: string,
     requestHistory: string[] = [],
-    selectedExecutionSteps?: import("src/workflow/types").ExecutionStep[]
+    selectedExecutionSteps?: import("src/workflow/types").ExecutionStep[],
+    isSkill = false
   ): string {
     if (this.mode === "create") {
+      const entityType = isSkill ? "skill" : "workflow";
+
       // If we have previous request/YAML from regeneration, include as reference
       if (requestHistory.length > 0 && previousYaml) {
         // Build numbered history of all requests
@@ -1218,7 +1305,11 @@ ${outputRules}`;
           executionSection = this.formatExecutionSteps(selectedExecutionSteps);
         }
 
-        return `Create or modify a workflow based on the following request.
+        const completeOutputInstruction = isSkill
+          ? `Output the SKILL.md instructions body and the complete workflow YAML for the skill named "${workflowName}".`
+          : `Output only the complete YAML for the workflow, starting with "name: ${workflowName}".`;
+
+        return `Create or modify a ${entityType} based on the following request.
 
 REFERENCE (previous attempts):
 ${historySection}
@@ -1229,13 +1320,18 @@ ${executionSection}
 NEW REQUEST:
 ${currentRequest}
 
-Output only the complete YAML for the workflow, starting with "name: ${workflowName}".`;
+${completeOutputInstruction}`;
       }
-      return `Create a new workflow named "${workflowName}" that does the following:
+
+      const outputInstruction = isSkill
+        ? `Output the SKILL.md instructions body and the workflow YAML for the skill named "${workflowName}".`
+        : `Output only the YAML for the workflow, starting with "name: ${workflowName}".`;
+
+      return `Create a new ${entityType} named "${workflowName}" that does the following:
 
 ${currentRequest}
 
-Output only the YAML for the workflow, starting with "name: ${workflowName}".`;
+${outputInstruction}`;
     } else {
       // Build execution history section if steps are selected
       let executionSection = "";

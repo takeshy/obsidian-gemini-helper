@@ -340,6 +340,7 @@ async function createSkillFromResult(
   // Build SKILL.md content with properly quoted YAML values
   const yamlName = JSON.stringify(result.name);
   const yamlDesc = JSON.stringify(result.description || result.name);
+  const skillBody = result.skillInstructions || result.description || "";
   const skillContent = `---
 name: ${yamlName}
 description: ${yamlDesc}
@@ -348,7 +349,7 @@ workflows:
     description: ${yamlName}
 ---
 
-${result.description || ""}
+${skillBody}
 `;
 
   // Build workflow file content

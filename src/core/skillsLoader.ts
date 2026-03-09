@@ -1,9 +1,11 @@
 import { type App, TFile, TFolder, parseYaml } from "obsidian";
+import { parseWorkflowFromMarkdown } from "src/workflow/parser";
 
 export interface SkillWorkflowRef {
   path: string;            // relative path from skill folder (e.g. "workflows/lint.md")
   name?: string;           // workflow name within the file (if multiple)
   description: string;     // description for function calling tool
+  inputVariables?: string[]; // variables used but not initialized by any node
 }
 
 export interface SkillMetadata {
@@ -118,6 +120,20 @@ export async function loadSkill(app: App, metadata: SkillMetadata): Promise<Load
     }
   }
 
+  // Extract input variables from workflow files
+  for (const wf of metadata.workflows) {
+    const wfPath = `${metadata.folderPath}/${wf.path}`;
+    const wfFile = app.vault.getAbstractFileByPath(wfPath);
+    if (wfFile instanceof TFile) {
+      try {
+        const wfContent = await app.vault.cachedRead(wfFile);
+        wf.inputVariables = extractInputVariables(wfContent, wf.name);
+      } catch {
+        // Skip unreadable workflow files
+      }
+    }
+  }
+
   return {
     ...metadata,
     instructions: body.trim(),
@@ -146,12 +162,15 @@ export function buildSkillSystemPrompt(skills: LoadedSkill[], options?: { cliMod
       for (const wf of skill.workflows) {
         const id = buildWorkflowToolId(skill.name, wf);
         section += `\n- \`${id}\`: ${wf.description}`;
+        if (wf.inputVariables && wf.inputVariables.length > 0) {
+          section += `\n  Input variables: ${wf.inputVariables.join(", ")}`;
+        }
       }
     }
     return section;
   });
 
-  return `\n\nThe following agent skills are active. Proactively use the skill's instructions and workflows to fulfill the user's request.\nWhen you encounter {{variableName}} placeholders in skill instructions or workflow definitions, interpret the variable name and replace it with an appropriate value (e.g., {{today}} → today's date, {{monday}} → this week's Monday date).\n\n${parts.join("\n\n---\n\n")}`;
+  return `\n\nThe following agent skills are active. Proactively use the skill's instructions and workflows to fulfill the user's request.\nWhen a workflow lists "Input variables", pass them via the variables parameter as a JSON object. Infer values from the user's message when possible. If a required variable cannot be inferred, ask the user before calling the workflow.\n\n${parts.join("\n\n---\n\n")}`;
 }
 
 /**
@@ -186,6 +205,70 @@ export function collectSkillWorkflows(skills: LoadedSkill[]): Map<string, {
   }
 
   return map;
+}
+
+/**
+ * Extract input variables from a workflow file.
+ * Input variables are {{variables}} used in node properties but not initialized
+ * by any node (via saveTo, variable/set name, etc.) and not system variables.
+ */
+function extractInputVariables(workflowContent: string, workflowName?: string): string[] {
+  let workflow;
+  try {
+    workflow = parseWorkflowFromMarkdown(workflowContent, workflowName);
+  } catch {
+    return [];
+  }
+
+  const varPattern = /\{\{(\w[\w.[\]]*?)(?::json)?\}\}/g;
+  const usedVars = new Set<string>();
+  const initializedVars = new Set<string>();
+
+  const saveProperties = [
+    "saveTo", "saveFileTo", "savePathTo", "saveStatus",
+    "saveImageTo", "saveSelectionTo", "saveUiTo",
+  ];
+
+  for (const [, node] of workflow.nodes) {
+    // variable/set nodes initialize the variable named in 'name'
+    if ((node.type === "variable" || node.type === "set") && node.properties.name) {
+      initializedVars.add(node.properties.name);
+    }
+
+    // Save properties initialize variables
+    for (const prop of saveProperties) {
+      if (node.properties[prop]) {
+        initializedVars.add(node.properties[prop]);
+      }
+    }
+
+    // Scan all property values for {{variable}} references
+    for (const value of Object.values(node.properties)) {
+      let match;
+      varPattern.lastIndex = 0;
+      while ((match = varPattern.exec(String(value))) !== null) {
+        const rootVar = match[1].split(/[.[\]]/)[0];
+        if (rootVar) usedVars.add(rootVar);
+      }
+    }
+  }
+
+  // System variables injected by the runtime
+  const systemVars = new Set([
+    "__hotkeyContent__", "__hotkeySelection__", "__hotkeyActiveFile__", "__hotkeySelectionInfo__",
+    "__eventType__", "__eventFilePath__", "__eventFile__", "__eventOldPath__", "__eventFileContent__",
+    "__workflowName__", "__lastModel__", "__date__", "__time__", "__datetime__",
+    "_clipboard",
+  ]);
+
+  const inputVars: string[] = [];
+  for (const v of usedVars) {
+    if (!initializedVars.has(v) && !systemVars.has(v)) {
+      inputVars.push(v);
+    }
+  }
+
+  return inputVars.sort();
 }
 
 /**

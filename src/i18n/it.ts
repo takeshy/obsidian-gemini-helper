@@ -743,6 +743,12 @@ export const it: Record<string, string> = {
   // AI Workflow Modal
   "aiWorkflow.confirmChanges": "Conferma modifiche al flusso di lavoro",
   "aiWorkflow.aiExplanation": "Spiegazione IA",
+  "aiWorkflow.copyPrompt": "Copia prompt",
+  "aiWorkflow.promptCopied": "Prompt copiato negli appunti",
+  "aiWorkflow.pasteLabel": "Incolla la risposta dal LLM esterno",
+  "aiWorkflow.pastePlaceholder": "Incolla il markdown (con blocchi ```workflow) o YAML da Claude, GPT, ecc...",
+  "aiWorkflow.applyPasted": "Applica",
+  "aiWorkflow.enterPastedYaml": "Incolla il contenuto YAML",
   "aiWorkflow.workflowName": "Nome flusso di lavoro:",
   "aiWorkflow.outputPath": "Percorso di output:",
   "aiWorkflow.currentWorkflow": "Flusso di lavoro attuale",

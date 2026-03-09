@@ -96,12 +96,13 @@ nodes:
 
 워크플로우가 있는 스킬이 활성화되면, AI는 이 워크플로우를 실행할 수 있는 `run_skill_workflow` 도구를 받습니다. 워크플로우 ID 형식은 `skillName/workflowName`입니다 (예: `Code Review/workflows_run-lint`).
 
-### 헤드리스 실행
+### 인터랙티브 실행
 
-스킬 워크플로우는 헤드리스 모드로 실행됩니다:
+스킬 워크플로우는 인터랙티브 모달로 실행됩니다 (워크플로우 패널과 동일):
 
-- 대화형 프롬프트 (`dialog`, `prompt-file`, `prompt-selection`)는 건너뜁니다 (null 반환)
-- 확인 대화상자는 자동으로 승인됩니다
+- 실시간 상태를 표시하는 실행 진행 모달이 표시됩니다
+- 대화형 프롬프트 (`dialog`, `prompt-file`, `prompt-selection`)가 사용자에게 표시됩니다
+- 확인 대화상자는 사용자의 승인이 필요합니다
 - AI는 워크플로우 실행 로그를 도구 결과로 받습니다
 
 ## 채팅에서 스킬 사용하기

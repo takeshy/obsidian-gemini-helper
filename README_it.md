@@ -730,6 +730,19 @@ Quando clicchi Generate, il contenuto del file viene incorporato direttamente ne
 
 Clicca il pulsante allegati per allegare file (immagini, PDF, file di testo) alla tua richiesta di generazione workflow. Questo è utile per fornire contesto visivo o esempi all'AI.
 
+**Utilizzo di LLM Esterni (Copia Prompt / Incolla Risposta):**
+
+Puoi utilizzare qualsiasi LLM esterno (Claude, GPT, ecc.) per generare workflow:
+
+1. Compila il nome e la descrizione del workflow come al solito
+2. Clicca **Copy Prompt** - il prompt completo viene copiato negli appunti
+3. Incolla il prompt nel tuo LLM preferito
+4. Copia la risposta del LLM
+5. Incollala nell'area di testo **Incolla Risposta** che appare
+6. Clicca **Applica** per creare il workflow
+
+La risposta incollata può essere YAML grezzo o un documento Markdown completo con blocchi di codice `` ```workflow ``. Le risposte Markdown vengono salvate così come sono, preservando qualsiasi documentazione inclusa dal LLM.
+
 **Controlli del Modal:**
 
 Il modal del workflow AI supporta il posizionamento drag-and-drop e il ridimensionamento dagli angoli per una migliore esperienza di modifica.

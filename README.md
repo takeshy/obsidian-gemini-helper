@@ -736,6 +736,19 @@ When you click Generate, file content is embedded directly into the AI request. 
 
 Click the attachment button to attach files (images, PDFs, text files) to your workflow generation request. This is useful for providing visual context or examples to the AI.
 
+**Using External LLMs (Copy Prompt / Paste Response):**
+
+You can use any external LLM (Claude, GPT, etc.) to generate workflows:
+
+1. Fill in the workflow name and description as usual
+2. Click **Copy Prompt** - the full prompt is copied to your clipboard
+3. Paste the prompt into your preferred LLM
+4. Copy the LLM's response
+5. Paste it into the **Paste Response** textarea that appears
+6. Click **Apply** to create the workflow
+
+The pasted response can be either raw YAML or a full Markdown document with `` ```workflow `` code blocks. Markdown responses are saved as-is, preserving any documentation the LLM included.
+
 **Modal Controls:**
 
 The AI workflow modal supports drag-and-drop positioning and corner resizing for a better editing experience.

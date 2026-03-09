@@ -354,8 +354,8 @@ ${result.description || ""}
   // Build workflow file content
   const historyLine = buildHistoryEntry("Created", result.description || "", result.resolvedMentions);
   const historyEntry = `> [!info] AI Workflow History\n${historyLine}\n\n`;
-  const workflowCodeBlock = buildWorkflowCodeBlock(result);
-  const workflowContent = historyEntry + workflowCodeBlock;
+  const workflowBody = result.rawMarkdown || buildWorkflowCodeBlock(result);
+  const workflowContent = historyEntry + workflowBody;
 
   // Create files
   await app.vault.create(workflowFilePath, workflowContent);
@@ -378,8 +378,8 @@ async function createWorkflowFile(
 
   const historyLine = buildHistoryEntry("Created", result.description || "", result.resolvedMentions);
   const historyEntry = `> [!info] AI Workflow History\n${historyLine}\n\n`;
-  const workflowCodeBlock = buildWorkflowCodeBlock(result);
-  const workflowContent = historyEntry + workflowCodeBlock;
+  const workflowBody = result.rawMarkdown || buildWorkflowCodeBlock(result);
+  const workflowContent = historyEntry + workflowBody;
 
   const existingFile = app.vault.getAbstractFileByPath(filePath);
   if (existingFile && existingFile instanceof TFile) {
@@ -563,6 +563,7 @@ export default function WorkflowPanel({ plugin }: WorkflowPanelProps) {
         if (result.createAsSkill) {
           targetFile = await createSkillFromResult(plugin.app, result);
           new Notice(t("aiWorkflow.skillCreated", { name: result.name, path: targetFile.path }));
+          plugin.settingsEmitter.emit("skills-changed");
         } else {
           const created = await createWorkflowFile(plugin.app, result);
           targetFile = created.targetFile;
@@ -1078,6 +1079,7 @@ export default function WorkflowPanel({ plugin }: WorkflowPanelProps) {
         if (result.createAsSkill) {
           targetFile = await createSkillFromResult(plugin.app, result);
           new Notice(t("aiWorkflow.skillCreated", { name: result.name, path: targetFile.path }));
+          plugin.settingsEmitter.emit("skills-changed");
         } else {
           const created = await createWorkflowFile(plugin.app, result);
           targetFile = created.targetFile;

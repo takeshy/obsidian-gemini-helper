@@ -743,6 +743,12 @@ export const zh: Record<string, string> = {
   // AI Workflow Modal
   "aiWorkflow.confirmChanges": "确认工作流更改",
   "aiWorkflow.aiExplanation": "AI 说明",
+  "aiWorkflow.copyPrompt": "复制提示词",
+  "aiWorkflow.promptCopied": "提示词已复制到剪贴板",
+  "aiWorkflow.pasteLabel": "粘贴外部 LLM 的响应",
+  "aiWorkflow.pastePlaceholder": "粘贴 Claude、GPT 等输出的 Markdown（包含 ```workflow 块）或 YAML...",
+  "aiWorkflow.applyPasted": "应用",
+  "aiWorkflow.enterPastedYaml": "请粘贴 YAML 内容",
   "aiWorkflow.workflowName": "工作流名称：",
   "aiWorkflow.outputPath": "输出路径：",
   "aiWorkflow.currentWorkflow": "当前工作流",

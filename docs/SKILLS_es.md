@@ -96,12 +96,13 @@ nodes:
 
 Cuando un skill con flujos de trabajo está activo, la IA recibe una herramienta `run_skill_workflow` que puede invocar para ejecutar estos flujos de trabajo. El formato del ID del flujo de trabajo es `skillName/workflowName` (ej., `Code Review/workflows_run-lint`).
 
-### Ejecución Headless
+### Ejecución Interactiva
 
-Los flujos de trabajo de skills se ejecutan en modo headless:
+Los flujos de trabajo de skills se ejecutan con modales interactivos (igual que en el panel de Workflow):
 
-- Los prompts interactivos (`dialog`, `prompt-file`, `prompt-selection`) se omiten (devuelven null)
-- Los diálogos de confirmación se confirman automáticamente
+- Se muestra un modal de progreso de ejecución con estado en tiempo real
+- Los prompts interactivos (`dialog`, `prompt-file`, `prompt-selection`) se muestran al usuario
+- Los diálogos de confirmación requieren la aprobación del usuario
 - La IA recibe los registros de ejecución del flujo de trabajo como resultado de la herramienta
 
 ## Uso de Skills en el Chat

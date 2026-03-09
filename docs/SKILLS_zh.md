@@ -96,12 +96,13 @@ nodes:
 
 当包含工作流的技能处于活动状态时，AI 会获得一个 `run_skill_workflow` 工具，可以用来执行这些工作流。工作流 ID 格式为 `skillName/workflowName`（例如 `Code Review/workflows_run-lint`）。
 
-### 无头执行
+### 交互式执行
 
-技能工作流以无头模式运行：
+技能工作流以交互式模态窗口运行（与工作流面板相同）：
 
-- 交互式提示（`dialog`、`prompt-file`、`prompt-selection`）会被跳过（返回 null）
-- 确认对话框会自动确认
+- 显示实时状态的执行进度模态窗口
+- 交互式提示（`dialog`、`prompt-file`、`prompt-selection`）会向用户显示
+- 确认对话框需要用户批准
 - AI 接收工作流执行日志作为工具结果
 
 ## 在聊天中使用技能

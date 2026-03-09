@@ -743,6 +743,12 @@ export const ja: Record<string, string> = {
   // AI Workflow Modal
   "aiWorkflow.confirmChanges": "ワークフローの変更を確認",
   "aiWorkflow.aiExplanation": "AIの説明",
+  "aiWorkflow.copyPrompt": "プロンプトをコピー",
+  "aiWorkflow.promptCopied": "プロンプトをクリップボードにコピーしました",
+  "aiWorkflow.pasteLabel": "外部LLMからのレスポンスを貼り付け",
+  "aiWorkflow.pastePlaceholder": "Claude、GPT等が出力したMarkdown（```workflowブロック含む）またはYAMLを貼り付け...",
+  "aiWorkflow.applyPasted": "適用",
+  "aiWorkflow.enterPastedYaml": "YAMLの内容を貼り付けてください",
   "aiWorkflow.workflowName": "ワークフロー名:",
   "aiWorkflow.outputPath": "出力パス:",
   "aiWorkflow.currentWorkflow": "現在のワークフロー",

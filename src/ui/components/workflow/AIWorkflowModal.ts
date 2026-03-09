@@ -6,6 +6,7 @@ import { tracing } from "src/core/tracingHooks";
 import { CLI_MODEL, CLAUDE_CLI_MODEL, CODEX_CLI_MODEL, DEFAULT_CLI_CONFIG, getAvailableModels, type ModelType, type Attachment, type StreamChunkUsage } from "src/types";
 import { getWorkflowSpecification } from "src/workflow/workflowSpec";
 import type { SidebarNode, WorkflowNodeType, ExecutionStep } from "src/workflow/types";
+import { listWorkflowOptions } from "src/workflow/parser";
 import { ExecutionHistoryManager } from "src/workflow/history";
 import { computeLineDiff } from "./EditConfirmationModal";
 import { WorkflowGenerationModal } from "./WorkflowGenerationModal";
@@ -38,6 +39,7 @@ export interface AIWorkflowResult {
   mode?: AIWorkflowMode; // "create" or "modify"
   resolvedMentions?: ResolvedMention[]; // File contents that were embedded
   createAsSkill?: boolean; // If true, create as agent skill
+  rawMarkdown?: string; // Complete markdown from external LLM (saved as-is)
 }
 
 // Result type for confirmation modal
@@ -266,6 +268,12 @@ export class AIWorkflowModal extends Modal {
   private statusEl: HTMLElement | null = null;
   private isGenerating = false;
 
+  // Paste response section (for external LLM flow)
+  private pasteSectionEl: HTMLElement | null = null;
+  private pasteTextareaEl: HTMLTextAreaElement | null = null;
+  private cachedResolvedDescription: string | null = null;
+  private cachedResolvedMentions: ResolvedMention[] | null = null;
+
   // Mention autocomplete state
   private mentionAutocompleteEl: HTMLElement | null = null;
   private mentionItems: MentionItem[] = [];
@@ -413,6 +421,12 @@ export class AIWorkflowModal extends Modal {
       },
     });
 
+    // Invalidate cached mentions when description changes
+    this.descriptionEl.addEventListener("input", () => {
+      this.cachedResolvedDescription = null;
+      this.cachedResolvedMentions = null;
+    });
+
     // Setup mention autocomplete handlers
     this.setupMentionAutocomplete();
 
@@ -548,12 +562,44 @@ export class AIWorkflowModal extends Modal {
       this.close();
     });
 
+    const copyPromptBtn = buttonContainer.createEl("button", {
+      text: t("aiWorkflow.copyPrompt"),
+    });
+    copyPromptBtn.addEventListener("click", () => {
+      void this.exportPrompt();
+    });
+
     this.generateBtn = buttonContainer.createEl("button", {
       text: this.mode === "create" ? t("aiWorkflow.generate") : t("aiWorkflow.modify"),
       cls: "mod-cta",
     });
     this.generateBtn.addEventListener("click", () => {
       void this.generate();
+    });
+
+    // Paste response section (hidden until Copy Prompt is clicked)
+    this.pasteSectionEl = contentEl.createDiv({ cls: "ai-workflow-paste-section is-hidden" });
+
+    this.pasteSectionEl.createEl("label", {
+      text: t("aiWorkflow.pasteLabel"),
+      cls: "ai-workflow-label",
+    });
+
+    this.pasteTextareaEl = this.pasteSectionEl.createEl("textarea", {
+      cls: "ai-workflow-textarea",
+      attr: {
+        placeholder: t("aiWorkflow.pastePlaceholder"),
+        rows: "10",
+      },
+    });
+
+    const pasteButtonContainer = this.pasteSectionEl.createDiv({ cls: "ai-workflow-buttons" });
+    const applyBtn = pasteButtonContainer.createEl("button", {
+      text: t("aiWorkflow.applyPasted"),
+      cls: "mod-cta",
+    });
+    applyBtn.addEventListener("click", () => {
+      void this.applyPastedResponse();
     });
 
     // Focus appropriate field
@@ -620,6 +666,137 @@ export class AIWorkflowModal extends Modal {
     } else {
       this.executionHistoryInfoEl.textContent = "";
       this.executionHistoryInfoEl.addClass("is-hidden");
+    }
+  }
+
+  /**
+   * Copy the full prompt (system + user) to clipboard for use with external LLMs.
+   */
+  private async exportPrompt(): Promise<void> {
+    // Validate name for create mode
+    if (this.mode === "create") {
+      const name = this.nameInputEl?.value?.trim();
+      if (!name) {
+        new Notice(t("aiWorkflow.enterName"));
+        return;
+      }
+    }
+
+    const description = this.descriptionEl?.value?.trim();
+    if (!description) {
+      new Notice(t("aiWorkflow.enterDescription"));
+      return;
+    }
+
+    const workflowName = this.mode === "create"
+      ? this.nameInputEl?.value?.trim() || "workflow"
+      : this.existingName || "workflow";
+
+    // Resolve @ mentions
+    const { resolved, mentions } = await this.resolveMentions(description);
+    this.cachedResolvedDescription = resolved;
+    this.cachedResolvedMentions = mentions;
+
+    const systemPrompt = this.buildSystemPrompt(true);
+    const userPrompt = this.buildUserPrompt(
+      resolved,
+      workflowName,
+      undefined,
+      [],
+      this.selectedExecutionSteps.length > 0 ? this.selectedExecutionSteps : undefined
+    );
+
+    const fullPrompt = `${systemPrompt}\n\n---\n\n${userPrompt}`;
+
+    // Copy to clipboard
+    await navigator.clipboard.writeText(fullPrompt);
+
+    // Show paste response section
+    this.pasteSectionEl?.removeClass("is-hidden");
+
+    new Notice(t("aiWorkflow.promptCopied"));
+  }
+
+  /**
+   * Apply a pasted response from an external LLM.
+   */
+  private async applyPastedResponse(): Promise<void> {
+    const pastedText = this.pasteTextareaEl?.value?.trim();
+    if (!pastedText) {
+      new Notice(t("aiWorkflow.enterPastedYaml"));
+      return;
+    }
+
+    const workflowName = this.mode === "create"
+      ? this.nameInputEl?.value?.trim() || "workflow"
+      : this.existingName || "workflow";
+
+    // Re-resolve mentions if cache was invalidated (description changed after Copy Prompt)
+    if (this.cachedResolvedDescription === null) {
+      const rawDesc = this.descriptionEl?.value?.trim() || "";
+      const { resolved, mentions } = await this.resolveMentions(rawDesc);
+      this.cachedResolvedDescription = resolved;
+      this.cachedResolvedMentions = mentions;
+    }
+
+    const description = this.cachedResolvedDescription || this.descriptionEl?.value?.trim() || "";
+    const resolvedMentions = this.cachedResolvedMentions?.length
+      ? this.cachedResolvedMentions
+      : undefined;
+
+    if (this.mode === "create") {
+      // Create mode: save markdown directly (validate it has workflow blocks)
+      const options = listWorkflowOptions(pastedText);
+      if (options.length === 0) {
+        // Fallback: try parsing as raw YAML
+        const parsed = parseWorkflowResponse(pastedText);
+        if (!parsed) {
+          new Notice(t("workflow.generation.parseFailed"));
+          return;
+        }
+        // Return as normal result (will be built into markdown by save logic)
+        parsed.name = workflowName;
+        parsed.description = description;
+        parsed.mode = "create";
+        parsed.resolvedMentions = resolvedMentions;
+        const outputPathTemplate = this.outputPathEl?.value?.trim() || "workflows/{{name}}";
+        parsed.outputPath = outputPathTemplate.replace(/\{\{name\}\}/g, workflowName);
+        if (this.skillCheckbox?.checked) parsed.createAsSkill = true;
+        this.resolvePromise(parsed);
+        this.close();
+        return;
+      }
+
+      // Save as raw markdown
+      const outputPathTemplate = this.outputPathEl?.value?.trim() || "workflows/{{name}}";
+      const result: AIWorkflowResult = {
+        yaml: "",
+        nodes: [],
+        name: workflowName,
+        outputPath: outputPathTemplate.replace(/\{\{name\}\}/g, workflowName),
+        description,
+        mode: "create",
+        resolvedMentions,
+        createAsSkill: this.skillCheckbox?.checked || false,
+        rawMarkdown: pastedText,
+      };
+      this.resolvePromise(result);
+      this.close();
+    } else {
+      // Modify mode: parse YAML and return nodes
+      const result = parseWorkflowResponse(pastedText);
+      if (!result) {
+        new Notice(t("workflow.generation.parseFailed"));
+        return;
+      }
+
+      result.name = workflowName;
+      result.description = description;
+      result.mode = this.mode;
+      result.resolvedMentions = resolvedMentions;
+
+      this.resolvePromise(result);
+      this.close();
     }
   }
 
@@ -987,7 +1164,7 @@ export class AIWorkflowModal extends Modal {
     }
   }
 
-  private buildSystemPrompt(): string {
+  private buildSystemPrompt(outputAsMarkdown = false): string {
     // Build dynamic workflow specification with current settings
     const workflowSpec = getWorkflowSpecification({
       apiPlan: this.plugin.settings.apiPlan,
@@ -997,18 +1174,29 @@ export class AIWorkflowModal extends Modal {
       hasApiKey: !!this.plugin.settings.googleApiKey,
     });
 
-    return `You are a workflow generator for Obsidian. You create and modify workflows in YAML format.
-
-${workflowSpec}
-
-IMPORTANT RULES:
-1. Output ONLY the workflow YAML, no explanation or markdown code fences
+    const outputRules = outputAsMarkdown
+      ? `1. Output a Markdown document containing the workflow inside a \`\`\`workflow code block
+2. The YAML inside the code block must be valid and parseable
+3. Include a descriptive "name" field
+4. Use unique, descriptive node IDs (e.g., "read-input", "process-data", "save-result")
+5. Ensure all variables are initialized before use
+6. Use proper control flow (next, trueNext, falseNext)
+7. Include a processing overview and description BEFORE the workflow code block as Markdown text
+8. Use the "comment" property on nodes to describe each step's purpose`
+      : `1. Output ONLY the workflow YAML, no explanation or markdown code fences
 2. The YAML must be valid and parseable
 3. Include a descriptive "name" field
 4. Use unique, descriptive node IDs (e.g., "read-input", "process-data", "save-result")
 5. Ensure all variables are initialized before use
 6. Use proper control flow (next, trueNext, falseNext)
 7. Start output directly with "name:" - no code fences, no explanation`;
+
+    return `You are a workflow generator for Obsidian. You create and modify workflows in YAML format.
+
+${workflowSpec}
+
+IMPORTANT RULES:
+${outputRules}`;
   }
 
   private buildUserPrompt(
@@ -1168,121 +1356,7 @@ ${formattedSteps}
   }
 
   private parseResponse(response: string): AIWorkflowResult | null {
-    try {
-      let yaml = "";
-      let yamlStartIdx = -1;
-
-      // Try to find a code block containing "name:" and "nodes:"
-      const codeBlockRegex = /```\w*\s*([\s\S]*?)```/g;
-      let match;
-      while ((match = codeBlockRegex.exec(response)) !== null) {
-        const content = match[1].trim();
-        if (content.includes("name:") && content.includes("nodes:")) {
-          yaml = content;
-          yamlStartIdx = match.index;
-          break;
-        }
-      }
-
-      // If no valid code block found, try to find YAML directly in response
-      if (!yaml) {
-        const nameMatch = response.match(/(?:^|\n)(name:\s*\S+[\s\S]*?nodes:\s*[\s\S]*?)(?:\n```|$)/);
-        if (nameMatch && nameMatch.index !== undefined) {
-          yaml = nameMatch[1].trim();
-          yamlStartIdx = nameMatch.index;
-        }
-      }
-
-      // Final fallback: find "name:" and take everything from there
-      if (!yaml) {
-        const startIdx = response.indexOf("name:");
-        if (startIdx >= 0) {
-          yaml = response.substring(startIdx).trim();
-          // Remove trailing code fence if present
-          yaml = yaml.replace(/\n```\s*$/, "").trim();
-          yamlStartIdx = startIdx;
-        }
-      }
-
-      if (!yaml) {
-        console.error("Could not find valid workflow YAML in response:", response);
-        return null;
-      }
-
-      // Extract explanation (text before YAML)
-      let explanation = "";
-      if (yamlStartIdx > 0) {
-        explanation = response.substring(0, yamlStartIdx).trim();
-        // Remove code fence markers from explanation
-        explanation = explanation.replace(/```\w*\s*$/gm, "").trim();
-      }
-
-      // Parse YAML
-      const parsed = parseYaml(yaml) as {
-        name?: string;
-        nodes?: Array<{
-          id?: string;
-          type?: string;
-          next?: string;
-          trueNext?: string;
-          falseNext?: string;
-          [key: string]: unknown;
-        }>;
-      };
-
-      if (!parsed || !Array.isArray(parsed.nodes)) {
-        console.error("Invalid workflow structure:", parsed);
-        return null;
-      }
-
-      // Convert to SidebarNode format
-      const nodes: SidebarNode[] = parsed.nodes.map((node, index) => {
-        const { id, type, next, trueNext, falseNext, ...properties } = node;
-
-        // Convert all properties to strings
-        const stringProps: Record<string, string> = {};
-        for (const [key, value] of Object.entries(properties)) {
-          if (value === null || value === undefined) {
-            stringProps[key] = "";
-          } else if (typeof value === "object") {
-            stringProps[key] = JSON.stringify(value);
-          } else if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
-            stringProps[key] = String(value);
-          } else {
-            stringProps[key] = JSON.stringify(value);
-          }
-        }
-
-        const sidebarNode: SidebarNode = {
-          id: String(id || `node-${index + 1}`),
-          type: (type || "variable") as WorkflowNodeType,
-          properties: stringProps,
-        };
-
-        // Add connection properties
-        if (next) {
-          sidebarNode.next = String(next);
-        }
-        if (trueNext) {
-          sidebarNode.trueNext = String(trueNext);
-        }
-        if (falseNext) {
-          sidebarNode.falseNext = String(falseNext);
-        }
-
-        return sidebarNode;
-      });
-
-      return {
-        yaml,
-        nodes,
-        name: parsed.name || "AI Generated Workflow",
-        explanation: explanation || undefined,
-      };
-    } catch (error) {
-      console.error("Failed to parse AI workflow response:", formatError(error), response);
-      return null;
-    }
+    return parseWorkflowResponse(response);
   }
 
   private setupDrag(header: HTMLElement, modalEl: HTMLElement): void {
@@ -1685,4 +1759,126 @@ export function promptForAIWorkflow(
     );
     modal.open();
   });
+}
+
+/**
+ * Parse a workflow response (from LLM or pasted YAML) into AIWorkflowResult.
+ * Handles code-fenced YAML, raw YAML, and mixed text+YAML responses.
+ */
+export function parseWorkflowResponse(response: string): AIWorkflowResult | null {
+  try {
+    let yaml = "";
+    let yamlStartIdx = -1;
+
+    // Try to find a code block containing "name:" and "nodes:"
+    const codeBlockRegex = /```\w*\s*([\s\S]*?)```/g;
+    let match;
+    while ((match = codeBlockRegex.exec(response)) !== null) {
+      const content = match[1].trim();
+      if (content.includes("name:") && content.includes("nodes:")) {
+        yaml = content;
+        yamlStartIdx = match.index;
+        break;
+      }
+    }
+
+    // If no valid code block found, try to find YAML directly in response
+    if (!yaml) {
+      const nameMatch = response.match(/(?:^|\n)(name:\s*\S+[\s\S]*?nodes:\s*[\s\S]*?)(?:\n```|$)/);
+      if (nameMatch && nameMatch.index !== undefined) {
+        yaml = nameMatch[1].trim();
+        yamlStartIdx = nameMatch.index;
+      }
+    }
+
+    // Final fallback: find "name:" and take everything from there
+    if (!yaml) {
+      const startIdx = response.indexOf("name:");
+      if (startIdx >= 0) {
+        yaml = response.substring(startIdx).trim();
+        // Remove trailing code fence if present
+        yaml = yaml.replace(/\n```\s*$/, "").trim();
+        yamlStartIdx = startIdx;
+      }
+    }
+
+    if (!yaml) {
+      console.error("Could not find valid workflow YAML in response:", response);
+      return null;
+    }
+
+    // Extract explanation (text before YAML)
+    let explanation = "";
+    if (yamlStartIdx > 0) {
+      explanation = response.substring(0, yamlStartIdx).trim();
+      // Remove code fence markers from explanation
+      explanation = explanation.replace(/```\w*\s*$/gm, "").trim();
+    }
+
+    // Parse YAML
+    const parsed = parseYaml(yaml) as {
+      name?: string;
+      nodes?: Array<{
+        id?: string;
+        type?: string;
+        next?: string;
+        trueNext?: string;
+        falseNext?: string;
+        [key: string]: unknown;
+      }>;
+    };
+
+    if (!parsed || !Array.isArray(parsed.nodes)) {
+      console.error("Invalid workflow structure:", parsed);
+      return null;
+    }
+
+    // Convert to SidebarNode format
+    const nodes: SidebarNode[] = parsed.nodes.map((node, index) => {
+      const { id, type, next, trueNext, falseNext, ...properties } = node;
+
+      // Convert all properties to strings
+      const stringProps: Record<string, string> = {};
+      for (const [key, value] of Object.entries(properties)) {
+        if (value === null || value === undefined) {
+          stringProps[key] = "";
+        } else if (typeof value === "object") {
+          stringProps[key] = JSON.stringify(value);
+        } else if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
+          stringProps[key] = String(value);
+        } else {
+          stringProps[key] = JSON.stringify(value);
+        }
+      }
+
+      const sidebarNode: SidebarNode = {
+        id: String(id || `node-${index + 1}`),
+        type: (type || "variable") as WorkflowNodeType,
+        properties: stringProps,
+      };
+
+      // Add connection properties
+      if (next) {
+        sidebarNode.next = String(next);
+      }
+      if (trueNext) {
+        sidebarNode.trueNext = String(trueNext);
+      }
+      if (falseNext) {
+        sidebarNode.falseNext = String(falseNext);
+      }
+
+      return sidebarNode;
+    });
+
+    return {
+      yaml,
+      nodes,
+      name: parsed.name || "AI Generated Workflow",
+      explanation: explanation || undefined,
+    };
+  } catch (error) {
+    console.error("Failed to parse AI workflow response:", formatError(error), response);
+    return null;
+  }
 }

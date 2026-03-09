@@ -730,6 +730,19 @@ Wenn Sie auf Generate klicken, wird der Dateiinhalt direkt in die KI-Anfrage ein
 
 Klicken Sie auf die Anhang-Schaltfläche, um Dateien (Bilder, PDFs, Textdateien) an Ihre Workflow-Generierungsanfrage anzuhängen. Dies ist nützlich, um der KI visuellen Kontext oder Beispiele zu liefern.
 
+**Externe LLMs verwenden (Prompt kopieren / Antwort einfügen):**
+
+Sie können jedes externe LLM (Claude, GPT usw.) verwenden, um Workflows zu generieren:
+
+1. Geben Sie wie gewohnt den Workflow-Namen und die Beschreibung ein
+2. Klicken Sie auf **Copy Prompt** - der vollständige Prompt wird in die Zwischenablage kopiert
+3. Fügen Sie den Prompt in Ihr bevorzugtes LLM ein
+4. Kopieren Sie die Antwort des LLM
+5. Fügen Sie sie in das angezeigte **Antwort einfügen**-Textfeld ein
+6. Klicken Sie auf **Anwenden**, um den Workflow zu erstellen
+
+Die eingefügte Antwort kann entweder rohes YAML oder ein vollständiges Markdown-Dokument mit `` ```workflow ``-Codeblöcken sein. Markdown-Antworten werden unverändert gespeichert, einschließlich der vom LLM erstellten Dokumentation.
+
 **Modal-Steuerung:**
 
 Das KI-Workflow-Modal unterstützt Drag-and-Drop-Positionierung und Größenänderung von den Ecken für eine bessere Bearbeitungserfahrung.

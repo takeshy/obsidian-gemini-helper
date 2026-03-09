@@ -96,12 +96,13 @@ nodes:
 
 When a skill with workflows is active, the AI receives a `run_skill_workflow` tool that it can call to execute these workflows. The workflow ID format is `skillName/workflowName` (e.g., `Code Review/workflows_run-lint`).
 
-### Headless Execution
+### Interactive Execution
 
-Skill workflows run in headless mode:
+Skill workflows run with interactive modals (same as the Workflow panel):
 
-- Interactive prompts (`dialog`, `prompt-file`, `prompt-selection`) are skipped (return null)
-- Confirmation dialogs are auto-confirmed
+- An execution progress modal is displayed showing real-time status
+- Interactive prompts (`dialog`, `prompt-file`, `prompt-selection`) are shown to the user
+- Confirmation dialogs require user approval
 - The AI receives the workflow execution logs as the tool result
 
 ## Using Skills in Chat

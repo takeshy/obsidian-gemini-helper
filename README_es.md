@@ -730,6 +730,19 @@ Cuando haces clic en Generate, el contenido del archivo se incrusta directamente
 
 Haz clic en el botón de adjuntos para adjuntar archivos (imágenes, PDFs, archivos de texto) a tu solicitud de generación de flujo de trabajo. Esto es útil para proporcionar contexto visual o ejemplos a la IA.
 
+**Usar LLMs Externos (Copiar Prompt / Pegar Respuesta):**
+
+Puedes usar cualquier LLM externo (Claude, GPT, etc.) para generar flujos de trabajo:
+
+1. Completa el nombre y la descripción del flujo de trabajo como siempre
+2. Haz clic en **Copy Prompt** - el prompt completo se copia al portapapeles
+3. Pega el prompt en tu LLM preferido
+4. Copia la respuesta del LLM
+5. Pégala en el área de texto **Pegar Respuesta** que aparece
+6. Haz clic en **Aplicar** para crear el flujo de trabajo
+
+La respuesta pegada puede ser YAML puro o un documento Markdown completo con bloques de código `` ```workflow ``. Las respuestas en Markdown se guardan tal cual, preservando cualquier documentación incluida por el LLM.
+
 **Controles del Modal:**
 
 El modal de flujo de trabajo con IA soporta posicionamiento con arrastrar y soltar y redimensionamiento desde las esquinas para una mejor experiencia de edición.

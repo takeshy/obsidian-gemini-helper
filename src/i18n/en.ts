@@ -743,6 +743,12 @@ export const en = {
   // AI Workflow Modal
   "aiWorkflow.confirmChanges": "Confirm workflow changes",
   "aiWorkflow.aiExplanation": "AI explanation",
+  "aiWorkflow.copyPrompt": "Copy prompt",
+  "aiWorkflow.promptCopied": "Prompt copied to clipboard",
+  "aiWorkflow.pasteLabel": "Paste the response from external llm",
+  "aiWorkflow.pastePlaceholder": "Paste the markdown (with ```workflow blocks) or YAML from Claude, GPT, etc...",
+  "aiWorkflow.applyPasted": "Apply",
+  "aiWorkflow.enterPastedYaml": "Please paste YAML content",
   "aiWorkflow.workflowName": "Workflow name:",
   "aiWorkflow.outputPath": "Output path:",
   "aiWorkflow.currentWorkflow": "Current workflow",

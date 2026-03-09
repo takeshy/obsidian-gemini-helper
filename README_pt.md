@@ -730,6 +730,19 @@ Quando você clica em Generate, o conteúdo do arquivo é incorporado diretament
 
 Clique no botão de anexo para anexar arquivos (imagens, PDFs, arquivos de texto) à sua solicitação de geração de workflow. Isso é útil para fornecer contexto visual ou exemplos para a IA.
 
+**Usando LLMs Externos (Copiar Prompt / Colar Resposta):**
+
+Você pode usar qualquer LLM externo (Claude, GPT, etc.) para gerar workflows:
+
+1. Preencha o nome e a descrição do workflow normalmente
+2. Clique em **Copy Prompt** - o prompt completo é copiado para a área de transferência
+3. Cole o prompt no seu LLM preferido
+4. Copie a resposta do LLM
+5. Cole na área de texto **Colar Resposta** que aparece
+6. Clique em **Aplicar** para criar o workflow
+
+A resposta colada pode ser YAML puro ou um documento Markdown completo com blocos de código `` ```workflow ``. Respostas em Markdown são salvas como estão, preservando qualquer documentação incluída pelo LLM.
+
 **Controles do Modal:**
 
 O modal de workflow com IA suporta posicionamento por arrastar e soltar e redimensionamento pelos cantos para uma melhor experiência de edição.

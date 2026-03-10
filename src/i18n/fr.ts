@@ -210,6 +210,8 @@ export const fr: Record<string, string> = {
 
   // Chat
   "chat.title": "Chat",
+  "chat.saveAsNote": "Sauvegarder comme note",
+  "chat.savedAsNote": "Sauvegardé sous {{path}}",
   "chat.newChat": "Nouveau chat",
   "chat.chatHistory": "Historique des chats",
   "chat.noChatHistory": "Pas encore d'historique de chat",

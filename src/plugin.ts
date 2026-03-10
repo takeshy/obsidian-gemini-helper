@@ -55,9 +55,6 @@ export class GeminiHelperPlugin extends Plugin {
   driveSyncManager: DriveSyncManager | null = null;
   private driveSyncUI!: DriveSyncUIManager;
 
-  // Hide workspace folder: tracked elements with toggled CSS class
-  private hiddenWorkspaceFolderEls: HTMLElement[] = [];
-
   // Delegate workspaceState to the manager
   get workspaceState(): WorkspaceState {
     return this.wsManager.workspaceState;
@@ -105,14 +102,8 @@ export class GeminiHelperPlugin extends Plugin {
 
     // Load settings and workspace state
     void this.loadSettings().then(async () => {
-      // Apply workspace folder visibility (CSS class toggle)
+      // Apply workspace folder visibility (body class toggle)
       this.updateWorkspaceFolderVisibility();
-      // Re-apply when file explorer re-renders (DOM elements get recreated)
-      this.registerEvent(
-        this.app.workspace.on("layout-change", () => {
-          this.updateWorkspaceFolderVisibility();
-        })
-      );
 
       // Migrate from old settings format first (one-time)
       try {
@@ -574,11 +565,8 @@ export class GeminiHelperPlugin extends Plugin {
     this.driveSyncManager?.destroy();
     this.driveSyncManager = null;
 
-    // Clean up hide workspace folder classes
-    for (const el of this.hiddenWorkspaceFolderEls) {
-      el.classList.remove("gemini-helper-workspace-folder-hidden");
-    }
-    this.hiddenWorkspaceFolderEls = [];
+    // Clean up hide workspace folder style element
+    document.getElementById("gemini-helper-hide-workspace-folder-style")?.remove();
 
     // Clean up workflow timers
     this.workflowMgr.cleanup();
@@ -696,28 +684,22 @@ export class GeminiHelperPlugin extends Plugin {
     this.updateWorkspaceFolderVisibility();
   }
 
-  /** Show or hide the workspace folder in the file explorer via CSS class toggle. */
+  /** Show or hide the workspace folder in the file explorer via dynamic <style> element. */
   updateWorkspaceFolderVisibility(): void {
-    // Remove previously applied classes
-    for (const el of this.hiddenWorkspaceFolderEls) {
-      el.classList.remove("gemini-helper-workspace-folder-hidden");
-    }
-    this.hiddenWorkspaceFolderEls = [];
-
+    const id = "gemini-helper-hide-workspace-folder-style";
+    let styleEl = document.getElementById(id);
     if (this.settings.hideWorkspaceFolder && this.settings.workspaceFolder) {
-      const folder = this.settings.workspaceFolder;
-      const titleEl = document.querySelector(
-        `.nav-folder-title[data-path="${CSS.escape(folder)}"]`
-      );
-      if (titleEl instanceof HTMLElement) {
-        titleEl.classList.add("gemini-helper-workspace-folder-hidden");
-        this.hiddenWorkspaceFolderEls.push(titleEl);
-        const childrenEl = titleEl.nextElementSibling;
-        if (childrenEl instanceof HTMLElement && childrenEl.classList.contains("nav-folder-children")) {
-          childrenEl.classList.add("gemini-helper-workspace-folder-hidden");
-          this.hiddenWorkspaceFolderEls.push(childrenEl);
-        }
+      const folder = CSS.escape(this.settings.workspaceFolder);
+      const css = `.nav-folder-title[data-path="${folder}"],` +
+        `.nav-folder-title[data-path="${folder}"] + .nav-folder-children { display: none !important; }`;
+      if (!styleEl) {
+        styleEl = document.createElement("style");
+        styleEl.id = id;
+        document.head.appendChild(styleEl);
       }
+      styleEl.textContent = css;
+    } else if (styleEl) {
+      styleEl.remove();
     }
   }
 

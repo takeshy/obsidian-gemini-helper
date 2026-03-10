@@ -210,6 +210,8 @@ export const zh: Record<string, string> = {
 
   // Chat
   "chat.title": "Chat",
+  "chat.saveAsNote": "保存为笔记",
+  "chat.savedAsNote": "已保存到 {{path}}",
   "chat.newChat": "新建聊天",
   "chat.chatHistory": "聊天记录",
   "chat.noChatHistory": "暂无聊天记录",

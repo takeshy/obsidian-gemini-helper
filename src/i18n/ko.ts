@@ -210,6 +210,8 @@ export const ko: Record<string, string> = {
 
   // Chat
   "chat.title": "Chat",
+  "chat.saveAsNote": "노트로 저장",
+  "chat.savedAsNote": "{{path}}에 저장됨",
   "chat.newChat": "새 채팅",
   "chat.chatHistory": "채팅 기록",
   "chat.noChatHistory": "채팅 기록이 없습니다",

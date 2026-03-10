@@ -668,7 +668,7 @@ export const DEFAULT_SETTINGS: GeminiHelperSettings = {
   ragEnabled: false,
   ragTopK: 5,  // Default: retrieve 5 chunks
   workspaceFolder: "GeminiHelper",
-  hideWorkspaceFolder: false,
+  hideWorkspaceFolder: true,
   saveChatHistory: true,
   systemPrompt: "",
   slashCommands: DEFAULT_SLASH_COMMANDS,

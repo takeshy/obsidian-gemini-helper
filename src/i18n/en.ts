@@ -210,6 +210,8 @@ export const en = {
 
   // Chat
   "chat.title": "Chat",
+  "chat.saveAsNote": "Save as note",
+  "chat.savedAsNote": "Saved as {{path}}",
   "chat.newChat": "New chat",
   "chat.chatHistory": "Chat history",
   "chat.noChatHistory": "No chat history yet",

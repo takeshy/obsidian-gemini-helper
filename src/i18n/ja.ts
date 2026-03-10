@@ -210,6 +210,8 @@ export const ja: Record<string, string> = {
 
   // Chat
   "chat.title": "Chat",
+  "chat.saveAsNote": "ノートとして保存",
+  "chat.savedAsNote": "{{path}}に保存しました",
   "chat.newChat": "新しいチャット",
   "chat.chatHistory": "チャット履歴",
   "chat.noChatHistory": "チャット履歴がありません",

@@ -7,7 +7,7 @@ import {
 	useCallback,
 } from "react";
 import { TFile, Notice, MarkdownView, Platform } from "obsidian";
-import { Plus, History, ChevronDown, Lock } from "lucide-react";
+import { Plus, History, ChevronDown, Lock, FileText, Loader2, Check } from "lucide-react";
 import type { GeminiHelperPlugin } from "src/plugin";
 import {
 	DEFAULT_CLI_CONFIG,
@@ -115,6 +115,7 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 	const [cliSession, setCliSession] = useState<CliSessionInfo | null>(null);  // CLI session for resumption
 	const [chatHistories, setChatHistories] = useState<ChatHistory[]>([]);
 	const [showHistory, setShowHistory] = useState(false);
+	const [saveNoteState, setSaveNoteState] = useState<"idle" | "saving" | "saved">("idle");
 	const [isLoading, setIsLoading] = useState(false);
 	const [isCompacting, setIsCompacting] = useState(false);
 	const [streamingContent, setStreamingContent] = useState("");
@@ -257,6 +258,26 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 	const getChatFilePath = (chatId: string) => {
 		return `${getChatHistoryFolder()}/${chatId}.md`;
 	};
+
+	// Save current chat as a note file (in vault root)
+	const handleSaveAsNote = useCallback(async () => {
+		if (saveNoteState !== "idle" || messages.length === 0) return;
+		setSaveNoteState("saving");
+		try {
+			const chatTitle = messages[0].content.slice(0, 50) + (messages[0].content.length > 50 ? "..." : "");
+			const markdown = await messagesToMarkdown(messages, chatTitle, messages[0].timestamp, plugin.settings.encryption, cliSession ?? undefined);
+			const now = new Date();
+			const pad = (n: number) => String(n).padStart(2, "0");
+			const fileName = `chat-${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}-${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}.md`;
+			await plugin.app.vault.create(fileName, markdown);
+			new Notice(t("chat.savedAsNote", { path: fileName }));
+			setSaveNoteState("saved");
+			setTimeout(() => setSaveNoteState("idle"), 3000);
+		} catch (error) {
+			new Notice(t("common.error") + ": " + formatError(error));
+			setSaveNoteState("idle");
+		}
+	}, [saveNoteState, messages, plugin, cliSession]);
 
 	// Load chat histories from folder
 	const loadChatHistories = useCallback(async () => {
@@ -2094,6 +2115,16 @@ Always be helpful and provide clear, concise responses. When working with notes,
 			<div className="gemini-helper-chat-header">
 				<h3>{t("chat.title")}</h3>
 				<div className="gemini-helper-header-actions">
+					<button
+						className="gemini-helper-icon-btn"
+						onClick={() => { void handleSaveAsNote(); }}
+						disabled={saveNoteState === "saving" || messages.length === 0}
+						title={saveNoteState === "saved" ? t("chat.savedAsNote", { path: "" }) : t("chat.saveAsNote")}
+					>
+						{saveNoteState === "idle" && <FileText size={18} />}
+						{saveNoteState === "saving" && <Loader2 size={18} className="gemini-helper-spinner" />}
+						{saveNoteState === "saved" && <Check size={18} />}
+					</button>
 					<button
 						className="gemini-helper-icon-btn"
 						onClick={startNewChat}

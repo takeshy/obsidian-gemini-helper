@@ -684,22 +684,17 @@ export class GeminiHelperPlugin extends Plugin {
     this.updateWorkspaceFolderVisibility();
   }
 
-  /** Show or hide the workspace folder in the file explorer via dynamic <style> element. */
+  /** Show or hide the workspace folder in the file explorer via DOM class toggling. */
   updateWorkspaceFolderVisibility(): void {
-    const id = "gemini-helper-hide-workspace-folder-style";
-    let styleEl = document.getElementById(id);
-    if (this.settings.hideWorkspaceFolder && this.settings.workspaceFolder) {
-      const folder = CSS.escape(this.settings.workspaceFolder);
-      const css = `.nav-folder-title[data-path="${folder}"],` +
-        `.nav-folder-title[data-path="${folder}"] + .nav-folder-children { display: none !important; }`;
-      if (!styleEl) {
-        styleEl = document.createElement("style");
-        styleEl.id = id;
-        document.head.appendChild(styleEl);
-      }
-      styleEl.textContent = css;
-    } else if (styleEl) {
-      styleEl.remove();
+    const folder = this.settings.workspaceFolder;
+    if (!folder) return;
+
+    // Find the nav-folder element for the workspace folder
+    const navFolder = document.querySelector(`.nav-folder[data-path="${CSS.escape(folder)}"]`)
+      ?? document.querySelector(`.nav-folder:has(> .nav-folder-title[data-path="${CSS.escape(folder)}"])`);
+
+    if (navFolder instanceof HTMLElement) {
+      navFolder.toggleClass("gemini-helper-hidden", this.settings.hideWorkspaceFolder);
     }
   }
 

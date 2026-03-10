@@ -14,6 +14,134 @@ export interface WorkflowCodeBlock {
 // Match workflow code blocks - supports 3+ backticks, end marker must match opening count
 const BLOCK_REGEX = /^(`{3,})workflow[^\n]*\r?\n([\s\S]*?)\r?\n\1\s*$/gm;
 
+// Known workflow node property names — used to detect end of block scalar content.
+// Without this whitelist, JavaScript code like "monday: value" inside code: |
+// would be mistaken for a YAML sibling key and prematurely end the block scalar.
+const WORKFLOW_YAML_KEYS = new Set([
+  // structural
+  "id", "type", "next", "trueNext", "falseNext",
+  // common
+  "name", "value", "comment", "saveTo", "timeout", "path", "mode",
+  "condition", "code", "prompt", "content", "source", "title", "message",
+  // command
+  "enableThinking", "model", "attachments", "enableTools", "saveImageTo",
+  // http
+  "url", "method", "contentType", "responseType", "headers", "body",
+  "saveStatus", "throwOnError",
+  // note / file
+  "folder", "recursive", "tags", "tagMatch", "createdWithin", "modifiedWithin",
+  "sortBy", "sortOrder", "limit", "query", "searchContent", "confirm", "history",
+  // dialog / prompt
+  "options", "multiSelect", "markdown", "inputTitle", "multiline",
+  "defaults", "button1", "button2", "default", "forcePrompt",
+  // file-explorer / file-save
+  "extensions", "savePathTo", "saveFileTo", "saveSelectionTo",
+  // workflow / integration
+  "command", "input", "output", "prefix", "duration",
+  "oldPath", "ragSetting",
+  // top-level
+  "nodes",
+]);
+
+// Normalize YAML text from external sources (e.g., LLM output):
+// 1. Convert Markdown-style "* " list markers to YAML "- " (only for YAML mapping items)
+// 2. Fix block scalar (| or >) content that lacks proper indentation
+export function normalizeYamlText(yamlText: string): string {
+  // Step 1: Convert * list markers to - only when followed by a YAML key pattern (e.g., "* id: xxx")
+  // This avoids converting Markdown bullets like "* A clear title" inside block scalar content
+  const text = yamlText.replace(/^(\s*)\* (?=\w[\w-]*:(\s|$))/gm, "$1- ");
+
+  // Step 2: Fix block scalar indentation using backwards-scan approach.
+  // Instead of scanning forward and trying to detect end-of-block by content heuristics,
+  // we find the node boundary (next list item), then scan backwards from it to identify
+  // trailing YAML properties. Everything between the block scalar indicator and those
+  // trailing properties is content. This avoids false positives from JS code like
+  // "notes: result," or "name: fileName" inside code: | blocks.
+  const lines = text.split("\n");
+  const result: string[] = [];
+  let i = 0;
+
+  while (i < lines.length) {
+    const line = lines[i];
+    // Match lines ending with block scalar indicator: "key: |" or "key: >" with optional modifiers
+    const blockMatch = line.match(/^(\s*)\S.*:\s*[|>][+-]?\s*$/);
+
+    if (blockMatch) {
+      const keyIndent = blockMatch[1].length;
+      result.push(line);
+      i++;
+
+      // Find first non-empty line after the indicator
+      let firstContentIdx = i;
+      while (firstContentIdx < lines.length && lines[firstContentIdx].trim() === "") {
+        firstContentIdx++;
+      }
+
+      if (firstContentIdx < lines.length) {
+        const firstContentIndent = lines[firstContentIdx].search(/\S/);
+
+        // Only fix if content is not properly indented (should be > keyIndent)
+        if (firstContentIndent >= 0 && firstContentIndent <= keyIndent) {
+          const addSpaces = " ".repeat(keyIndent + 2 - firstContentIndent);
+
+          // Find the boundary of this node (next list item at lower indent)
+          let nodeEnd = lines.length;
+          for (let j = firstContentIdx; j < lines.length; j++) {
+            if (lines[j].trim() === "") continue;
+            if (/^\s*-\s/.test(lines[j]) && lines[j].search(/\S/) < keyIndent) {
+              nodeEnd = j;
+              break;
+            }
+          }
+
+          // Scan backwards from node boundary to find trailing YAML properties.
+          // These are known workflow keys at the same indent as the block scalar key.
+          // The chain breaks at any non-property line (e.g., "};" from JS code),
+          // so JS object keys like "notes: result," are never mistaken for YAML.
+          let contentEnd = nodeEnd;
+          for (let j = nodeEnd - 1; j >= firstContentIdx; j--) {
+            if (lines[j].trim() === "") continue;
+            const jIndent = lines[j].search(/\S/);
+            if (jIndent === keyIndent) {
+              const km = lines[j].match(/^\s*([\w-]+):(\s|$)/);
+              if (km && WORKFLOW_YAML_KEYS.has(km[1])) {
+                contentEnd = j;
+                continue;
+              }
+            }
+            break;
+          }
+
+          // Push blank lines before content
+          while (i < firstContentIdx) {
+            result.push(lines[i]);
+            i++;
+          }
+
+          // Re-indent content lines up to contentEnd
+          while (i < contentEnd) {
+            if (lines[i].trim() === "") {
+              result.push(lines[i]);
+            } else {
+              result.push(addSpaces + lines[i]);
+            }
+            i++;
+          }
+          // Remaining lines (trailing YAML properties) handled by outer loop
+          continue;
+        }
+      }
+      // Block scalar detected but content already properly indented - skip to avoid double push
+      continue;
+    }
+
+    result.push(line);
+    i++;
+  }
+
+  return result.join("\n");
+}
+
 export function findWorkflowBlocks(content: string): WorkflowCodeBlock[] {
   const blocks: WorkflowCodeBlock[] = [];
   let match: RegExpExecArray | null;
@@ -28,7 +156,7 @@ export function findWorkflowBlocks(content: string): WorkflowCodeBlock[] {
     let parseError: string | undefined;
 
     try {
-      parsed = (parseYaml(yamlText) as Record<string, unknown>) || {};
+      parsed = (parseYaml(normalizeYamlText(yamlText)) as Record<string, unknown>) || {};
     } catch (e) {
       // Store parse error but still include the block
       parseError = e instanceof Error ? e.message : String(e);

@@ -5,7 +5,7 @@
   display: none !important;
 }
 
-/* Hide workspace folder: handled dynamically via <style> element in plugin.ts */
+/* Hide workspace folder: handled dynamically via class toggling in plugin.ts */
 
 /* Selection Highlight - shows where {selection} text came from */
 .gemini-helper-selection-highlight {

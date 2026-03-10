@@ -5,6 +5,14 @@ import { cryptoCache } from "../../core/cryptoCache";
 import { WorkflowNode, ExecutionContext, PromptCallbacks } from "../types";
 import { replaceVariables, RegenerateRequestError } from "./utils";
 
+// Sanitize path segments by replacing characters not allowed in Obsidian file names
+function sanitizePath(path: string): string {
+  return path
+    .split("/")
+    .map((segment) => segment.replace(/[*"\\<>:|?]/g, "-"))
+    .join("/");
+}
+
 // Recursively ensure all parent folders exist
 async function ensureFolderExists(app: App, folderPath: string): Promise<void> {
   if (!folderPath) return;
@@ -48,8 +56,8 @@ export async function handleNoteNode(
     throw new Error("Note node missing 'path' property");
   }
 
-  // Ensure .md extension
-  const notePath = path.endsWith(".md") ? path : `${path}.md`;
+  // Ensure .md extension and sanitize path
+  const notePath = sanitizePath(path.endsWith(".md") ? path : `${path}.md`);
 
   // Check if confirmation is required (default: true)
   const confirm = node.properties["confirm"] !== "false";

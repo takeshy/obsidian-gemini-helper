@@ -6,7 +6,7 @@ import { tracing } from "src/core/tracingHooks";
 import { CLI_MODEL, CLAUDE_CLI_MODEL, CODEX_CLI_MODEL, DEFAULT_CLI_CONFIG, getAvailableModels, type ModelType, type Attachment, type StreamChunkUsage } from "src/types";
 import { getWorkflowSpecification } from "src/workflow/workflowSpec";
 import type { SidebarNode, WorkflowNodeType, ExecutionStep } from "src/workflow/types";
-import { listWorkflowOptions } from "src/workflow/parser";
+import { listWorkflowOptions, normalizeYamlText } from "src/workflow/parser";
 import { ExecutionHistoryManager } from "src/workflow/history";
 import { computeLineDiff } from "./EditConfirmationModal";
 import { WorkflowGenerationModal } from "./WorkflowGenerationModal";
@@ -1911,7 +1911,8 @@ export function parseWorkflowResponse(response: string): AIWorkflowResult | null
       explanation = explanation.replace(/```\w*\s*$/gm, "").trim();
     }
 
-    // Parse YAML
+    // Normalize and parse YAML (fix common LLM output issues like * markers, block scalar indentation)
+    yaml = normalizeYamlText(yaml);
     const parsed = parseYaml(yaml) as {
       name?: string;
       nodes?: Array<{

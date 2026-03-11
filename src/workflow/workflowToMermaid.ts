@@ -164,16 +164,16 @@ export function sidebarNodesToMermaid(nodes: SidebarNode[]): string {
   for (let i = 0; i < nodes.length; i++) {
     const node = nodes[i];
     if (node.type === "if" || node.type === "while") {
-      if (node.trueNext && nodeIdSet.has(node.trueNext)) {
+      if (node.trueNext && (nodeIdSet.has(node.trueNext) || node.trueNext === "end")) {
         edges.push({ from: node.id, to: node.trueNext, label: "true" });
       }
-      if (node.falseNext && nodeIdSet.has(node.falseNext)) {
+      if (node.falseNext && (nodeIdSet.has(node.falseNext) || node.falseNext === "end")) {
         edges.push({ from: node.id, to: node.falseNext, label: "false" });
       } else if (!node.falseNext && i < nodes.length - 1) {
         edges.push({ from: node.id, to: nodes[i + 1].id, label: "false" });
       }
     } else {
-      if (node.next && nodeIdSet.has(node.next)) {
+      if (node.next && (nodeIdSet.has(node.next) || node.next === "end")) {
         edges.push({ from: node.id, to: node.next });
       } else if (!node.next && i < nodes.length - 1) {
         edges.push({ from: node.id, to: nodes[i + 1].id });
@@ -216,6 +216,9 @@ export function sidebarNodesToMermaid(nodes: SidebarNode[]): string {
     definedNodes.add(nodeId);
   };
 
+  // Connect terminal nodes to END
+  let hasTerminal = false;
+
   // Generate node definitions and edges
   for (const node of nodes) {
     const safeId = node.id.replace(/-/g, "_");
@@ -225,6 +228,20 @@ export function sidebarNodesToMermaid(nodes: SidebarNode[]): string {
 
     if (node.type === "if" || node.type === "while") {
       for (const edge of nodeEdges) {
+        if (edge.to === "end") {
+          // "end" is a Mermaid reserved word — route to END terminal node
+          if (edge.label === "true") {
+            const lbl = node.type === "while" ? "Yes ↓" : "Yes";
+            lines.push(`  ${safeId} -->|"${lbl}"| FINISH`);
+          } else if (edge.label === "false") {
+            const lbl = node.type === "while" ? "No →" : "No";
+            lines.push(`  ${safeId} -->|"${lbl}"| FINISH`);
+          } else {
+            lines.push(`  ${safeId} --> FINISH`);
+          }
+          hasTerminal = true;
+          continue;
+        }
         defineNode(edge.to);
         const targetId = edge.to.replace(/-/g, "_");
         if (edge.label === "true") {
@@ -239,6 +256,12 @@ export function sidebarNodesToMermaid(nodes: SidebarNode[]): string {
       }
     } else {
       for (const edge of nodeEdges) {
+        if (edge.to === "end") {
+          // "end" is a Mermaid reserved word — route to END terminal node
+          lines.push(`  ${safeId} --> FINISH`);
+          hasTerminal = true;
+          continue;
+        }
         defineNode(edge.to);
         const targetId = edge.to.replace(/-/g, "_");
         const isBackEdge = backEdges.has(`${node.id}->${edge.to}`);
@@ -251,21 +274,19 @@ export function sidebarNodesToMermaid(nodes: SidebarNode[]): string {
     }
   }
 
-  // Connect terminal nodes to END
-  let hasTerminal = false;
   for (const node of nodes) {
     if (!hasOutgoing.has(node.id)) {
       const safeId = node.id.replace(/-/g, "_");
-      lines.push(`  ${safeId} --> END`);
+      lines.push(`  ${safeId} --> FINISH`);
       hasTerminal = true;
     }
   }
 
   if (hasTerminal) {
-    lines.push(`  END(["■ END"])`);
+    lines.push(`  FINISH(["■ END"])`);
     lines.push("");
     lines.push("  %% Styling");
-    lines.push("  style END fill:#FFB6C1,stroke:#DC143C,color:#000");
+    lines.push("  style FINISH fill:#FFB6C1,stroke:#DC143C,color:#000");
   }
 
   return lines.join("\n");

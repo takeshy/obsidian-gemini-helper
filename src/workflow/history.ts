@@ -1,5 +1,5 @@
 import { App } from "obsidian";
-import type { McpAppInfo, StreamChunkUsage } from "../types";
+import { type McpAppInfo, type StreamChunkUsage, WORKSPACE_FOLDER } from "../types";
 import {
   ExecutionRecord,
   ExecutionStatus,
@@ -28,10 +28,9 @@ export class ExecutionHistoryManager {
   private historyFolder: string;
   private encryptionConfig: EncryptionConfig | null;
 
-  constructor(app: App, workspaceFolder: string, encryptionConfig?: EncryptionConfig) {
+  constructor(app: App, encryptionConfig?: EncryptionConfig) {
     this.app = app;
-    const baseFolder = workspaceFolder || "GeminiHelper";
-    this.historyFolder = `${baseFolder}/workflow-history`;
+    this.historyFolder = `${WORKSPACE_FOLDER}/workflow-history`;
     this.encryptionConfig = encryptionConfig || null;
   }
 

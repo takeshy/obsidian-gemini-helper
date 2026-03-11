@@ -1,10 +1,9 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { type App, MarkdownRenderer, Component, Notice, Platform } from "obsidian";
-import { Copy, Check, CheckCircle, XCircle, Download, Eye, Layout } from "lucide-react";
+import { Copy, Check, CheckCircle, XCircle, Download, Eye } from "lucide-react";
 import type { Message, ToolCall } from "src/types";
 import { AVAILABLE_MODELS } from "src/types";
 import { HTMLPreviewModal, extractHtmlFromCodeBlock } from "./HTMLPreviewModal";
-import { hasMermaidFlowchart, convertMessageMermaidToCanvas } from "src/utils/mermaidToCanvas";
 import { McpAppRenderer } from "./McpAppRenderer";
 import { t } from "src/i18n";
 import { formatError } from "src/utils/error";
@@ -16,7 +15,6 @@ interface MessageBubbleProps {
   onApplyEdit?: () => Promise<void>;
   onDiscardEdit?: () => void;
   app: App;
-  workspaceFolder?: string;
 }
 
 export default function MessageBubble({
@@ -26,7 +24,6 @@ export default function MessageBubble({
   onApplyEdit,
   onDiscardEdit,
   app,
-  workspaceFolder,
 }: MessageBubbleProps) {
   const isUser = message.role === "user";
   const [copied, setCopied] = useState(false);
@@ -290,30 +287,6 @@ export default function MessageBubble({
   // Check for HTML code block
   const htmlContent = extractHtmlFromCodeBlock(message.content);
 
-  // Check for Mermaid flowchart
-  const hasMermaid = hasMermaidFlowchart(message.content);
-
-  // Open Mermaid as Canvas
-  const handleOpenAsCanvas = async () => {
-    if (!hasMermaid || !workspaceFolder) return;
-
-    try {
-      const success = await convertMessageMermaidToCanvas(
-        app,
-        message.content,
-        workspaceFolder,
-        getBaseName()
-      );
-      if (success) {
-        new Notice(t("message.canvasCreated"));
-      } else {
-        new Notice(t("message.canvasCreationFailed"));
-      }
-    } catch {
-      new Notice(t("message.canvasCreationFailed"));
-    }
-  };
-
   const stripControlChars = (value: string): string => {
     let result = "";
     for (let i = 0; i < value.length; i++) {
@@ -556,25 +529,6 @@ export default function MessageBubble({
             >
               <Download size={14} />
               <span>{t("common.save")}</span>
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Mermaid flowchart actions */}
-      {hasMermaid && !isStreaming && workspaceFolder && (
-        <div className="gemini-helper-html-actions">
-          <span className="gemini-helper-html-indicator">
-            📐 {t("message.mermaidFlowchart")}
-          </span>
-          <div className="gemini-helper-html-buttons">
-            <button
-              className="gemini-helper-html-btn"
-              onClick={() => void handleOpenAsCanvas()}
-              title={t("message.openAsCanvas")}
-            >
-              <Layout size={14} />
-              <span>{t("message.openCanvas")}</span>
             </button>
           </div>
         </div>

@@ -56,10 +56,6 @@ export const ja: Record<string, string> = {
   "settings.cliPathCleared": "CLIパスをクリアしました",
 
   // Settings - Workspace
-  "settings.workspaceFolder": "ワークスペースフォルダ",
-  "settings.workspaceFolder.desc": "チャット履歴とセマンティック検索設定を保存するフォルダ",
-  "settings.workspaceFolder.vaultRoot": "Vaultのルート",
-  "settings.workspaceFolder.willBeCreated": "{{folder}}（作成されます）",
   "settings.hideWorkspaceFolder": "ワークスペースフォルダを非表示",
   "settings.hideWorkspaceFolder.desc": "ファイルエクスプローラーからワークスペースフォルダを非表示にする",
   "settings.saveChatHistory": "チャット履歴を保存",

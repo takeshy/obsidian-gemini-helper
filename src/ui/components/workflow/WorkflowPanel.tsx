@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { type App, TFile, Notice, Menu, MarkdownView, stringifyYaml } from "obsidian";
-import { FolderOpen, Keyboard, KeyboardOff, LayoutGrid, Plus, Sparkles, Zap, ZapOff } from "lucide-react";
+import { FolderOpen, Keyboard, KeyboardOff, Plus, Sparkles, Zap, ZapOff } from "lucide-react";
 import { EventTriggerModal } from "./EventTriggerModal";
 import type { WorkflowEventTrigger } from "src/types";
 import { promptForAIWorkflow, type AIWorkflowResult, ResolvedMention } from "./AIWorkflowModal";
@@ -20,7 +20,6 @@ import { promptForDialog } from "./DialogPromptModal";
 import { showMcpApp } from "./McpAppModal";
 import { WorkflowSelectorModal } from "./WorkflowSelectorModal";
 import { t } from "src/i18n";
-import { openWorkflowAsCanvas } from "src/utils/workflowToCanvas";
 import { cryptoCache } from "src/core/cryptoCache";
 import { globalEventEmitter } from "src/utils/EventEmitter";
 import { formatError } from "src/utils/error";
@@ -732,28 +731,6 @@ export default function WorkflowPanel({ plugin }: WorkflowPanelProps) {
     }
   };
 
-  // Handle Canvas export
-  const handleExportToCanvas = async () => {
-    if (nodes.length === 0) {
-      new Notice(t("workflow.noWorkflowToExport"));
-      return;
-    }
-
-    try {
-      await openWorkflowAsCanvas(
-        plugin.app,
-        nodes,
-        plugin.settings.workspaceFolder,
-        workflowName || undefined,
-        workflowFile?.path
-      );
-      new Notice(t("workflow.exportedToCanvas"));
-    } catch (error) {
-      const message = formatError(error);
-      new Notice(t("workflow.canvasExportFailed", { message }));
-    }
-  };
-
   // Add node
   const addNode = (type: WorkflowNodeType) => {
     const newNode: SidebarNode = {
@@ -1062,7 +1039,6 @@ export default function WorkflowPanel({ plugin }: WorkflowPanelProps) {
     const modal = new HistoryModal(
       plugin.app,
       workflowFile.path,
-      plugin.settings.workspaceFolder,
       encryptionConfig,
       (retryPath, retryName, errorNodeId, variablesSnapshot) => {
         void retryFromError(retryPath, retryName, errorNodeId, variablesSnapshot);
@@ -1191,14 +1167,6 @@ export default function WorkflowPanel({ plugin }: WorkflowPanelProps) {
           >
             <Sparkles size={14} />
             <span className="gemini-helper-workflow-btn-label">{t("workflow.modifyWithAI")}</span>
-          </button>
-          <button
-            className="workflow-sidebar-canvas-btn"
-            onClick={() => void handleExportToCanvas()}
-            disabled={nodes.length === 0}
-            title={t("workflow.exportToCanvas")}
-          >
-            <LayoutGrid size={14} />
           </button>
         </div>
       </div>

@@ -1,11 +1,33 @@
 /* Gemini Helper Plugin Styles */
 
+/* Workflow Mermaid diagram (code block processor) */
+.gemini-helper-workflow-mermaid {
+  overflow: auto;
+  padding: 8px 0;
+}
+
+.gemini-helper-workflow-mermaid svg {
+  max-width: none !important;
+}
+
+/* Wrap long text inside node labels instead of clipping */
+.gemini-helper-workflow-mermaid .nodeLabel {
+  white-space: normal !important;
+  word-break: break-word !important;
+  max-width: 300px;
+  text-align: left !important;
+}
+
 /* Utility: hide element */
 .gemini-helper-hidden {
   display: none !important;
 }
 
-/* Hide workspace folder: handled dynamically via class toggling in plugin.ts */
+/* Hide workspace folder in file explorer */
+body.gemini-helper-hide-workspace-folder .nav-folder[data-path="GeminiHelper"],
+body.gemini-helper-hide-workspace-folder .nav-folder:has(> [data-path="GeminiHelper"]) {
+  display: none !important;
+}
 
 /* Selection Highlight - shows where {selection} text came from */
 .gemini-helper-selection-highlight {

@@ -56,10 +56,6 @@ export const ko: Record<string, string> = {
   "settings.cliPathCleared": "CLI 경로가 지워졌습니다",
 
   // Settings - Workspace
-  "settings.workspaceFolder": "워크스페이스 폴더",
-  "settings.workspaceFolder.desc": "채팅 기록과 시맨틱 검색 설정을 저장할 폴더",
-  "settings.workspaceFolder.vaultRoot": "볼트 루트",
-  "settings.workspaceFolder.willBeCreated": "{{folder}} (생성 예정)",
   "settings.hideWorkspaceFolder": "워크스페이스 폴더 숨기기",
   "settings.hideWorkspaceFolder.desc": "파일 탐색기에서 워크스페이스 폴더를 숨깁니다",
   "settings.saveChatHistory": "채팅 기록 저장",

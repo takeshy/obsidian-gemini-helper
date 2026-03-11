@@ -39,17 +39,18 @@
     "builtin-modules": "3.3.0",
     "esbuild": "^0.25.2",
     "eslint-plugin-obsidianmd": "^0.1.9",
+    "langfuse": "^3.38.6",
     "obsidian": "^1.10.0",
     "tslib": "^2.4.0",
     "typescript": "^5.0.0",
     "typescript-eslint": "^8.49.0",
-    "vitest": "^4.0.18",
-    "langfuse": "^3.38.6"
+    "vitest": "^4.0.18"
   },
   "dependencies": {
     "@google/genai": "^1.32.0",
     "diff": "^8.0.2",
     "lucide-react": "^0.503.0",
+    "mermaid": "^11.13.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   }

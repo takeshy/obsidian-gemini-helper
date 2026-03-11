@@ -56,10 +56,6 @@ export const it: Record<string, string> = {
   "settings.cliPathCleared": "Percorso CLI cancellato",
 
   // Settings - Workspace
-  "settings.workspaceFolder": "Cartella area di lavoro",
-  "settings.workspaceFolder.desc": "Cartella per memorizzare cronologie chat e impostazioni ricerca semantica",
-  "settings.workspaceFolder.vaultRoot": "Root del vault",
-  "settings.workspaceFolder.willBeCreated": "{{folder}} (verrà creata)",
   "settings.hideWorkspaceFolder": "Nascondi cartella area di lavoro",
   "settings.hideWorkspaceFolder.desc": "Nascondi la cartella dell'area di lavoro dall'esploratore file",
   "settings.saveChatHistory": "Salva cronologia chat",

@@ -56,10 +56,6 @@ export const pt: Record<string, string> = {
   "settings.cliPathCleared": "Caminho CLI limpo",
 
   // Settings - Workspace
-  "settings.workspaceFolder": "Pasta da area de trabalho",
-  "settings.workspaceFolder.desc": "Pasta para armazenar historicos de chat e configuracoes de pesquisa semantica",
-  "settings.workspaceFolder.vaultRoot": "Raiz do vault",
-  "settings.workspaceFolder.willBeCreated": "{{folder}} (sera criada)",
   "settings.hideWorkspaceFolder": "Ocultar pasta da area de trabalho",
   "settings.hideWorkspaceFolder.desc": "Ocultar a pasta da area de trabalho do explorador de arquivos",
   "settings.saveChatHistory": "Salvar historico de chat",

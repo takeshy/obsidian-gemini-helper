@@ -1,7 +1,6 @@
 import { Setting, TFolder, TFile, Notice } from "obsidian";
-import type { DropdownComponent } from "obsidian";
 import { t } from "src/i18n";
-import { DEFAULT_SETTINGS } from "src/types";
+import { DEFAULT_SETTINGS, WORKSPACE_FOLDER } from "src/types";
 import { ConfirmModal } from "src/ui/components/ConfirmModal";
 import type { SettingsContext } from "./settingsContext";
 
@@ -10,38 +9,6 @@ export function displayWorkspaceSettings(containerEl: HTMLElement, ctx: Settings
   const app = plugin.app;
 
   new Setting(containerEl).setName(t("settings.workspace")).setHeading();
-
-  // Workspace Folder
-  new Setting(containerEl)
-    .setName(t("settings.workspaceFolder"))
-    .setDesc(t("settings.workspaceFolder.desc"))
-    .addDropdown((dropdown: DropdownComponent) => {
-      dropdown.addOption("", t("settings.workspaceFolder.vaultRoot"));
-
-      const folders = app.vault
-        .getAllLoadedFiles()
-        .filter((file) => file instanceof TFolder && !file.isRoot());
-
-      const currentFolder = plugin.settings.workspaceFolder;
-      const folderPaths = new Set(folders.map((f) => f.path));
-
-      if (currentFolder && !folderPaths.has(currentFolder)) {
-        dropdown.addOption(currentFolder, t("settings.workspaceFolder.willBeCreated", { folder: currentFolder }));
-      }
-
-      folders.forEach((folder) => {
-        dropdown.addOption(folder.path, folder.name);
-      });
-
-      dropdown
-        .setValue(currentFolder)
-        .onChange((value) => {
-          void (async () => {
-            await plugin.changeWorkspaceFolder(value);
-            display();
-          })();
-        });
-    });
 
   // Hide Workspace Folder
   new Setting(containerEl)
@@ -241,8 +208,7 @@ export function displayWorkspaceSettings(containerEl: HTMLElement, ctx: Settings
 
 async function deleteChatHistoryFiles(plugin: import("src/plugin").GeminiHelperPlugin): Promise<void> {
   const app = plugin.app;
-  const workspaceFolder = plugin.settings.workspaceFolder || "GeminiHelper";
-  const folder = app.vault.getAbstractFileByPath(workspaceFolder);
+  const folder = app.vault.getAbstractFileByPath(WORKSPACE_FOLDER);
 
   if (!(folder instanceof TFolder)) return;
 

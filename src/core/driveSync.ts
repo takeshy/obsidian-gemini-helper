@@ -5,7 +5,7 @@
 import { App, TFile, Notice, type EventRef } from "obsidian";
 import { t } from "src/i18n";
 import type { GeminiHelperPlugin } from "src/plugin";
-import type { DriveSyncSettings, DriveSessionTokens } from "src/types";
+import { type DriveSyncSettings, type DriveSessionTokens, WORKSPACE_FOLDER } from "src/types";
 import {
   decodeBackupToken,
   fetchEncryptedAuth,
@@ -150,10 +150,6 @@ export class DriveSyncManager {
     return this.plugin.settings.driveSync;
   }
 
-  get workspaceFolder(): string {
-    return this.plugin.settings.workspaceFolder;
-  }
-
   /** Whether the session has been unlocked (password entered). */
   get isUnlocked(): boolean {
     return this.sessionTokens !== null;
@@ -219,7 +215,7 @@ export class DriveSyncManager {
 
       // Back up locally modified files to sync_conflicts/ before resetting
       const { accessToken } = this.sessionTokens;
-      const localMeta = await readLocalSyncMeta(this.app, this.workspaceFolder);
+      const localMeta = await readLocalSyncMeta(this.app);
       if (Object.keys(localMeta.files).length > 0) {
         const vaultFiles = this.getAllVaultFiles();
         const { checksums } = await this.computeVaultChecksums(vaultFiles, localMeta);
@@ -251,7 +247,7 @@ export class DriveSyncManager {
       }
 
       // Reset local sync meta so next push/pull works against the new folder
-      await writeLocalSyncMeta(this.app, this.workspaceFolder, {
+      await writeLocalSyncMeta(this.app,{
         lastUpdatedAt: "",
         files: {},
         pathToId: {},
@@ -313,7 +309,7 @@ export class DriveSyncManager {
   /** Read a remote file's text content by vault path (uses pathToId mapping). */
   async readRemoteFileByPath(vaultPath: string): Promise<string | null> {
     const tokens = await this.getTokens();
-    const localMeta = await readLocalSyncMeta(this.app, this.workspaceFolder);
+    const localMeta = await readLocalSyncMeta(this.app);
     const fileId = localMeta.pathToId[vaultPath];
     if (!fileId) return null;
     return drive.readFile(tokens.accessToken, fileId);
@@ -342,19 +338,18 @@ export class DriveSyncManager {
    */
   private getAllVaultFiles(): TFile[] {
     const excludePatterns = this.settings.excludePatterns;
-    const syncMetaPath = getLocalMetaPath(this.workspaceFolder);
+    const syncMetaPath = getLocalMetaPath();
     const configDir = this.app.vault.configDir;
-    const wsFolder = this.workspaceFolder;
     return this.app.vault.getFiles().filter((file) => {
       // Exclude the local sync meta file itself
       if (file.path === syncMetaPath) return false;
-      return !isSyncExcludedPath(file.path, excludePatterns, configDir, wsFolder);
+      return !isSyncExcludedPath(file.path, excludePatterns, configDir);
     });
   }
 
   /** Check if a vault path is excluded from sync. */
   private isExcludedPath(filePath: string): boolean {
-    return isSyncExcludedPath(filePath, this.settings.excludePatterns, this.app.vault.configDir, this.workspaceFolder);
+    return isSyncExcludedPath(filePath, this.settings.excludePatterns, this.app.vault.configDir);
   }
 
   /**
@@ -514,7 +509,7 @@ export class DriveSyncManager {
 
     try {
       const tokens = await this.getTokens();
-      const localMeta = await readLocalSyncMeta(this.app, this.workspaceFolder);
+      const localMeta = await readLocalSyncMeta(this.app);
       const remoteMeta = await readRemoteSyncMeta(tokens.accessToken, tokens.rootFolderId);
 
       const vaultFiles = this.getAllVaultFiles();
@@ -585,7 +580,7 @@ export class DriveSyncManager {
     if (!this.settings.enabled || !this.sessionTokens) return;
 
     try {
-      const localMeta = await readLocalSyncMeta(this.app, this.workspaceFolder);
+      const localMeta = await readLocalSyncMeta(this.app);
       const vaultFiles = this.getAllVaultFiles();
       const { checksums } = await this.computeVaultChecksums(vaultFiles, localMeta);
       const { modifiedIds, newPaths, renames, deletedIds } = this.findLocallyModifiedFiles(localMeta, checksums);
@@ -659,7 +654,7 @@ export class DriveSyncManager {
     if (!this.settings.enabled || !this.sessionTokens) return { files: [], hasRemoteChanges: false };
 
     const tokens = await this.getTokens();
-    const localMeta = await readLocalSyncMeta(this.app, this.workspaceFolder);
+    const localMeta = await readLocalSyncMeta(this.app);
     const remoteMeta = await readRemoteSyncMeta(tokens.accessToken, tokens.rootFolderId);
 
     const vaultFiles = this.getAllVaultFiles();
@@ -771,7 +766,7 @@ export class DriveSyncManager {
       const { accessToken, rootFolderId } = tokens;
 
       // 1. Get local and remote meta
-      const localMeta = await readLocalSyncMeta(this.app, this.workspaceFolder);
+      const localMeta = await readLocalSyncMeta(this.app);
       let remoteMeta = await readRemoteSyncMeta(accessToken, rootFolderId);
 
       // 2. Compute vault checksums and find modified files
@@ -887,7 +882,7 @@ export class DriveSyncManager {
 
       // 11. Update local meta (with vault stats for mtime/size caching)
       const updatedLocalMeta = toLocalSyncMeta(remoteMeta, localMeta, vaultStats);
-      await writeLocalSyncMeta(this.app, this.workspaceFolder, updatedLocalMeta);
+      await writeLocalSyncMeta(this.app,updatedLocalMeta);
 
       // 12. Clear edit history for pushed/trashed files
       const historyManager = getEditHistoryManager();
@@ -1064,7 +1059,7 @@ export class DriveSyncManager {
       const { accessToken, rootFolderId } = tokens;
 
       // 1. Get local and remote meta
-      const localMeta = await readLocalSyncMeta(this.app, this.workspaceFolder);
+      const localMeta = await readLocalSyncMeta(this.app);
       const remoteMeta = await readRemoteSyncMeta(accessToken, rootFolderId);
 
       if (!remoteMeta) {
@@ -1230,7 +1225,7 @@ export class DriveSyncManager {
       vaultStats.set(f.path, { mtime: f.stat.mtime, size: f.stat.size });
     }
     const updatedLocalMeta = toLocalSyncMeta(remoteMeta, localMeta, vaultStats);
-    await writeLocalSyncMeta(this.app, this.workspaceFolder, updatedLocalMeta);
+    await writeLocalSyncMeta(this.app,updatedLocalMeta);
   }
 
   /**
@@ -1425,7 +1420,7 @@ export class DriveSyncManager {
         ),
       };
       const updatedLocalMeta = toLocalSyncMeta(filteredRemoteMeta, newLocalMeta, freshVaultStats);
-      await writeLocalSyncMeta(this.app, this.workspaceFolder, updatedLocalMeta);
+      await writeLocalSyncMeta(this.app,updatedLocalMeta);
 
       // Full pull: clear all edit history
       const historyManager = getEditHistoryManager();
@@ -1477,7 +1472,7 @@ export class DriveSyncManager {
       };
 
       // Read existing local meta to reuse Drive file IDs
-      const oldLocalMeta = await readLocalSyncMeta(this.app, this.workspaceFolder);
+      const oldLocalMeta = await readLocalSyncMeta(this.app);
 
       // Get all vault files and compute checksums
       const vaultFiles = this.getAllVaultFiles();
@@ -1502,7 +1497,7 @@ export class DriveSyncManager {
 
       // Save local meta (with vault stats for mtime/size caching)
       const updatedLocalMeta = toLocalSyncMeta(remoteMeta, newLocalMeta, fullPushVaultStats);
-      await writeLocalSyncMeta(this.app, this.workspaceFolder, updatedLocalMeta);
+      await writeLocalSyncMeta(this.app,updatedLocalMeta);
 
       // Full push: clear all edit history
       const historyManager = getEditHistoryManager();
@@ -1538,7 +1533,7 @@ export class DriveSyncManager {
     try {
       const tokens = await this.getTokens();
       const { accessToken, rootFolderId } = tokens;
-      const localMeta = await readLocalSyncMeta(this.app, this.workspaceFolder);
+      const localMeta = await readLocalSyncMeta(this.app);
       const remoteMeta = await readRemoteSyncMeta(accessToken, rootFolderId);
       if (!remoteMeta) throw new Error("Remote meta not found");
 
@@ -1644,7 +1639,7 @@ export class DriveSyncManager {
     // Update remote and local meta
     await writeRemoteSyncMeta(accessToken, rootFolderId, remoteMeta);
     const updatedLocalMeta = toLocalSyncMeta(remoteMeta, localMeta);
-    await writeLocalSyncMeta(this.app, this.workspaceFolder, updatedLocalMeta);
+    await writeLocalSyncMeta(this.app,updatedLocalMeta);
   }
 
   private async resolveEditDeleteConflict(
@@ -1701,7 +1696,7 @@ export class DriveSyncManager {
 
     await writeRemoteSyncMeta(accessToken, rootFolderId, remoteMeta);
     const updatedLocalMeta = toLocalSyncMeta(remoteMeta, localMeta);
-    await writeLocalSyncMeta(this.app, this.workspaceFolder, updatedLocalMeta);
+    await writeLocalSyncMeta(this.app,updatedLocalMeta);
   }
 
   // ========================================
@@ -1870,7 +1865,7 @@ export class DriveSyncManager {
     const tokens = await this.getTokens();
     const { accessToken, rootFolderId } = tokens;
 
-    const localMeta = await readLocalSyncMeta(this.app, this.workspaceFolder);
+    const localMeta = await readLocalSyncMeta(this.app);
     const fileId = localMeta.pathToId[vaultPath] || vaultPath;
 
     const file = this.app.vault.getAbstractFileByPath(vaultPath);
@@ -1912,7 +1907,7 @@ export class DriveSyncManager {
    */
   async downloadTempToVault(tempFileId: string, payload: TempFilePayload): Promise<void> {
     // Resolve vault path from fileId
-    const localMeta = await readLocalSyncMeta(this.app, this.workspaceFolder);
+    const localMeta = await readLocalSyncMeta(this.app);
     const idToPath = buildIdToPathMap(localMeta);
     const vaultPath = idToPath[payload.fileId] || payload.fileId;
 
@@ -1991,10 +1986,7 @@ export class DriveSyncManager {
 
     // 2. Build filter config with workspace/.obsidian exclusions
     const excludePatterns = [...ragSetting.excludePatterns];
-    const workspaceFolder = this.plugin.settings.workspaceFolder;
-    if (workspaceFolder) {
-      excludePatterns.push(`^${workspaceFolder.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}/`);
-    }
+    excludePatterns.push(`^${WORKSPACE_FOLDER.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}/`);
     excludePatterns.push(`^\\.obsidian/`);
     const filterConfig: FilterConfig = {
       includeFolders: ragSetting.targetFolders,

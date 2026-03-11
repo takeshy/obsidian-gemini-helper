@@ -1,6 +1,8 @@
 // Sync utility functions for Google Drive sync.
 // Ported from GemiHub's sync-client-utils.ts with Obsidian-specific additions.
 
+import { WORKSPACE_FOLDER } from "../types";
+
 export const SYNC_EXCLUDED_FILE_NAMES = new Set(["_sync-meta.json", "_encrypted-auth.json", "settings.json"]);
 // Note: ".obsidian/" is handled dynamically via Vault.configDir in isSyncExcludedPath
 export const SYNC_EXCLUDED_PREFIXES = [
@@ -13,14 +15,14 @@ export const SYNC_EXCLUDED_PREFIXES = [
   "node_modules/",
 ];
 
-export function isSyncExcludedPath(filePath: string, userExcludePatterns: string[] = [], configDir?: string, workspaceFolder?: string): boolean {
+export function isSyncExcludedPath(filePath: string, userExcludePatterns: string[] = [], configDir?: string): boolean {
   const normalized = filePath.replace(/^\/+/, "");
   if (SYNC_EXCLUDED_FILE_NAMES.has(normalized)) return true;
   if (SYNC_EXCLUDED_PREFIXES.some((prefix) => normalized.startsWith(prefix))) return true;
   // Exclude Obsidian config directory (configurable via Vault.configDir)
   if (configDir && (normalized.startsWith(configDir + "/") || normalized === configDir)) return true;
   // Exclude plugin workspace folder (chat history, sync meta, etc.)
-  if (workspaceFolder && (normalized.startsWith(workspaceFolder + "/") || normalized === workspaceFolder)) return true;
+  if (normalized.startsWith(WORKSPACE_FOLDER + "/") || normalized === WORKSPACE_FOLDER) return true;
   // User-defined exclude patterns
   for (const pattern of userExcludePatterns) {
     const trimmed = pattern.trim();

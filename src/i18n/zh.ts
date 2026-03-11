@@ -56,10 +56,6 @@ export const zh: Record<string, string> = {
   "settings.cliPathCleared": "CLI 路径已清除",
 
   // Settings - Workspace
-  "settings.workspaceFolder": "工作区文件夹",
-  "settings.workspaceFolder.desc": "用于存储聊天记录和语义搜索设置的文件夹",
-  "settings.workspaceFolder.vaultRoot": "库根目录",
-  "settings.workspaceFolder.willBeCreated": "{{folder}}（将被创建）",
   "settings.hideWorkspaceFolder": "隐藏工作区文件夹",
   "settings.hideWorkspaceFolder.desc": "在文件浏览器中隐藏工作区文件夹",
   "settings.saveChatHistory": "保存聊天记录",

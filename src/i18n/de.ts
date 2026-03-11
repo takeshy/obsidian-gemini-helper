@@ -56,10 +56,6 @@ export const de: Record<string, string> = {
   "settings.cliPathCleared": "CLI-Pfad gelöscht",
 
   // Settings - Workspace
-  "settings.workspaceFolder": "Arbeitsbereichsordner",
-  "settings.workspaceFolder.desc": "Ordner zum Speichern von Chat-Verläufen und semantischen Sucheinstellungen",
-  "settings.workspaceFolder.vaultRoot": "Vault-Wurzel",
-  "settings.workspaceFolder.willBeCreated": "{{folder}} (wird erstellt)",
   "settings.hideWorkspaceFolder": "Arbeitsbereichsordner ausblenden",
   "settings.hideWorkspaceFolder.desc": "Den Arbeitsbereichsordner im Datei-Explorer ausblenden",
   "settings.saveChatHistory": "Chat-Verlauf speichern",

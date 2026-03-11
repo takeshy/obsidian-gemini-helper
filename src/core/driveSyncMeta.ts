@@ -3,6 +3,7 @@
 // Adapted from GemiHub's sync-meta.server.ts.
 
 import type { App } from "obsidian";
+import { WORKSPACE_FOLDER } from "../types";
 import {
   listUserFiles,
   readFile,
@@ -37,15 +38,14 @@ const EMPTY_LOCAL_META: LocalDriveSyncMeta = {
   pathToId: {},
 };
 
-export function getLocalMetaPath(workspaceFolder: string): string {
-  return `${workspaceFolder}/drive-sync-meta.json`;
+export function getLocalMetaPath(): string {
+  return `${WORKSPACE_FOLDER}/drive-sync-meta.json`;
 }
 
 export async function readLocalSyncMeta(
   app: App,
-  workspaceFolder: string
 ): Promise<LocalDriveSyncMeta> {
-  const metaPath = getLocalMetaPath(workspaceFolder);
+  const metaPath = getLocalMetaPath();
   try {
     const exists = await app.vault.adapter.exists(metaPath);
     if (!exists) return { ...EMPTY_LOCAL_META, files: {}, pathToId: {} };
@@ -59,14 +59,13 @@ export async function readLocalSyncMeta(
 
 export async function writeLocalSyncMeta(
   app: App,
-  workspaceFolder: string,
   meta: LocalDriveSyncMeta
 ): Promise<void> {
-  const metaPath = getLocalMetaPath(workspaceFolder);
+  const metaPath = getLocalMetaPath();
   // Ensure workspace folder exists
-  const folderExists = await app.vault.adapter.exists(workspaceFolder);
+  const folderExists = await app.vault.adapter.exists(WORKSPACE_FOLDER);
   if (!folderExists) {
-    await app.vault.adapter.mkdir(workspaceFolder);
+    await app.vault.adapter.mkdir(WORKSPACE_FOLDER);
   }
   await app.vault.adapter.write(metaPath, JSON.stringify(meta, null, 2));
 }

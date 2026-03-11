@@ -10,7 +10,6 @@ import { globalEventEmitter } from "src/utils/EventEmitter";
 
 export class HistoryModal extends Modal {
   private workflowPath: string;
-  private workspaceFolder: string;
   private encryptionConfig: EncryptionConfig | undefined;
   private onRetryFromError?: (workflowPath: string, workflowName: string | undefined, errorNodeId: string, variablesSnapshot: Record<string, string | number>) => void;
   private records: ExecutionRecord[] = [];
@@ -25,13 +24,11 @@ export class HistoryModal extends Modal {
   constructor(
     app: App,
     workflowPath: string,
-    workspaceFolder: string,
     encryptionConfig?: EncryptionConfig,
     onRetryFromError?: (workflowPath: string, workflowName: string | undefined, errorNodeId: string, variablesSnapshot: Record<string, string | number>) => void,
   ) {
     super(app);
     this.workflowPath = workflowPath;
-    this.workspaceFolder = workspaceFolder;
     this.encryptionConfig = encryptionConfig;
     this.onRetryFromError = onRetryFromError;
   }
@@ -225,12 +222,12 @@ export class HistoryModal extends Modal {
   }
 
   private async loadHistory(): Promise<void> {
-    const historyManager = new ExecutionHistoryManager(this.app, this.workspaceFolder, this.encryptionConfig);
+    const historyManager = new ExecutionHistoryManager(this.app, this.encryptionConfig);
     this.records = await historyManager.loadRecords(this.workflowPath);
   }
 
   private getHistoryManager(): ExecutionHistoryManager {
-    return new ExecutionHistoryManager(this.app, this.workspaceFolder, this.encryptionConfig);
+    return new ExecutionHistoryManager(this.app, this.encryptionConfig);
   }
 
   private renderList(): void {
@@ -420,7 +417,7 @@ export class HistoryModal extends Modal {
     canvasBtn.addEventListener("click", () => {
       if (!canOpenCanvas) return;
       void (async () => {
-        await openHistoryCanvas(this.app, record, this.workspaceFolder);
+        await openHistoryCanvas(this.app, record);
         this.close();
       })();
     });

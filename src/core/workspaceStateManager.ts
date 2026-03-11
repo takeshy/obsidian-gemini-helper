@@ -9,6 +9,7 @@ import {
   DEFAULT_WORKSPACE_STATE,
   DEFAULT_RAG_SETTING,
   DEFAULT_RAG_STATE,
+  WORKSPACE_FOLDER,
   isModelAllowedForPlan,
   getDefaultModelForPlan,
 } from "../types";
@@ -36,20 +37,17 @@ export class WorkspaceStateManager {
 
   // Get the path to the workspace state file
   getWorkspaceStateFilePath(): string {
-    const folder = this.settings.workspaceFolder;
-    return folder ? `${folder}/${WORKSPACE_STATE_FILENAME}` : WORKSPACE_STATE_FILENAME;
+    return `${WORKSPACE_FOLDER}/${WORKSPACE_STATE_FILENAME}`;
   }
 
   // Get the path to the old RAG state file (for migration)
   private getOldRagStateFilePath(): string {
-    const folder = this.settings.workspaceFolder;
-    return folder ? `${folder}/${OLD_RAG_STATE_FILENAME}` : OLD_RAG_STATE_FILENAME;
+    return `${WORKSPACE_FOLDER}/${OLD_RAG_STATE_FILENAME}`;
   }
 
   // Get old workspace state file path (for migration)
   private getOldWorkspaceStateFilePath(): string {
-    const folder = this.settings.workspaceFolder;
-    return folder ? `${folder}/${OLD_WORKSPACE_STATE_FILENAME}` : OLD_WORKSPACE_STATE_FILENAME;
+    return `${WORKSPACE_FOLDER}/${OLD_WORKSPACE_STATE_FILENAME}`;
   }
 
   // Load workspace state from file
@@ -191,121 +189,12 @@ export class WorkspaceStateManager {
     const content = JSON.stringify(this.workspaceState, null, 2);
 
     // Ensure folder exists
-    const folder = this.settings.workspaceFolder;
-    if (folder) {
-      const folderExists = await this.app.vault.adapter.exists(folder);
-      if (!folderExists) {
-        await this.app.vault.createFolder(folder);
-      }
+    const folderExists = await this.app.vault.adapter.exists(WORKSPACE_FOLDER);
+    if (!folderExists) {
+      await this.app.vault.createFolder(WORKSPACE_FOLDER);
     }
 
     await this.app.vault.adapter.write(filePath, content);
-  }
-
-  // Change workspace folder and migrate state file
-  async changeWorkspaceFolder(newFolder: string): Promise<void> {
-    const oldFolder = this.settings.workspaceFolder;
-
-    // If same folder, do nothing
-    if (oldFolder === newFolder) return;
-
-    // Compute paths explicitly (don't rely on settings which hasn't changed yet)
-    const oldFilePath = oldFolder
-      ? `${oldFolder}/${WORKSPACE_STATE_FILENAME}`
-      : WORKSPACE_STATE_FILENAME;
-    const newFilePath = newFolder
-      ? `${newFolder}/${WORKSPACE_STATE_FILENAME}`
-      : WORKSPACE_STATE_FILENAME;
-    const newOldFilePath = newFolder
-      ? `${newFolder}/${OLD_WORKSPACE_STATE_FILENAME}`
-      : OLD_WORKSPACE_STATE_FILENAME;
-
-    // Check if new folder already has a state file
-    const newFileExists = await this.app.vault.adapter.exists(newFilePath);
-
-    if (newFileExists) {
-      // Load existing state from new folder
-      try {
-        await this.loadWorkspaceStateFromPath(newFilePath);
-      } catch {
-        // Failed to load, keep current state
-      }
-    } else {
-      // Migrate from old hidden file name if present in new folder
-      let migratedFromLegacy = false;
-      const newOldFileExists = await this.app.vault.adapter.exists(newOldFilePath);
-      if (newOldFileExists) {
-        try {
-          const content = await this.app.vault.adapter.read(newOldFilePath);
-          // Ensure new folder exists
-          if (newFolder) {
-            const folderExists = await this.app.vault.adapter.exists(newFolder);
-            if (!folderExists) {
-              await this.app.vault.createFolder(newFolder);
-            }
-          }
-          await this.app.vault.adapter.write(newFilePath, content);
-          await this.app.vault.adapter.remove(newOldFilePath);
-          await this.loadWorkspaceStateFromPath(newFilePath);
-          migratedFromLegacy = true;
-        } catch {
-          // Failed to migrate, continue with copy/save
-        }
-      }
-
-      // Copy state to new folder (skip if already migrated from legacy file)
-      if (!migratedFromLegacy) {
-        try {
-          const oldFileExists = await this.app.vault.adapter.exists(oldFilePath);
-          if (oldFileExists) {
-            const content = await this.app.vault.adapter.read(oldFilePath);
-
-            // Ensure new folder exists
-            if (newFolder) {
-              const folderExists = await this.app.vault.adapter.exists(newFolder);
-              if (!folderExists) {
-                await this.app.vault.createFolder(newFolder);
-              }
-            }
-
-            // Write to new location
-            await this.app.vault.adapter.write(newFilePath, content);
-            await this.loadWorkspaceStateFromPath(newFilePath);
-          } else {
-            // No old file, save current state to new location
-            // Ensure new folder exists
-            if (newFolder) {
-              const folderExists = await this.app.vault.adapter.exists(newFolder);
-              if (!folderExists) {
-                await this.app.vault.createFolder(newFolder);
-              }
-            }
-            const stateContent = JSON.stringify(this.workspaceState, null, 2);
-            await this.app.vault.adapter.write(newFilePath, stateContent);
-          }
-        } catch {
-          // Failed to copy, save current state to new location
-          try {
-            if (newFolder) {
-              const folderExists = await this.app.vault.adapter.exists(newFolder);
-              if (!folderExists) {
-                await this.app.vault.createFolder(newFolder);
-              }
-            }
-            const stateContent = JSON.stringify(this.workspaceState, null, 2);
-            await this.app.vault.adapter.write(newFilePath, stateContent);
-          } catch {
-            // Failed to save, continue anyway
-          }
-        }
-      }
-    }
-
-    // Sync FileSearchManager with selected RAG
-    this.syncFileSearchManagerWithSelectedRag();
-
-    // Emit event
-    this.settingsEmitter.emit("workspace-state-loaded", this.workspaceState);
   }
 
   // Get currently selected RAG setting
@@ -633,10 +522,13 @@ export class WorkspaceStateManager {
 
     let needsSave = false;
 
-    // Migrate chatsFolder to workspaceFolder
-    if (data.chatsFolder !== undefined && data.workspaceFolder === undefined) {
-      data.workspaceFolder = data.chatsFolder;
+    // Clean up legacy fields
+    if (data.chatsFolder !== undefined) {
       delete data.chatsFolder;
+      needsSave = true;
+    }
+    if (data.workspaceFolder !== undefined) {
+      delete data.workspaceFolder;
       needsSave = true;
     }
 

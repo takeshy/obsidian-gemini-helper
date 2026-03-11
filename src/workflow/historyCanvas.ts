@@ -1,5 +1,6 @@
 import { App, TFile } from "obsidian";
 import { ExecutionRecord, ExecutionStep } from "./types";
+import { WORKSPACE_FOLDER } from "../types";
 
 interface CanvasNode {
   id: string;
@@ -172,9 +173,8 @@ function buildCanvas(
 
 async function ensureHistoryCanvasFolder(
   app: App,
-  workspaceFolder: string
 ): Promise<string> {
-  const folderPath = `${workspaceFolder}/workflow-history-canvas`;
+  const folderPath = `${WORKSPACE_FOLDER}/workflow-history-canvas`;
   const exists = await app.vault.adapter.exists(folderPath);
   if (!exists) {
     await app.vault.adapter.mkdir(folderPath);
@@ -190,9 +190,8 @@ function canvasFileName(record: ExecutionRecord): string {
 export async function openHistoryCanvas(
   app: App,
   record: ExecutionRecord,
-  workspaceFolder: string
 ): Promise<void> {
-  const canvasFolder = await ensureHistoryCanvasFolder(app, workspaceFolder);
+  const canvasFolder = await ensureHistoryCanvasFolder(app);
 
   const canvasData = buildCanvas(record, true);
   const filePath = `${canvasFolder}/${canvasFileName(record)}`;

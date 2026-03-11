@@ -39,6 +39,7 @@ import { EditHistoryModal } from "src/ui/components/EditHistoryModal";
 import { formatError } from "src/utils/error";
 import { DEFAULT_CLI_CONFIG, DEFAULT_EDIT_HISTORY_SETTINGS, DEFAULT_LANGFUSE_SETTINGS, DEFAULT_DRIVE_SYNC_SETTINGS, hasVerifiedCli } from "src/types";
 import { initLocale, t } from "src/i18n";
+import { registerWorkflowCodeBlockProcessor } from "src/ui/workflowCodeBlock";
 import { DriveSyncManager } from "src/core/driveSync";
 
 
@@ -79,6 +80,9 @@ export class GeminiHelperPlugin extends Plugin {
     // Initialize workflow manager
     this.workflowMgr = new WorkflowManager(this);
 
+    // Workflow code block: render as Mermaid diagram (Reading mode + Live Preview)
+    registerWorkflowCodeBlockProcessor(this);
+
     // Initialize workspace state manager
     this.wsManager = new WorkspaceStateManager(
       this.app,
@@ -91,11 +95,6 @@ export class GeminiHelperPlugin extends Plugin {
     // Handle migration data modified event
     this.settingsEmitter.on("migration-data-modified", (data: unknown) => {
       void (async () => {
-        // Update in-memory settings from migrated data before saving
-        const migratedData = data as Record<string, unknown>;
-        if (migratedData.workspaceFolder !== undefined) {
-          this.settings.workspaceFolder = migratedData.workspaceFolder as string;
-        }
         await this.saveData(data);
       })();
     });
@@ -675,27 +674,9 @@ export class GeminiHelperPlugin extends Plugin {
     return this.wsManager.saveWorkspaceState();
   }
 
-  async changeWorkspaceFolder(newFolder: string): Promise<void> {
-    // Manager handles migration, then we update settings
-    await this.wsManager.changeWorkspaceFolder(newFolder);
-    // Update settings after manager completes migration
-    this.settings.workspaceFolder = newFolder;
-    await this.saveSettings();
-    this.updateWorkspaceFolderVisibility();
-  }
-
-  /** Show or hide the workspace folder in the file explorer via DOM class toggling. */
+  /** Show or hide the workspace folder in the file explorer. */
   updateWorkspaceFolderVisibility(): void {
-    const folder = this.settings.workspaceFolder;
-    if (!folder) return;
-
-    // Find the nav-folder element for the workspace folder
-    const navFolder = document.querySelector(`.nav-folder[data-path="${CSS.escape(folder)}"]`)
-      ?? document.querySelector(`.nav-folder:has(> .nav-folder-title[data-path="${CSS.escape(folder)}"])`);
-
-    if (navFolder instanceof HTMLElement) {
-      navFolder.toggleClass("gemini-helper-hidden", this.settings.hideWorkspaceFolder);
-    }
+    document.body.toggleClass("gemini-helper-hide-workspace-folder", this.settings.hideWorkspaceFolder);
   }
 
   getSelectedRagSetting(): RagSetting | null {

@@ -56,10 +56,6 @@ export const en = {
   "settings.cliPathCleared": "CLI path cleared",
 
   // Settings - Workspace
-  "settings.workspaceFolder": "Workspace folder",
-  "settings.workspaceFolder.desc": "Folder to store chat histories and semantic search settings",
-  "settings.workspaceFolder.vaultRoot": "Vault root",
-  "settings.workspaceFolder.willBeCreated": "{{folder}} (will be created)",
   "settings.hideWorkspaceFolder": "Hide workspace folder",
   "settings.hideWorkspaceFolder.desc": "Hide the workspace folder from the file explorer",
   "settings.saveChatHistory": "Save chat history",

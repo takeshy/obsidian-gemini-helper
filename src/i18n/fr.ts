@@ -56,10 +56,6 @@ export const fr: Record<string, string> = {
   "settings.cliPathCleared": "Chemin CLI effacé",
 
   // Settings - Workspace
-  "settings.workspaceFolder": "Dossier de l'espace de travail",
-  "settings.workspaceFolder.desc": "Dossier pour stocker les historiques de chat et les paramètres de recherche sémantique",
-  "settings.workspaceFolder.vaultRoot": "Racine du vault",
-  "settings.workspaceFolder.willBeCreated": "{{folder}} (sera créé)",
   "settings.hideWorkspaceFolder": "Masquer le dossier de l'espace de travail",
   "settings.hideWorkspaceFolder.desc": "Masquer le dossier de l'espace de travail dans l'explorateur de fichiers",
   "settings.saveChatHistory": "Sauvegarder l'historique des chats",

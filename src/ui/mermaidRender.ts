@@ -46,7 +46,9 @@ async function doRender(
 
   const id = `mermaid-${Date.now()}-${attempt}`;
   try {
-    const mermaid = (await import("mermaid")).default;
+    // Use Obsidian's built-in mermaid instance instead of importing the npm package
+    const { loadMermaid } = await import("obsidian");
+    const mermaid = await loadMermaid();
     if (isCancelled()) return null;
 
     mermaid.initialize({

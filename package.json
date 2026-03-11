@@ -50,7 +50,6 @@
     "@google/genai": "^1.32.0",
     "diff": "^8.0.2",
     "lucide-react": "^0.503.0",
-    "mermaid": "^11.13.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   }

@@ -225,7 +225,7 @@ List folders.
 - **folder** (optional): Parent folder (empty for all)
 - **saveTo** (required): Variable for results
 
-**Result structure**: \`{ "folders": [{ "name": "subfolder", "path": "parent/subfolder" }], "count": 1 }\`
+**Result structure**: \`{ "folders": ["parent/subfolder1", "parent/subfolder2"], "count": 2 }\`
 
 ### File Operations
 

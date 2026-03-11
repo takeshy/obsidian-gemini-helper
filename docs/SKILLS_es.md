@@ -386,7 +386,7 @@ nodes:
     saveTo: generated
   - id: parse
     type: json
-    input: "{{generated}}"
+    source: generated
     saveTo: parsed
   - id: create
     type: note

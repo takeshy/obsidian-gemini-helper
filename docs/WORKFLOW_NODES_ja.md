@@ -9,7 +9,7 @@
 | 変数 | `variable`, `set` | 変数の宣言と更新 |
 | 制御 | `if`, `while` | 条件分岐とループ |
 | LLM | `command` | モデル/検索設定付きプロンプト実行 |
-| データ | `http`, `json` | HTTP リクエストと JSON パース |
+| データ | `http`, `json`, `script` | HTTP リクエスト、JSON パース、JavaScript 実行 |
 | ノート | `note`, `note-read`, `note-search`, `note-list`, `folder-list`, `open` | Vault 操作 |
 | ファイル | `file-explorer`, `file-save` | ファイル選択と保存（画像、PDF など） |
 | プロンプト | `prompt-file`, `prompt-selection`, `dialog` | ユーザー入力ダイアログ |
@@ -67,6 +67,7 @@ nodes:
 | `vaultTools` | ボールトツールモード: `all`（検索 + 読み書き）、`noSearch`（読み書きのみ）、`none`（無効）。デフォルト: `all` |
 | `mcpServers` | 有効にする MCP サーバー名（カンマ区切り、プラグイン設定で構成済みである必要あり） |
 | `attachments` | FileExplorerData を含む変数名（カンマ区切り、`file-explorer` ノードから取得） |
+| `enableThinking` | 「true」（デフォルト）または「false」。ディープシンキングモードを有効にする |
 | `saveTo` | テキスト応答を保存する変数名 |
 | `saveImageTo` | 生成された画像を保存する変数名（FileExplorerData形式、画像モデル用） |
 
@@ -469,8 +470,9 @@ JSON 文字列をオブジェクトにパースしてプロパティアクセス
 
 | プロパティ | 説明 |
 |------------|------|
-| `path` | 同期するノートのパス（必須、`{{変数}}` 対応） |
+| `path` | 同期するノートパス（削除のみの場合を除き必須、`{{variables}}`をサポート） |
 | `ragSetting` | RAG 設定名（必須） |
+| `oldPath` | 削除する古いパス（オプション、名前変更/削除操作用） |
 | `saveTo` | 結果を保存する変数（任意） |
 
 **出力形式:**
@@ -860,6 +862,34 @@ nodes:
 - id: close
   type: obsidian-command
   command: "workspace:close"
+```
+
+### script
+
+サンドボックス環境で JavaScript コードを実行します（DOM、ネットワーク、ストレージへのアクセスはありません）。文字列操作、データ変換、計算、エンコード/デコードなど、`set` ノードでは処理できない操作に便利です。
+
+```yaml
+- id: sort-items
+  type: script
+  code: |
+    var items = '{{rawList}}'.split(',').map(function(s){ return s.trim(); });
+    items.sort();
+    return items.join('\n');
+  saveTo: sortedList
+```
+
+| プロパティ | 説明 |
+|------------|------|
+| `code` | 実行する JavaScript コード（必須、`{{variables}}` 対応）。`return` で値を返します。文字列以外の戻り値は JSON シリアライズされます。 |
+| `saveTo` | 結果を保存する変数名（任意） |
+| `timeout` | タイムアウト（ミリ秒、任意、デフォルト: `10000`） |
+
+**例: Base64 エンコード**
+```yaml
+- id: encode
+  type: script
+  code: "return btoa('{{plainText}}')"
+  saveTo: encoded
 ```
 
 ---

@@ -9,7 +9,7 @@ This document provides detailed specifications for all workflow node types. For 
 | Variables | `variable`, `set` | Declare and update variables |
 | Control | `if`, `while` | Conditional branching and loops |
 | LLM | `command` | Execute prompts with model/search options |
-| Data | `http`, `json` | HTTP requests and JSON parsing |
+| Data | `http`, `json`, `script` | HTTP requests, JSON parsing, and JavaScript execution |
 | Notes | `note`, `note-read`, `note-search`, `note-list`, `folder-list`, `open` | Vault operations |
 | Files | `file-explorer`, `file-save` | File selection and saving (images, PDFs, etc.) |
 | Prompts | `prompt-file`, `prompt-selection`, `dialog` | User input dialogs |
@@ -67,6 +67,7 @@ Execute an LLM prompt with optional model, search, vault tools, and MCP settings
 | `vaultTools` | Vault tools mode: `all` (search + read/write), `noSearch` (read/write only), `none` (disabled). Default: `all` |
 | `mcpServers` | Comma-separated MCP server names to enable (must be configured in plugin settings) |
 | `attachments` | Comma-separated variable names containing FileExplorerData (from `file-explorer` node) |
+| `enableThinking` | `true` (default) or `false`. Enable deep thinking mode |
 | `saveTo` | Variable name to store text response |
 | `saveImageTo` | Variable name to store generated image (FileExplorerData format, for image models) |
 
@@ -469,8 +470,9 @@ Sync a note to a RAG store.
 
 | Property | Description |
 |----------|-------------|
-| `path` | Note path to sync (required, supports `{{variables}}`) |
+| `path` | Note path to sync (required unless delete-only, supports `{{variables}}`) |
 | `ragSetting` | RAG setting name (required) |
+| `oldPath` | Old path to delete (optional, for rename/delete operations) |
 | `saveTo` | Variable to store result (optional) |
 
 **Output format:**
@@ -860,6 +862,34 @@ Pause workflow execution for a specified duration. Useful for waiting for asynch
 - id: close
   type: obsidian-command
   command: "workspace:close"
+```
+
+### script
+
+Execute JavaScript code in a sandboxed environment (no DOM, network, or storage access). Useful for string manipulation, data transformation, calculations, and encoding/decoding that the `set` node cannot handle.
+
+```yaml
+- id: sort-items
+  type: script
+  code: |
+    var items = '{{rawList}}'.split(',').map(function(s){ return s.trim(); });
+    items.sort();
+    return items.join('\n');
+  saveTo: sortedList
+```
+
+| Property | Description |
+|----------|-------------|
+| `code` | JavaScript code to execute (required, supports `{{variables}}`). Use `return` to return a value. Non-string return values are JSON-serialized. |
+| `saveTo` | Variable name to store the result (optional) |
+| `timeout` | Timeout in milliseconds (optional, default: `10000`) |
+
+**Example: Base64 encode**
+```yaml
+- id: encode
+  type: script
+  code: "return btoa('{{plainText}}')"
+  saveTo: encoded
 ```
 
 ---

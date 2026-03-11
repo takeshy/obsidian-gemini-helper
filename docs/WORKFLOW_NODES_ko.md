@@ -9,7 +9,7 @@
 | 변수 | `variable`, `set` | 변수 선언 및 업데이트 |
 | 제어 | `if`, `while` | 조건 분기 및 루프 |
 | LLM | `command` | 모델/검색 옵션으로 프롬프트 실행 |
-| 데이터 | `http`, `json` | HTTP 요청 및 JSON 파싱 |
+| 데이터 | `http`, `json`, `script` | HTTP 요청, JSON 파싱 및 JavaScript 실행 |
 | 노트 | `note`, `note-read`, `note-search`, `note-list`, `folder-list`, `open` | 볼트 작업 |
 | 파일 | `file-explorer`, `file-save` | 파일 선택 및 저장 (이미지, PDF 등) |
 | 프롬프트 | `prompt-file`, `prompt-selection`, `dialog` | 사용자 입력 다이얼로그 |
@@ -67,6 +67,7 @@ nodes:
 | `vaultTools` | Vault 도구 모드: `all` (검색 + 읽기/쓰기), `noSearch` (읽기/쓰기만), `none` (비활성화). 기본값: `all` |
 | `mcpServers` | 활성화할 MCP 서버 이름 (쉼표로 구분, 플러그인 설정에서 구성되어 있어야 함) |
 | `attachments` | FileExplorerData를 포함하는 변수 이름들 (쉼표로 구분, `file-explorer` 노드에서 가져옴) |
+| `enableThinking` | "true"(기본값) 또는 "false". 딥 씽킹 모드 활성화 |
 | `saveTo` | 텍스트 응답을 저장할 변수 이름 |
 | `saveImageTo` | 생성된 이미지를 저장할 변수 이름 (FileExplorerData 형식, 이미지 모델용) |
 
@@ -469,8 +470,9 @@ LLM 응답이 코드 펜스로 JSON을 감싸는 경우에 유용합니다.
 
 | 속성 | 설명 |
 |----------|-------------|
-| `path` | 동기화할 노트 경로 (필수, `{{variables}}` 지원) |
+| `path` | 동기화할 노트 경로 (삭제 전용이 아닌 경우 필수, `{{variables}}` 지원) |
 | `ragSetting` | RAG 설정 이름 (필수) |
+| `oldPath` | 삭제할 이전 경로 (선택 사항, 이름 변경/삭제 작업용) |
 | `saveTo` | 결과를 저장할 변수 (선택 사항) |
 
 **출력 형식:**
@@ -858,6 +860,34 @@ nodes:
 - id: close
   type: obsidian-command
   command: "workspace:close"
+```
+
+### script
+
+샌드박스 환경에서 JavaScript 코드를 실행합니다 (DOM, 네트워크 또는 스토리지 접근 불가). 문자열 조작, 데이터 변환, 계산, 인코딩/디코딩 등 `set` 노드로 처리할 수 없는 작업에 유용합니다.
+
+```yaml
+- id: sort-items
+  type: script
+  code: |
+    var items = '{{rawList}}'.split(',').map(function(s){ return s.trim(); });
+    items.sort();
+    return items.join('\n');
+  saveTo: sortedList
+```
+
+| 속성 | 설명 |
+|----------|-------------|
+| `code` | 실행할 JavaScript 코드 (필수, `{{variables}}` 지원). `return`을 사용하여 값을 반환합니다. 문자열이 아닌 반환값은 JSON으로 직렬화됩니다. |
+| `saveTo` | 결과를 저장할 변수 이름 (선택 사항) |
+| `timeout` | 타임아웃 (밀리초, 선택 사항, 기본값: `10000`) |
+
+**예시: Base64 인코딩**
+```yaml
+- id: encode
+  type: script
+  code: "return btoa('{{plainText}}')"
+  saveTo: encoded
 ```
 
 ---

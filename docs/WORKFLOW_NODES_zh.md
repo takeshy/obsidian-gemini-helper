@@ -9,7 +9,7 @@
 | 变量 | `variable`, `set` | 声明和更新变量 |
 | 控制 | `if`, `while` | 条件分支和循环 |
 | LLM | `command` | 执行带有模型/搜索选项的提示词 |
-| 数据 | `http`, `json` | HTTP 请求和 JSON 解析 |
+| 数据 | `http`, `json`, `script` | HTTP 请求、JSON 解析和 JavaScript 执行 |
 | 笔记 | `note`, `note-read`, `note-search`, `note-list`, `folder-list`, `open` | 仓库操作 |
 | 文件 | `file-explorer`, `file-save` | 文件选择和保存（图片、PDF 等） |
 | 提示 | `prompt-file`, `prompt-selection`, `dialog` | 用户输入对话框 |
@@ -67,6 +67,7 @@ nodes:
 | `vaultTools` | Vault 工具模式：`all`（搜索 + 读写）、`noSearch`（仅读写）、`none`（禁用）。默认：`all` |
 | `mcpServers` | 要启用的 MCP 服务器名称，逗号分隔（必须在插件设置中配置） |
 | `attachments` | 包含 FileExplorerData 的变量名称，用逗号分隔（来自 `file-explorer` 节点） |
+| `enableThinking` | "true"（默认）或 "false"。启用深度思考模式 |
 | `saveTo` | 用于存储文本响应的变量名 |
 | `saveImageTo` | 用于存储生成图片的变量名（FileExplorerData 格式，用于图像模型） |
 
@@ -469,8 +470,9 @@ nodes:
 
 | 属性 | 描述 |
 |----------|-------------|
-| `path` | 要同步的笔记路径（必填，支持 `{{variables}}`） |
+| `path` | 要同步的笔记路径（除仅删除外必填，支持 `{{variables}}`） |
 | `ragSetting` | RAG 设置名称（必填） |
+| `oldPath` | 要删除的旧路径（可选，用于重命名/删除操作） |
 | `saveTo` | 用于存储结果的变量（可选） |
 
 **输出格式：**
@@ -858,6 +860,34 @@ nodes:
 - id: close
   type: obsidian-command
   command: "workspace:close"
+```
+
+### script
+
+在沙盒环境中执行 JavaScript 代码（无 DOM、网络或存储访问）。适用于字符串操作、数据转换、计算和编码/解码等 `set` 节点无法处理的操作。
+
+```yaml
+- id: sort-items
+  type: script
+  code: |
+    var items = '{{rawList}}'.split(',').map(function(s){ return s.trim(); });
+    items.sort();
+    return items.join('\n');
+  saveTo: sortedList
+```
+
+| 属性 | 描述 |
+|----------|-------------|
+| `code` | 要执行的 JavaScript 代码（必填，支持 `{{variables}}`）。使用 `return` 返回值。非字符串返回值将被 JSON 序列化。 |
+| `saveTo` | 用于存储结果的变量名（可选） |
+| `timeout` | 超时时间（毫秒，可选，默认：`10000`） |
+
+**示例：Base64 编码**
+```yaml
+- id: encode
+  type: script
+  code: "return btoa('{{plainText}}')"
+  saveTo: encoded
 ```
 
 ---

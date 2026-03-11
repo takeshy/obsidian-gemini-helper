@@ -9,7 +9,7 @@
 ## Highlights
 
 - **KI-Chat** - Streaming-Antworten, Dateianhänge, Vault-Operationen, Slash-Befehle
-- **Workflow Builder** - Automatisieren Sie mehrstufige Aufgaben mit visuellem Node-Editor und 23 Node-Typen
+- **Workflow Builder** - Automatisieren Sie mehrstufige Aufgaben mit visuellem Node-Editor und 24 Node-Typen
 - **Bearbeitungsverlauf** - Verfolgen und Wiederherstellen von KI-Änderungen mit Diff-Ansicht
 - **RAG** - Retrieval-Augmented Generation für intelligente Suche in Ihrem Vault
 - **Websuche** - Zugriff auf aktuelle Informationen über Google Search
@@ -104,6 +104,7 @@ Die KI kann mit Ihrem Vault über diese Tools interagieren:
 | `list_folders` | Ordner im Vault auflisten |
 | `get_active_note_info` | Informationen über aktive Notiz abrufen |
 | `get_rag_sync_status` | RAG-Sync-Status prüfen |
+| `bulk_propose_rename` | Massenumbenennung mehrerer Dateien mit Auswahldialog |
 
 ### Vault-Tool-Modus
 
@@ -318,14 +319,14 @@ nodes:
 
 ## Verfügbare Node-Typen
 
-23 Node-Typen stehen für die Workflow-Erstellung zur Verfügung:
+24 Node-Typen stehen für die Workflow-Erstellung zur Verfügung:
 
 | Kategorie | Nodes |
 |-----------|-------|
 | Variablen | `variable`, `set` |
 | Steuerung | `if`, `while` |
 | LLM | `command` |
-| Daten | `http`, `json` |
+| Daten | `http`, `json`, `script` |
 | Notizen | `note`, `note-read`, `note-search`, `note-list`, `folder-list`, `open` |
 | Dateien | `file-explorer`, `file-save` |
 | Eingaben | `prompt-file`, `prompt-selection`, `dialog` |
@@ -402,14 +403,13 @@ Workflows können automatisch durch Obsidian-Ereignisse ausgelöst werden:
 | Gemini 3.1 Pro Preview | Neuestes Flaggschiff-Modell, 1M Kontext (empfohlen) |
 | Gemini 3.1 Pro Preview (Custom Tools) | Optimiert für agentische Workflows mit benutzerdefinierten Tools und Bash |
 | Gemini 3 Flash Preview | Schnelles Modell, 1M Kontext, bestes Preis-Leistungs-Verhältnis |
-| Gemini 3 Pro Preview | Flaggschiff-Modell, 1M Kontext |
+| Gemini 3.1 Flash Lite Preview | Kostengünstigstes Modell mit hoher Leistung |
 | Gemini 2.5 Flash | Schnelles Modell, 1M Kontext |
 | Gemini 2.5 Pro | Pro-Modell, 1M Kontext |
-| Gemini 2.5 Flash Lite | Leichtgewichtiges Flash-Modell |
-| Gemini 2.5 Flash (Image) | Bilderzeugung, 1024px |
-| Gemini 3 Pro (Image) | Pro-Bilderzeugung, 4K |
+| Gemini 3 Pro (Image) | Pro-Bildgenerierung, 4K |
+| Gemini 3.1 Flash (Image) | Schnelle, kostengünstige Bildgenerierung |
 
-> **Thinking-Modus:** Im Chat wird der Thinking-Modus durch Schlüsselwörter wie „nachdenken", „analysieren" oder „überlegen" in Ihrer Nachricht aktiviert. **Gemini 3 Pro** und **Gemini 3.1 Pro** verwenden jedoch immer den Thinking-Modus, unabhängig von Schlüsselwörtern — diese Modelle unterstützen das Deaktivieren von Thinking nicht.
+> **Thinking-Modus:** Im Chat wird der Thinking-Modus durch Schlüsselwörter wie „nachdenken", „analysieren" oder „überlegen" in Ihrer Nachricht aktiviert. **Gemini 3.1 Pro** verwendet jedoch immer den Thinking-Modus, unabhängig von Schlüsselwörtern — dieses Modell unterstützt das Deaktivieren von Thinking nicht.
 
 **Always Think-Umschalter:**
 
@@ -428,6 +428,7 @@ Wenn ein Umschalter EIN ist, ist Thinking für diese Modellfamilie immer aktiv, 
 | Gemini 2.5 Flash | ✅ |
 | Gemini 2.5 Flash Lite | ✅ |
 | Gemini 3 Flash Preview | ✅ |
+| Gemini 3.1 Flash Lite Preview | ✅ |
 | Gemma 3 (27B/12B/4B/1B) | ❌ |
 
 ## Installation

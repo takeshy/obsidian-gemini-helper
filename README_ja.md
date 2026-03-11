@@ -9,7 +9,7 @@
 ## 主な機能
 
 - **AI チャット** - ストリーミング応答、ファイル添付、Vault 操作、スラッシュコマンド
-- **ワークフロービルダー** - ビジュアルノードエディタと 23 種類のノードでマルチステップタスクを自動化
+- **ワークフロービルダー** - ビジュアルノードエディタと 24 種類のノードでマルチステップタスクを自動化
 - **編集履歴** - AI による変更を差分表示で追跡・復元
 - **RAG** - Vault 全体の知的検索（Retrieval-Augmented Generation）
 - **Web 検索** - Google 検索で最新情報を取得
@@ -105,6 +105,7 @@ AI が Vault を直接操作するツール：
 | `list_folders`         | Vault 内フォルダ一覧                         |
 | `get_active_note_info` | アクティブノートの情報取得                   |
 | `get_rag_sync_status`  | RAG 同期状態を確認                           |
+| `bulk_propose_rename`  | 選択ダイアログ付き一括リネーム               |
 
 ### Vault ツールモード
 
@@ -324,14 +325,14 @@ Gemini サイドバーの **Workflow** タブを開いて実行。
 
 ## 利用可能なノードタイプ
 
-23 種類のノードタイプでワークフローを構築できます：
+24 種類のノードタイプでワークフローを構築できます：
 
 | カテゴリ       | ノード                                                                 |
 | -------------- | ---------------------------------------------------------------------- |
 | 変数           | `variable`, `set`                                                      |
 | 制御           | `if`, `while`                                                          |
 | LLM            | `command`                                                              |
-| データ         | `http`, `json`                                                         |
+| データ         | `http`, `json`, `script`                                               |
 | ノート         | `note`, `note-read`, `note-search`, `note-list`, `folder-list`, `open` |
 | ファイル       | `file-explorer`, `file-save`                                           |
 | プロンプト     | `prompt-file`, `prompt-selection`, `dialog`                            |
@@ -409,17 +410,16 @@ Obsidian のイベントでワークフローを自動実行：
 
 | モデル                   | 説明                                      |
 | ------------------------ | ----------------------------------------- |
-| Gemini 3.1 Pro Preview | 最新フラッグシップモデル、1M コンテキスト（推奨） |
-| Gemini 3.1 Pro Preview (Custom Tools) | カスタムツールと bash を活用したエージェントワークフローに最適化 |
-| Gemini 3 Flash Preview | 高速モデル、1M コンテキスト、コストパフォーマンス最高 |
-| Gemini 3 Pro Preview | フラッグシップモデル、1M コンテキスト |
-| Gemini 2.5 Flash | 高速モデル、1M コンテキスト |
-| Gemini 2.5 Pro           | プロモデル、1M コンテキスト               |
-| Gemini 2.5 Flash Lite    | 軽量フラッシュモデル                      |
-| Gemini 2.5 Flash (Image) | 画像生成、1024px                          |
-| Gemini 3 Pro (Image)     | プロ画像生成、4K                          |
+| Gemini 3.1 Pro Preview | 最新のフラッグシップモデル、1Mコンテキスト（推奨） |
+| Gemini 3.1 Pro Preview (Custom Tools) | カスタムツールとbash向けに最適化されたエージェントワークフロー |
+| Gemini 3 Flash Preview | 高速モデル、1Mコンテキスト、最高のコストパフォーマンス |
+| Gemini 3.1 Flash Lite Preview | 最もコスト効率の高いモデル |
+| Gemini 2.5 Flash | 高速モデル、1Mコンテキスト |
+| Gemini 2.5 Pro           | Proモデル、1Mコンテキスト               |
+| Gemini 3 Pro (Image)     | Pro品質の画像生成、4K                          |
+| Gemini 3.1 Flash (Image) | 高速・低コストの画像生成 |
 
-> **Thinking モード:** チャットでは、メッセージに「考えて」「分析して」「検討して」などのキーワードが含まれると Thinking モードが有効になります。ただし、**Gemini 3 Pro** と **Gemini 3.1 Pro** はキーワードに関係なく常に Thinking モードで動作します。これらのモデルは Thinking の無効化をサポートしていません。
+> **Thinking モード:** チャットでは、メッセージに「考えて」「分析して」「検討して」などのキーワードが含まれると Thinking モードが有効になります。ただし、**Gemini 3.1 Pro** はキーワードに関係なく常に Thinking モードで動作します。このモデルは Thinking の無効化をサポートしていません。
 
 **Always Think トグル:**
 
@@ -439,6 +439,7 @@ Obsidian のイベントでワークフローを自動実行：
 | Gemini 2.5 Flash        | ✅         |
 | Gemini 2.5 Flash Lite   | ✅         |
 | Gemini 3 Flash Preview  | ✅         |
+| Gemini 3.1 Flash Lite Preview | ✅         |
 | Gemma 3 (27B/12B/4B/1B) | ❌         |
 
 ## インストール

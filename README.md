@@ -9,7 +9,7 @@
 ## Highlights
 
 - **AI Chat** - Streaming responses, file attachments, vault operations, slash commands
-- **Workflow Builder** - Automate multi-step tasks with visual node editor and 23 node types
+- **Workflow Builder** - Automate multi-step tasks with visual node editor and 24 node types
 - **Edit History** - Track and restore AI-made changes with diff view
 - **RAG** - Retrieval-Augmented Generation for intelligent search across your vault
 - **Web Search** - Access up-to-date information via Google Search
@@ -104,6 +104,7 @@ The AI can interact with your vault using these tools:
 | `list_folders` | List folders in vault |
 | `get_active_note_info` | Get info about active note |
 | `get_rag_sync_status` | Check RAG sync status |
+| `bulk_propose_rename` | Bulk rename multiple files with selection dialog |
 
 ### Vault Tool Mode
 
@@ -318,14 +319,14 @@ Open the **Workflow** tab in the Gemini sidebar to run it.
 
 ## Available Node Types
 
-23 node types are available for building workflows:
+24 node types are available for building workflows:
 
 | Category | Nodes |
 |----------|-------|
 | Variables | `variable`, `set` |
 | Control | `if`, `while` |
 | LLM | `command` |
-| Data | `http`, `json` |
+| Data | `http`, `json`, `script` |
 | Notes | `note`, `note-read`, `note-search`, `note-list`, `folder-list`, `open` |
 | Files | `file-explorer`, `file-save` |
 | Prompts | `prompt-file`, `prompt-selection`, `dialog` |
@@ -402,14 +403,13 @@ Workflows can be automatically triggered by Obsidian events:
 | Gemini 3.1 Pro Preview | Latest flagship model, 1M context (recommended) |
 | Gemini 3.1 Pro Preview (Custom Tools) | Optimized for agentic workflows with custom tools and bash |
 | Gemini 3 Flash Preview | Fast model, 1M context, best cost-performance |
-| Gemini 3 Pro Preview | Flagship model, 1M context |
+| Gemini 3.1 Flash Lite Preview | Most cost-effective model with high performance |
 | Gemini 2.5 Flash | Fast model, 1M context |
 | Gemini 2.5 Pro | Pro model, 1M context |
-| Gemini 2.5 Flash Lite | Lightweight flash model |
-| Gemini 2.5 Flash (Image) | Image generation, 1024px |
 | Gemini 3 Pro (Image) | Pro image generation, 4K |
+| Gemini 3.1 Flash (Image) | Fast, low-cost image generation |
 
-> **Thinking mode:** In Chat, thinking mode is triggered by keywords like "think", "analyze", or "consider" in your message. However, **Gemini 3 Pro** and **Gemini 3.1 Pro** always use thinking mode regardless of keywords — these models do not support disabling thinking.
+> **Thinking mode:** In Chat, thinking mode is triggered by keywords like "think", "analyze", or "consider" in your message. However, **Gemini 3.1 Pro** always uses thinking mode regardless of keywords — this model does not support disabling thinking.
 
 **Always Think toggle:**
 
@@ -428,6 +428,7 @@ When a toggle is ON, thinking is always active for that model family regardless 
 | Gemini 2.5 Flash | ✅ |
 | Gemini 2.5 Flash Lite | ✅ |
 | Gemini 3 Flash Preview | ✅ |
+| Gemini 3.1 Flash Lite Preview | ✅ |
 | Gemma 3 (27B/12B/4B/1B) | ❌ |
 
 ## Installation

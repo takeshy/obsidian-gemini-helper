@@ -9,7 +9,7 @@ Asistente de IA **gratuito y de código abierto** para Obsidian con **Chat**, **
 ## Características Principales
 
 - **Chat con IA** - Respuestas en streaming, archivos adjuntos, operaciones en el vault, comandos slash
-- **Constructor de Flujos de Trabajo** - Automatiza tareas de múltiples pasos con editor visual de nodos y 23 tipos de nodos
+- **Constructor de Flujos de Trabajo** - Automatiza tareas de múltiples pasos con editor visual de nodos y 24 tipos de nodos
 - **Historial de Edición** - Rastrea y restaura cambios hechos por IA con vista de diferencias
 - **RAG** - Generación Aumentada por Recuperación para búsqueda inteligente en tu vault
 - **Búsqueda Web** - Accede a información actualizada a través de Google Search
@@ -104,6 +104,7 @@ La IA puede interactuar con tu vault usando estas herramientas:
 | `list_folders` | Listar carpetas en el vault |
 | `get_active_note_info` | Obtener información sobre la nota activa |
 | `get_rag_sync_status` | Verificar estado de sincronización RAG |
+| `bulk_propose_rename` | Renombrar múltiples archivos en lote con diálogo de selección |
 
 ### Modo de Herramientas del Vault
 
@@ -318,14 +319,14 @@ Abre la pestaña **Workflow** en la barra lateral de Gemini para ejecutarlo.
 
 ## Tipos de Nodos Disponibles
 
-Hay 23 tipos de nodos disponibles para construir flujos de trabajo:
+Hay 24 tipos de nodos disponibles para construir flujos de trabajo:
 
 | Categoría | Nodos |
 |-----------|-------|
 | Variables | `variable`, `set` |
 | Control | `if`, `while` |
 | LLM | `command` |
-| Datos | `http`, `json` |
+| Datos | `http`, `json`, `script` |
 | Notas | `note`, `note-read`, `note-search`, `note-list`, `folder-list`, `open` |
 | Archivos | `file-explorer`, `file-save` |
 | Prompts | `prompt-file`, `prompt-selection`, `dialog` |
@@ -399,17 +400,16 @@ Los flujos de trabajo pueden activarse automáticamente por eventos de Obsidian:
 ### Plan de Pago
 | Modelo | Descripción |
 |--------|-------------|
-| Gemini 3.1 Pro Preview | Último modelo insignia, contexto de 1M (recomendado) |
-| Gemini 3.1 Pro Preview (Custom Tools) | Optimizado para workflows agénticos con herramientas personalizadas y bash |
-| Gemini 3 Flash Preview | Modelo rápido, contexto de 1M, mejor relación coste-rendimiento |
-| Gemini 3 Pro Preview | Modelo insignia, contexto de 1M |
-| Gemini 2.5 Flash | Modelo rápido, contexto de 1M |
-| Gemini 2.5 Pro | Modelo Pro, contexto de 1M |
-| Gemini 2.5 Flash Lite | Modelo flash ligero |
-| Gemini 2.5 Flash (Image) | Generación de imágenes, 1024px |
+| Gemini 3.1 Pro Preview | Último modelo insignia, contexto 1M (recomendado) |
+| Gemini 3.1 Pro Preview (Custom Tools) | Optimizado para flujos de trabajo agénticos con herramientas personalizadas y bash |
+| Gemini 3 Flash Preview | Modelo rápido, contexto 1M, mejor relación costo-rendimiento |
+| Gemini 3.1 Flash Lite Preview | Modelo más rentable con alto rendimiento |
+| Gemini 2.5 Flash | Modelo rápido, contexto 1M |
+| Gemini 2.5 Pro | Modelo Pro, contexto 1M |
 | Gemini 3 Pro (Image) | Generación de imágenes Pro, 4K |
+| Gemini 3.1 Flash (Image) | Generación de imágenes rápida y económica |
 
-> **Modo Thinking:** En el chat, el modo thinking se activa con palabras clave como "piensa", "analiza" o "reflexiona" en tu mensaje. Sin embargo, **Gemini 3 Pro** y **Gemini 3.1 Pro** siempre usan el modo thinking independientemente de las palabras clave — estos modelos no permiten desactivar thinking.
+> **Modo Thinking:** En el chat, el modo thinking se activa con palabras clave como "piensa", "analiza" o "reflexiona" en tu mensaje. Sin embargo, **Gemini 3.1 Pro** siempre usa el modo thinking independientemente de las palabras clave — este modelo no permite desactivar thinking.
 
 **Toggle Always Think:**
 
@@ -426,8 +426,8 @@ Cuando un toggle está ACTIVADO, el thinking siempre está activo para esa famil
 | Modelo | Operaciones en Vault |
 |--------|----------------------|
 | Gemini 2.5 Flash | ✅ |
-| Gemini 2.5 Flash Lite | ✅ |
 | Gemini 3 Flash Preview | ✅ |
+| Gemini 3.1 Flash Lite Preview | ✅ |
 | Gemma 3 (27B/12B/4B/1B) | ❌ |
 
 ## Instalación

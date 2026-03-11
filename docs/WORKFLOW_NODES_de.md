@@ -9,7 +9,7 @@ Dieses Dokument bietet detaillierte Spezifikationen fuer alle Workflow-Knotentyp
 | Variablen | `variable`, `set` | Variablen deklarieren und aktualisieren |
 | Steuerung | `if`, `while` | Bedingte Verzweigungen und Schleifen |
 | LLM | `command` | Prompts mit Modell-/Suchoptionen ausfuehren |
-| Daten | `http`, `json` | HTTP-Anfragen und JSON-Parsing |
+| Daten | `http`, `json`, `script` | HTTP-Anfragen, JSON-Parsing und JavaScript-Ausfuehrung |
 | Notizen | `note`, `note-read`, `note-search`, `note-list`, `folder-list`, `open` | Vault-Operationen |
 | Dateien | `file-explorer`, `file-save` | Dateiauswahl und Speichern (Bilder, PDFs usw.) |
 | Eingaben | `prompt-file`, `prompt-selection`, `dialog` | Benutzereingabe-Dialoge |
@@ -67,6 +67,7 @@ Fuehrt einen LLM-Prompt mit optionalen Modell-, Such-, Vault-Tools- und MCP-Eins
 | `vaultTools` | Vault-Tools-Modus: `all` (Suche + Lesen/Schreiben), `noSearch` (nur Lesen/Schreiben), `none` (deaktiviert). Standard: `all` |
 | `mcpServers` | Kommagetrennte MCP-Servernamen zum Aktivieren (muessen in den Plugin-Einstellungen konfiguriert sein) |
 | `attachments` | Kommagetrennte Variablennamen mit FileExplorerData (vom `file-explorer`-Knoten) |
+| `enableThinking` | "true" (Standard) oder "false". Deep-Thinking-Modus aktivieren |
 | `saveTo` | Variablenname zum Speichern der Textantwort |
 | `saveImageTo` | Variablenname zum Speichern des generierten Bildes (FileExplorerData-Format, fuer Bildmodelle) |
 
@@ -469,8 +470,9 @@ Synchronisiert eine Notiz mit einem RAG-Store.
 
 | Eigenschaft | Beschreibung |
 |-------------|--------------|
-| `path` | Notizpfad zum Synchronisieren (erforderlich, unterstuetzt `{{variables}}`) |
+| `path` | Notizpfad zum Synchronisieren (erforderlich, außer nur Löschung, unterstützt `{{variables}}`) |
 | `ragSetting` | RAG-Einstellungsname (erforderlich) |
+| `oldPath` | Alter Pfad zum Löschen (optional, für Umbenennung/Löschvorgänge) |
 | `saveTo` | Variable zum Speichern des Ergebnisses (optional) |
 
 **Ausgabeformat:**
@@ -858,6 +860,34 @@ Pausiert die Workflow-Ausführung für eine bestimmte Dauer. Nützlich zum Warte
 - id: close
   type: obsidian-command
   command: "workspace:close"
+```
+
+### script
+
+JavaScript-Code in einer Sandbox-Umgebung ausfuehren (kein DOM-, Netzwerk- oder Speicherzugriff). Nuetzlich fuer String-Manipulation, Datentransformation, Berechnungen und Kodierung/Dekodierung, die der `set`-Knoten nicht verarbeiten kann.
+
+```yaml
+- id: sort-items
+  type: script
+  code: |
+    var items = '{{rawList}}'.split(',').map(function(s){ return s.trim(); });
+    items.sort();
+    return items.join('\n');
+  saveTo: sortedList
+```
+
+| Eigenschaft | Beschreibung |
+|-------------|--------------|
+| `code` | Auszufuehrender JavaScript-Code (erforderlich, unterstuetzt `{{variables}}`). Verwenden Sie `return`, um einen Wert zurueckzugeben. Nicht-String-Rueckgabewerte werden JSON-serialisiert. |
+| `saveTo` | Variablenname zum Speichern des Ergebnisses (optional) |
+| `timeout` | Timeout in Millisekunden (optional, Standard: `10000`) |
+
+**Beispiel: Base64-Kodierung**
+```yaml
+- id: encode
+  type: script
+  code: "return btoa('{{plainText}}')"
+  saveTo: encoded
 ```
 
 ---

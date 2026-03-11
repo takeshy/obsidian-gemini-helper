@@ -9,7 +9,7 @@ Ce document fournit les specifications detaillees de tous les types de noeuds de
 | Variables | `variable`, `set` | Declarer et mettre a jour des variables |
 | Controle | `if`, `while` | Branchement conditionnel et boucles |
 | LLM | `command` | Executer des prompts avec options de modele/recherche |
-| Donnees | `http`, `json` | Requetes HTTP et analyse JSON |
+| Donnees | `http`, `json`, `script` | Requetes HTTP, analyse JSON et execution JavaScript |
 | Notes | `note`, `note-read`, `note-search`, `note-list`, `folder-list`, `open` | Operations sur le coffre |
 | Fichiers | `file-explorer`, `file-save` | Selection et sauvegarde de fichiers (images, PDF, etc.) |
 | Invites | `prompt-file`, `prompt-selection`, `dialog` | Dialogues de saisie utilisateur |
@@ -67,6 +67,7 @@ Executer un prompt LLM avec des parametres optionnels de modele, recherche, outi
 | `vaultTools` | Mode des outils vault: `all` (recherche + lecture/ecriture), `noSearch` (lecture/ecriture uniquement), `none` (desactive). Par defaut: `all` |
 | `mcpServers` | Noms de serveurs MCP separes par virgules a activer (doivent etre configures dans les parametres du plugin) |
 | `attachments` | Noms de variables separes par des virgules contenant FileExplorerData (du noeud `file-explorer`) |
+| `enableThinking` | "true" (par défaut) ou "false". Activer le mode de réflexion approfondie |
 | `saveTo` | Nom de variable pour stocker la reponse textuelle |
 | `saveImageTo` | Nom de variable pour stocker l'image generee (format FileExplorerData, pour les modeles d'image) |
 
@@ -469,8 +470,9 @@ Synchroniser une note vers un store RAG.
 
 | Propriete | Description |
 |-----------|-------------|
-| `path` | Chemin de la note a synchroniser (requis, supporte `{{variables}}`) |
+| `path` | Chemin de la note à synchroniser (requis sauf suppression seule, supporte `{{variables}}`) |
 | `ragSetting` | Nom du parametre RAG (requis) |
+| `oldPath` | Ancien chemin à supprimer (optionnel, pour les opérations de renommage/suppression) |
 | `saveTo` | Variable pour stocker le resultat (optionnel) |
 
 **Format de sortie :**
@@ -858,6 +860,34 @@ Met en pause l'exécution du flux de travail pendant une durée spécifiée. Uti
 - id: close
   type: obsidian-command
   command: "workspace:close"
+```
+
+### script
+
+Executer du code JavaScript dans un environnement isole (sans acces au DOM, reseau ou stockage). Utile pour la manipulation de chaines, la transformation de donnees, les calculs et l'encodage/decodage que le noeud `set` ne peut pas gerer.
+
+```yaml
+- id: sort-items
+  type: script
+  code: |
+    var items = '{{rawList}}'.split(',').map(function(s){ return s.trim(); });
+    items.sort();
+    return items.join('\n');
+  saveTo: sortedList
+```
+
+| Propriete | Description |
+|-----------|-------------|
+| `code` | Code JavaScript a executer (requis, supporte `{{variables}}`). Utilisez `return` pour retourner une valeur. Les valeurs de retour non-chaine sont serialisees en JSON. |
+| `saveTo` | Nom de variable pour stocker le resultat (optionnel) |
+| `timeout` | Delai d'attente en millisecondes (optionnel, defaut : `10000`) |
+
+**Exemple : Encodage Base64**
+```yaml
+- id: encode
+  type: script
+  code: "return btoa('{{plainText}}')"
+  saveTo: encoded
 ```
 
 ---

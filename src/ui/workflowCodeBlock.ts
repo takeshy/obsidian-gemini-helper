@@ -55,7 +55,11 @@ export function registerWorkflowCodeBlockProcessor(plugin: Plugin): void {
         observer.disconnect();
         if (svg && !cancelled && el.isConnected) {
           el.empty();
-          el.innerHTML = svg;
+          const doc = new DOMParser().parseFromString(svg, "image/svg+xml");
+          const svgEl = doc.documentElement;
+          if (svgEl instanceof SVGElement) {
+            el.appendChild(el.doc.importNode(svgEl, true));
+          }
         }
       }).catch((e) => {
         observer.disconnect();

@@ -261,6 +261,8 @@ MCP(Model Context Protocol) 서버는 Vault 작업 이외의 AI 기능을 확장
 - **CLI 모드 지원** - Gemini CLI, Claude CLI, Codex CLI 백엔드에서도 스킬 사용 가능
 - **선택적 활성화** - 대화별로 활성화할 스킬 선택
 
+스킬도 워크플로우와 같은 방법으로 만들 수 있습니다 — **+ New (AI)**를 선택하고, **"에이전트 스킬로 만들기"**를 체크한 후 설명을 입력하세요. AI가 `SKILL.md` 지침과 워크플로우를 모두 생성합니다.
+
 > **설정 방법과 예제는 [SKILLS.md](docs/SKILLS_ko.md)를 참조하세요**
 
 ---
@@ -271,14 +273,15 @@ Markdown 파일에서 직접 자동화된 다단계 워크플로우를 구축합
 
 ![Visual Workflow Editor](docs/images/visual_workflow.png)
 
-## AI 기반 워크플로우 생성
+## AI 기반 워크플로우 & 스킬 생성
 
 **YAML 문법이나 노드 유형을 배울 필요가 없습니다.** 일반 언어로 워크플로우를 설명하기만 하면 됩니다:
 
 1. Gemini 사이드바에서 **Workflow** 탭 열기
 2. 드롭다운에서 **+ New (AI)** 선택
 3. 원하는 것을 설명: *"선택한 노트를 요약하고 summaries 폴더에 저장하는 워크플로우 만들어줘"*
-4. **Generate** 클릭 - AI가 완전한 워크플로우 생성
+4. 독립 워크플로우 대신 에이전트 스킬을 만들려면 **"에이전트 스킬로 만들기"**를 체크
+5. **Generate** 클릭 - AI가 완전한 워크플로우 생성
 
 ![Create Workflow with AI](docs/images/create_workflow_with_ai.png)
 

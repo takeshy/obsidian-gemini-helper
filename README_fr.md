@@ -261,6 +261,8 @@ Certains outils MCP retournent une UI interactive qui permet d'interagir visuell
 - **Support mode CLI** - Les skills fonctionnent avec les backends Gemini CLI, Claude CLI et Codex CLI
 - **Activation sélective** - Choisissez quels skills sont actifs par conversation
 
+Créez des skills de la même manière que les workflows — sélectionnez **+ New (AI)**, cochez **« Créer en tant qu'agent skill »** et décrivez ce que vous souhaitez. L'AI génère à la fois les instructions du `SKILL.md` et le workflow.
+
 > **Pour les instructions de configuration et des exemples, consultez [SKILLS.md](docs/SKILLS_fr.md)**
 
 ---
@@ -271,14 +273,15 @@ Construisez des workflows automatisés multi-étapes directement dans les fichie
 
 ![Éditeur Visuel de Workflow](docs/images/visual_workflow.png)
 
-## Création de Workflows Assistée par IA
+## Création de Workflows et Skills avec l'AI
 
 **Vous n'avez pas besoin d'apprendre la syntaxe YAML ou les types de nœuds.** Décrivez simplement votre workflow en langage courant :
 
 1. Ouvrez l'onglet **Workflow** dans la barre latérale Gemini
 2. Sélectionnez **+ Nouveau (IA)** dans le menu déroulant
 3. Décrivez ce que vous voulez : *"Créer un workflow qui résume la note sélectionnée et l'enregistre dans un dossier summaries"*
-4. Cliquez sur **Générer** - l'IA crée le workflow complet
+4. Cochez **« Créer en tant qu'agent skill »** si vous souhaitez créer un agent skill au lieu d'un workflow autonome
+5. Cliquez sur **Générer** - l'IA crée le workflow complet
 
 ![Créer un Workflow avec l'IA](docs/images/create_workflow_with_ai.png)
 

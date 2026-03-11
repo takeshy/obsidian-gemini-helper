@@ -261,6 +261,8 @@ MCP（Model Context Protocol）服务器提供额外的工具，扩展 AI 在 Va
 - **CLI 模式支持** - 技能可在 Gemini CLI、Claude CLI 和 Codex CLI 后端中使用
 - **选择性激活** - 按对话选择哪些技能处于活动状态
 
+创建技能的方式与工作流相同 — 选择 **+ New (AI)**，勾选 **"作为代理技能创建"**，然后描述您想要的功能。AI 会同时生成 `SKILL.md` 指令和工作流。
+
 > **有关设置说明和示例，请参阅 [SKILLS.md](docs/SKILLS_zh.md)**
 
 ---
@@ -271,14 +273,15 @@ MCP（Model Context Protocol）服务器提供额外的工具，扩展 AI 在 Va
 
 ![可视化工作流编辑器](docs/images/visual_workflow.png)
 
-## AI 驱动的工作流创建
+## AI 驱动的工作流和技能创建
 
 **您不需要学习 YAML 语法或节点类型。** 只需用自然语言描述您的工作流：
 
 1. 在 Gemini 侧边栏中打开**工作流**标签
 2. 从下拉菜单中选择 **+ New (AI)**
 3. 描述您想要的内容：*"创建一个工作流，总结选中的笔记并保存到 summaries 文件夹"*
-4. 点击**生成** - AI 会创建完整的工作流
+4. 如果要创建代理技能而非独立工作流，请勾选 **"作为代理技能创建"**
+5. 点击**生成** - AI 会创建完整的工作流
 
 ![使用 AI 创建工作流](docs/images/create_workflow_with_ai.png)
 

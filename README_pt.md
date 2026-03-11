@@ -261,6 +261,8 @@ Estenda as capacidades da IA com instruções personalizadas, materiais de refer
 - **Suporte modo CLI** - Os skills funcionam com os backends Gemini CLI, Claude CLI e Codex CLI
 - **Ativação seletiva** - Escolha quais skills estão ativos por conversa
 
+Crie skills da mesma forma que workflows — selecione **+ New (AI)**, marque **"Criar como agent skill"** e descreva o que deseja. A AI gera tanto as instruções do `SKILL.md` quanto o workflow.
+
 > **Para instruções de configuração e exemplos, consulte [SKILLS.md](docs/SKILLS_pt.md)**
 
 ---
@@ -271,14 +273,15 @@ Construa workflows automatizados de múltiplas etapas diretamente em arquivos Ma
 
 ![Editor Visual de Workflows](docs/images/visual_workflow.png)
 
-## Criação de Workflows com IA
+## Criação de Workflows e Skills com AI
 
 **Você não precisa aprender sintaxe YAML ou tipos de nós.** Simplesmente descreva seu workflow em linguagem simples:
 
 1. Abra a aba **Workflow** na barra lateral do Gemini
 2. Selecione **+ New (AI)** no menu dropdown
 3. Descreva o que você quer: *"Crie um workflow que resuma a nota selecionada e salve em uma pasta de resumos"*
-4. Clique em **Generate** - a IA cria o workflow completo
+4. Marque **"Criar como agent skill"** se deseja criar um agent skill em vez de um workflow independente
+5. Clique em **Generate** - a IA cria o workflow completo
 
 ![Criar Workflow com IA](docs/images/create_workflow_with_ai.png)
 

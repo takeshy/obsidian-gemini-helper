@@ -8,7 +8,6 @@ import { displayEditHistorySettings } from "src/ui/settings/editHistorySettings"
 import { displayEncryptionSettings } from "src/ui/settings/encryptionSettings";
 import { displayLangfuseSettings } from "src/ui/settings/langfuseSettings";
 import { displaySlashCommandSettings } from "src/ui/settings/slashCommandSettings";
-import { displaySkillsSettings } from "src/ui/settings/skillsSettings";
 import { displayRagSettings } from "src/ui/settings/ragSettings";
 import { displayDriveSyncSettings } from "src/ui/settings/driveSyncSettings";
 import { displayMcpServersSettings } from "src/ui/settings/mcpServersSettings";
@@ -39,7 +38,6 @@ export class SettingsTab extends PluginSettingTab {
     displayEncryptionSettings(containerEl, ctx);
     displayLangfuseSettings(containerEl, ctx);
     displaySlashCommandSettings(containerEl, ctx);
-    displaySkillsSettings(containerEl, ctx);
     displayRagSettings(containerEl, ctx);
     displayDriveSyncSettings(containerEl, ctx);
     displayMcpServersSettings(containerEl, ctx);

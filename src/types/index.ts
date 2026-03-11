@@ -117,9 +117,6 @@ export interface GeminiHelperSettings {
   // Workflow event triggers
   enabledWorkflowEventTriggers: WorkflowEventTrigger[];  // Event-triggered workflows
 
-  // Skills
-  skillsFolderPath: string;  // Relative path for agent skills folder (default: "skills")
-
   // MCP servers
   mcpServers: McpServerConfig[];  // External MCP server configurations
 
@@ -661,6 +658,10 @@ export const DEFAULT_DRIVE_SYNC_SETTINGS: DriveSyncSettings = {
 
 /** Fixed workspace folder name (not user-configurable). */
 export const WORKSPACE_FOLDER = "GeminiHelper";
+/** Fixed skills folder name. */
+export const SKILLS_FOLDER = "skills";
+/** Fixed workflows folder name. */
+export const WORKFLOWS_FOLDER = "workflows";
 
 // Default settings
 export const DEFAULT_SETTINGS: GeminiHelperSettings = {
@@ -675,7 +676,6 @@ export const DEFAULT_SETTINGS: GeminiHelperSettings = {
   slashCommands: DEFAULT_SLASH_COMMANDS,
   enabledWorkflowHotkeys: [],
   enabledWorkflowEventTriggers: [],
-  skillsFolderPath: "skills",
   mcpServers: [],
   // Function call limits
   maxFunctionCalls: 20,

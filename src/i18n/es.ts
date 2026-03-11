@@ -726,9 +726,6 @@ export const es: Record<string, string> = {
 
   // Skills Settings
   "settings.skills": "Skills de agente",
-  "settings.skillsFolder": "Carpeta de skills",
-  "settings.skillsFolder.desc": "Ruta relativa a la carpeta de skills de agente. Cada subcarpeta con un archivo skill.md se trata como un skill.",
-  "settings.skillsFolder.placeholder": "Skills",
 
   // Skills UI
   "skills.add": "Agregar skill",

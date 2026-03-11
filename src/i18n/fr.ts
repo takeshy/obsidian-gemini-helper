@@ -726,9 +726,6 @@ export const fr: Record<string, string> = {
 
   // Skills Settings
   "settings.skills": "Skills d'agent",
-  "settings.skillsFolder": "Dossier des skills",
-  "settings.skillsFolder.desc": "Chemin relatif vers le dossier des skills d'agent. Chaque sous-dossier contenant un fichier skill.md est traité comme un skill.",
-  "settings.skillsFolder.placeholder": "Skills",
 
   // Skills UI
   "skills.add": "Ajouter un skill",

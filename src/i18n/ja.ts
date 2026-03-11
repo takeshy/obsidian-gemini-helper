@@ -696,9 +696,6 @@ export const ja: Record<string, string> = {
 
   // Skills Settings
   "settings.skills": "エージェントスキル",
-  "settings.skillsFolder": "スキルフォルダ",
-  "settings.skillsFolder.desc": "エージェントスキルフォルダへの相対パス。SKILL.mdファイルを含むサブフォルダがスキルとして認識されます。",
-  "settings.skillsFolder.placeholder": "skills",
 
   // Skills UI
   "skills.add": "スキルを追加",

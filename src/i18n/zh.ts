@@ -726,9 +726,6 @@ export const zh: Record<string, string> = {
 
   // Skills Settings
   "settings.skills": "代理技能",
-  "settings.skillsFolder": "技能文件夹",
-  "settings.skillsFolder.desc": "代理技能文件夹的相对路径。每个包含 skill.md 文件的子文件夹将被视为一个技能。",
-  "settings.skillsFolder.placeholder": "Skills",
 
   // Skills UI
   "skills.add": "添加技能",

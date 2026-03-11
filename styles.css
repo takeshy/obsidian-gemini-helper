@@ -29,6 +29,16 @@ body.gemini-helper-hide-workspace-folder .nav-folder:has(> [data-path="GeminiHel
   display: none !important;
 }
 
+/* Folder icons in file explorer */
+.nav-folder[data-path="skills"] > .nav-folder-title > .nav-folder-title-content::before,
+.nav-folder:has(> [data-path="skills"]) > .nav-folder-title > .nav-folder-title-content::before {
+  content: "🧩 ";
+}
+.nav-folder[data-path="workflows"] > .nav-folder-title > .nav-folder-title-content::before,
+.nav-folder:has(> [data-path="workflows"]) > .nav-folder-title > .nav-folder-title-content::before {
+  content: "⚡ ";
+}
+
 /* Selection Highlight - shows where {selection} text came from */
 .gemini-helper-selection-highlight {
   background-color: rgba(255, 213, 79, 0.4);

@@ -726,9 +726,6 @@ export const ko: Record<string, string> = {
 
   // Skills Settings
   "settings.skills": "에이전트 스킬",
-  "settings.skillsFolder": "스킬 폴더",
-  "settings.skillsFolder.desc": "에이전트 스킬 폴더의 상대 경로입니다. skill.md 파일이 있는 각 하위 폴더가 스킬로 처리됩니다.",
-  "settings.skillsFolder.placeholder": "Skills",
 
   // Skills UI
   "skills.add": "스킬 추가",

@@ -696,9 +696,6 @@ export const en = {
 
   // Skills Settings
   "settings.skills": "Agent skills",
-  "settings.skillsFolder": "Skills folder",
-  "settings.skillsFolder.desc": "Relative path to the agent skills folder. Each subfolder with a skill.md file is treated as a skill.",
-  "settings.skillsFolder.placeholder": "Skills",
 
   // Skills UI
   "skills.add": "Add skill",

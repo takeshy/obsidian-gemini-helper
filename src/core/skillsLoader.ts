@@ -1,5 +1,6 @@
 import { type App, TFile, TFolder, parseYaml } from "obsidian";
 import { parseWorkflowFromMarkdown } from "src/workflow/parser";
+import { SKILLS_FOLDER } from "src/types";
 
 export interface SkillWorkflowRef {
   path: string;            // relative path from skill folder (e.g. "workflows/lint.md")
@@ -25,8 +26,8 @@ export interface LoadedSkill extends SkillMetadata {
  * Discover all skills in the skills folder.
  * Each subfolder containing a SKILL.md is treated as a skill.
  */
-export async function discoverSkills(app: App, skillsFolderPath: string): Promise<SkillMetadata[]> {
-  const folder = app.vault.getAbstractFileByPath(skillsFolderPath);
+export async function discoverSkills(app: App): Promise<SkillMetadata[]> {
+  const folder = app.vault.getAbstractFileByPath(SKILLS_FOLDER);
   if (!(folder instanceof TFolder)) return [];
 
   const skills: SkillMetadata[] = [];

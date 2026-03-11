@@ -531,6 +531,10 @@ export class WorkspaceStateManager {
       delete data.workspaceFolder;
       needsSave = true;
     }
+    if (data.skillsFolderPath !== undefined) {
+      delete data.skillsFolderPath;
+      needsSave = true;
+    }
 
     // Check for old RAG format fields in settings (very old format)
     const oldStoreId = data.ragStoreId as string | null | undefined;

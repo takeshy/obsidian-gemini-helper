@@ -726,9 +726,6 @@ export const pt: Record<string, string> = {
 
   // Skills Settings
   "settings.skills": "Skills de agente",
-  "settings.skillsFolder": "Pasta de skills",
-  "settings.skillsFolder.desc": "Caminho relativo para a pasta de skills de agente. Cada subpasta com um arquivo skill.md é tratada como um skill.",
-  "settings.skillsFolder.placeholder": "Skills",
 
   // Skills UI
   "skills.add": "Adicionar skill",

@@ -3,7 +3,7 @@ import type { GeminiHelperPlugin } from "src/plugin";
 import { GeminiCliProvider, ClaudeCliProvider, CodexCliProvider } from "src/core/cliProvider";
 import { GeminiClient } from "src/core/gemini";
 import { tracing } from "src/core/tracingHooks";
-import { CLI_MODEL, CLAUDE_CLI_MODEL, CODEX_CLI_MODEL, DEFAULT_CLI_CONFIG, getAvailableModels, type ModelType, type Attachment, type StreamChunkUsage } from "src/types";
+import { CLI_MODEL, CLAUDE_CLI_MODEL, CODEX_CLI_MODEL, DEFAULT_CLI_CONFIG, getAvailableModels, SKILLS_FOLDER, WORKFLOWS_FOLDER, type ModelType, type Attachment, type StreamChunkUsage } from "src/types";
 import { getWorkflowSpecification } from "src/workflow/workflowSpec";
 import type { SidebarNode, WorkflowNodeType, ExecutionStep } from "src/workflow/types";
 import { listWorkflowOptions, normalizeYamlText } from "src/workflow/parser";
@@ -355,12 +355,12 @@ export class AIWorkflowModal extends Modal {
       // Output path input
       const pathContainer = contentEl.createDiv({ cls: "ai-workflow-input-row" });
       pathContainer.createEl("label", { text: t("aiWorkflow.outputPath") });
-      const defaultPath = this.defaultOutputPath || "workflows/{{name}}";
+      const defaultPath = this.defaultOutputPath || `${WORKFLOWS_FOLDER}/{{name}}`;
       this.outputPathEl = pathContainer.createEl("input", {
         type: "text",
         cls: "ai-workflow-path-input",
         value: defaultPath,
-        attr: { placeholder: "workflows/{{name}}" },
+        attr: { placeholder: `${WORKFLOWS_FOLDER}/{{name}}` },
       });
       pathContainer.createEl("div", {
         cls: "ai-workflow-hint",
@@ -382,10 +382,10 @@ export class AIWorkflowModal extends Modal {
       this.skillCheckbox.addEventListener("change", () => {
         if (!this.outputPathEl) return;
         if (this.skillCheckbox?.checked) {
-          this.outputPathEl.value = `${this.plugin.settings.skillsFolderPath}/{{name}}`;
+          this.outputPathEl.value = `${SKILLS_FOLDER}/{{name}}`;
           this.outputPathEl.disabled = true;
         } else {
-          this.outputPathEl.value = this.defaultOutputPath || "workflows/{{name}}";
+          this.outputPathEl.value = this.defaultOutputPath || `${WORKFLOWS_FOLDER}/{{name}}`;
           this.outputPathEl.disabled = false;
         }
       });
@@ -763,7 +763,7 @@ export class AIWorkflowModal extends Modal {
         parsed.description = description;
         parsed.mode = "create";
         parsed.resolvedMentions = resolvedMentions;
-        const outputPathTemplate = this.outputPathEl?.value?.trim() || "workflows/{{name}}";
+        const outputPathTemplate = this.outputPathEl?.value?.trim() || `${WORKFLOWS_FOLDER}/{{name}}`;
         parsed.outputPath = outputPathTemplate.replace(/\{\{name\}\}/g, workflowName);
         if (isSkill) {
           parsed.createAsSkill = true;
@@ -792,7 +792,7 @@ export class AIWorkflowModal extends Modal {
       }
 
       // Save as raw markdown
-      const outputPathTemplate = this.outputPathEl?.value?.trim() || "workflows/{{name}}";
+      const outputPathTemplate = this.outputPathEl?.value?.trim() || `${WORKFLOWS_FOLDER}/{{name}}`;
       const result: AIWorkflowResult = {
         yaml: "",
         nodes: [],
@@ -867,7 +867,7 @@ export class AIWorkflowModal extends Modal {
 
     // Get output path template for create mode
     const outputPathTemplate = this.mode === "create"
-      ? this.outputPathEl?.value?.trim() || "workflows/{{name}}/main"
+      ? this.outputPathEl?.value?.trim() || `${WORKFLOWS_FOLDER}/{{name}}/main`
       : undefined;
 
     // Resolve @ mentions (embed file content, selection, etc.)

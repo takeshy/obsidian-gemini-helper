@@ -695,7 +695,6 @@ export const en = {
   "crypt.editorPlaceholder": "Enter content...",
 
   // Skills Settings
-  "settings.skills": "Agent skills",
 
   // Skills UI
   "skills.add": "Add skill",

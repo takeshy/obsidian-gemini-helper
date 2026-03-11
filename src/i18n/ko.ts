@@ -725,7 +725,6 @@ export const ko: Record<string, string> = {
   "input.mcpToolHint": "({{count}}개 도구: {{tools}})",
 
   // Skills Settings
-  "settings.skills": "에이전트 스킬",
 
   // Skills UI
   "skills.add": "스킬 추가",

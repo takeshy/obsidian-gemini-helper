@@ -695,7 +695,6 @@ export const ja: Record<string, string> = {
   "crypt.editorPlaceholder": "内容を入力...",
 
   // Skills Settings
-  "settings.skills": "エージェントスキル",
 
   // Skills UI
   "skills.add": "スキルを追加",

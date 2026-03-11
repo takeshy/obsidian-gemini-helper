@@ -725,7 +725,6 @@ export const de: Record<string, string> = {
   "input.mcpToolHint": "({{count}} Werkzeuge: {{tools}})",
 
   // Skills Settings
-  "settings.skills": "Agent-Skills",
 
   // Skills UI
   "skills.add": "Skill hinzufügen",

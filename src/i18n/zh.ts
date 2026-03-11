@@ -725,7 +725,6 @@ export const zh: Record<string, string> = {
   "input.mcpToolHint": "（{{count}} 个工具：{{tools}}）",
 
   // Skills Settings
-  "settings.skills": "代理技能",
 
   // Skills UI
   "skills.add": "添加技能",

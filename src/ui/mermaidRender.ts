@@ -6,6 +6,8 @@
  * once on failure.
  */
 
+import { loadMermaid } from "obsidian";
+
 let queue: Promise<void> = Promise.resolve();
 
 export interface MermaidRenderOptions {
@@ -46,8 +48,6 @@ async function doRender(
 
   const id = `mermaid-${Date.now()}-${attempt}`;
   try {
-    // Use Obsidian's built-in mermaid instance instead of importing the npm package
-    const { loadMermaid } = await import("obsidian");
     const mermaid = await loadMermaid();
     if (isCancelled()) return null;
 

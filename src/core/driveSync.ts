@@ -516,6 +516,13 @@ export class DriveSyncManager {
       if (deletedIds.has(fileId)) {
         const entry = localMeta.files[fileId];
         if (entry.localMtime !== undefined || entry.name === undefined) continue;
+        // Skip if file was encrypted/decrypted (renamed with content change).
+        // Checksum-based rename detection fails here because encryption changes content.
+        const trackedPath = idToPath[fileId];
+        if (trackedPath) {
+          if (checksums.has(trackedPath + ".encrypted")) continue;
+          if (trackedPath.endsWith(".encrypted") && checksums.has(trackedPath.slice(0, -".encrypted".length))) continue;
+        }
       }
       const remoteFile = remoteMeta.files[fileId];
       const path = idToPath[fileId] || remoteFile.name;
@@ -1827,7 +1834,11 @@ export class DriveSyncManager {
 
     // Update remote and local meta
     await writeRemoteSyncMeta(accessToken, rootFolderId, remoteMeta);
-    const updatedLocalMeta = toLocalSyncMeta(remoteMeta, localMeta);
+    const vaultStats = new Map<string, { mtime: number; size: number }>();
+    for (const f of this.getAllVaultFiles()) {
+      vaultStats.set(f.path, { mtime: f.stat.mtime, size: f.stat.size });
+    }
+    const updatedLocalMeta = toLocalSyncMeta(remoteMeta, localMeta, vaultStats);
     await writeLocalSyncMeta(this.app,updatedLocalMeta);
   }
 
@@ -1884,7 +1895,11 @@ export class DriveSyncManager {
     removeFileFromMeta(remoteMeta, fileId);
 
     await writeRemoteSyncMeta(accessToken, rootFolderId, remoteMeta);
-    const updatedLocalMeta = toLocalSyncMeta(remoteMeta, localMeta);
+    const vaultStats = new Map<string, { mtime: number; size: number }>();
+    for (const f of this.getAllVaultFiles()) {
+      vaultStats.set(f.path, { mtime: f.stat.mtime, size: f.stat.size });
+    }
+    const updatedLocalMeta = toLocalSyncMeta(remoteMeta, localMeta, vaultStats);
     await writeLocalSyncMeta(this.app,updatedLocalMeta);
   }
 

@@ -1023,9 +1023,6 @@ export const ja: Record<string, string> = {
   "driveSync.syncActions": "同期操作",
   "driveSync.fullPull": "完全ローカル反映",
   "driveSync.fullPullConfirm": "完全ローカル反映はすべてのローカルファイルをリモートバージョンで置き換えます。この操作は元に戻せません。続行しますか？",
-  "driveSync.refreshStatus": "同期状態を更新",
-  "driveSync.refreshStatusDesc": "ローカルとリモートの変更を確認",
-  "driveSync.refresh": "更新",
 
   // Drive Sync - Data Management
   "driveSync.tempFiles": "一時ファイル",

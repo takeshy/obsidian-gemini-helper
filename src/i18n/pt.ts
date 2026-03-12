@@ -1023,9 +1023,6 @@ export const pt: Record<string, string> = {
   "driveSync.syncActions": "Ações de sincronização",
   "driveSync.fullPull": "Download completo para local",
   "driveSync.fullPullConfirm": "O download completo substituirá todos os arquivos locais pelas versões remotas. Isso não pode ser desfeito. Continuar?",
-  "driveSync.refreshStatus": "Atualizar status de sincronização",
-  "driveSync.refreshStatusDesc": "Verificar alterações locais e remotas",
-  "driveSync.refresh": "Atualizar",
 
   // Drive Sync - Data Management
   "driveSync.tempFiles": "Arquivos temporários",

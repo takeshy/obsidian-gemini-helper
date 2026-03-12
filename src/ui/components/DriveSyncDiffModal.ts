@@ -73,19 +73,17 @@ export class DriveSyncDiffModal extends Modal {
       })
     );
 
-    if (this.files.length > 0) {
-      footer.addButton((btn) =>
-        btn
-          .setButtonText(this.direction === "push" ? t("driveSync.push") : t("driveSync.pull"))
-          .setCta()
-          .onClick(() => {
-            const resolve = this.resolve;
-            this.resolve = null;
-            this.close();
-            resolve?.({ confirmed: true, ignoredIds: this.ignoredIds.size > 0 ? this.ignoredIds : undefined });
-          })
-      );
-    }
+    footer.addButton((btn) =>
+      btn
+        .setButtonText(this.direction === "push" ? t("driveSync.push") : t("driveSync.pull"))
+        .setCta()
+        .onClick(() => {
+          const resolve = this.resolve;
+          this.resolve = null;
+          this.close();
+          resolve?.({ confirmed: true, ignoredIds: this.ignoredIds.size > 0 ? this.ignoredIds : undefined });
+        })
+    );
   }
 
   private renderFileItem(listEl: HTMLElement, file: SyncFileListItem): void {

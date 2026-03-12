@@ -1023,9 +1023,6 @@ export const zh: Record<string, string> = {
   "driveSync.syncActions": "同步操作",
   "driveSync.fullPull": "完全拉取到本地",
   "driveSync.fullPullConfirm": "完全拉取将用远程版本替换所有本地文件。此操作不可撤销。是否继续？",
-  "driveSync.refreshStatus": "刷新同步状态",
-  "driveSync.refreshStatusDesc": "检查本地和远程的更改",
-  "driveSync.refresh": "刷新",
 
   // Drive Sync - Data Management
   "driveSync.tempFiles": "临时文件",

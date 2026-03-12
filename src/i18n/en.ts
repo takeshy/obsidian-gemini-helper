@@ -1023,9 +1023,6 @@ export const en = {
   "driveSync.syncActions": "Sync actions",
   "driveSync.fullPull": "Full pull to local",
   "driveSync.fullPullConfirm": "Full pull will replace all local files with remote versions. This cannot be undone. Continue?",
-  "driveSync.refreshStatus": "Refresh sync status",
-  "driveSync.refreshStatusDesc": "Check for local and remote changes",
-  "driveSync.refresh": "Refresh",
 
   // Drive Sync - Data Management
   "driveSync.tempFiles": "Temporary files",

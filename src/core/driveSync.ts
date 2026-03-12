@@ -103,6 +103,30 @@ export interface SyncFileListResult {
   hasRemoteChanges: boolean;  // true when remote has unpulled changes
 }
 
+interface CatchAllDeletePlan {
+  fileId: string;
+  path: string;
+}
+
+interface CatchAllRenamePlan {
+  fileId: string;
+  oldPath: string;
+  newPath: string;
+  backupExistingTarget: boolean;
+}
+
+interface CatchAllBlockedRename {
+  fileId: string;
+  oldPath: string;
+  newPath: string;
+}
+
+interface CatchAllPullPlan {
+  deletes: CatchAllDeletePlan[];
+  renames: CatchAllRenamePlan[];
+  blockedRenames: CatchAllBlockedRename[];
+}
+
 /** Validate that a vault path from remote metadata is safe (no traversal). */
 function isValidVaultPath(path: string): boolean {
   if (!path || path.startsWith("/") || path.startsWith("\\")) return false;
@@ -460,7 +484,9 @@ export class DriveSyncManager {
   /**
    * Find files tracked in both local and remote meta but physically missing from disk.
    * These should be re-downloaded on pull.
-   * Files in deletedIds are intentionally deleted by the user and excluded.
+   * Files that were previously on disk (have localMtime) but now missing
+   * are treated as intentional local deletions and skipped.
+   * Files that were never downloaded (no localMtime) are always included.
    */
   private findMissingLocalFiles(
     localMeta: LocalDriveSyncMeta,
@@ -482,8 +508,15 @@ export class DriveSyncManager {
     const missing: string[] = [];
     for (const fileId of Object.keys(remoteMeta.files)) {
       if (alreadyHandled.has(fileId)) continue;
-      if (deletedIds.has(fileId)) continue; // intentionally deleted locally
       if (!localMeta.files[fileId]) continue;
+      // Skip files intentionally deleted by user.
+      // - localMtime defined → was on disk before → intentional deletion
+      // - name undefined → old meta format (predates localMtime tracking) → assume was downloaded
+      // Only pull if localMtime is undefined AND name is defined (added by toLocalSyncMeta but never downloaded)
+      if (deletedIds.has(fileId)) {
+        const entry = localMeta.files[fileId];
+        if (entry.localMtime !== undefined || entry.name === undefined) continue;
+      }
       const remoteFile = remoteMeta.files[fileId];
       const path = idToPath[fileId] || remoteFile.name;
       if (!path) continue;
@@ -493,6 +526,75 @@ export class DriveSyncManager {
       }
     }
     return missing;
+  }
+
+  /**
+   * Detect remote deletions/renames that older local metadata can miss.
+   * The same plan is used for preview and for the actual pull.
+   */
+  private planCatchAllPullActions(
+    localMeta: LocalDriveSyncMeta,
+    remoteMeta: SyncMeta,
+    diff: SyncDiff,
+    checksums: Map<string, string>,
+    ignoredIds?: Set<string>
+  ): CatchAllPullPlan {
+    const idToPath = buildIdToPathMap(localMeta);
+    const handledIds = new Set([
+      ...diff.toPush,
+      ...diff.toPull,
+      ...diff.localOnly,
+      ...diff.remoteOnly,
+      ...diff.editDeleteConflicts,
+      ...diff.conflicts.map((c) => c.fileId),
+    ]);
+    const plannedRemovals = new Set<string>();
+
+    for (const fileId of diff.localOnly) {
+      const path = idToPath[fileId];
+      if (path) plannedRemovals.add(path);
+    }
+    for (const fileId of diff.toPull) {
+      if (ignoredIds?.has(fileId)) continue;
+      const oldPath = idToPath[fileId];
+      const remotePath = remoteMeta.files[fileId]?.name;
+      if (oldPath && remotePath && oldPath !== remotePath) {
+        plannedRemovals.add(oldPath);
+      }
+    }
+
+    const deletes: CatchAllDeletePlan[] = [];
+    const rawRenames: Array<{ fileId: string; oldPath: string; newPath: string }> = [];
+    for (const [path, id] of Object.entries(localMeta.pathToId)) {
+      if (ignoredIds?.has(id) || handledIds.has(id)) continue;
+      const remoteFile = remoteMeta.files[id];
+      if (!remoteFile) {
+        deletes.push({ fileId: id, path });
+        plannedRemovals.add(path);
+        continue;
+      }
+      if (remoteFile.name !== path && remoteFile.name.toLowerCase() !== path.toLowerCase()) {
+        rawRenames.push({ fileId: id, oldPath: path, newPath: remoteFile.name });
+        plannedRemovals.add(path);
+      }
+    }
+
+    const renames: CatchAllRenamePlan[] = [];
+    const blockedRenames: CatchAllBlockedRename[] = [];
+    for (const rename of rawRenames) {
+      const targetOwnerId = localMeta.pathToId[rename.newPath];
+      if (targetOwnerId && targetOwnerId !== rename.fileId && !plannedRemovals.has(rename.newPath)) {
+        blockedRenames.push(rename);
+        continue;
+      }
+      const targetExists = checksums.has(rename.newPath) || this.app.vault.getAbstractFileByPath(rename.newPath) instanceof TFile;
+      renames.push({
+        ...rename,
+        backupExistingTarget: targetExists && !targetOwnerId,
+      });
+    }
+
+    return { deletes, renames, blockedRenames };
   }
 
   // ========================================
@@ -671,6 +773,9 @@ export class DriveSyncManager {
 
     const remoteFiles = remoteMeta?.files ?? {};
     const idToPath = buildIdToPathMap(localMeta);
+    const catchAllPlan = direction === "pull" && remoteMeta
+      ? this.planCatchAllPullActions(localMeta, remoteMeta, diff, checksums)
+      : null;
 
     const files: SyncFileListItem[] = [];
 
@@ -729,6 +834,15 @@ export class DriveSyncManager {
         const name = idToPath[c.fileId] || remoteFiles[c.fileId]?.name || c.fileId;
         files.push({ id: c.fileId, name, type: "conflict" });
       }
+      for (const item of catchAllPlan?.deletes ?? []) {
+        files.push({ id: item.fileId, name: item.path, type: "deleted" });
+      }
+      for (const item of catchAllPlan?.renames ?? []) {
+        files.push({ id: item.fileId, name: item.newPath, type: "renamed", oldName: item.oldPath });
+      }
+      for (const item of catchAllPlan?.blockedRenames ?? []) {
+        files.push({ id: item.fileId, name: item.newPath, type: "conflict" });
+      }
     }
 
     files.sort((a, b) => a.name.localeCompare(b.name));
@@ -742,7 +856,10 @@ export class DriveSyncManager {
       diff.editDeleteConflicts.length > 0 ||
       diff.toPull.length > 0 ||
       diff.remoteOnly.length > 0 ||
-      remoteDeletedCount > 0;
+      remoteDeletedCount > 0 ||
+      (catchAllPlan?.deletes.length ?? 0) > 0 ||
+      (catchAllPlan?.renames.length ?? 0) > 0 ||
+      (catchAllPlan?.blockedRenames.length ?? 0) > 0;
 
     return { files: filtered, hasRemoteChanges };
   }
@@ -1103,6 +1220,14 @@ export class DriveSyncManager {
       }
       diff.remoteOnly = safeRemoteOnly;
 
+      const catchAllPlan = this.planCatchAllPullActions(localMeta, remoteMeta, diff, checksums, ignoredIds);
+      if (catchAllPlan.blockedRenames.length > 0) {
+        const first = catchAllPlan.blockedRenames[0];
+        const count = catchAllPlan.blockedRenames.length;
+        const detail = count === 1 ? first.newPath : `${first.newPath} (+${count - 1} more)`;
+        throw new Error(`Remote rename target is already tracked locally: ${detail}`);
+      }
+
       // 4. Handle conflicts
       const allConflicts: ConflictInfo[] = [...diff.conflicts, ...untrackedConflicts];
       if (diff.editDeleteConflicts.length > 0) {
@@ -1127,12 +1252,12 @@ export class DriveSyncManager {
       }
 
       // 5. Process the diff
-      await this.applyPullDiff(accessToken, rootFolderId, localMeta, remoteMeta, diff, ignoredIds);
+      const cleanup = await this.applyPullDiff(accessToken, rootFolderId, localMeta, remoteMeta, diff, catchAllPlan, ignoredIds);
 
       this.syncStatus = "idle";
       const ignoredCount = ignoredIds?.size ?? 0;
-      const pullCount = diff.toPull.length + diff.remoteOnly.length - ignoredCount;
-      const deleteCount = diff.localOnly.length;
+      const pullCount = diff.toPull.length + diff.remoteOnly.length - ignoredCount + cleanup.cleanupRenamed;
+      const deleteCount = diff.localOnly.length + cleanup.cleanupDeleted;
       const parts: string[] = [];
       if (pullCount > 0) parts.push(`pulled ${pullCount}`);
       if (deleteCount > 0) parts.push(`deleted ${deleteCount}`);
@@ -1153,6 +1278,7 @@ export class DriveSyncManager {
 
   /**
    * Apply pull diff: delete local-only, download remote changes.
+   * Returns counts of files cleaned up by the catch-all step (not in diff).
    */
   private async applyPullDiff(
     accessToken: string,
@@ -1160,8 +1286,9 @@ export class DriveSyncManager {
     localMeta: LocalDriveSyncMeta,
     remoteMeta: SyncMeta,
     diff: SyncDiff,
+    catchAllPlan: CatchAllPullPlan,
     ignoredIds?: Set<string>
-  ): Promise<void> {
+  ): Promise<{ cleanupDeleted: number; cleanupRenamed: number }> {
     const idToPath = buildIdToPathMap(localMeta);
     const historyManager = getEditHistoryManager();
 
@@ -1219,13 +1346,74 @@ export class DriveSyncManager {
       }));
     }
 
+    // 2c. Apply the fallback cleanup plan for metadata edge cases.
+    let cleanupDeleteCount = 0;
+    let cleanupRenameCount = 0;
+    const additionalDownloads: string[] = [];
+    for (const item of catchAllPlan.deletes) {
+      if (ignoredIds?.has(item.fileId)) continue;
+      const file = this.app.vault.getAbstractFileByPath(item.path);
+      if (file instanceof TFile) {
+        await this.app.fileManager.trashFile(file);
+        cleanupDeleteCount++;
+      }
+      if (historyManager) {
+        historyManager.clearHistory(item.path);
+        historyManager.clearSnapshot(item.path);
+      }
+      delete localMeta.pathToId[item.path];
+      delete localMeta.files[item.fileId];
+    }
+
+    for (const item of catchAllPlan.renames) {
+      if (ignoredIds?.has(item.fileId)) continue;
+      const oldFile = this.app.vault.getAbstractFileByPath(item.oldPath);
+      if (oldFile instanceof TFile) {
+        await this.app.fileManager.trashFile(oldFile);
+      }
+      if (historyManager) {
+        historyManager.clearHistory(item.oldPath);
+        historyManager.clearSnapshot(item.oldPath);
+      }
+      delete localMeta.pathToId[item.oldPath];
+      if (item.backupExistingTarget) {
+        const existingAtNewPath = this.app.vault.getAbstractFileByPath(item.newPath);
+        if (existingAtNewPath instanceof TFile) {
+          if (isBinaryExtension(item.newPath)) {
+            const content = await this.app.vault.readBinary(existingAtNewPath);
+            await saveConflictBackup(accessToken, rootFolderId, item.newPath, content);
+          } else {
+            const content = await this.app.vault.read(existingAtNewPath);
+            await saveConflictBackup(accessToken, rootFolderId, item.newPath, content);
+          }
+        }
+      }
+      additionalDownloads.push(item.fileId);
+      cleanupRenameCount++;
+    }
+
+    // Download renamed files that need new-path copies
+    for (let i = 0; i < additionalDownloads.length; i += CONCURRENCY) {
+      const batch = additionalDownloads.slice(i, i + CONCURRENCY);
+      await Promise.all(batch.map(async (fileId) => {
+        await this.downloadFile(accessToken, rootFolderId, fileId, remoteMeta, localMeta);
+        const vaultPath = remoteMeta.files[fileId]?.name;
+        if (vaultPath && historyManager) {
+          historyManager.clearHistory(vaultPath);
+          historyManager.clearSnapshot(vaultPath);
+        }
+      }));
+    }
+
     // 3. Update local meta
     const vaultStats = new Map<string, { mtime: number; size: number }>();
     for (const f of this.getAllVaultFiles()) {
       vaultStats.set(f.path, { mtime: f.stat.mtime, size: f.stat.size });
     }
     const updatedLocalMeta = toLocalSyncMeta(remoteMeta, localMeta, vaultStats);
-    await writeLocalSyncMeta(this.app,updatedLocalMeta);
+    await writeLocalSyncMeta(this.app, updatedLocalMeta);
+
+    return { cleanupDeleted: cleanupDeleteCount, cleanupRenamed: cleanupRenameCount };
   }
 
   /**
@@ -1310,7 +1498,8 @@ export class DriveSyncManager {
     localMeta.pathToId[actualPath] = fileId;
     localMeta.files[fileId] = {
       md5Checksum: fileMeta.md5Checksum,
-      modifiedTime: fileMeta.modifiedTime,
+      modifiedTime: fileMeta.modifiedTime ?? "",
+      name: fileMeta.name,
     };
   }
 

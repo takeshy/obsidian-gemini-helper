@@ -1023,9 +1023,6 @@ export const ko: Record<string, string> = {
   "driveSync.syncActions": "동기화 작업",
   "driveSync.fullPull": "전체 로컬 반영",
   "driveSync.fullPullConfirm": "전체 로컬 반영은 모든 로컬 파일을 원격 버전으로 대체합니다. 이 작업은 되돌릴 수 없습니다. 계속하시겠습니까?",
-  "driveSync.refreshStatus": "동기화 상태 새로 고침",
-  "driveSync.refreshStatusDesc": "로컬 및 원격 변경 사항 확인",
-  "driveSync.refresh": "새로 고침",
 
   // Drive Sync - Data Management
   "driveSync.tempFiles": "임시 파일",

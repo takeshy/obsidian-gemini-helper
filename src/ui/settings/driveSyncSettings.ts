@@ -218,8 +218,6 @@ export function displayDriveSyncSettings(containerEl: HTMLElement, ctx: Settings
   const isSyncing = syncManager.syncStatus !== "idle";
   const statusText = `Status: ${syncManager.syncStatus} | Local changes: ${syncManager.localModifiedCount} | Remote changes: ${syncManager.remoteModifiedCount}`;
 
-  const refreshBtnEl: HTMLButtonElement[] = [];
-
   const syncActionSetting = new Setting(containerEl)
     .setName(t("driveSync.syncActions"))
     .setDesc(statusText);
@@ -228,7 +226,6 @@ export function displayDriveSyncSettings(containerEl: HTMLElement, ctx: Settings
     syncActionSetting.controlEl.querySelectorAll<HTMLButtonElement>("button").forEach((b) => {
       b.disabled = true;
     });
-    refreshBtnEl.forEach((b) => { b.disabled = true; });
   };
 
   syncActionSetting
@@ -276,21 +273,6 @@ export function displayDriveSyncSettings(containerEl: HTMLElement, ctx: Settings
         })();
       })
     );
-
-  // Refresh counts button
-  new Setting(containerEl)
-    .setName(t("driveSync.refreshStatus"))
-    .setDesc(t("driveSync.refreshStatusDesc"))
-    .addButton((btn) => {
-      btn.setButtonText(t("driveSync.refresh")).setDisabled(isSyncing).onClick(() => {
-        void (async () => {
-          disableAllSyncButtons();
-          await syncManager.refreshSyncCounts();
-          display();
-        })();
-      });
-      refreshBtnEl.push(btn.buttonEl);
-    });
 
   new Setting(containerEl)
     .setName(t("driveSync.tempFiles"))

@@ -485,7 +485,7 @@ export class DriveSyncManager {
       if (deletedIds.has(fileId)) continue; // intentionally deleted locally
       if (!localMeta.files[fileId]) continue;
       const remoteFile = remoteMeta.files[fileId];
-      const path = idToPath[fileId] || remoteFile.path || remoteFile.name;
+      const path = idToPath[fileId] || remoteFile.name;
       if (!path) continue;
       if (renames.has(path)) continue; // file was renamed, not deleted
       if (!checksums.has(path)) {
@@ -525,7 +525,7 @@ export class DriveSyncManager {
       // Resolve id → path for exclusion filtering
       const idToPath = buildIdToPathMap(localMeta);
       const remoteFiles = remoteMeta?.files ?? {};
-      const resolvePath = (id: string): string | null => idToPath[id] || remoteFiles[id]?.path || remoteFiles[id]?.name || null;
+      const resolvePath = (id: string): string | null => idToPath[id] || remoteFiles[id]?.name || null;
 
       const isExcludedId = (id: string): boolean => {
         const path = resolvePath(id);
@@ -709,11 +709,11 @@ export class DriveSyncManager {
       }
     } else {
       for (const id of diff.remoteOnly) {
-        const name = remoteFiles[id]?.path || remoteFiles[id]?.name || id;
+        const name = remoteFiles[id]?.name || id;
         files.push({ id, name, type: "new" });
       }
       for (const id of diff.toPull) {
-        const name = idToPath[id] || remoteFiles[id]?.path || remoteFiles[id]?.name || id;
+        const name = idToPath[id] || remoteFiles[id]?.name || id;
         files.push({ id, name, type: "modified" });
       }
       for (const id of diff.localOnly) {
@@ -726,7 +726,7 @@ export class DriveSyncManager {
         files.push({ id, name, type: "editDeleted" });
       }
       for (const c of diff.conflicts) {
-        const name = idToPath[c.fileId] || remoteFiles[c.fileId]?.path || remoteFiles[c.fileId]?.name || c.fileId;
+        const name = idToPath[c.fileId] || remoteFiles[c.fileId]?.name || c.fileId;
         files.push({ id: c.fileId, name, type: "conflict" });
       }
     }
@@ -1086,7 +1086,7 @@ export class DriveSyncManager {
       for (const fileId of diff.remoteOnly) {
         const fileMeta = remoteMeta.files[fileId];
         if (!fileMeta) { safeRemoteOnly.push(fileId); continue; }
-        const vaultPath = fileMeta.path || fileMeta.name;
+        const vaultPath = fileMeta.name;
         const localChecksum = checksums.get(vaultPath);
         if (localChecksum && localChecksum !== fileMeta.md5Checksum) {
           untrackedConflicts.push({
@@ -1188,7 +1188,7 @@ export class DriveSyncManager {
     for (const fileId of diff.toPull) {
       if (ignoredIds?.has(fileId)) continue;
       const oldPath = idToPath[fileId];
-      const remotePath = remoteMeta.files[fileId]?.path || remoteMeta.files[fileId]?.name;
+      const remotePath = remoteMeta.files[fileId]?.name;
       if (oldPath && remotePath && oldPath !== remotePath) {
         const oldFile = this.app.vault.getAbstractFileByPath(oldPath);
         if (oldFile instanceof TFile) {
@@ -1211,7 +1211,7 @@ export class DriveSyncManager {
       await Promise.all(batch.map(async (fileId) => {
         await this.downloadFile(accessToken, rootFolderId, fileId, remoteMeta, localMeta);
         // Clear edit history for pulled files (pulled content is the new base)
-        const vaultPath = remoteMeta.files[fileId]?.path || remoteMeta.files[fileId]?.name;
+        const vaultPath = remoteMeta.files[fileId]?.name;
         if (vaultPath && historyManager) {
           historyManager.clearHistory(vaultPath);
           historyManager.clearSnapshot(vaultPath);
@@ -1241,8 +1241,8 @@ export class DriveSyncManager {
     const fileMeta = remoteMeta.files[fileId];
     if (!fileMeta) return;
 
-    // Determine vault path from remote meta path field or fallback to name
-    const vaultPath = fileMeta.path || fileMeta.name;
+    // Use Drive name as vault path (always current; path field can be stale after renames)
+    const vaultPath = fileMeta.name;
 
     // Validate path safety (no traversal)
     if (!isValidVaultPath(vaultPath)) {

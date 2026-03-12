@@ -235,7 +235,10 @@ export function toLocalSyncMeta(
   }
 
   for (const [id, f] of Object.entries(remoteMeta.files)) {
-    const remotePath = f.path || f.name;
+    // Always prefer name (Drive API name = vault path, always up-to-date).
+    // path is an Obsidian extension that can become stale after remote renames
+    // (rebuildSyncMeta copies prev.path without updating it).
+    const remotePath = f.name;
     // On case-insensitive FS (NTFS, macOS), the existing local path may differ
     // in case from the remote path. Prefer the local (actual vault) path when
     // paths match case-insensitively to avoid path mismatches in subsequent syncs.

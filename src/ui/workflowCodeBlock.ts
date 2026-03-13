@@ -55,11 +55,12 @@ export function registerWorkflowCodeBlockProcessor(plugin: Plugin): void {
         observer.disconnect();
         if (svg && !cancelled && el.isConnected) {
           el.empty();
-          const doc = new DOMParser().parseFromString(svg, "image/svg+xml");
-          const svgEl = doc.documentElement;
-          // Use tagName check instead of instanceof SVGElement for mobile compatibility
-          // (DOMParser elements belong to a different document context, so instanceof can fail)
-          if (svgEl && svgEl.tagName.toLowerCase() === "svg") {
+          // Parse as text/html to tolerate HTML void elements (<br> etc.)
+          // inside foreignObject that strict XML parsing rejects on mobile
+          const doc = new DOMParser().parseFromString(svg, "text/html");
+          const svgEl = doc.querySelector("svg");
+
+          if (svgEl) {
             el.appendChild(el.doc.importNode(svgEl, true));
           }
         }

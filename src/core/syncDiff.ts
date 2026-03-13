@@ -80,7 +80,8 @@ export function computeSyncDiff(
     const localChanged = locallyModified;
     const remoteChanged = local && remote
       ? local.md5Checksum !== remote.md5Checksum
-        || (local.name !== undefined && local.name !== remote.name)
+        || (local.name !== undefined && local.name !== remote.name
+            && local.name.toLowerCase() !== remote.name.toLowerCase())
       : false;
 
     if (hasLocal && !hasRemote) {

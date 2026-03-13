@@ -388,12 +388,16 @@ export class DriveSyncManager {
     const checksums = new Map<string, string>();
     const vaultStats = new Map<string, { mtime: number; size: number }>();
 
-    // Build path → cached entry lookup from localMeta
+    // Build path → cached entry lookup from localMeta (with CI fallback for NTFS/macOS)
     const cachedByPath = new Map<string, { md5Checksum: string; localMtime?: number; localSize?: number }>();
+    const cachedByPathLower = new Map<string, { md5Checksum: string; localMtime?: number; localSize?: number }>();
     if (localMeta) {
       for (const [path, id] of Object.entries(localMeta.pathToId)) {
         const entry = localMeta.files[id];
-        if (entry) cachedByPath.set(path, entry);
+        if (entry) {
+          cachedByPath.set(path, entry);
+          cachedByPathLower.set(path.toLowerCase(), entry);
+        }
       }
     }
 
@@ -406,7 +410,8 @@ export class DriveSyncManager {
           vaultStats.set(file.path, { mtime, size });
 
           // Skip MD5 if mtime+size unchanged from cached values
-          const cached = cachedByPath.get(file.path);
+          const cached = cachedByPath.get(file.path)
+            ?? cachedByPathLower.get(file.path.toLowerCase());
           if (cached?.localMtime === mtime && cached?.localSize === size && cached.md5Checksum) {
             checksums.set(file.path, cached.md5Checksum);
             return;
@@ -442,9 +447,16 @@ export class DriveSyncManager {
     // Map: checksum → { fileId, oldPath }
     const disappearedByChecksum = new Map<string, { fileId: string; oldPath: string }>();
 
+    // Build case-insensitive lookup for currentChecksums and pathToId (handles NTFS/macOS)
+    const currentChecksumsLower = new Map<string, string>();
+    for (const [p, c] of currentChecksums) currentChecksumsLower.set(p.toLowerCase(), c);
+    const pathToIdLower = new Set<string>();
+    for (const p of Object.keys(localMeta.pathToId)) pathToIdLower.add(p.toLowerCase());
+
     // Check existing tracked files
     for (const [path, fileId] of Object.entries(localMeta.pathToId)) {
-      const currentChecksum = currentChecksums.get(path);
+      const currentChecksum = currentChecksums.get(path)
+        ?? currentChecksumsLower.get(path.toLowerCase());
       const trackedChecksum = localMeta.files[fileId]?.md5Checksum;
 
       if (!currentChecksum && trackedChecksum) {
@@ -459,7 +471,7 @@ export class DriveSyncManager {
     // renames: oldPath → newPath
     const renames = new Map<string, string>();
     for (const path of currentChecksums.keys()) {
-      if (!localMeta.pathToId[path]) {
+      if (!localMeta.pathToId[path] && !pathToIdLower.has(path.toLowerCase())) {
         const checksum = currentChecksums.get(path)!;
         const disappeared = disappearedByChecksum.get(checksum);
         if (disappeared) {
@@ -505,6 +517,15 @@ export class DriveSyncManager {
       ...diff.conflicts.map(c => c.fileId),
     ]);
 
+    // Build case-insensitive lookup sets for checksums and renames (handles NTFS/macOS)
+    const checksumsLower = new Set<string>();
+    for (const p of checksums.keys()) checksumsLower.add(p.toLowerCase());
+    const renamesLower = new Set<string>();
+    for (const p of renames.keys()) renamesLower.add(p.toLowerCase());
+
+    const hasChecksumCI = (p: string) => checksums.has(p) || checksumsLower.has(p.toLowerCase());
+    const hasRenameCI = (p: string) => renames.has(p) || renamesLower.has(p.toLowerCase());
+
     const missing: string[] = [];
     for (const fileId of Object.keys(remoteMeta.files)) {
       if (alreadyHandled.has(fileId)) continue;
@@ -520,15 +541,15 @@ export class DriveSyncManager {
         // Checksum-based rename detection fails here because encryption changes content.
         const trackedPath = idToPath[fileId];
         if (trackedPath) {
-          if (checksums.has(trackedPath + ".encrypted")) continue;
-          if (trackedPath.endsWith(".encrypted") && checksums.has(trackedPath.slice(0, -".encrypted".length))) continue;
+          if (hasChecksumCI(trackedPath + ".encrypted")) continue;
+          if (trackedPath.endsWith(".encrypted") && hasChecksumCI(trackedPath.slice(0, -".encrypted".length))) continue;
         }
       }
       const remoteFile = remoteMeta.files[fileId];
       const path = idToPath[fileId] || remoteFile.name;
       if (!path) continue;
-      if (renames.has(path)) continue; // file was renamed, not deleted
-      if (!checksums.has(path)) {
+      if (hasRenameCI(path)) continue; // file was renamed, not deleted
+      if (!hasChecksumCI(path)) {
         missing.push(fileId);
       }
     }
@@ -565,7 +586,8 @@ export class DriveSyncManager {
       if (ignoredIds?.has(fileId)) continue;
       const oldPath = idToPath[fileId];
       const remotePath = remoteMeta.files[fileId]?.name;
-      if (oldPath && remotePath && oldPath !== remotePath) {
+      if (oldPath && remotePath && oldPath !== remotePath
+          && oldPath.toLowerCase() !== remotePath.toLowerCase()) {
         plannedRemovals.add(oldPath);
       }
     }
@@ -586,10 +608,15 @@ export class DriveSyncManager {
       }
     }
 
+    // Build CI lookup for pathToId (handles NTFS/macOS case mismatches in rename target detection)
+    const pathToIdLowerMap = new Map<string, string>();
+    for (const [p, id] of Object.entries(localMeta.pathToId)) pathToIdLowerMap.set(p.toLowerCase(), id);
+
     const renames: CatchAllRenamePlan[] = [];
     const blockedRenames: CatchAllBlockedRename[] = [];
     for (const rename of rawRenames) {
-      const targetOwnerId = localMeta.pathToId[rename.newPath];
+      const targetOwnerId = localMeta.pathToId[rename.newPath]
+        ?? pathToIdLowerMap.get(rename.newPath.toLowerCase());
       if (targetOwnerId && targetOwnerId !== rename.fileId && !plannedRemovals.has(rename.newPath)) {
         blockedRenames.push(rename);
         continue;
@@ -1319,11 +1346,13 @@ export class DriveSyncManager {
 
     // 2. Handle remote renames: remove old local file before downloading to new path
     //    Skip ignored files — they keep local content at the original path
+    //    Skip case-only differences (same file on case-insensitive FS like NTFS/macOS)
     for (const fileId of diff.toPull) {
       if (ignoredIds?.has(fileId)) continue;
       const oldPath = idToPath[fileId];
       const remotePath = remoteMeta.files[fileId]?.name;
-      if (oldPath && remotePath && oldPath !== remotePath) {
+      if (oldPath && remotePath && oldPath !== remotePath
+          && oldPath.toLowerCase() !== remotePath.toLowerCase()) {
         const oldFile = this.app.vault.getAbstractFileByPath(oldPath);
         if (oldFile instanceof TFile) {
           await this.app.fileManager.trashFile(oldFile);

@@ -234,6 +234,12 @@ export function toLocalSyncMeta(
     idToExistingPath.set(existingId, existingPath);
   }
 
+  // Build case-insensitive lookup for vaultStats (handles NTFS/macOS case mismatches)
+  const vaultStatsLower = new Map<string, { mtime: number; size: number }>();
+  if (vaultStats) {
+    for (const [p, s] of vaultStats) vaultStatsLower.set(p.toLowerCase(), s);
+  }
+
   for (const [id, f] of Object.entries(remoteMeta.files)) {
     // Always prefer name (Drive API name = vault path, always up-to-date).
     // path is an Obsidian extension that can become stale after remote renames
@@ -251,7 +257,8 @@ export function toLocalSyncMeta(
         delete pathToId[existingPath];
       }
     }
-    const stats = vaultStats?.get(resolvedPath);
+    const stats = vaultStats?.get(resolvedPath)
+      ?? vaultStatsLower.get(resolvedPath.toLowerCase());
     const existing = existingLocal?.files[id];
     // Only carry over cached mtime/size if checksum hasn't changed;
     // otherwise the cached values are stale and must be recomputed.

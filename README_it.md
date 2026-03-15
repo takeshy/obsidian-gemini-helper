@@ -386,11 +386,11 @@ I workflow possono essere attivati automaticamente dagli eventi di Obsidian:
 
 | Variabile | Descrizione |
 |-----------|-------------|
-| `__eventType__` | Tipo di evento: `create`, `modify`, `delete`, `rename`, `file-open` |
-| `__eventFilePath__` | Percorso del file interessato |
-| `__eventFile__` | JSON con informazioni sul file (path, basename, name, extension) |
-| `__eventFileContent__` | Contenuto del file (per eventi create/modify/file-open) |
-| `__eventOldPath__` | Percorso precedente (solo per eventi rename) |
+| `_eventType` | Tipo di evento: `create`, `modify`, `delete`, `rename`, `file-open` |
+| `_eventFilePath` | Percorso del file interessato |
+| `_eventFile` | JSON con informazioni sul file (path, basename, name, extension) |
+| `_eventFileContent` | Contenuto del file (per eventi create/modify/file-open) |
+| `_eventOldPath` | Percorso precedente (solo per eventi rename) |
 
 > **Nota:** I nodi `prompt-file` e `prompt-selection` usano automaticamente il file dell'evento quando attivati da eventi. `prompt-selection` usa l'intero contenuto del file come selezione.
 

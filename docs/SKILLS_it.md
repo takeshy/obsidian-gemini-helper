@@ -265,7 +265,7 @@ nodes:
   - id: date
     type: set
     name: today
-    value: "{{__date__}}"
+    value: "{{_date}}"
   - id: create
     type: note
     path: "Journal/{{today}}.md"
@@ -370,7 +370,7 @@ nodes:
   - id: date
     type: set
     name: today
-    value: "{{__date__}}"
+    value: "{{_date}}"
   - id: gen
     type: command
     prompt: |

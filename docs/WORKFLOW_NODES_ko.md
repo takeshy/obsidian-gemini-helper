@@ -328,7 +328,7 @@ HTTP 요청을 수행합니다.
 ```yaml
 - id: select-pdf
   type: file-explorer
-  path: "{{__eventFilePath__}}"
+  path: "{{_eventFilePath}}"
   extensions: "pdf,png,jpg"
   saveTo: fileData
 - id: upload
@@ -545,7 +545,7 @@ LLM 응답이 코드 펜스로 JSON을 감싸는 경우에 유용합니다.
 ```yaml
 - id: loadImage
   type: file-explorer
-  path: "{{__eventFilePath__}}"
+  path: "{{_eventFilePath}}"
   saveTo: imageData
 - id: analyze
   type: command
@@ -1008,11 +1008,11 @@ args: '{"text": "{{content:json}}"}'  # OK - 올바르게 이스케이프됨
 
 | 변수 | 설명 |
 |----------|-------------|
-| `__eventType__` | 이벤트 유형: `create`, `modify`, `delete`, `rename`, `file-open` |
-| `__eventFilePath__` | 영향받는 파일의 경로 |
-| `__eventFile__` | JSON: `{"path": "...", "basename": "...", "name": "...", "extension": "..."}` |
-| `__eventFileContent__` | 파일 내용 (create/modify/file-open 이벤트용) |
-| `__eventOldPath__` | 이전 경로 (rename 이벤트 전용) |
+| `_eventType` | 이벤트 유형: `create`, `modify`, `delete`, `rename`, `file-open` |
+| `_eventFilePath` | 영향받는 파일의 경로 |
+| `_eventFile` | JSON: `{"path": "...", "basename": "...", "name": "...", "extension": "..."}` |
+| `_eventFileContent` | 파일 내용 (create/modify/file-open 이벤트용) |
+| `_eventOldPath` | 이전 경로 (rename 이벤트 전용) |
 
 ### 파일 패턴 구문
 
@@ -1042,7 +1042,7 @@ nodes:
     saveTo: tags
   - id: prepend
     type: note
-    path: "{{__eventFilePath__}}"
+    path: "{{_eventFilePath}}"
     content: "---\ntags: {{tags}}\n---\n\n{{content}}"
     mode: overwrite
     confirm: false

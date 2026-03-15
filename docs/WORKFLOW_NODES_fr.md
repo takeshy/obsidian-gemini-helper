@@ -328,7 +328,7 @@ Effectuer des requetes HTTP.
 ```yaml
 - id: select-pdf
   type: file-explorer
-  path: "{{__eventFilePath__}}"
+  path: "{{_eventFilePath}}"
   extensions: "pdf,png,jpg"
   saveTo: fileData
 - id: upload
@@ -545,7 +545,7 @@ Selectionner un fichier du coffre ou entrer un nouveau chemin de fichier. Suppor
 ```yaml
 - id: loadImage
   type: file-explorer
-  path: "{{__eventFilePath__}}"
+  path: "{{_eventFilePath}}"
   saveTo: imageData
 - id: analyze
   type: command
@@ -1008,11 +1008,11 @@ Lorsqu'il est declenche par un evenement, ces variables sont automatiquement def
 
 | Variable | Description |
 |----------|-------------|
-| `__eventType__` | Type d'evenement : `create`, `modify`, `delete`, `rename`, `file-open` |
-| `__eventFilePath__` | Chemin du fichier concerne |
-| `__eventFile__` | JSON : `{"path": "...", "basename": "...", "name": "...", "extension": "..."}` |
-| `__eventFileContent__` | Contenu du fichier (pour les evenements create/modify/file-open) |
-| `__eventOldPath__` | Chemin precedent (uniquement pour les evenements rename) |
+| `_eventType` | Type d'evenement : `create`, `modify`, `delete`, `rename`, `file-open` |
+| `_eventFilePath` | Chemin du fichier concerne |
+| `_eventFile` | JSON : `{"path": "...", "basename": "...", "name": "...", "extension": "..."}` |
+| `_eventFileContent` | Contenu du fichier (pour les evenements create/modify/file-open) |
+| `_eventOldPath` | Chemin precedent (uniquement pour les evenements rename) |
 
 ### Syntaxe des Motifs de Fichiers
 
@@ -1042,7 +1042,7 @@ nodes:
     saveTo: tags
   - id: prepend
     type: note
-    path: "{{__eventFilePath__}}"
+    path: "{{_eventFilePath}}"
     content: "---\ntags: {{tags}}\n---\n\n{{content}}"
     mode: overwrite
     confirm: false

@@ -255,11 +255,16 @@ function extractInputVariables(workflowContent: string, workflowName?: string): 
   }
 
   // System variables injected by the runtime
+  // Include legacy __var__ forms for backward compatibility
   const systemVars = new Set([
+    "_hotkeyContent", "_hotkeySelection", "_hotkeyActiveFile", "_hotkeySelectionInfo",
+    "_eventType", "_eventFilePath", "_eventFile", "_eventOldPath", "_eventFileContent",
+    "_workflowName", "_lastModel", "_date", "_time", "_datetime",
+    "_clipboard",
+    // Legacy __var__ forms (kept for backward compatibility with existing workflows)
     "__hotkeyContent__", "__hotkeySelection__", "__hotkeyActiveFile__", "__hotkeySelectionInfo__",
     "__eventType__", "__eventFilePath__", "__eventFile__", "__eventOldPath__", "__eventFileContent__",
     "__workflowName__", "__lastModel__", "__date__", "__time__", "__datetime__",
-    "_clipboard",
   ]);
 
   const inputVars: string[] = [];

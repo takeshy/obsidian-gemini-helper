@@ -386,11 +386,11 @@ Los flujos de trabajo pueden activarse automáticamente por eventos de Obsidian:
 
 | Variable | Descripción |
 |----------|-------------|
-| `__eventType__` | Tipo de evento: `create`, `modify`, `delete`, `rename`, `file-open` |
-| `__eventFilePath__` | Ruta del archivo afectado |
-| `__eventFile__` | JSON con información del archivo (path, basename, name, extension) |
-| `__eventFileContent__` | Contenido del archivo (para eventos create/modify/file-open) |
-| `__eventOldPath__` | Ruta anterior (solo para eventos rename) |
+| `_eventType` | Tipo de evento: `create`, `modify`, `delete`, `rename`, `file-open` |
+| `_eventFilePath` | Ruta del archivo afectado |
+| `_eventFile` | JSON con información del archivo (path, basename, name, extension) |
+| `_eventFileContent` | Contenido del archivo (para eventos create/modify/file-open) |
+| `_eventOldPath` | Ruta anterior (solo para eventos rename) |
 
 > **Nota:** Los nodos `prompt-file` y `prompt-selection` usan automáticamente el archivo del evento cuando se activan por eventos. `prompt-selection` usa el contenido completo del archivo como la selección.
 

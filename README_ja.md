@@ -395,11 +395,11 @@ Obsidian のイベントでワークフローを自動実行：
 
 | 変数                   | 説明                                                              |
 | ---------------------- | ----------------------------------------------------------------- |
-| `__eventType__`        | イベント種別：`create`, `modify`, `delete`, `rename`, `file-open` |
-| `__eventFilePath__`    | 対象ファイルのパス                                                |
-| `__eventFile__`        | ファイル情報 JSON（path, basename, name, extension）              |
-| `__eventFileContent__` | ファイル内容（create/modify/file-open イベント時）                |
-| `__eventOldPath__`     | 変更前パス（rename イベント時のみ）                               |
+| `_eventType`        | イベント種別：`create`, `modify`, `delete`, `rename`, `file-open` |
+| `_eventFilePath`    | 対象ファイルのパス                                                |
+| `_eventFile`        | ファイル情報 JSON（path, basename, name, extension）              |
+| `_eventFileContent` | ファイル内容（create/modify/file-open イベント時）                |
+| `_eventOldPath`     | 変更前パス（rename イベント時のみ）                               |
 
 > **Note:** `prompt-file` と `prompt-selection` ノードはイベント実行時に自動的にイベントファイルを使用します。`prompt-selection` はファイル全体を選択として扱います。
 

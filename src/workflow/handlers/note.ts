@@ -3,7 +3,7 @@ import { getEditHistoryManager } from "../../core/editHistory";
 import { isEncryptedFile, decryptFileContent } from "../../core/crypto";
 import { cryptoCache } from "../../core/cryptoCache";
 import { WorkflowNode, ExecutionContext, PromptCallbacks } from "../types";
-import { replaceVariables, RegenerateRequestError } from "./utils";
+import { replaceVariables, getVariable, RegenerateRequestError } from "./utils";
 
 // Sanitize path segments by replacing characters not allowed in Obsidian file names
 function sanitizePath(path: string): string {
@@ -49,8 +49,8 @@ export async function handleNoteNode(
   const historyManager = getEditHistoryManager();
   const historyEnabled = historyManager?.isEnabled() ?? false;
   const saveHistory = node.properties["history"] === "false" ? false : historyEnabled;
-  const workflowName = context.variables.get("__workflowName__") as string | undefined;
-  const model = context.variables.get("__lastModel__") as string | undefined;
+  const workflowName = getVariable(context, "_workflowName") as string | undefined;
+  const model = getVariable(context, "_lastModel") as string | undefined;
 
   if (!path) {
     throw new Error("Note node missing 'path' property");

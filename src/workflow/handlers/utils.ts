@@ -33,7 +33,7 @@ export function getNestedValue(data: unknown, path: string, context?: ExecutionC
           indexValue = parseInt(indexStr, 10);
         } else if (context) {
           // It's a variable name, resolve it
-          const resolvedIndex = context.variables.get(indexStr);
+          const resolvedIndex = getVariable(context, indexStr);
           if (resolvedIndex === undefined) {
             return undefined;
           }
@@ -62,6 +62,49 @@ export function getNestedValue(data: unknown, path: string, context?: ExecutionC
 export function jsonEscapeString(value: string): string {
   // Use JSON.stringify and remove the surrounding quotes
   return JSON.stringify(value).slice(1, -1);
+}
+
+// Normalize legacy __varName__ to _varName for backward compatibility
+function normalizeVarName(name: string): string {
+  if (name.startsWith("__") && name.endsWith("__") && name.length > 4) {
+    return "_" + name.slice(2, -2);
+  }
+  return name;
+}
+
+function toLegacyVarName(name: string): string {
+  if (name.startsWith("_") && !name.startsWith("__") && name.length > 1) {
+    return `__${name.slice(1)}__`;
+  }
+  return name;
+}
+
+export function setSystemVariable(
+  context: ExecutionContext,
+  name: string,
+  value: string | number
+): void {
+  context.variables.set(name, value);
+  const legacyName = toLegacyVarName(name);
+  if (legacyName !== name) {
+    context.variables.set(legacyName, value);
+  }
+}
+
+// Get variable from context, supporting both new _var and legacy __var__ syntax
+export function getVariable(context: ExecutionContext, name: string): string | number | undefined {
+  const value = context.variables.get(name);
+  if (value !== undefined) return value;
+  const normalized = normalizeVarName(name);
+  if (normalized !== name) {
+    const normalizedValue = context.variables.get(normalized);
+    if (normalizedValue !== undefined) return normalizedValue;
+  }
+  const legacyName = toLegacyVarName(name);
+  if (legacyName !== name) {
+    return context.variables.get(legacyName);
+  }
+  return undefined;
 }
 
 // Replace {{variable}} or {{variable.path.to.value}} placeholders with actual values
@@ -93,7 +136,7 @@ export function replaceVariables(
 
     if (firstSpecialIndex === Infinity) {
       // Simple variable name
-      const value = context.variables.get(fullPath);
+      const value = getVariable(context, fullPath);
       if (value !== undefined) {
         const strValue = String(value);
         return shouldJsonEscape ? jsonEscapeString(strValue) : strValue;
@@ -107,7 +150,7 @@ export function replaceVariables(
       firstSpecialIndex + (fullPath[firstSpecialIndex] === "." ? 1 : 0)
     );
 
-    const varValue = context.variables.get(varName);
+    const varValue = getVariable(context, varName);
     if (varValue === undefined) {
       return match;
     }
@@ -149,7 +192,7 @@ export function replaceVariables(
           indexValue = parseInt(indexStr, 10);
         } else {
           // It's a variable name, resolve it
-          const resolvedIndex = context.variables.get(indexStr);
+          const resolvedIndex = getVariable(context, indexStr);
           if (resolvedIndex === undefined) {
             return match;
           }

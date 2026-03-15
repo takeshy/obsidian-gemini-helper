@@ -7,7 +7,7 @@ import { getEnabledTools } from "../../core/tools";
 import { fetchMcpTools, createMcpToolExecutor, type McpToolDefinition } from "../../core/mcpTools";
 import { createToolExecutor } from "../../vault/toolExecutor";
 import { WorkflowNode, ExecutionContext, PromptCallbacks, FileExplorerData } from "../types";
-import { replaceVariables } from "./utils";
+import { replaceVariables, setSystemVariable } from "./utils";
 import { tracing } from "../../core/tracingHooks";
 import { formatError } from "../../utils/error";
 import { handleExecuteJavascriptTool, EXECUTE_JAVASCRIPT_TOOL } from "../../core/sandboxExecutor";
@@ -146,6 +146,7 @@ Please revise the output based on the user's feedback above.`;
         saveTo,
       };
     }
+    setSystemVariable(context, "_lastModel", model);
     return { usedModel: model, elapsedMs: Date.now() - cliStartTime };
   }
 
@@ -455,6 +456,7 @@ Please revise the output based on the user's feedback above.`;
       saveTo,
     };
   }
+  setSystemVariable(context, "_lastModel", model);
 
   // Save generated images to variable if specified
   const saveImageTo = node.properties["saveImageTo"];

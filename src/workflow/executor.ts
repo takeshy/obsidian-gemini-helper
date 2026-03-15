@@ -38,6 +38,7 @@ import {
   handleScriptNode,
   replaceVariables,
   RegenerateRequestError,
+  setSystemVariable,
 } from "./nodeHandlers";
 import { parseWorkflowFromMarkdown } from "./parser";
 import { ExecutionHistoryManager, EncryptionConfig } from "./history";
@@ -104,6 +105,18 @@ export class WorkflowExecutor {
       for (const [key, value] of options.initialVariables) {
         context.variables.set(key, value);
       }
+    }
+
+    const now = new Date();
+    const pad = (value: number): string => String(value).padStart(2, "0");
+    const date = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+    const time = `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+    const datetime = `${date} ${time}`;
+    setSystemVariable(context, "_date", date);
+    setSystemVariable(context, "_time", time);
+    setSystemVariable(context, "_datetime", datetime);
+    if (options?.workflowName) {
+      setSystemVariable(context, "_workflowName", options.workflowName);
     }
 
     // Initialize history record if recording is enabled

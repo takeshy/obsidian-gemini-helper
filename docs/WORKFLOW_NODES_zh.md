@@ -328,7 +328,7 @@ nodes:
 ```yaml
 - id: select-pdf
   type: file-explorer
-  path: "{{__eventFilePath__}}"
+  path: "{{_eventFilePath}}"
   extensions: "pdf,png,jpg"
   saveTo: fileData
 - id: upload
@@ -545,7 +545,7 @@ nodes:
 ```yaml
 - id: loadImage
   type: file-explorer
-  path: "{{__eventFilePath__}}"
+  path: "{{_eventFilePath}}"
   saveTo: imageData
 - id: analyze
   type: command
@@ -1008,11 +1008,11 @@ args: '{"text": "{{content:json}}"}'  # OK - 正确转义
 
 | 变量 | 描述 |
 |----------|-------------|
-| `__eventType__` | 事件类型：`create`、`modify`、`delete`、`rename`、`file-open` |
-| `__eventFilePath__` | 受影响文件的路径 |
-| `__eventFile__` | JSON：`{"path": "...", "basename": "...", "name": "...", "extension": "..."}` |
-| `__eventFileContent__` | 文件内容（用于 create/modify/file-open 事件） |
-| `__eventOldPath__` | 之前的路径（仅用于 rename 事件） |
+| `_eventType` | 事件类型：`create`、`modify`、`delete`、`rename`、`file-open` |
+| `_eventFilePath` | 受影响文件的路径 |
+| `_eventFile` | JSON：`{"path": "...", "basename": "...", "name": "...", "extension": "..."}` |
+| `_eventFileContent` | 文件内容（用于 create/modify/file-open 事件） |
+| `_eventOldPath` | 之前的路径（仅用于 rename 事件） |
 
 ### 文件模式语法
 
@@ -1042,7 +1042,7 @@ nodes:
     saveTo: tags
   - id: prepend
     type: note
-    path: "{{__eventFilePath__}}"
+    path: "{{_eventFilePath}}"
     content: "---\ntags: {{tags}}\n---\n\n{{content}}"
     mode: overwrite
     confirm: false

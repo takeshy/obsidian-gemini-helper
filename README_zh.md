@@ -386,11 +386,11 @@ nodes:
 
 | 变量 | 描述 |
 |----------|-------------|
-| `__eventType__` | 事件类型：`create`、`modify`、`delete`、`rename`、`file-open` |
-| `__eventFilePath__` | 受影响文件的路径 |
-| `__eventFile__` | 包含文件信息的 JSON（path、basename、name、extension） |
-| `__eventFileContent__` | 文件内容（用于 create/modify/file-open 事件） |
-| `__eventOldPath__` | 之前的路径（仅用于 rename 事件） |
+| `_eventType` | 事件类型：`create`、`modify`、`delete`、`rename`、`file-open` |
+| `_eventFilePath` | 受影响文件的路径 |
+| `_eventFile` | 包含文件信息的 JSON（path、basename、name、extension） |
+| `_eventFileContent` | 文件内容（用于 create/modify/file-open 事件） |
+| `_eventOldPath` | 之前的路径（仅用于 rename 事件） |
 
 > **注意：** `prompt-file` 和 `prompt-selection` 节点在由事件触发时会自动使用事件文件。`prompt-selection` 使用整个文件内容作为选择。
 

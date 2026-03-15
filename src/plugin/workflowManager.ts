@@ -123,11 +123,11 @@ export class WorkflowManager {
 
       // Set hotkey mode internal variables (used by prompt-file and prompt-selection nodes)
       // The actual "file", "selection", "selectionInfo" variables are set by prompt nodes
-      input.variables.set("__hotkeyContent__", content);
-      input.variables.set("__hotkeySelection__", selection);
+      input.variables.set("_hotkeyContent", content);
+      input.variables.set("_hotkeySelection", selection);
 
       if (activeView?.file) {
-        input.variables.set("__hotkeyActiveFile__", JSON.stringify({
+        input.variables.set("_hotkeyActiveFile", JSON.stringify({
           path: activeView.file.path,
           basename: activeView.file.basename,
           name: activeView.file.name,
@@ -136,7 +136,7 @@ export class WorkflowManager {
       }
 
       if (selectionLocation) {
-        input.variables.set("__hotkeySelectionInfo__", JSON.stringify({
+        input.variables.set("_hotkeySelectionInfo", JSON.stringify({
           filePath: selectionLocation.filePath,
           startLine: selectionLocation.startLine,
           endLine: selectionLocation.endLine,
@@ -434,11 +434,11 @@ export class WorkflowManager {
       };
 
       // Set event-specific variables
-      input.variables.set("__eventType__", eventType);
-      input.variables.set("__eventFilePath__", filePath);
+      input.variables.set("_eventType", eventType);
+      input.variables.set("_eventFilePath", filePath);
 
       if (eventData.file) {
-        input.variables.set("__eventFile__", JSON.stringify({
+        input.variables.set("_eventFile", JSON.stringify({
           path: eventData.file.path,
           basename: eventData.file.basename,
           name: eventData.file.name,
@@ -447,14 +447,14 @@ export class WorkflowManager {
       }
 
       if (eventData.oldPath) {
-        input.variables.set("__eventOldPath__", eventData.oldPath);
+        input.variables.set("_eventOldPath", eventData.oldPath);
       }
 
       // Read file content for created/modified/opened events
       if (eventData.file && (eventType === "create" || eventType === "modify" || eventType === "file-open")) {
         try {
           const content = await this.app.vault.read(eventData.file);
-          input.variables.set("__eventFileContent__", content);
+          input.variables.set("_eventFileContent", content);
         } catch {
           // File might not be readable (e.g., binary file)
         }

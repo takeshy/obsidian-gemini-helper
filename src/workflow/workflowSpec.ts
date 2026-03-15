@@ -71,6 +71,32 @@ nodes:
 args: '{"text": "{{content:json}}"}'
 \`\`\`
 
+## System Variables
+
+System variables are prefixed with \`_\` and automatically set by the runtime depending on trigger mode.
+
+### Event Trigger Variables
+Set when workflow is triggered by a file event (create, modify, delete, rename, file-open):
+- \`_eventType\` - Event type: "create", "modify", "delete", "rename", "file-open"
+- \`_eventFilePath\` - Path of the affected file (e.g., "folder/note.md")
+- \`_eventFile\` - JSON object: \`{"path": "...", "basename": "...", "name": "...", "extension": "..."}\`
+- \`_eventFileContent\` - Full file content (available for create, modify, file-open events)
+- \`_eventOldPath\` - Previous file path (available for rename events only)
+
+### Hotkey Trigger Variables
+Set when workflow is triggered via hotkey with an active editor:
+- \`_hotkeyContent\` - Full content of the active file
+- \`_hotkeySelection\` - Currently selected text (empty if no selection)
+- \`_hotkeyActiveFile\` - JSON object: \`{"path": "...", "basename": "...", "name": "...", "extension": "..."}\`
+- \`_hotkeySelectionInfo\` - JSON object: \`{"filePath": "...", "startLine": 1, "endLine": 5, "start": 0, "end": 120}\`
+
+### Other System Variables
+- \`_clipboard\` - Setting this variable copies the value to system clipboard (use with set node)
+- \`_workflowName\` - Name of the currently executing workflow
+- \`_lastModel\` - Model used by the last command node
+
+**Note**: \`prompt-file\` and \`prompt-selection\` nodes automatically use these variables when available, so you rarely need to reference hotkey/event variables directly. Use them in other nodes (e.g., \`note\`, \`file-explorer\`) when needed.
+
 ## Condition Syntax
 Operators: ==, !=, <, >, <=, >=, contains
 \`\`\`yaml
@@ -270,7 +296,7 @@ Select file from vault or enter new path.
 \`\`\`yaml
 - id: load-image
   type: file-explorer
-  path: "{{__eventFilePath__}}"
+  path: "{{_eventFilePath}}"
   saveTo: imageData
 - id: analyze
   type: command

@@ -1,6 +1,6 @@
 import { App, TFile } from "obsidian";
 import { WorkflowNode, ExecutionContext, PromptCallbacks } from "../types";
-import { replaceVariables } from "./utils";
+import { replaceVariables, getVariable } from "./utils";
 
 // Helper function to create file info object from path
 function createFileInfo(filePath: string): { path: string; basename: string; name: string; extension: string } {
@@ -13,7 +13,7 @@ function createFileInfo(filePath: string): { path: string; basename: string; nam
 }
 
 // Handle prompt-file node - show file picker dialog or use active file in hotkey mode
-// In hotkey mode: Uses __hotkeyActiveFile__ to auto-select active file without dialog
+// In hotkey mode: Uses _hotkeyActiveFile to auto-select active file without dialog
 // In panel mode: Shows file picker dialog
 // Set forcePrompt: "true" to always show the file picker dialog
 // saveTo: stores file content, saveFileTo: stores file info JSON
@@ -37,10 +37,10 @@ export async function handlePromptFileNode(
 
   let filePath: string | null = null;
 
-  // Check for hotkey mode (active file info passed via __hotkeyActiveFile__)
-  // or event mode (file info passed via __eventFile__)
-  const hotkeyActiveFile = context.variables.get("__hotkeyActiveFile__");
-  const eventFile = context.variables.get("__eventFile__");
+  // Check for hotkey mode (active file info passed via _hotkeyActiveFile)
+  // or event mode (file info passed via _eventFile)
+  const hotkeyActiveFile = getVariable(context, "_hotkeyActiveFile");
+  const eventFile = getVariable(context, "_eventFile");
 
   // If forcePrompt is true, always show the dialog
   if (forcePrompt) {
@@ -104,8 +104,8 @@ export async function handlePromptFileNode(
 }
 
 // Handle prompt-selection node - show file preview with text selection or use hotkey/event selection
-// In hotkey mode: Uses __hotkeySelection__ to auto-use selected text without dialog
-// In event mode: Uses __eventFileContent__ as full file selection
+// In hotkey mode: Uses _hotkeySelection to auto-use selected text without dialog
+// In event mode: Uses _eventFileContent as full file selection
 // In hotkey/event mode without selection: Uses full file content as selection
 // In panel mode: Shows selection dialog
 // saveTo: stores selected text, saveSelectionTo: stores selection metadata JSON
@@ -122,9 +122,9 @@ export async function handlePromptSelectionNode(
     throw new Error("prompt-selection node missing 'saveTo' property");
   }
 
-  // Check for hotkey mode (selection passed via __hotkeySelection__)
-  const hotkeySelection = context.variables.get("__hotkeySelection__");
-  const hotkeySelectionInfo = context.variables.get("__hotkeySelectionInfo__");
+  // Check for hotkey mode (selection passed via _hotkeySelection)
+  const hotkeySelection = getVariable(context, "_hotkeySelection");
+  const hotkeySelectionInfo = getVariable(context, "_hotkeySelectionInfo");
 
   if (hotkeySelection !== undefined && hotkeySelection !== "") {
     // Hotkey mode with selection: use existing selection without dialog
@@ -139,8 +139,8 @@ export async function handlePromptSelectionNode(
   }
 
   // Check for hotkey mode without selection - use full file content
-  const hotkeyContent = context.variables.get("__hotkeyContent__");
-  const hotkeyActiveFile = context.variables.get("__hotkeyActiveFile__");
+  const hotkeyContent = getVariable(context, "_hotkeyContent");
+  const hotkeyActiveFile = getVariable(context, "_hotkeyActiveFile");
 
   if (hotkeyContent !== undefined && hotkeyContent !== "") {
     // Hotkey mode without selection: use full file content
@@ -167,9 +167,9 @@ export async function handlePromptSelectionNode(
   }
 
   // Check for event mode - use event file content
-  const eventFileContent = context.variables.get("__eventFileContent__");
-  const eventFile = context.variables.get("__eventFile__");
-  const eventFilePath = context.variables.get("__eventFilePath__");
+  const eventFileContent = getVariable(context, "_eventFileContent");
+  const eventFile = getVariable(context, "_eventFile");
+  const eventFilePath = getVariable(context, "_eventFilePath");
 
   if (eventFileContent !== undefined && eventFileContent !== "") {
     // Event mode: use full file content as selection

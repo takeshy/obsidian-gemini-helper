@@ -328,7 +328,7 @@ Fazer requisicoes HTTP.
 ```yaml
 - id: select-pdf
   type: file-explorer
-  path: "{{__eventFilePath__}}"
+  path: "{{_eventFilePath}}"
   extensions: "pdf,png,jpg"
   saveTo: fileData
 - id: upload
@@ -545,7 +545,7 @@ Selecionar um arquivo do vault ou inserir um novo caminho de arquivo. Suporta qu
 ```yaml
 - id: loadImage
   type: file-explorer
-  path: "{{__eventFilePath__}}"
+  path: "{{_eventFilePath}}"
   saveTo: imageData
 - id: analyze
   type: command
@@ -1008,11 +1008,11 @@ Quando acionado por um evento, estas variaveis sao definidas automaticamente:
 
 | Variavel | Descricao |
 |----------|-----------|
-| `__eventType__` | Tipo de evento: `create`, `modify`, `delete`, `rename`, `file-open` |
-| `__eventFilePath__` | Caminho do arquivo afetado |
-| `__eventFile__` | JSON: `{"path": "...", "basename": "...", "name": "...", "extension": "..."}` |
-| `__eventFileContent__` | Conteudo do arquivo (para eventos create/modify/file-open) |
-| `__eventOldPath__` | Caminho anterior (apenas para eventos rename) |
+| `_eventType` | Tipo de evento: `create`, `modify`, `delete`, `rename`, `file-open` |
+| `_eventFilePath` | Caminho do arquivo afetado |
+| `_eventFile` | JSON: `{"path": "...", "basename": "...", "name": "...", "extension": "..."}` |
+| `_eventFileContent` | Conteudo do arquivo (para eventos create/modify/file-open) |
+| `_eventOldPath` | Caminho anterior (apenas para eventos rename) |
 
 ### Sintaxe de Padrao de Arquivo
 
@@ -1042,7 +1042,7 @@ nodes:
     saveTo: tags
   - id: prepend
     type: note
-    path: "{{__eventFilePath__}}"
+    path: "{{_eventFilePath}}"
     content: "---\ntags: {{tags}}\n---\n\n{{content}}"
     mode: overwrite
     confirm: false

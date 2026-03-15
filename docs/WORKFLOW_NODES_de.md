@@ -328,7 +328,7 @@ Fuehrt HTTP-Anfragen aus.
 ```yaml
 - id: select-pdf
   type: file-explorer
-  path: "{{__eventFilePath__}}"
+  path: "{{_eventFilePath}}"
   extensions: "pdf,png,jpg"
   saveTo: fileData
 - id: upload
@@ -545,7 +545,7 @@ Waehlt eine Datei aus dem Vault aus oder gibt einen neuen Dateipfad ein. Unterst
 ```yaml
 - id: loadImage
   type: file-explorer
-  path: "{{__eventFilePath__}}"
+  path: "{{_eventFilePath}}"
   saveTo: imageData
 - id: analyze
   type: command
@@ -1008,11 +1008,11 @@ Bei Ausloesung durch ein Ereignis werden diese Variablen automatisch gesetzt:
 
 | Variable | Beschreibung |
 |----------|--------------|
-| `__eventType__` | Ereignistyp: `create`, `modify`, `delete`, `rename`, `file-open` |
-| `__eventFilePath__` | Pfad der betroffenen Datei |
-| `__eventFile__` | JSON: `{"path": "...", "basename": "...", "name": "...", "extension": "..."}` |
-| `__eventFileContent__` | Dateiinhalt (fuer create/modify/file-open-Ereignisse) |
-| `__eventOldPath__` | Vorheriger Pfad (nur fuer rename-Ereignisse) |
+| `_eventType` | Ereignistyp: `create`, `modify`, `delete`, `rename`, `file-open` |
+| `_eventFilePath` | Pfad der betroffenen Datei |
+| `_eventFile` | JSON: `{"path": "...", "basename": "...", "name": "...", "extension": "..."}` |
+| `_eventFileContent` | Dateiinhalt (fuer create/modify/file-open-Ereignisse) |
+| `_eventOldPath` | Vorheriger Pfad (nur fuer rename-Ereignisse) |
 
 ### Dateimuster-Syntax
 
@@ -1042,7 +1042,7 @@ nodes:
     saveTo: tags
   - id: prepend
     type: note
-    path: "{{__eventFilePath__}}"
+    path: "{{_eventFilePath}}"
     content: "---\ntags: {{tags}}\n---\n\n{{content}}"
     mode: overwrite
     confirm: false

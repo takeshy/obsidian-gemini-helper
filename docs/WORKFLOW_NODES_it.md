@@ -328,7 +328,7 @@ Effettua richieste HTTP.
 ```yaml
 - id: select-pdf
   type: file-explorer
-  path: "{{__eventFilePath__}}"
+  path: "{{_eventFilePath}}"
   extensions: "pdf,png,jpg"
   saveTo: fileData
 - id: upload
@@ -545,7 +545,7 @@ Seleziona un file dal vault o inserisce un nuovo percorso file. Supporta qualsia
 ```yaml
 - id: loadImage
   type: file-explorer
-  path: "{{__eventFilePath__}}"
+  path: "{{_eventFilePath}}"
   saveTo: imageData
 - id: analyze
   type: command
@@ -1008,11 +1008,11 @@ Quando attivato da un evento, queste variabili vengono impostate automaticamente
 
 | Variabile | Descrizione |
 |-----------|-------------|
-| `__eventType__` | Tipo di evento: `create`, `modify`, `delete`, `rename`, `file-open` |
-| `__eventFilePath__` | Percorso del file interessato |
-| `__eventFile__` | JSON: `{"path": "...", "basename": "...", "name": "...", "extension": "..."}` |
-| `__eventFileContent__` | Contenuto del file (per eventi create/modify/file-open) |
-| `__eventOldPath__` | Percorso precedente (solo per eventi rename) |
+| `_eventType` | Tipo di evento: `create`, `modify`, `delete`, `rename`, `file-open` |
+| `_eventFilePath` | Percorso del file interessato |
+| `_eventFile` | JSON: `{"path": "...", "basename": "...", "name": "...", "extension": "..."}` |
+| `_eventFileContent` | Contenuto del file (per eventi create/modify/file-open) |
+| `_eventOldPath` | Percorso precedente (solo per eventi rename) |
 
 ### Sintassi Pattern File
 
@@ -1042,7 +1042,7 @@ nodes:
     saveTo: tags
   - id: prepend
     type: note
-    path: "{{__eventFilePath__}}"
+    path: "{{_eventFilePath}}"
     content: "---\ntags: {{tags}}\n---\n\n{{content}}"
     mode: overwrite
     confirm: false

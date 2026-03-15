@@ -386,11 +386,11 @@ Les workflows peuvent être automatiquement déclenchés par des événements Ob
 
 | Variable | Description |
 |----------|-------------|
-| `__eventType__` | Type d'événement : `create`, `modify`, `delete`, `rename`, `file-open` |
-| `__eventFilePath__` | Chemin du fichier affecté |
-| `__eventFile__` | JSON avec les infos du fichier (path, basename, name, extension) |
-| `__eventFileContent__` | Contenu du fichier (pour les événements create/modify/file-open) |
-| `__eventOldPath__` | Chemin précédent (pour les événements rename uniquement) |
+| `_eventType` | Type d'événement : `create`, `modify`, `delete`, `rename`, `file-open` |
+| `_eventFilePath` | Chemin du fichier affecté |
+| `_eventFile` | JSON avec les infos du fichier (path, basename, name, extension) |
+| `_eventFileContent` | Contenu du fichier (pour les événements create/modify/file-open) |
+| `_eventOldPath` | Chemin précédent (pour les événements rename uniquement) |
 
 > **Note :** Les nœuds `prompt-file` et `prompt-selection` utilisent automatiquement le fichier de l'événement quand déclenchés par des événements. `prompt-selection` utilise le contenu entier du fichier comme sélection.
 

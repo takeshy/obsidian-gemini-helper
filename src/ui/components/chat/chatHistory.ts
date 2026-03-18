@@ -5,7 +5,6 @@ import {
 } from "src/core/crypto";
 import { formatError } from "src/utils/error";
 import { t } from "src/i18n";
-import { isValidCliProvider, type CliSessionInfo } from "./chatUtils";
 
 export interface EncryptionConfig {
 	encryptChatHistory?: boolean;
@@ -20,14 +19,9 @@ export async function messagesToMarkdown(
 	title: string,
 	createdAt: number,
 	encryption: EncryptionConfig | undefined,
-	session?: CliSessionInfo,
 ): Promise<string> {
 	const date = new Date(createdAt);
 	let md = `---\ntitle: "${title.replace(/"/g, '\\"')}"\ncreatedAt: ${createdAt}\nupdatedAt: ${Date.now()}\n`;
-	if (session) {
-		md += `cliSessionProvider: "${session.provider}"\n`;
-		md += `cliSessionId: "${session.sessionId}"\n`;
-	}
 	md += `---\n\n`;
 	md += `# ${title}\n\n`;
 	md += `*Created: ${date.toLocaleString()}*\n\n---\n\n`;
@@ -90,7 +84,7 @@ export async function messagesToMarkdown(
 }
 
 // Parse Markdown back to messages
-export function parseMarkdownToMessages(content: string): { messages: Message[]; createdAt: number; cliSession?: CliSessionInfo; isEncrypted?: boolean } | null {
+export function parseMarkdownToMessages(content: string): { messages: Message[]; createdAt: number; isEncrypted?: boolean } | null {
 	try {
 		// Check if content is encrypted (YAML frontmatter format)
 		if (isEncryptedFile(content)) {
@@ -101,21 +95,11 @@ export function parseMarkdownToMessages(content: string): { messages: Message[];
 		// Extract frontmatter
 		const frontmatterMatch = content.match(/^---\n([\s\S]*?)\n---/);
 		let createdAt = Date.now();
-		let cliSession: CliSessionInfo | undefined;
 
 		if (frontmatterMatch) {
 			const createdAtMatch = frontmatterMatch[1].match(/createdAt:\s*(\d+)/);
 			if (createdAtMatch) {
 				createdAt = parseInt(createdAtMatch[1]);
-			}
-			// Parse CLI session info (both provider and session ID required, provider must be valid)
-			const providerMatch = frontmatterMatch[1].match(/cliSessionProvider:\s*"([^"]+)"/);
-			const sessionIdMatch = frontmatterMatch[1].match(/cliSessionId:\s*"([^"]+)"/);
-			if (providerMatch && sessionIdMatch && isValidCliProvider(providerMatch[1])) {
-				cliSession = {
-					provider: providerMatch[1],
-					sessionId: sessionIdMatch[1],
-				};
 			}
 		}
 
@@ -193,7 +177,7 @@ export function parseMarkdownToMessages(content: string): { messages: Message[];
 			}
 		}
 
-		return { messages, createdAt, cliSession, isEncrypted: false };
+		return { messages, createdAt, isEncrypted: false };
 	} catch {
 		return null;
 	}

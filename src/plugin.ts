@@ -3,7 +3,7 @@ import { EventEmitter } from "src/utils/EventEmitter";
 import type { SelectionLocationInfo } from "src/ui/selectionHighlight";
 import { SelectionManager } from "src/plugin/selectionManager";
 import { EncryptionManager } from "src/plugin/encryptionManager";
-import { DriveSyncUIManager } from "src/plugin/driveSyncUI";
+
 import { WorkflowManager } from "src/plugin/workflowManager";
 import { WorkspaceStateManager } from "src/core/workspaceStateManager";
 import { ChatView, VIEW_TYPE_GEMINI_CHAT } from "src/ui/ChatView";
@@ -29,7 +29,6 @@ import {
   getFileSearchManager,
   type SyncResult,
 } from "src/core/fileSearch";
-import { initCliProviderManager } from "src/core/cliProvider";
 import {
   initEditHistoryManager,
   resetEditHistoryManager,
@@ -37,10 +36,9 @@ import {
 } from "src/core/editHistory";
 import { EditHistoryModal } from "src/ui/components/EditHistoryModal";
 import { formatError } from "src/utils/error";
-import { DEFAULT_CLI_CONFIG, DEFAULT_EDIT_HISTORY_SETTINGS, DEFAULT_LANGFUSE_SETTINGS, DEFAULT_DRIVE_SYNC_SETTINGS, hasVerifiedCli } from "src/types";
+import { DEFAULT_EDIT_HISTORY_SETTINGS, DEFAULT_LANGFUSE_SETTINGS } from "src/types";
 import { initLocale, t } from "src/i18n";
 import { registerWorkflowCodeBlockProcessor } from "src/ui/workflowCodeBlock";
-import { DriveSyncManager } from "src/core/driveSync";
 
 
 export class GeminiHelperPlugin extends Plugin {
@@ -51,10 +49,6 @@ export class GeminiHelperPlugin extends Plugin {
   private encryptionManager!: EncryptionManager;
   private lastActiveMarkdownView: MarkdownView | null = null;
   private workflowMgr!: WorkflowManager;
-
-  // Google Drive Sync
-  driveSyncManager: DriveSyncManager | null = null;
-  private driveSyncUI!: DriveSyncUIManager;
 
   // Delegate workspaceState to the manager
   get workspaceState(): WorkspaceState {
@@ -73,9 +67,6 @@ export class GeminiHelperPlugin extends Plugin {
 
     // Initialize encryption manager
     this.encryptionManager = new EncryptionManager(this);
-
-    // Initialize Drive Sync UI manager
-    this.driveSyncUI = new DriveSyncUIManager(this);
 
     // Initialize workflow manager
     this.workflowMgr = new WorkflowManager(this);
@@ -121,26 +112,13 @@ export class GeminiHelperPlugin extends Plugin {
       } catch (e) {
         console.error("Gemini Helper: Failed to migrate slash commands:", formatError(e));
       }
-      // Initialize clients if API key is set or any CLI is verified
+      // Initialize clients if API key is set
       try {
-        const cliConfig = this.settings.cliConfig || DEFAULT_CLI_CONFIG;
-        if (this.settings.googleApiKey || hasVerifiedCli(cliConfig)) {
+        if (this.settings.googleApiKey) {
           this.initializeClients();
         }
       } catch (e) {
         console.error("Gemini Helper: Failed to initialize clients:", formatError(e));
-      }
-      // Initialize Drive Sync manager independently (doesn't require API key or CLI)
-      try {
-        if (!this.driveSyncManager) {
-          this.driveSyncManager = new DriveSyncManager(this.app, this);
-        }
-        this.setupDriveSyncUI();
-        if (this.driveSyncManager.isConfigured && !this.driveSyncManager.isUnlocked) {
-          void this.promptDriveSyncUnlock();
-        }
-      } catch (e) {
-        console.error("Gemini Helper: Failed to initialize Drive sync:", formatError(e));
       }
       // Register workflows as Obsidian commands for hotkey support
       try {
@@ -206,36 +184,10 @@ export class GeminiHelperPlugin extends Plugin {
               .setTitle(t("statusBar.history"))
               .setIcon("history")
               .onClick(() => {
-                new EditHistoryModal(this.app, file.path, this.driveSyncManager).open();
+                new EditHistoryModal(this.app, file.path).open();
               });
           });
         }
-      })
-    );
-
-    // Register file menu for temp upload/download (all file types, Drive sync required)
-    this.registerEvent(
-      this.app.workspace.on("file-menu", (menu, file) => {
-        if (!(file instanceof TFile)) return;
-        const mgr = this.driveSyncManager;
-        if (!mgr?.isUnlocked) return;
-
-        menu.addItem((item) => {
-          item
-            .setTitle(t("driveSync.tempUpload"))
-            .setIcon("upload")
-            .onClick(() => {
-              void this.handleTempUpload(file);
-            });
-        });
-        menu.addItem((item) => {
-          item
-            .setTitle(t("driveSync.tempDownload"))
-            .setIcon("download")
-            .onClick(() => {
-              void this.handleTempDownload(file);
-            });
-        });
       })
     );
 
@@ -303,7 +255,7 @@ export class GeminiHelperPlugin extends Plugin {
         const activeFile = this.app.workspace.getActiveFile();
         if (activeFile) {
           if (!checking) {
-            new EditHistoryModal(this.app, activeFile.path, this.driveSyncManager).open();
+            new EditHistoryModal(this.app, activeFile.path).open();
           }
           return true;
         }
@@ -367,69 +319,6 @@ export class GeminiHelperPlugin extends Plugin {
         new WorkflowSelectorModal(this.app, this, (filePath, workflowName) => {
           void this.executeWorkflowFromHotkey(filePath, workflowName);
         }).open();
-      },
-    });
-
-    // Google Drive Sync commands
-    this.addCommand({
-      id: "drive-sync-push",
-      name: t("driveSync.commandPush"),
-      callback: () => {
-        const mgr = this.driveSyncManager;
-        if (!mgr?.isUnlocked) {
-          new Notice(t("driveSync.notUnlocked"));
-          return;
-        }
-        void (async () => {
-          await mgr.push();
-          if (mgr.syncStatus === "conflict") {
-            this.openConflictModal(mgr);
-          }
-        })();
-      },
-    });
-
-    this.addCommand({
-      id: "drive-sync-pull",
-      name: t("driveSync.commandPull"),
-      callback: () => {
-        const mgr = this.driveSyncManager;
-        if (!mgr?.isUnlocked) {
-          new Notice(t("driveSync.notUnlocked"));
-          return;
-        }
-        void (async () => {
-          await mgr.pull();
-          if (mgr.syncStatus === "conflict") {
-            this.openConflictModal(mgr);
-          }
-        })();
-      },
-    });
-
-    this.addCommand({
-      id: "drive-sync-full-push",
-      name: t("driveSync.commandFullPush"),
-      callback: () => {
-        const mgr = this.driveSyncManager;
-        if (!mgr?.isUnlocked) {
-          new Notice(t("driveSync.notUnlocked"));
-          return;
-        }
-        void mgr.fullPush();
-      },
-    });
-
-    this.addCommand({
-      id: "drive-sync-full-pull",
-      name: t("driveSync.commandFullPull"),
-      callback: () => {
-        const mgr = this.driveSyncManager;
-        if (!mgr?.isUnlocked) {
-          new Notice(t("driveSync.notUnlocked"));
-          return;
-        }
-        void mgr.fullPull();
       },
     });
 
@@ -559,11 +448,6 @@ export class GeminiHelperPlugin extends Plugin {
     resetFileSearchManager();
     resetEditHistoryManager();
 
-    // Clean up Drive Sync
-    this.teardownDriveSyncUI();
-    this.driveSyncManager?.destroy();
-    this.driveSyncManager = null;
-
     // Clean up hide workspace folder style element
     document.getElementById("gemini-helper-hide-workspace-folder-style")?.remove();
 
@@ -606,14 +490,6 @@ export class GeminiHelperPlugin extends Plugin {
       langfuse: {
         ...DEFAULT_LANGFUSE_SETTINGS,
         ...(loaded.langfuse ?? {}),
-      },
-      // Deep merge driveSync settings
-      driveSync: {
-        ...DEFAULT_DRIVE_SYNC_SETTINGS,
-        ...(loaded.driveSync ?? {}),
-        excludePatterns: loaded.driveSync?.excludePatterns
-          ? [...loaded.driveSync.excludePatterns]
-          : [...DEFAULT_DRIVE_SYNC_SETTINGS.excludePatterns],
       },
     };
   }
@@ -751,16 +627,14 @@ export class GeminiHelperPlugin extends Plugin {
   }
 
   private initializeClients() {
-    // Only initialize Gemini API client when API key is available
-    // (CLI-only users may not have an API key)
     if (this.settings.googleApiKey) {
       initGeminiClient(this.settings.googleApiKey, getDefaultModelForPlan(this.settings.apiPlan));
       initFileSearchManager(this.settings.googleApiKey, this.app);
+    } else {
+      resetGeminiClient();
+      resetFileSearchManager();
     }
     initLangfuse(this.settings.langfuse);
-
-    // Initialize CLI provider manager
-    initCliProviderManager();
 
     // Initialize edit history manager
     const editHistorySettings = this.settings.editHistory || DEFAULT_EDIT_HISTORY_SETTINGS;
@@ -768,39 +642,6 @@ export class GeminiHelperPlugin extends Plugin {
 
     // Sync FileSearchManager with selected RAG setting
     this.syncFileSearchManagerWithSelectedRag();
-
-    // Initialize Google Drive Sync manager (if not already done at startup)
-    if (!this.driveSyncManager) {
-      this.driveSyncManager = new DriveSyncManager(this.app, this);
-    }
-  }
-
-  async promptDriveSyncUnlock(): Promise<void> {
-    return this.driveSyncUI.promptDriveSyncUnlock();
-  }
-
-  private teardownDriveSyncUI(): void {
-    this.driveSyncUI.teardown();
-  }
-
-  public setupDriveSyncUI(): void {
-    this.driveSyncUI.setup();
-  }
-
-  private updateDriveSyncRibbonBadges(): void {
-    this.driveSyncUI.updateRibbonBadges();
-  }
-
-  private updateDriveSyncStatusBar(): void {
-    this.driveSyncUI.updateStatusBar();
-  }
-
-  private showSyncDiffAndExecute(mgr: DriveSyncManager, direction: "push" | "pull"): Promise<void> {
-    return this.driveSyncUI.showSyncDiffAndExecute(mgr, direction);
-  }
-
-  private openConflictModal(mgr: DriveSyncManager): void {
-    this.driveSyncUI.openConflictModal(mgr);
   }
 
   private async ensureChatViewExists() {
@@ -1122,43 +963,6 @@ export class GeminiHelperPlugin extends Plugin {
     const chatId = options?.chatId || `workflow-${Date.now()}`;
 
     return { response, chatId };
-  }
-
-  // ========================================
-  // Temp Upload / Download
-  // ========================================
-
-  private async handleTempUpload(file: TFile): Promise<void> {
-    const mgr = this.driveSyncManager;
-    if (!mgr?.isUnlocked) return;
-
-    try {
-      await mgr.saveTempFile(file.path);
-      new Notice(t("driveSync.tempUploadDone"));
-    } catch (err) {
-      new Notice(formatError(err));
-    }
-  }
-
-  private async handleTempDownload(file: TFile): Promise<void> {
-    const mgr = this.driveSyncManager;
-    if (!mgr?.isUnlocked) return;
-
-    try {
-      const tempFiles = await mgr.listTempFiles();
-      const fileName = file.path.split("/").pop() || file.path;
-      const match = tempFiles.find((e) => e.file.name === fileName);
-
-      if (!match) {
-        new Notice(t("driveSync.tempNotFound"));
-        return;
-      }
-
-      await mgr.downloadTempToVault(match.file.id, match.payload);
-      new Notice(t("driveSync.tempDownloadDone"));
-    } catch (err) {
-      new Notice(formatError(err));
-    }
   }
 
   // ========================================

@@ -10,13 +10,9 @@ import { TFile, Notice, MarkdownView, Platform } from "obsidian";
 import { Plus, History, ChevronDown, Lock, FileText, Loader2, Check } from "lucide-react";
 import type { GeminiHelperPlugin } from "src/plugin";
 import {
-	DEFAULT_CLI_CONFIG,
 	getAvailableModels,
 	isModelAllowedForPlan,
 	getDefaultModelForPlan,
-	CLI_MODEL,
-	CLAUDE_CLI_MODEL,
-	CODEX_CLI_MODEL,
 	type Message,
 	type ModelType,
 	type Attachment,
@@ -25,7 +21,6 @@ import {
 	type PendingRenameInfo,
 	type SlashCommand,
 	type GeneratedImage,
-	type ChatProvider,
 	type VaultToolNoneReason,
 	type McpAppInfo,
 	isImageGenerationModel,
@@ -36,7 +31,6 @@ import { tracing } from "src/core/tracingHooks";
 import { getEnabledTools, skillWorkflowTool } from "src/core/tools";
 import { handleExecuteJavascriptTool, EXECUTE_JAVASCRIPT_TOOL } from "src/core/sandboxExecutor";
 import { fetchMcpTools, createMcpToolExecutor, isMcpTool, type McpToolDefinition, type McpToolExecutor } from "src/core/mcpTools";
-import { GeminiCliProvider, ClaudeCliProvider, CodexCliProvider } from "src/core/cliProvider";
 import { createToolExecutor } from "src/vault/toolExecutor";
 import {
 	getPendingEdit,
@@ -91,7 +85,6 @@ import {
 	sleep,
 	isRateLimitError,
 	buildErrorMessage,
-	type CliSessionInfo,
 	type ChatHistory,
 } from "./chat/chatUtils";
 import {
@@ -113,7 +106,6 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 	const [messages, setMessages] = useState<Message[]>([]);
 	const [activeChat, setActiveChat] = useState<TFile | null>(null);
 	const [currentChatId, setCurrentChatId] = useState<string | null>(null);
-	const [cliSession, setCliSession] = useState<CliSessionInfo | null>(null);  // CLI session for resumption
 	const [chatHistories, setChatHistories] = useState<ChatHistory[]>([]);
 	const [showHistory, setShowHistory] = useState(false);
 	const [saveNoteState, setSaveNoteState] = useState<"idle" | "saving" | "saved">("idle");
@@ -132,11 +124,10 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 	const [vaultToolMode, setVaultToolMode] = useState<"all" | "noSearch" | "none">(() => {
 		const ragSetting = plugin.workspaceState.selectedRagSetting;
 		const initialModel = plugin.getSelectedModel();
-		const isInitialCli = initialModel === "gemini-cli" || initialModel === "claude-cli" || initialModel === "codex-cli";
 		const isInitialGemma = initialModel.toLowerCase().includes("gemma");
 
-		// CLI and Gemma models: always "none"
-		if (isInitialCli || isInitialGemma) {
+		// Gemma models: always "none"
+		if (isInitialGemma) {
 			return "none";
 		}
 		if (ragSetting === "__websearch__") {
@@ -152,12 +143,8 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 	const [, setVaultToolNoneReason] = useState<VaultToolNoneReason | null>(() => {
 		const ragSetting = plugin.workspaceState.selectedRagSetting;
 		const initialModel = plugin.getSelectedModel();
-		const isInitialCli = initialModel === "gemini-cli" || initialModel === "claude-cli" || initialModel === "codex-cli";
 		const isInitialGemma = initialModel.toLowerCase().includes("gemma");
 
-		if (isInitialCli) {
-			return "cli";
-		}
 		if (isInitialGemma) {
 			return "gemma";
 		}
@@ -175,12 +162,10 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 	const [mcpServers, setMcpServers] = useState(() => {
 		const ragSetting = plugin.workspaceState.selectedRagSetting;
 		const initialModel = plugin.getSelectedModel();
-		const isInitialCli = initialModel === "gemini-cli" || initialModel === "claude-cli" || initialModel === "codex-cli";
 		const isInitialGemma = initialModel.toLowerCase().includes("gemma");
 
 		// Check if MCP should be disabled (same logic as vaultToolNoneReason)
-		// RAG enabled: fileSearch + functionDeclarations not supported, so MCP also disabled
-		const shouldDisableMcp = isInitialCli || isInitialGemma ||
+		const shouldDisableMcp = isInitialGemma ||
 			ragSetting === "__websearch__" || !!ragSetting;
 
 		if (shouldDisableMcp) {
@@ -195,7 +180,6 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 	const mcpExecutorRef = useRef<McpToolExecutor | null>(null);
 	const [vaultFiles, setVaultFiles] = useState<string[]>([]);
 	const [hasSelection, setHasSelection] = useState(false);
-	const [cliConfig, setCliConfig] = useState(plugin.settings.cliConfig || DEFAULT_CLI_CONFIG);
 	const [hasApiKey, setHasApiKey] = useState(!!plugin.settings.googleApiKey);
 	const [decryptingChatId, setDecryptingChatId] = useState<string | null>(null);
 	const [decryptPassword, setDecryptPassword] = useState("");
@@ -209,21 +193,11 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 	const [availableSkills, setAvailableSkills] = useState<SkillMetadata[]>([]);
 	const [activeSkillPaths, setActiveSkillPaths] = useState<string[]>([]);
 
-	// CLI provider state (CLI not available on mobile)
-	const geminiCliVerified = !Platform.isMobile && cliConfig.cliVerified === true;
-	const claudeCliVerified = !Platform.isMobile && cliConfig.claudeCliVerified === true;
-	const codexCliVerified = !Platform.isMobile && cliConfig.codexCliVerified === true;
-	const anyCliVerified = geminiCliVerified || claudeCliVerified || codexCliVerified;
-	const isGeminiCliMode = !Platform.isMobile && currentModel === "gemini-cli";
-	const isClaudeCliMode = !Platform.isMobile && currentModel === "claude-cli";
-	const isCodexCliMode = !Platform.isMobile && currentModel === "codex-cli";
-	const isCliMode = isGeminiCliMode || isClaudeCliMode || isCodexCliMode;
+	// Check if configuration is ready (API key set)
+	const isConfigReady = hasApiKey;
 
-	// Check if configuration is ready (API key set OR any CLI verified)
-	const isConfigReady = hasApiKey || anyCliVerified;
-
-	const allowWebSearch = !isCliMode;
-	const allowRag = ragEnabledState && !isCliMode;
+	const allowWebSearch = true;
+	const allowRag = ragEnabledState;
 
 	// Resolve thinking toggle for a given model name
 	const getThinkingToggle = (model: string): boolean | undefined => {
@@ -233,14 +207,8 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 		return undefined;
 	};
 
-	// Build available models list (verified CLI options first)
-	const baseModels = getAvailableModels(apiPlan);
-	const cliModels = [
-		...(geminiCliVerified ? [CLI_MODEL] : []),
-		...(claudeCliVerified ? [CLAUDE_CLI_MODEL] : []),
-		...(codexCliVerified ? [CODEX_CLI_MODEL] : []),
-	];
-	const availableModels = [...cliModels, ...baseModels];
+	// Build available models list
+	const availableModels = getAvailableModels(apiPlan);
 
 	useImperativeHandle(ref, () => ({
 		getActiveChat: () => activeChat,
@@ -266,7 +234,7 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 		setSaveNoteState("saving");
 		try {
 			const chatTitle = messages[0].content.slice(0, 50) + (messages[0].content.length > 50 ? "..." : "");
-			const markdown = await messagesToMarkdown(messages, chatTitle, messages[0].timestamp, plugin.settings.encryption, cliSession ?? undefined);
+			const markdown = await messagesToMarkdown(messages, chatTitle, messages[0].timestamp, plugin.settings.encryption);
 			const now = new Date();
 			const pad = (n: number) => String(n).padStart(2, "0");
 			const fileName = `chat-${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}-${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}.md`;
@@ -278,7 +246,7 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 			new Notice(t("common.error") + ": " + formatError(error));
 			setSaveNoteState("idle");
 		}
-	}, [saveNoteState, messages, plugin, cliSession]);
+	}, [saveNoteState, messages, plugin]);
 
 	// Load chat histories from folder
 	const loadChatHistories = useCallback(async () => {
@@ -341,7 +309,6 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 							messages: parsed?.messages || [],
 							createdAt,
 							updatedAt,
-							cliSession: parsed?.cliSession,
 							isEncrypted: false,
 						});
 					}
@@ -357,7 +324,7 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 	}, [plugin]);
 
 	// Save current chat to Markdown file
-	const saveCurrentChat = useCallback(async (msgs: Message[], session?: CliSessionInfo, overrideChatId?: string) => {
+	const saveCurrentChat = useCallback(async (msgs: Message[], overrideChatId?: string) => {
 		if (msgs.length === 0) return;
 		if (!plugin.settings.saveChatHistory) return;
 
@@ -377,10 +344,8 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 
 		const existingHistory = chatHistories.find(h => h.id === chatId);
 		const createdAt = existingHistory?.createdAt || Date.now();
-		// Use provided session, or fall back to existing history's session
-		const effectiveSession = session || existingHistory?.cliSession;
 
-		const markdown = await messagesToMarkdown(msgs, title, createdAt, plugin.settings.encryption, effectiveSession);
+		const markdown = await messagesToMarkdown(msgs, title, createdAt, plugin.settings.encryption);
 		const basePath = getChatFilePath(chatId);
 		const encrypted = isEncryptedFile(markdown);
 		const filePath = encrypted ? basePath + ".encrypted" : basePath;
@@ -408,7 +373,6 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 				messages: msgs,
 				createdAt,
 				updatedAt: Date.now(),
-				cliSession: effectiveSession,
 			};
 
 			const existingIndex = chatHistories.findIndex(h => h.id === chatId);
@@ -596,7 +560,6 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 			setApiPlan(plugin.settings.apiPlan);
 			setCurrentModel(plugin.getSelectedModel());
 			setRagEnabledState(plugin.settings.ragEnabled);
-			setCliConfig(plugin.settings.cliConfig || DEFAULT_CLI_CONFIG);
 			setHasApiKey(!!plugin.settings.googleApiKey);
 			// Sync MCP servers from settings
 			setMcpServers([...plugin.settings.mcpServers]);
@@ -608,8 +571,6 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 	}, [plugin, selectedRagSetting]);
 
 	useEffect(() => {
-		// Skip plan check for CLI models
-		if (currentModel === "gemini-cli" || currentModel === "claude-cli" || currentModel === "codex-cli") return;
 		if (!isModelAllowedForPlan(apiPlan, currentModel)) {
 			const defaultModel = getDefaultModelForPlan(apiPlan);
 			setCurrentModel(defaultModel);
@@ -680,19 +641,10 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 		setCurrentModel(model);
 		void plugin.selectModel(model);
 
-		const isNewModelCli = model === "gemini-cli" || model === "claude-cli" || model === "codex-cli";
 		const isNewModelGemma = model.toLowerCase().includes("gemma");
 
-		// Auto-adjust search setting and vault tool mode for CLI mode and special models
-		if (isNewModelCli) {
-			// CLI mode: force Search to None and Vault to Off
-			if (selectedRagSetting !== null) {
-				handleRagSettingChange(null);
-			}
-			setVaultToolMode("none");
-			setVaultToolNoneReason("cli");
-			setMcpServers(servers => servers.map(s => ({ ...s, enabled: false })));
-		} else if (isNewModelGemma) {
+		// Auto-adjust search setting and vault tool mode for special models
+		if (isNewModelGemma) {
 			// Gemma: force Search to None and Vault to Off
 			if (selectedRagSetting !== null) {
 				handleRagSettingChange(null);
@@ -875,7 +827,6 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 		}
 		setMessages([]);
 		setCurrentChatId(null);
-		setCliSession(null);  // Clear CLI session
 		setStreamingContent("");
 		setStreamingThinking("");
 		setShowHistory(false);
@@ -923,7 +874,6 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 
 			setMessages(parsed.messages);
 			setCurrentChatId(chatId);
-			setCliSession(parsed.cliSession || null);
 			setStreamingContent("");
 			setStreamingThinking("");
 			setDecryptingChatId(null);
@@ -956,7 +906,6 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 		}
 		setMessages(history.messages);
 		setCurrentChatId(history.id);
-		setCliSession(history.cliSession || null);  // Restore CLI session
 		setStreamingContent("");
 		setStreamingThinking("");
 		setShowHistory(false);
@@ -992,213 +941,9 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 		new Notice(t("chat.chatDeleted"));
 	};
 
-	// Send message via CLI provider
-	const sendMessageViaCli = async (content: string, attachments?: Attachment[], skillPath?: string) => {
-		const isClaudeCli = currentModel === "claude-cli";
-		const isCodexCli = currentModel === "codex-cli";
-		const provider = isClaudeCli
-			? new ClaudeCliProvider()
-			: isCodexCli
-				? new CodexCliProvider()
-				: new GeminiCliProvider();
-
-		// Activate skill if invoked via slash command
-		let effectiveSkillPaths = activeSkillPaths;
-		if (skillPath && !effectiveSkillPaths.includes(skillPath)) {
-			effectiveSkillPaths = [...effectiveSkillPaths, skillPath];
-			setActiveSkillPaths(effectiveSkillPaths);
-		}
-
-		// Resolve variables in the content
-		const resolvedContent = await resolveMessageVariables(content);
-
-		// When skill is invoked without message, use skill name as trigger
-		let displayContent = resolvedContent.trim();
-		if (!displayContent && skillPath) {
-			const skillMeta = availableSkills.find(s => s.folderPath === skillPath);
-			displayContent = skillMeta ? `/${skillMeta.name}` : "/skill";
-		}
-
-		// Add user message
-		const userMessage: Message = {
-			role: "user",
-			content: displayContent || (attachments ? `[${attachments.length} file(s) attached]` : ""),
-			timestamp: Date.now(),
-			attachments,
-		};
-
-		setMessages((prev) => [...prev, userMessage]);
-		setIsLoading(true);
-		setStreamingContent("");
-		setStreamingThinking("");
-
-		// Create abort controller for this request
-		const abortController = new AbortController();
-		abortControllerRef.current = abortController;
-
-		const cliTraceId = tracing.traceStart("chat-message", {
-			sessionId: currentChatId ?? undefined,
-			input: resolvedContent,
-			metadata: {
-				model: currentModel,
-				isCli: true,
-				pluginVersion: plugin.manifest.version,
-			},
-		});
-
-		try {
-			const allMessages = [...messages, userMessage];
-
-			// Build system prompt for CLI (read-only mode)
-			const cliName = isClaudeCli ? "Claude CLI" : isCodexCli ? "Codex CLI" : "Gemini CLI";
-			let systemPrompt = "You are a helpful AI assistant integrated with Obsidian.";
-			systemPrompt += `\n\nNote: You are running in ${cliName} mode with limited capabilities. You can read and search vault files, but cannot modify them.`;
-			systemPrompt += `\n\nIMPORTANT: File writing operations may fail in this environment. Always output results directly to standard output instead of attempting to write to files.`;
-			systemPrompt += `\n\nVault location: ${(plugin.app.vault.adapter as unknown as { basePath?: string }).basePath || "."}`;
-
-			if (plugin.settings.systemPrompt) {
-				systemPrompt += `\n\nAdditional instructions: ${plugin.settings.systemPrompt}`;
-			}
-
-			// Inject active agent skills into system prompt
-			let cliLoadedSkills: LoadedSkill[] = [];
-			if (effectiveSkillPaths.length > 0) {
-				const activeMetadata = availableSkills.filter(s => effectiveSkillPaths.includes(s.folderPath));
-				if (activeMetadata.length > 0) {
-					cliLoadedSkills = await Promise.all(
-						activeMetadata.map(m => loadSkill(plugin.app, m))
-					);
-					const skillPrompt = buildSkillSystemPrompt(cliLoadedSkills, { cliMode: true });
-					if (skillPrompt) {
-						systemPrompt += skillPrompt;
-					}
-				}
-			}
-
-			let fullContent = "";
-			let stopped = false;
-			let receivedSessionId: string | null = null;
-
-			// Get vault base path for working directory
-			const vaultBasePath = (plugin.app.vault.adapter as unknown as { basePath?: string }).basePath || ".";
-
-			// Determine current provider name
-			const currentProvider: ChatProvider = isClaudeCli ? "claude-cli" : isCodexCli ? "codex-cli" : "gemini-cli";
-
-			// Pass session ID only if provider supports it AND matches the stored session's provider
-			const sessionIdToUse = provider.supportsSessionResumption &&
-				cliSession?.provider === currentProvider
-				? cliSession.sessionId
-				: undefined;
-
-			for await (const chunk of provider.chatStream(
-				allMessages,
-				systemPrompt,
-				vaultBasePath,
-				abortController.signal,
-				sessionIdToUse
-			)) {
-				if (abortController.signal.aborted) {
-					stopped = true;
-					break;
-				}
-
-				switch (chunk.type) {
-					case "text":
-						fullContent += chunk.content || "";
-						setStreamingContent(fullContent);
-						break;
-
-					case "session_id":
-						// Capture session ID from CLI response
-						if (chunk.sessionId) {
-							receivedSessionId = chunk.sessionId;
-						}
-						break;
-
-					case "error":
-						throw new Error(chunk.error || "Unknown error");
-
-					case "done":
-						break;
-				}
-			}
-
-			if (stopped && fullContent) {
-				fullContent += `\n\n${t("chat.generationStopped")}`;
-			}
-
-			// Update session if we received a new one, or clear if provider changed
-			const newSession: CliSessionInfo | null = receivedSessionId
-				? { provider: currentProvider, sessionId: receivedSessionId }
-				: (cliSession?.provider === currentProvider ? cliSession : null);
-
-			if (receivedSessionId || cliSession?.provider !== currentProvider) {
-				setCliSession(newSession);
-			}
-
-			// Detect and execute [RUN_WORKFLOW: id](variables) markers from skill workflows
-			const workflowMarkerRegex = /\[RUN_WORKFLOW:\s*(.+?)\](?:\((\{[\s\S]*?\})\))?/g;
-			let workflowMatch: RegExpExecArray | null;
-			let processedContent = fullContent;
-			if (cliLoadedSkills.length > 0 && (workflowMatch = workflowMarkerRegex.exec(fullContent)) !== null) {
-				const workflowId = workflowMatch[1].trim();
-				const variablesJson = workflowMatch[2] || undefined;
-				const skillWorkflowMap = collectSkillWorkflows(cliLoadedSkills);
-				const workflowResult = await executeSkillWorkflow(plugin, workflowId, variablesJson, skillWorkflowMap);
-				// Replace marker with execution result
-				const resultText = JSON.stringify(workflowResult, null, 2);
-				processedContent = fullContent.replace(workflowMatch[0],
-					`**Workflow executed: ${workflowId}**\n\`\`\`json\n${resultText}\n\`\`\``
-				);
-			}
-
-			// Add assistant message with CLI model info
-			const assistantMessage: Message = {
-				role: "assistant",
-				content: processedContent,
-				timestamp: Date.now(),
-				model: currentProvider,
-			};
-
-			const newMessages = [...messages, userMessage, assistantMessage];
-			setMessages(newMessages);
-			// Save chat history (with session info)
-			await saveCurrentChat(newMessages, newSession || undefined);
-
-			tracing.traceEnd(cliTraceId, { output: processedContent });
-			tracing.score(cliTraceId, {
-				name: "status",
-				value: stopped ? 0.5 : 1,
-				comment: stopped ? "stopped by user" : "completed",
-			});
-		} catch (error) {
-			const errorMessageText = error instanceof Error ? error.message : t("chat.unknownError");
-			const errorMessage: Message = {
-				role: "assistant",
-				content: t("chat.errorOccurred", { message: errorMessageText }),
-				timestamp: Date.now(),
-			};
-			setMessages((prev) => [...prev, errorMessage]);
-			tracing.traceEnd(cliTraceId, { output: errorMessageText, metadata: { error: true } });
-			tracing.score(cliTraceId, { name: "status", value: 0, comment: errorMessageText });
-		} finally {
-			setIsLoading(false);
-			setStreamingContent("");
-			setStreamingThinking("");
-			abortControllerRef.current = null;
-		}
-	};
-
 	// Send message to Gemini
 	const sendMessage = async (content: string, attachments?: Attachment[], skillPath?: string) => {
 		if ((!content.trim() && !skillPath && (!attachments || attachments.length === 0)) || isLoading) return;
-
-		// Use CLI provider if in CLI mode
-		if (isCliMode) {
-			await sendMessageViaCli(content, attachments, skillPath);
-			return;
-		}
 
 		const client = getGeminiClient();
 		if (!client) {
@@ -1662,7 +1407,7 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 					? plugin.getSelectedStoreIds()
 					: [];
 
-				// RAG-only mode: RAG enabled means only fileSearch tool is sent,
+				// RAG-only mode: server RAG enabled means only fileSearch tool is sent,
 				// so vault tool descriptions should be excluded from the system prompt
 				const ragOnlyMode = ragStoreIds.length > 0;
 
@@ -1680,8 +1425,8 @@ Available tools allow you to:
 - Get information about the active note`;
 				}
 
-				// Add RAG sync status info if RAG is enabled
-					if (allowRag && toolsEnabled && !ragOnlyMode) {
+				// Add RAG sync status info if server RAG is enabled (uses FileSearchManager)
+				if (allowRag && toolsEnabled && !ragOnlyMode) {
 						systemPrompt += `
 - Check RAG sync status: When users ask about imported files, use the get_rag_sync_status tool to:
   - Check a specific file's sync status (when it was imported, if it has changes)
@@ -1969,12 +1714,6 @@ Always be helpful and provide clear, concise responses. When working with notes,
 	const handleCompact = async () => {
 		if (messages.length < 2 || isLoading || isCompacting) return;
 
-		// CLI mode does not support compact
-		if (isCliMode) {
-			new Notice(t("chat.compactNotAvailable"));
-			return;
-		}
-
 		const client = getGeminiClient();
 		if (!client) {
 			new Notice(t("chat.clientNotInitialized"));
@@ -1985,7 +1724,7 @@ Always be helpful and provide clear, concise responses. When working with notes,
 
 		try {
 			// Save current chat first (preserves full history)
-			await saveCurrentChat(messages, cliSession || undefined);
+			await saveCurrentChat(messages);
 
 			// Build conversation text for summarization
 			const conversationText = messages.map(msg => {
@@ -2033,11 +1772,10 @@ Always be helpful and provide clear, concise responses. When working with notes,
 			const newMessages = [userMessage, compactedMessage];
 			const newChatId = generateChatId();
 			setCurrentChatId(newChatId);
-			setCliSession(null);
 			setMessages(newMessages);
 
 			// Save as a new chat with explicit new ID (avoids stale closure of currentChatId)
-			await saveCurrentChat(newMessages, undefined, newChatId);
+			await saveCurrentChat(newMessages, newChatId);
 
 			new Notice(t("chat.compacted", { before: String(messages.length), after: "2" }));
 		} catch (error) {
@@ -2246,7 +1984,7 @@ Always be helpful and provide clear, concise responses. When working with notes,
 						onRagSettingChange={handleRagSettingChange}
 						vaultToolMode={vaultToolMode}
 						onVaultToolModeChange={handleVaultToolModeChange}
-						vaultToolModeOnlyNone={isCliMode || isGemmaModel || !!selectedRagSetting}
+						vaultToolModeOnlyNone={isGemmaModel || !!selectedRagSetting}
 						thinkFlash={thinkFlash}
 						thinkFlashLite={thinkFlashLite}
 						onThinkFlashChange={setThinkFlash}
@@ -2279,8 +2017,6 @@ Always be helpful and provide clear, concise responses. When working with notes,
 						<p>{t("chat.configRequiredDesc")}</p>
 						<ul>
 							<li><strong>{t("chat.configApiKey")}</strong> - {t("chat.configApiKeyDesc")}</li>
-							<li><strong>{t("chat.configGeminiCli")}</strong> - {t("chat.configGeminiCliDesc")}</li>
-							<li><strong>{t("chat.configClaudeCli")}</strong> - {t("chat.configClaudeCliDesc")}</li>
 						</ul>
 						<p>{t("chat.openSettings")}</p>
 					</div>

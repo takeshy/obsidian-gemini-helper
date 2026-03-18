@@ -487,3 +487,4 @@ function displayInternalStoreSettings(
       );
   }
 }
+

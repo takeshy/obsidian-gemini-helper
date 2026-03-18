@@ -1,4 +1,4 @@
-import type { Message, ChatProvider } from "src/types";
+import type { Message } from "src/types";
 import { formatError } from "src/utils/error";
 import { t } from "src/i18n";
 
@@ -67,25 +67,11 @@ export function buildErrorMessage(error: unknown, apiPlan: string): string {
 	return t("chat.errorOccurred", { message });
 }
 
-// CLI session info with provider tracking
-export interface CliSessionInfo {
-	provider: ChatProvider;
-	sessionId: string;
-}
-
-// Valid CLI providers that support session resumption
-export const VALID_CLI_PROVIDERS: ChatProvider[] = ["gemini-cli", "claude-cli", "codex-cli"];
-
-export function isValidCliProvider(provider: string): provider is ChatProvider {
-	return VALID_CLI_PROVIDERS.includes(provider as ChatProvider);
-}
-
 export interface ChatHistory {
 	id: string;
 	title: string;
 	messages: Message[];
 	createdAt: number;
 	updatedAt: number;
-	cliSession?: CliSessionInfo;  // CLI session for resumption (Claude CLI, etc.)
 	isEncrypted?: boolean;  // Whether the chat is encrypted
 }

@@ -1,6 +1,6 @@
 import { App, Modal, Setting, TFile } from "obsidian";
 import { SidebarNode, WorkflowNodeType } from "src/workflow/types";
-import { getAvailableModels, CLI_MODEL, CLAUDE_CLI_MODEL, CODEX_CLI_MODEL } from "src/types";
+import { getAvailableModels } from "src/types";
 import type { GeminiHelperPlugin } from "src/plugin";
 import { t, TranslationKey } from "src/i18n";
 
@@ -216,7 +216,6 @@ export class NodeEditorModal extends Modal {
         this.addTextArea(container, "prompt", t("nodeEditor.prompt"), t("nodeEditor.prompt.placeholder"), true);
 
         // Build model options based on API plan
-        const cliConfig = this.plugin.settings.cliConfig;
         const apiPlan = this.plugin.settings.apiPlan;
         const availableModels = getAvailableModels(apiPlan);
 
@@ -227,17 +226,6 @@ export class NodeEditorModal extends Modal {
         // Add models based on plan
         for (const model of availableModels) {
           modelOptions.push({ value: model.name, label: model.displayName });
-        }
-
-        // Add verified CLI models
-        if (cliConfig?.cliVerified) {
-          modelOptions.push({ value: CLI_MODEL.name, label: CLI_MODEL.displayName });
-        }
-        if (cliConfig?.claudeCliVerified) {
-          modelOptions.push({ value: CLAUDE_CLI_MODEL.name, label: CLAUDE_CLI_MODEL.displayName });
-        }
-        if (cliConfig?.codexCliVerified) {
-          modelOptions.push({ value: CODEX_CLI_MODEL.name, label: CODEX_CLI_MODEL.displayName });
         }
 
         // Search options (RAG)
@@ -255,10 +243,6 @@ export class NodeEditorModal extends Modal {
           { value: "none", label: t("nodeEditor.vaultToolsNone") },
         ];
 
-        const isCliModel = (model: string) => model === "gemini-cli" || model === "claude-cli" || model === "codex-cli";
-
-        let searchDropdown: HTMLSelectElement | null = null;
-        let vaultToolDropdown: HTMLSelectElement | null = null;
         const mcpCheckboxes: Array<{ name: string; checkbox: HTMLInputElement }> = [];
 
         // Model dropdown
@@ -269,47 +253,15 @@ export class NodeEditorModal extends Modal {
           dropdown.setValue(this.editedProperties["model"] || "");
           dropdown.onChange((value) => {
             this.editedProperties["model"] = value;
-            // Auto-disable tools for CLI models
-            if (isCliModel(value)) {
-              this.editedProperties["ragSetting"] = "__none__";
-              this.editedProperties["vaultTools"] = "none";
-              this.editedProperties["mcpServers"] = "";
-              if (searchDropdown) {
-                searchDropdown.value = "__none__";
-                searchDropdown.disabled = true;
-              }
-              if (vaultToolDropdown) {
-                vaultToolDropdown.value = "none";
-                vaultToolDropdown.disabled = true;
-              }
-              for (const { checkbox } of mcpCheckboxes) {
-                checkbox.checked = false;
-                checkbox.disabled = true;
-              }
-            } else {
-              if (searchDropdown) searchDropdown.disabled = false;
-              if (vaultToolDropdown) vaultToolDropdown.disabled = false;
-              for (const { checkbox } of mcpCheckboxes) {
-                checkbox.disabled = false;
-              }
-            }
           });
         });
 
         // Search dropdown
-        const initialModel = this.editedProperties["model"] || "";
         new Setting(container).setName(t("nodeEditor.search")).addDropdown((dropdown) => {
-          searchDropdown = dropdown.selectEl;
           for (const opt of searchOptions) {
             dropdown.addOption(opt.value, opt.label);
           }
-          if (isCliModel(initialModel)) {
-            this.editedProperties["ragSetting"] = "__none__";
-            dropdown.setValue("__none__");
-            searchDropdown.disabled = true;
-          } else {
-            dropdown.setValue(this.editedProperties["ragSetting"] || "__none__");
-          }
+          dropdown.setValue(this.editedProperties["ragSetting"] || "__none__");
           dropdown.onChange((value) => {
             this.editedProperties["ragSetting"] = value;
           });
@@ -317,17 +269,10 @@ export class NodeEditorModal extends Modal {
 
         // Vault Tools dropdown
         new Setting(container).setName(t("nodeEditor.vaultTools")).addDropdown((dropdown) => {
-          vaultToolDropdown = dropdown.selectEl;
           for (const opt of vaultToolOptions) {
             dropdown.addOption(opt.value, opt.label);
           }
-          if (isCliModel(initialModel)) {
-            this.editedProperties["vaultTools"] = "none";
-            dropdown.setValue("none");
-            vaultToolDropdown.disabled = true;
-          } else {
-            dropdown.setValue(this.editedProperties["vaultTools"] || "all");
-          }
+          dropdown.setValue(this.editedProperties["vaultTools"] || "all");
           dropdown.onChange((value) => {
             this.editedProperties["vaultTools"] = value;
           });
@@ -345,7 +290,6 @@ export class NodeEditorModal extends Modal {
             const label = mcpContainer.createEl("label", { cls: "workflow-mcp-checkbox-label" });
             const checkbox = label.createEl("input", { type: "checkbox" });
             checkbox.checked = enabledMcpServers.includes(server.name);
-            checkbox.disabled = isCliModel(initialModel);
             label.createSpan({ text: server.name });
 
             mcpCheckboxes.push({ name: server.name, checkbox });

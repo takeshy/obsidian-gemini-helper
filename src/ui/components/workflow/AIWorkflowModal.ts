@@ -1,9 +1,8 @@
-import { App, Modal, Notice, Platform, parseYaml, TFile, setIcon } from "obsidian";
+import { App, Modal, Notice, parseYaml, TFile, setIcon } from "obsidian";
 import type { GeminiHelperPlugin } from "src/plugin";
-import { GeminiCliProvider, ClaudeCliProvider, CodexCliProvider } from "src/core/cliProvider";
 import { GeminiClient } from "src/core/gemini";
 import { tracing } from "src/core/tracingHooks";
-import { CLI_MODEL, CLAUDE_CLI_MODEL, CODEX_CLI_MODEL, DEFAULT_CLI_CONFIG, getAvailableModels, SKILLS_FOLDER, WORKFLOWS_FOLDER, type ModelType, type Attachment, type StreamChunkUsage } from "src/types";
+import { getAvailableModels, SKILLS_FOLDER, WORKFLOWS_FOLDER, type ModelType, type Attachment, type StreamChunkUsage } from "src/types";
 import { getWorkflowSpecification } from "src/workflow/workflowSpec";
 import type { SidebarNode, WorkflowNodeType, ExecutionStep } from "src/workflow/types";
 import { listWorkflowOptions, normalizeYamlText } from "src/workflow/parser";
@@ -488,18 +487,9 @@ export class AIWorkflowModal extends Modal {
       cls: "ai-workflow-model-select",
     });
 
-    const cliConfig = this.plugin.settings.cliConfig || DEFAULT_CLI_CONFIG;
-    const geminiCliVerified = !Platform.isMobile && cliConfig.cliVerified === true;
-    const claudeCliVerified = !Platform.isMobile && cliConfig.claudeCliVerified === true;
-    const codexCliVerified = !Platform.isMobile && cliConfig.codexCliVerified === true;
     // Only include API models if API key is configured
     const baseModels = this.plugin.settings.googleApiKey ? getAvailableModels(this.plugin.settings.apiPlan) : [];
-    const cliModels = [
-      ...(geminiCliVerified ? [CLI_MODEL] : []),
-      ...(claudeCliVerified ? [CLAUDE_CLI_MODEL] : []),
-      ...(codexCliVerified ? [CODEX_CLI_MODEL] : []),
-    ];
-    const availableModels = [...cliModels, ...baseModels];
+    const availableModels = baseModels;
     // Use last used model for AI workflow, or fall back to selected model
     const lastAIWorkflowModel = this.plugin.settings.lastAIWorkflowModel;
     const defaultModel = lastAIWorkflowModel && availableModels.some(m => m.name === lastAIWorkflowModel && !m.isImageModel)
@@ -849,13 +839,8 @@ export class AIWorkflowModal extends Modal {
       return;
     }
 
-    const isGeminiCli = selectedModel === "gemini-cli";
-    const isClaudeCli = selectedModel === "claude-cli";
-    const isCodexCli = selectedModel === "codex-cli";
-    const isCliModel = isGeminiCli || isClaudeCli || isCodexCli;
-
-    // Check API key (skip for CLI model)
-    if (!isCliModel && !this.plugin.settings.googleApiKey) {
+    // Check API key
+    if (!this.plugin.settings.googleApiKey) {
       new Notice(t("aiWorkflow.apiKeyNotConfigured"));
       return;
     }
@@ -892,7 +877,6 @@ export class AIWorkflowModal extends Modal {
       workflowName,
       outputPathTemplate,
       selectedModel,
-      isCliModel,
       resolvedMentions,
       workflowPath,
       modelDisplayName,
@@ -910,7 +894,6 @@ export class AIWorkflowModal extends Modal {
     workflowName: string,
     outputPathTemplate: string | undefined,
     selectedModel: ModelType,
-    isCliModel: boolean,
     resolvedMentions: ResolvedMention[],
     workflowPath: string | undefined,
     modelDisplayName: string,
@@ -939,7 +922,6 @@ export class AIWorkflowModal extends Modal {
       metadata: {
         model: selectedModel,
         isModify: !!this.existingYaml,
-        isCliModel,
         pluginVersion: this.plugin.manifest.version,
       },
     });
@@ -952,110 +934,50 @@ export class AIWorkflowModal extends Modal {
 
       let response = "";
 
-      if (isCliModel) {
-        // CLI models don't support streaming thinking
-        const cliConfig = this.plugin.settings.cliConfig || DEFAULT_CLI_CONFIG;
-        const isClaudeCli = selectedModel === "claude-cli";
-        const isCodexCli = selectedModel === "codex-cli";
+      // API model with streaming thinking support
+      const client = new GeminiClient(
+        this.plugin.settings.googleApiKey,
+        selectedModel
+      );
 
-        // Get CLI provider name for status
-        const cliName = isClaudeCli ? "Claude CLI" : isCodexCli ? "Codex CLI" : "Gemini CLI";
-        generationModal.setStatus(t("workflow.generation.generatingWithCli", { cli: cliName }));
-
-        let provider: GeminiCliProvider | ClaudeCliProvider | CodexCliProvider;
-        if (isClaudeCli) {
-          if (!cliConfig.claudeCliVerified) {
-            throw new Error("Claude CLI is not available. Please verify it in settings.");
-          }
-          provider = new ClaudeCliProvider();
-        } else if (isCodexCli) {
-          if (!cliConfig.codexCliVerified) {
-            throw new Error("Codex CLI is not available. Please verify it in settings.");
-          }
-          provider = new CodexCliProvider();
-        } else {
-          if (!cliConfig.cliVerified) {
-            throw new Error("Gemini CLI is not available. Please verify it in settings.");
-          }
-          provider = new GeminiCliProvider();
+      // Use the streaming workflow generation method
+      let streamUsage: StreamChunkUsage | undefined;
+      const apiStartTime = Date.now();
+      for await (const chunk of client.generateWorkflowStream(
+        [{
+          role: "user",
+          content: userPrompt,
+          timestamp: Date.now(),
+          attachments: this.pendingAttachments.length > 0 ? this.pendingAttachments : undefined,
+        }],
+        systemPrompt,
+        traceId
+      )) {
+        if (generationCancelled || abortController.signal.aborted) {
+          break;
         }
 
-        const vaultBasePath =
-          (this.plugin.app.vault.adapter as unknown as { basePath?: string }).basePath || ".";
-        const cliSystemPrompt = `${systemPrompt}\n\nNote: You are running in CLI mode with limited capabilities. You can read and search vault files, but cannot modify them.`;
-
-        const cliStartTime = Date.now();
-        for await (const chunk of provider.chatStream(
-          [{ role: "user", content: userPrompt, timestamp: Date.now() }],
-          cliSystemPrompt,
-          vaultBasePath
-        )) {
-          if (generationCancelled || abortController.signal.aborted) {
-            break;
-          }
-          if (chunk.type === "text") {
-            response += chunk.content || "";
-          } else if (chunk.type === "error") {
-            throw new Error(chunk.error || "Unknown error");
-          }
+        if (chunk.type === "thinking" && chunk.content) {
+          // Display thinking content in the modal
+          generationModal.appendThinking(chunk.content);
+        } else if (chunk.type === "text" && chunk.content) {
+          response += chunk.content;
+        } else if (chunk.type === "done") {
+          streamUsage = chunk.usage;
+        } else if (chunk.type === "error") {
+          throw new Error(chunk.error || "Unknown error");
         }
-        const cliElapsedMs = Date.now() - cliStartTime;
-        generationModal.setComplete();
+      }
+      const apiElapsedMs = Date.now() - apiStartTime;
+      generationModal.setComplete();
 
-        // Close generation modal
-        generationModal.close();
+      // Close generation modal
+      generationModal.close();
 
-        // Show usage as Notice
-        const cliNotice = WorkflowGenerationModal.formatUsageNotice(undefined, cliElapsedMs);
-        if (cliNotice && !generationCancelled) {
-          new Notice(cliNotice);
-        }
-      } else {
-        // API model with streaming thinking support
-        const client = new GeminiClient(
-          this.plugin.settings.googleApiKey,
-          selectedModel
-        );
-
-        // Use the streaming workflow generation method
-        let streamUsage: StreamChunkUsage | undefined;
-        const apiStartTime = Date.now();
-        for await (const chunk of client.generateWorkflowStream(
-          [{
-            role: "user",
-            content: userPrompt,
-            timestamp: Date.now(),
-            attachments: this.pendingAttachments.length > 0 ? this.pendingAttachments : undefined,
-          }],
-          systemPrompt,
-          traceId
-        )) {
-          if (generationCancelled || abortController.signal.aborted) {
-            break;
-          }
-
-          if (chunk.type === "thinking" && chunk.content) {
-            // Display thinking content in the modal
-            generationModal.appendThinking(chunk.content);
-          } else if (chunk.type === "text" && chunk.content) {
-            response += chunk.content;
-          } else if (chunk.type === "done") {
-            streamUsage = chunk.usage;
-          } else if (chunk.type === "error") {
-            throw new Error(chunk.error || "Unknown error");
-          }
-        }
-        const apiElapsedMs = Date.now() - apiStartTime;
-        generationModal.setComplete();
-
-        // Close generation modal
-        generationModal.close();
-
-        // Show usage as Notice
-        const apiNotice = WorkflowGenerationModal.formatUsageNotice(streamUsage, apiElapsedMs);
-        if (apiNotice && !generationCancelled) {
-          new Notice(apiNotice);
-        }
+      // Show usage as Notice
+      const apiNotice = WorkflowGenerationModal.formatUsageNotice(streamUsage, apiElapsedMs);
+      if (apiNotice && !generationCancelled) {
+        new Notice(apiNotice);
       }
 
       // Check if cancelled
@@ -1128,7 +1050,6 @@ export class AIWorkflowModal extends Modal {
             workflowName,
             outputPathTemplate,
             selectedModel,
-            isCliModel,
             resolvedMentions,
             workflowPath,     // Workflow path for execution history
             modelDisplayName,
@@ -1170,7 +1091,6 @@ export class AIWorkflowModal extends Modal {
           workflowName,
           outputPathTemplate,
           selectedModel,
-          isCliModel,
           resolvedMentions,
           workflowPath,     // Workflow path for execution history
           modelDisplayName,
@@ -1198,7 +1118,6 @@ export class AIWorkflowModal extends Modal {
     // Build dynamic workflow specification with current settings
     const workflowSpec = getWorkflowSpecification({
       apiPlan: this.plugin.settings.apiPlan,
-      cliConfig: this.plugin.settings.cliConfig,
       mcpServers: this.plugin.settings.mcpServers || [],
       ragSettingNames: Object.keys(this.plugin.workspaceState.ragSettings || {}),
       hasApiKey: !!this.plugin.settings.googleApiKey,

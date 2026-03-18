@@ -1,15 +1,12 @@
 import { App } from "obsidian";
 import type { GeminiHelperPlugin } from "../../plugin";
 import { getGeminiClient } from "../../core/gemini";
-import { CliProviderManager } from "../../core/cliProvider";
-import { isImageGenerationModel, type ToolDefinition, type McpAppInfo, type StreamChunkUsage } from "../../types";
+import { getAvailableModels, getDefaultModelForPlan, isImageGenerationModel, type ToolDefinition, type McpAppInfo, type StreamChunkUsage } from "../../types";
 import { getEnabledTools } from "../../core/tools";
 import { fetchMcpTools, createMcpToolExecutor, type McpToolDefinition } from "../../core/mcpTools";
 import { createToolExecutor } from "../../vault/toolExecutor";
 import { WorkflowNode, ExecutionContext, PromptCallbacks, FileExplorerData } from "../types";
 import { replaceVariables, setSystemVariable } from "./utils";
-import { tracing } from "../../core/tracingHooks";
-import { formatError } from "../../utils/error";
 import { handleExecuteJavascriptTool, EXECUTE_JAVASCRIPT_TOOL } from "../../core/sandboxExecutor";
 
 // Result type for command node execution
@@ -58,99 +55,19 @@ Please revise the output based on the user's feedback above.`;
 
   // Get model (use node's model or current selection)
   const modelName = node.properties["model"] || "";
+  const availableModels = new Set(getAvailableModels(plugin.settings.apiPlan).map((m) => m.name));
   let model = (modelName || plugin.getSelectedModel()) as import("../../types").ModelType;
 
-  // Check if this is a CLI model
-  let isCliModel = model === "gemini-cli" || model === "claude-cli" || model === "codex-cli";
-
-  // If resolved model requires API key but none is configured, fall back to a verified CLI model
-  // Only when the node didn't explicitly specify a non-CLI model
-  if (!isCliModel && !plugin.settings.googleApiKey && !modelName) {
-    const cliConfig = plugin.settings.cliConfig;
-    if (cliConfig?.cliVerified) {
-      model = "gemini-cli";
-    } else if (cliConfig?.claudeCliVerified) {
-      model = "claude-cli";
-    } else if (cliConfig?.codexCliVerified) {
-      model = "codex-cli";
-    } else {
-      throw new Error("No API key or verified CLI configured. Please set up a Google API key or verify a CLI provider in settings.");
-    }
-    isCliModel = true;
+  // Older workflows may still reference removed CLI models.
+  // Fall back to the plan default so those workflows remain executable.
+  if (modelName && !availableModels.has(model)) {
+    model = getDefaultModelForPlan(plugin.settings.apiPlan);
   }
 
-  if (isCliModel) {
-    // Use CLI provider for CLI models
-    const cliManager = new CliProviderManager();
-    const providerName = model === "claude-cli" ? "claude-cli" : model === "codex-cli" ? "codex-cli" : "gemini-cli";
-    const provider = cliManager.getProvider(providerName);
-
-    if (!provider) {
-      throw new Error(`CLI provider ${providerName} not available`);
-    }
-
-    // Build messages
-    const messages = [
-      {
-        role: "user" as const,
-        content: prompt,
-        timestamp: Date.now(),
-      },
-    ];
-
-    // Get vault path as working directory
-    const vaultPath = (app.vault.adapter as { basePath?: string }).basePath || "";
-
-    // Execute CLI call
-    const genId = tracing.generationStart(traceId ?? null, "cli-command", {
-      model,
-      input: prompt,
-      metadata: { provider: providerName },
-    });
-
-    let fullResponse = "";
-    const cliStartTime = Date.now();
-    const stream = provider.chatStream(messages, "", vaultPath);
-
-    try {
-      for await (const chunk of stream) {
-        if (chunk.type === "text") {
-          fullResponse += chunk.content;
-        } else if (chunk.type === "error") {
-          throw new Error(chunk.error);
-        }
-      }
-      tracing.generationEnd(genId, { output: fullResponse });
-    } catch (error) {
-      tracing.generationEnd(genId, {
-        error: formatError(error),
-      });
-      throw error;
-    }
-
-    // Save response to variable if specified
-    const saveTo = node.properties["saveTo"];
-    if (saveTo) {
-      // Strip markdown code fences if the entire response is a single code block.
-      let responseToSave = fullResponse;
-      const trimmed = fullResponse.trim();
-      const fenceMatch = trimmed.match(/^```\w*\r?\n([\s\S]+?)\r?\n```$/);
-      if (fenceMatch && !fenceMatch[1].includes("```")) {
-        responseToSave = fenceMatch[1];
-      }
-      context.variables.set(saveTo, responseToSave);
-      // Save command info for potential regeneration
-      context.lastCommandInfo = {
-        nodeId: node.id,
-        originalPrompt,
-        saveTo,
-      };
-    }
-    setSystemVariable(context, "_lastModel", model);
-    return { usedModel: model, elapsedMs: Date.now() - cliStartTime };
+  if (!plugin.settings.googleApiKey && !modelName) {
+    throw new Error("No API key configured. Please set up a Google API key in settings.");
   }
 
-  // Non-CLI model: use GeminiClient
   // Get RAG setting
   // undefined/"" = use current, "__none__" = no RAG, "__websearch__" = web search, other = setting name
   const ragSettingName = node.properties["ragSetting"];

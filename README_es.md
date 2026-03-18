@@ -4,7 +4,7 @@
 
 Asistente de IA **gratuito y de código abierto** para Obsidian con **Chat**, **Automatización de Flujos de Trabajo** y **RAG** impulsado por Google Gemini.
 
-> **Este plugin es completamente gratuito.** Solo necesitas una clave API de Google Gemini (gratuita o de pago) de [ai.google.dev](https://ai.google.dev), o usar herramientas CLI: [Gemini CLI](https://github.com/google-gemini/gemini-cli), [Claude Code](https://github.com/anthropics/claude-code) o [Codex CLI](https://github.com/openai/codex).
+> **Este plugin es completamente gratuito.** Solo necesitas una clave API de Google Gemini (gratuita o de pago) de [ai.google.dev](https://ai.google.dev).
 
 ## Características Principales
 
@@ -18,32 +18,26 @@ Asistente de IA **gratuito y de código abierto** para Obsidian con **Chat**, **
 
 ![Generación de imágenes en el chat](docs/images/chat_image.png)
 
-## Opciones de Clave API / CLI
+## Clave API
 
-Este plugin requiere una clave API de Google Gemini o una herramienta CLI. Puedes elegir entre:
+Este plugin requiere una clave API de Google Gemini. Puedes elegir entre:
 
-| Característica | Clave API Gratuita | Clave API de Pago | CLI |
-|----------------|--------------------|--------------------|-----|
-| Chat básico | ✅ | ✅ | ✅ |
-| Operaciones en vault | ✅ | ✅ | Solo Lectura/Búsqueda |
-| Búsqueda Web | ✅ | ✅ | ❌ |
-| RAG | ✅ (limitado) | ✅ | ❌ |
-| Flujos de trabajo | ✅ | ✅ | ✅ |
-| Generación de imágenes | ❌ | ✅ | ❌ |
-| Modelos | Flash, Gemma | Flash, Pro, Image | Gemini CLI, Claude Code, Codex |
-| Costo | **Gratis** | Pago por uso | **Gratis** |
-
-> [!TIP]
-> ¡Las **Opciones CLI** te permiten usar modelos de última generación solo con una cuenta - sin necesidad de clave API!
-> - **Gemini CLI**: Instala [Gemini CLI](https://github.com/google-gemini/gemini-cli), ejecuta `gemini` y autentícate con `/auth`
-> - **Claude CLI**: Instala [Claude Code](https://github.com/anthropics/claude-code) (`npm install -g @anthropic-ai/claude-code`), ejecuta `claude` y autentícate
-> - **Codex CLI**: Instala [Codex CLI](https://github.com/openai/codex) (`npm install -g @openai/codex`), ejecuta `codex` y autentícate
+| Característica | Clave API Gratuita | Clave API de Pago |
+|----------------|--------------------|--------------------|
+| Chat básico | ✅ | ✅ |
+| Operaciones en vault | ✅ | ✅ |
+| Búsqueda Web | ✅ | ✅ |
+| RAG | ✅ (limitado) | ✅ |
+| Flujos de trabajo | ✅ | ✅ |
+| Generación de imágenes | ❌ | ✅ |
+| Modelos | Flash, Gemma | Flash, Pro, Image |
+| Costo | **Gratis** | Pago por uso |
 
 ### Consejos para la Clave API Gratuita
 
 - Los **límites de frecuencia** son por modelo y se reinician diariamente. Cambia de modelo para continuar trabajando.
 - La **sincronización RAG** es limitada. Ejecuta "Sync Vault" diariamente - los archivos ya subidos se omiten.
-- Los **modelos Gemma** y **Gemini CLI** no soportan operaciones en el vault en Chat, pero **los Flujos de Trabajo aún pueden leer/escribir notas** usando los tipos de nodo `note`, `note-read` y otros. Las variables `{content}` y `{selection}` también funcionan.
+- Los **modelos Gemma** no soportan operaciones en el vault en Chat, pero **los Flujos de Trabajo aún pueden leer/escribir notas** usando los tipos de nodo `note`, `note-read` y otros. Las variables `{content}` y `{selection}` también funcionan.
 
 ---
 
@@ -79,11 +73,11 @@ Referencia archivos y variables escribiendo `@`:
 > Tanto `{selection}` como `{content}` **no se expanden** intencionalmente en el área de entrada—dado que la entrada del chat es compacta, expandir texto largo dificultaría la escritura. El contenido se expande cuando envías el mensaje, lo cual puedes verificar revisando tu mensaje enviado en el chat.
 
 > [!NOTE]
-> Las menciones @ de archivos del vault insertan solo la ruta del archivo - la IA lee el contenido mediante herramientas. Esto no funciona con modelos Gemma (sin soporte de herramientas del vault). Gemini CLI puede leer archivos a través de shell, pero el formato de respuesta puede diferir.
+> Las menciones @ de archivos del vault insertan solo la ruta del archivo - la IA lee el contenido mediante herramientas. Esto no funciona con modelos Gemma (sin soporte de herramientas del vault).
 
 ## Archivos Adjuntos
 
-Adjunta archivos directamente: Imágenes (PNG, JPEG, GIF, WebP), PDFs, Archivos de texto
+Adjunta archivos directamente: Imágenes (PNG, JPEG, GIF, WebP), PDFs, Archivos de texto, Audio (MP3, WAV, FLAC, AAC, Opus, OGG), Video (MP4, WebM, MOV, AVI, MKV)
 
 ## Llamada a Funciones (Operaciones en el Vault)
 
@@ -126,17 +120,16 @@ Cuando la IA maneja notas en el Chat, usa herramientas del Vault. Controla qué 
 
 | Condición | Modo Predeterminado | Modificable |
 |-----------|---------------------|-------------|
-| Modelos CLI (Gemini/Claude/Codex CLI) | Vault: Desactivado | No |
 | Modelos Gemma | Vault: Desactivado | No |
 | Web Search habilitado | Vault: Desactivado | No |
-| RAG habilitado | Vault: Desactivado | No |
+| RAG en servidor habilitado | Vault: Desactivado | No |
 | Sin RAG | Vault: Todo | Sí |
 
 **Por qué algunos modos son forzados:**
 
-- **Modelos CLI/Gemma**: Estos modelos no soportan llamadas a funciones, por lo que las herramientas del Vault no se pueden usar.
+- **Modelos Gemma**: Estos modelos no soportan llamadas a funciones, por lo que las herramientas del Vault no se pueden usar.
 - **Web Search**: Por diseño, las herramientas del Vault están deshabilitadas cuando Web Search está habilitado.
-- **RAG habilitado**: La API de Gemini no soporta combinar File Search (RAG) con llamadas a funciones. Cuando RAG está habilitado, las herramientas del Vault y MCP se deshabilitan automáticamente.
+- **RAG en servidor habilitado**: La API de Gemini no soporta combinar File Search (RAG) con llamadas a funciones. Cuando el RAG en servidor está habilitado, las herramientas del Vault y MCP se deshabilitan automáticamente.
 
 ## Edición Segura
 
@@ -195,9 +188,10 @@ El historial de edición usa un enfoque basado en instantáneas:
 
 Generación Aumentada por Recuperación para búsqueda inteligente en el vault:
 
-- **Archivos soportados** - Markdown, PDF, Imágenes (PNG, JPEG, GIF, WebP)
+- **Archivos soportados** - Markdown, PDF, Documentos de Office (Doc, Docx, XLS, XLSX, PPTX)
 - **Modo interno** - Sincroniza archivos del vault con Google File Search
 - **Modo externo** - Usa IDs de almacenes existentes
+- **Modo local** - Embedding local usando la API de Embedding de Gemini (compatible con herramientas del Vault y MCP)
 - **Sincronización incremental** - Solo sube archivos modificados
 - **Carpetas objetivo** - Especifica carpetas a incluir
 - **Patrones de exclusión** - Patrones regex para excluir archivos
@@ -258,7 +252,6 @@ Extienda las capacidades de la IA con instrucciones personalizadas, materiales d
 - **Materiales de referencia** - Incluya guías de estilo, plantillas y listas de verificación en `references/`
 - **Integración con flujos de trabajo** - Los skills pueden exponer flujos de trabajo como herramientas de Function Calling
 - **Comando slash** - Escriba `/folder-name` para invocar un skill al instante y enviar
-- **Soporte modo CLI** - Los skills funcionan con los backends Gemini CLI, Claude CLI y Codex CLI
 - **Activación selectiva** - Elija qué skills están activos por conversación
 
 Cree skills de la misma manera que los workflows — seleccione **+ New (AI)**, marque **"Crear como agent skill"** y describa lo que desea. La AI genera tanto las instrucciones del `SKILL.md` como el workflow.
@@ -462,64 +455,6 @@ npm run build
 3. Selecciona el plan de API (Gratuito/De Pago)
 
 ![Configuración Básica](docs/images/setting_basic.png)
-
-### Modo CLI (Gemini / Claude / Codex)
-
-**Gemini CLI:**
-1. Instala [Gemini CLI](https://github.com/google-gemini/gemini-cli)
-2. Autentícate con `gemini` → `/auth`
-3. Haz clic en "Verify" en la sección Gemini CLI
-
-**Claude CLI:**
-1. Instala [Claude Code](https://github.com/anthropics/claude-code): `npm install -g @anthropic-ai/claude-code`
-2. Autentícate con `claude`
-3. Haz clic en "Verify" en la sección Claude CLI
-
-**Codex CLI:**
-1. Instala [Codex CLI](https://github.com/openai/codex): `npm install -g @openai/codex`
-2. Autentícate con `codex`
-3. Haz clic en "Verify" en la sección Codex CLI
-
-**Limitaciones de CLI:** Operaciones de vault solo lectura, sin búsqueda semántica/web
-
-> [!NOTE]
-> **Uso solo con CLI:** Puedes usar el modo CLI sin una clave API de Google. Solo instala y verifica una herramienta CLI, no se requiere clave API.
-
-**Ruta CLI personalizada:** Si la detección automática de CLI falla, haz clic en el icono de engranaje (⚙️) junto al botón Verify para especificar manualmente la ruta del CLI. El plugin busca automáticamente rutas de instalación comunes, incluyendo gestores de versiones (nodenv, nvm, volta, fnm, asdf, mise).
-
-<details>
-<summary><b>Windows: Cómo encontrar la ruta del CLI</b></summary>
-
-1. Abre PowerShell y ejecuta:
-   ```powershell
-   Get-Command gemini
-   ```
-2. Esto muestra la ruta del script (ej: `C:\Users\YourName\AppData\Roaming\npm\gemini.ps1`)
-3. Navega desde la carpeta `npm` hasta el `index.js` real:
-   ```
-   C:\Users\YourName\AppData\Roaming\npm\node_modules\@google\gemini-cli\dist\index.js
-   ```
-4. Ingresa esta ruta completa en la configuración de ruta del CLI
-
-Para Claude CLI, usa `Get-Command claude` y navega a `node_modules\@anthropic-ai\claude-code\dist\index.js`.
-</details>
-
-<details>
-<summary><b>macOS / Linux: Cómo encontrar la ruta del CLI</b></summary>
-
-1. Abre un terminal y ejecuta:
-   ```bash
-   which gemini
-   ```
-2. Ingresa la ruta mostrada (ej: `/home/user/.local/bin/gemini`) en la configuración de ruta del CLI
-
-Para Claude CLI, usa `which claude`. Para Codex CLI, usa `which codex`.
-
-**Gestores de versiones Node.js:** Si usas nodenv, nvm, volta, fnm, asdf o mise, el plugin detecta automáticamente el binario de node desde ubicaciones comunes. Si la detección falla, especifica la ruta del script CLI directamente (ej: `~/.npm-global/lib/node_modules/@google/gemini-cli/dist/index.js`).
-</details>
-
-> [!TIP]
-> **Consejo de Claude CLI:** Las sesiones de chat de Gemini Helper se almacenan localmente. Puedes continuar las conversaciones fuera de Obsidian ejecutando `claude --resume` en el directorio de tu vault para ver y reanudar sesiones anteriores.
 
 ### Configuración del Espacio de Trabajo
 - **Workspace Folder** - Ubicación del historial de chat y configuración
@@ -795,8 +730,8 @@ Edita flujos de trabajo directamente en el editor visual de nodos con interfaz d
 ## Requisitos
 
 - Obsidian v0.15.0+
-- Clave API de Google AI, o herramienta CLI (Gemini CLI / Claude CLI / Codex CLI)
-- Soporte para escritorio y móvil (modo CLI: solo escritorio)
+- Clave API de Google AI
+- Soporte para escritorio y móvil
 
 ## Privacidad
 
@@ -814,24 +749,9 @@ Edita flujos de trabajo directamente en el editor visual de nodos con interfaz d
 **Datos enviados a servicios de terceros:**
 - Los nodos `http` de flujos de trabajo pueden enviar datos a cualquier URL especificada en el flujo de trabajo
 
-**Proveedores CLI (opcional):**
-- Cuando el modo CLI está habilitado, se ejecutan herramientas CLI externas (gemini, claude, codex) a través de child_process
-- Esto solo ocurre cuando está explícitamente configurado y verificado por el usuario
-- El modo CLI es solo para escritorio (no disponible en móvil)
-
 **Servidores MCP (opcional):**
 - Los servidores MCP (Model Context Protocol) pueden configurarse en los ajustes del plugin para nodos `mcp` de workflows
 - Los servidores MCP son servicios externos que proporcionan herramientas y capacidades adicionales
-
-**Sincronización con Google Drive a través de GemiHub (opcional):**
-- Cuando la sincronización con Google Drive está habilitada, los archivos del vault se suben a su propia cuenta de Google Drive
-- Endpoints de red utilizados:
-  - `https://www.googleapis.com/drive/v3` — metadatos de archivos y operaciones de sincronización
-  - `https://www.googleapis.com/upload/drive/v3` — subida de archivos
-  - `https://gemihub.online/api/obsidian/token` — actualización de tokens OAuth (ver abajo)
-- **Flujo de actualización de tokens:** Su token de actualización cifrado se envía al proxy GemiHub, que añade el secreto del cliente OAuth y reenvía la solicitud al endpoint de tokens de Google. El proxy es necesario porque los secretos del cliente OAuth no pueden integrarse de forma segura en código del lado del cliente. El proxy no almacena ni registra tokens. Ver [Política de privacidad de GemiHub](https://gemihub.online/privacy).
-- Los datos de autenticación cifrados (RSA + AES-256-GCM) se almacenan en la configuración del plugin; la contraseña de descifrado nunca se transmite
-- No se envía contenido del vault a GemiHub — los archivos se sincronizan directamente entre Obsidian y la API de Google Drive
 
 **Notas de seguridad:**
 - Revisa los flujos de trabajo antes de ejecutarlos - los nodos `http` pueden transmitir datos del vault a endpoints externos
@@ -844,30 +764,6 @@ Consulta los [Términos de Servicio de Google AI](https://ai.google.dev/terms) p
 ## Licencia
 
 MIT
-
-## Funciones Experimentales
-
-### Google Drive Sync (GemiHub Connection)
-
-Sincroniza tu vault de Obsidian con Google Drive a través de [GemiHub](https://gemihub.online). Edita notas en Obsidian y accede a ellas desde la interfaz web de GemiHub, o viceversa.
-
-![Drive Sync Unlock](docs/images/gemihub_connection/start_with_sync.png)
-
-**Funciones exclusivas de GemiHub** (no disponibles en el plugin de Obsidian):
-
-- **Automatic RAG** - Los archivos sincronizados con GemiHub se indexan automáticamente para búsqueda semántica en cada sincronización, sin necesidad de configuración manual
-- **OAuth2-enabled MCP** - Usa servidores MCP que requieren autenticación OAuth2 (ej., Google Calendar, Gmail, Google Docs)
-- **Conversión de Markdown a PDF/HTML** - Convierte tus notas Markdown a documentos PDF o HTML formateados
-- **Publicación pública** - Publica documentos HTML/PDF convertidos con una URL pública compartible
-
-**Funciones añadidas a Obsidian a través de la conexión:**
-
-- **Sincronización bidireccional con vista previa de diff** - Push y pull de archivos con una lista detallada de archivos y vista de diff unificado antes de confirmar los cambios
-- **Resolución de conflictos con diff** - Cuando el mismo archivo se edita en ambos lados, resuelve conflictos con un diff unificado con código de colores
-- **Historial de edición en Drive** - Rastrea cambios realizados desde Obsidian y GemiHub, con historial por archivo mostrando el origen (local/remoto)
-- **Gestión de copias de seguridad de conflictos** - Navega, previsualiza y restaura copias de seguridad de conflictos almacenadas en Drive
-
-> **Configuración:** Consulta la [Guía de Conexión GemiHub](docs/GEMIHUB_CONNECTION.md) para instrucciones de configuración.
 
 ## Enlaces
 

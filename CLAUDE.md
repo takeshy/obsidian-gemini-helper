@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Obsidian plugin for Google Gemini AI with Chat, Workflow Automation, and Semantic Search (RAG). Uses `@google/genai` SDK. Supports alternative CLI backends (Gemini CLI, Claude CLI, Codex CLI).
+Obsidian plugin for Google Gemini AI with Chat, Workflow Automation, and Semantic Search (RAG). Uses `@google/genai` SDK. API-only (no CLI backends or local LLM support).
 
 ## Build Commands
 
@@ -39,11 +39,6 @@ This runs `version-bump.mjs` which updates `package.json`, `manifest.json`, and 
   - `FileSearchManager` - Handles store creation, file sync, deletion
   - `smartSync()` - Checksum-based incremental sync with parallel uploads
 - **tools.ts** - Function calling tool definitions (13 tools for vault operations)
-- **cliProvider.ts** - CLI backend abstraction for Gemini/Claude/Codex CLIs
-  - `CliProviderManager` - Manages CLI provider instances
-  - Uses `child_process.spawn` with `shell: false` for security
-  - `findNodeBinary()` - Resolves node path from version managers (nodenv, nvm, volta, fnm, asdf, mise)
-  - Custom CLI paths execute via `node <path>` to avoid shebang/PATH issues
 - **mcpClient.ts** - MCP (Model Context Protocol) client for external tool servers
   - Implements Streamable HTTP transport with JSON-RPC
 
@@ -161,5 +156,4 @@ When adding a new workflow node type, **ALL** of the following files must be upd
 - Obsidian API accessed via `app.vault` (files) and `app.workspace` (UI)
 - React components rendered inside Obsidian's ItemView
 - File attachments converted to Base64 and sent as `inlineData` parts
-- CLI providers dynamically import `child_process` (unavailable on mobile)
-- Desktop and mobile supported; CLI mode is desktop-only
+- Desktop and mobile supported

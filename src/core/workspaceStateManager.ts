@@ -1,4 +1,4 @@
-import { App, Notice, Platform } from "obsidian";
+import { App, Notice } from "obsidian";
 import type { EventEmitter } from "../utils/EventEmitter";
 import {
   type GeminiHelperSettings,
@@ -232,27 +232,6 @@ export class WorkspaceStateManager {
   getSelectedModel(): ModelType {
     const defaultModel = getDefaultModelForPlan(this.settings.apiPlan);
     const selected = this.workspaceState.selectedModel || defaultModel;
-
-    // CLI models are only allowed on desktop if verified
-    const cliConfig = this.settings.cliConfig;
-    if (selected === "gemini-cli") {
-      if (Platform.isMobile || !cliConfig?.cliVerified) {
-        return defaultModel;
-      }
-      return selected;
-    }
-    if (selected === "claude-cli") {
-      if (Platform.isMobile || !cliConfig?.claudeCliVerified) {
-        return defaultModel;
-      }
-      return selected;
-    }
-    if (selected === "codex-cli") {
-      if (Platform.isMobile || !cliConfig?.codexCliVerified) {
-        return defaultModel;
-      }
-      return selected;
-    }
 
     return isModelAllowedForPlan(this.settings.apiPlan, selected)
       ? selected

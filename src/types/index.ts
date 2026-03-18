@@ -73,10 +73,9 @@ export type VaultToolMode = "all" | "noSearch" | "none";
 // Reason why vault tools are set to "none"
 // "manual" = user manually turned off (MCP servers remain unchanged)
 // "rag" = RAG enabled (fileSearch + functionDeclarations not supported, MCP servers also disabled)
-// "cli" = CLI mode (MCP servers also disabled)
 // "gemma" = Gemma model (no function calling support, MCP servers also disabled)
 // "websearch" = Web search mode (MCP servers also disabled)
-export type VaultToolNoneReason = "manual" | "rag" | "cli" | "gemma" | "websearch";
+export type VaultToolNoneReason = "manual" | "rag" | "gemma" | "websearch";
 
 // Slash command definition
 export interface SlashCommand {
@@ -95,9 +94,6 @@ export interface SlashCommand {
 export interface GeminiHelperSettings {
   googleApiKey: string;
   apiPlan: ApiPlan;
-
-  // CLI provider settings
-  cliConfig: CliProviderConfig;
 
   // RAG settings
   ragEnabled: boolean;
@@ -141,8 +137,6 @@ export interface GeminiHelperSettings {
   // Last selected workflow path in Run Workflow modal
   lastSelectedWorkflowPath?: string;
 
-  // Google Drive Sync
-  driveSync: DriveSyncSettings;
 }
 
 // Edit history settings
@@ -264,29 +258,6 @@ export type RagSyncState = Pick<RagState, "files" | "lastFullSync">;
 
 export type ApiPlan = "paid" | "free";
 
-// Chat provider types
-export type ChatProvider = "api" | "gemini-cli" | "claude-cli" | "codex-cli";
-
-export interface CliProviderConfig {
-  cliVerified?: boolean;        // Whether Gemini CLI has been verified
-  claudeCliVerified?: boolean;  // Whether Claude CLI has been verified
-  codexCliVerified?: boolean;   // Whether Codex CLI has been verified
-  geminiCliPath?: string;       // Custom path for Gemini CLI
-  claudeCliPath?: string;       // Custom path for Claude CLI
-  codexCliPath?: string;        // Custom path for Codex CLI
-}
-
-export const DEFAULT_CLI_CONFIG: CliProviderConfig = {
-  cliVerified: false,
-  claudeCliVerified: false,
-  codexCliVerified: false,
-};
-
-// Helper to check if any CLI is verified
-export function hasVerifiedCli(config: CliProviderConfig): boolean {
-  return !!(config.cliVerified || config.claudeCliVerified || config.codexCliVerified);
-}
-
 // Model types (includes both chat and image generation models)
 export type ModelType =
   | "gemini-2.5-flash"
@@ -301,40 +272,14 @@ export type ModelType =
   | "gemma-3-27b-it"
   | "gemma-3-12b-it"
   | "gemma-3-4b-it"
-  | "gemma-3-1b-it"
-  | "gemini-cli"
-  | "claude-cli"
-  | "codex-cli";
+  | "gemma-3-1b-it";
 
 export interface ModelInfo {
   name: ModelType;
   displayName: string;
   description: string;
   isImageModel?: boolean;  // true if this model is for image generation
-  isCliModel?: boolean;    // true if this model is CLI-based
 }
-
-// CLI model definitions
-export const CLI_MODEL: ModelInfo = {
-  name: "gemini-cli",
-  displayName: "Gemini CLI",
-  description: "Google Gemini via command line (requires Google account)",
-  isCliModel: true,
-};
-
-export const CLAUDE_CLI_MODEL: ModelInfo = {
-  name: "claude-cli",
-  displayName: "Claude CLI",
-  description: "Anthropic Claude via command line (requires Anthropic account)",
-  isCliModel: true,
-};
-
-export const CODEX_CLI_MODEL: ModelInfo = {
-  name: "codex-cli",
-  displayName: "Codex CLI",
-  description: "OpenAI Codex via command line (requires OpenAI account)",
-  isCliModel: true,
-};
 
 export const PAID_MODELS: ModelInfo[] = [
   {
@@ -585,14 +530,13 @@ export interface StreamChunkUsage {
 
 // Streaming chunk types
 export interface StreamChunk {
-  type: "text" | "thinking" | "tool_call" | "tool_result" | "error" | "done" | "rag_used" | "web_search_used" | "image_generated" | "session_id";
+  type: "text" | "thinking" | "tool_call" | "tool_result" | "error" | "done" | "rag_used" | "web_search_used" | "image_generated";
   content?: string;
   toolCall?: ToolCall;
   toolResult?: ToolResult;
   error?: string;
   ragSources?: string[];  // RAG検索で見つかったソースファイル
   generatedImage?: GeneratedImage;  // 生成された画像
-  sessionId?: string;  // CLI session ID for resumption
   usage?: StreamChunkUsage;  // Token usage and cost (populated on "done" chunks)
 }
 
@@ -620,42 +564,6 @@ export const DEFAULT_SLASH_COMMANDS: SlashCommand[] = [
   },
 ];
 
-// Google Drive Sync settings
-export interface DriveSyncSettings {
-  enabled: boolean;
-  encryptedAuth: DriveEncryptedAuth | null;  // Persisted encrypted auth from GemiHub
-  excludePatterns: string[];
-  autoSync: boolean;
-  syncIntervalMinutes: number;
-  rootFolderName: string;
-}
-
-// Persisted: RSA hybrid encrypted auth from GemiHub
-export interface DriveEncryptedAuth {
-  data: string;                // RSA hybrid encrypted {refreshToken, apiOrigin}
-  encryptedPrivateKey: string; // PBKDF2+AES-GCM encrypted RSA private key
-  salt: string;                // PBKDF2 salt
-  rootFolderId: string;
-}
-
-// Session-only: decrypted tokens kept in memory (never persisted)
-export interface DriveSessionTokens {
-  accessToken: string;
-  refreshToken: string;
-  apiOrigin: string;   // GemiHub server URL for token refresh proxy
-  expiryTime: number;
-  rootFolderId: string;
-}
-
-export const DEFAULT_DRIVE_SYNC_SETTINGS: DriveSyncSettings = {
-  enabled: false,
-  encryptedAuth: null,
-  excludePatterns: ["node_modules/"],
-  autoSync: false,
-  syncIntervalMinutes: 5,
-  rootFolderName: "gemihub",
-};
-
 /** Fixed workspace folder name (not user-configurable). */
 export const WORKSPACE_FOLDER = "GeminiHelper";
 /** Fixed skills folder name. */
@@ -667,7 +575,6 @@ export const WORKFLOWS_FOLDER = "workflows";
 export const DEFAULT_SETTINGS: GeminiHelperSettings = {
   googleApiKey: "",
   apiPlan: "paid",
-  cliConfig: DEFAULT_CLI_CONFIG,
   ragEnabled: false,
   ragTopK: 5,  // Default: retrieve 5 chunks
   hideWorkspaceFolder: true,
@@ -688,6 +595,4 @@ export const DEFAULT_SETTINGS: GeminiHelperSettings = {
   encryption: DEFAULT_ENCRYPTION_SETTINGS,
   // Langfuse
   langfuse: DEFAULT_LANGFUSE_SETTINGS,
-  // Google Drive Sync
-  driveSync: DEFAULT_DRIVE_SYNC_SETTINGS,
 };

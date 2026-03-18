@@ -152,27 +152,20 @@ export function reverseApplyDiff(content: string, diffStr: string, options?: { s
   return result.content;
 }
 
-export type DiffWithOrigin = { diff: string; origin: "local" | "remote" };
-
 /**
- * Reconstruct file content at a specific point in merged history.
+ * Reconstruct file content at a specific point in history.
  *
  * @param currentContent - Current file content (snapshot or vault read)
  * @param entriesToReverse - Entries to reverse-apply, ordered newest-first.
- *   Local diffs: reverse direction (new → old) — apply directly.
- *   Remote diffs: forward direction (old → new) — reverse then apply.
+ *   Diffs are stored in reverse direction (new → old) — apply directly.
  */
 export function reconstructContent(
   currentContent: string,
-  entriesToReverse: DiffWithOrigin[]
+  entriesToReverse: { diff: string }[]
 ): string {
   let content = currentContent;
   for (const entry of entriesToReverse) {
-    if (entry.origin === "remote") {
-      content = reverseApplyDiff(content, entry.diff);
-    } else {
-      content = applyDiff(content, entry.diff);
-    }
+    content = applyDiff(content, entry.diff);
   }
   return content;
 }

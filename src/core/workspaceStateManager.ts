@@ -13,7 +13,7 @@ import {
   isModelAllowedForPlan,
   getDefaultModelForPlan,
 } from "../types";
-import { getFileSearchManager, type SyncResult } from "./fileSearch";
+import { getFileSearchManager } from "./fileSearch";
 import { formatError } from "../utils/error";
 
 const WORKSPACE_STATE_FILENAME = "gemini-workspace.json";
@@ -332,136 +332,6 @@ export class WorkspaceStateManager {
   getVaultStoreName(): string {
     const vaultName = this.app.vault.getName();
     return `obsidian-${vaultName}`;
-  }
-
-  // Sync vault files for RAG
-  async syncVaultForRAG(
-    ragSettingName?: string,
-    onProgress?: (
-      current: number,
-      total: number,
-      fileName: string,
-      action: "upload" | "skip" | "delete"
-    ) => void
-  ): Promise<SyncResult | null> {
-    const fileSearchManager = getFileSearchManager();
-
-    if (!fileSearchManager) {
-      new Notice("File search manager not initialized. Please set API key.");
-      return null;
-    }
-
-    if (!this.settings.ragEnabled) {
-      new Notice("Semantic search is not enabled. Enable it in settings first.");
-      return null;
-    }
-
-    // Determine which RAG setting to sync
-    const settingName = ragSettingName || this.workspaceState.selectedRagSetting;
-    if (!settingName) {
-      new Notice("No semantic search setting selected. Please select or create a semantic search setting first.");
-      return null;
-    }
-
-    const ragSetting = this.workspaceState.ragSettings[settingName];
-    if (!ragSetting) {
-      new Notice(`Semantic search setting "${settingName}" not found.`);
-      return null;
-    }
-
-    // Ensure a new setting doesn't inherit a previous store
-    if (!ragSetting.storeId) {
-      fileSearchManager.setStoreName(null);
-    }
-
-    // External stores cannot be synced
-    if (ragSetting.isExternal) {
-      new Notice("Cannot sync external semantic search store. Only internal stores can be synced.");
-      return null;
-    }
-
-    try {
-      // Get or create store with setting-specific name
-      const storeName = ragSetting.storeName || `${this.getVaultStoreName()}-${settingName}`;
-      const storeId = await fileSearchManager.getOrCreateStore(storeName);
-
-      // If store ID changed, clear files to force re-upload
-      let currentSyncState = { files: ragSetting.files, lastFullSync: ragSetting.lastFullSync };
-      if (ragSetting.storeId && ragSetting.storeId !== storeId) {
-        // Store changed, need to re-upload all files
-        currentSyncState = { files: {}, lastFullSync: null };
-        new Notice("Store changed. Re-uploading all files...");
-      }
-
-      // Smart sync with checksum-based diff detection
-      const result = await fileSearchManager.smartSync(
-        currentSyncState,
-        {
-          includeFolders: ragSetting.targetFolders,
-          excludePatterns: ragSetting.excludePatterns,
-        },
-        (current, total, fileName, action) => {
-          onProgress?.(current, total, fileName, action);
-        }
-      );
-
-      // Save store ID and sync state
-      const finalStoreId = fileSearchManager.getStoreName();
-      this.workspaceState.ragSettings[settingName] = {
-        ...ragSetting,
-        storeId: finalStoreId,
-        storeName: storeName,
-        files: result.newSyncState.files,
-        lastFullSync: result.newSyncState.lastFullSync,
-      };
-      await this.saveWorkspaceState();
-      this.settingsEmitter.emit("workspace-state-loaded", this.workspaceState);
-
-      // Log summary
-      const summary = `Sync completed: ${result.uploaded.length} uploaded, ${result.skipped.length} skipped, ${result.deleted.length} deleted, ${result.errors.length} errors`;
-      new Notice(summary);
-
-      return result;
-    } catch (error) {
-      new Notice(`Sync failed: ${formatError(error)}`);
-      return null;
-    }
-  }
-
-  // Delete RAG store from server
-  async deleteRagStore(ragSettingName: string): Promise<void> {
-    const ragSetting = this.workspaceState.ragSettings[ragSettingName];
-    if (!ragSetting) {
-      throw new Error(`Semantic search setting "${ragSettingName}" not found`);
-    }
-
-    if (!ragSetting.storeId) {
-      throw new Error("No store ID to delete");
-    }
-
-    // External stores should not be deleted
-    if (ragSetting.isExternal) {
-      throw new Error("Cannot delete external store");
-    }
-
-    const fileSearchManager = getFileSearchManager();
-    if (!fileSearchManager) {
-      throw new Error("File Search Manager not initialized");
-    }
-
-    await fileSearchManager.deleteStore(ragSetting.storeId);
-
-    // Clear the setting's store info
-    this.workspaceState.ragSettings[ragSettingName] = {
-      ...ragSetting,
-      storeId: null,
-      storeName: null,
-      files: {},
-      lastFullSync: null,
-    };
-
-    await this.saveWorkspaceState();
-    this.settingsEmitter.emit("workspace-state-loaded", this.workspaceState);
   }
 
   // Legacy compatibility: ragState getter

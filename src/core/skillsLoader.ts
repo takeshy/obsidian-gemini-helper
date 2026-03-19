@@ -145,9 +145,8 @@ export async function loadSkill(app: App, metadata: SkillMetadata): Promise<Load
 /**
  * Build a system prompt section from loaded skills.
  */
-export function buildSkillSystemPrompt(skills: LoadedSkill[], options?: { cliMode?: boolean }): string {
+export function buildSkillSystemPrompt(skills: LoadedSkill[]): string {
   if (skills.length === 0) return "";
-  const isCli = options?.cliMode ?? false;
 
   const parts = skills.map(skill => {
     let section = `## Skill: ${skill.name}\n\n${skill.instructions}`;
@@ -155,11 +154,7 @@ export function buildSkillSystemPrompt(skills: LoadedSkill[], options?: { cliMod
       section += `\n\n### References\n\n${skill.references.join("\n\n")}`;
     }
     if (skill.workflows.length > 0) {
-      if (isCli) {
-        section += `\n\n### Available Workflows\nTo execute a workflow, output the following marker on its own line (do NOT wrap it in backticks or code blocks):\n[RUN_WORKFLOW: workflowId]({"key": "value"})\nThe JSON part is optional variables to pass. Available workflows:`;
-      } else {
-        section += `\n\n### Available Workflows\nUse the run_skill_workflow tool to execute these workflows:`;
-      }
+      section += `\n\n### Available Workflows\nUse the run_skill_workflow tool to execute these workflows:`;
       for (const wf of skill.workflows) {
         const id = buildWorkflowToolId(skill.name, wf);
         section += `\n- \`${id}\`: ${wf.description}`;

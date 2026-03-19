@@ -121,7 +121,6 @@ export function applyDiff(content: string, diff: string, options?: { strict?: bo
 /**
  * Reverse a diff (swap +/- and hunk header positions) then apply it
  * using content-matching.
- * Used for remote diffs which are stored in forward direction (old → new).
  * If strict is true, throws when any hunk fails to match.
  */
 export function reverseApplyDiff(content: string, diffStr: string, options?: { strict?: boolean }): string {

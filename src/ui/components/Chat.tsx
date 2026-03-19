@@ -1074,7 +1074,8 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 				const vaultToolNames = [
 					"read_note", "create_note", "propose_edit", "propose_delete",
 					"rename_note", "search_notes", "list_notes", "list_folders",
-					"create_folder", "get_active_note", "check_rag_sync"
+					"create_folder", "get_active_note_info", "get_rag_sync_status",
+					"bulk_propose_edit", "bulk_propose_rename", "bulk_propose_delete"
 				];
 				const searchToolNames = ["search_notes", "list_notes"];
 				const tools = allTools.filter(tool => {

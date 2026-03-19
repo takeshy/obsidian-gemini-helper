@@ -389,18 +389,6 @@ export class GeminiHelperPlugin extends Plugin {
     }
   }
 
-  /**
-   * Save a snapshot for the active file
-   */
-  private async saveSnapshotForActiveFile(): Promise<void> {
-    const activeFile = this.app.workspace.getActiveFile();
-    if (!activeFile) {
-      new Notice(t("editHistory.noActiveFile"));
-      return;
-    }
-    await this.saveSnapshotForFile(activeFile);
-  }
-
   private async restorePreviousVersion(filePath: string): Promise<void> {
     const historyManager = getEditHistoryManager();
     if (!historyManager) {

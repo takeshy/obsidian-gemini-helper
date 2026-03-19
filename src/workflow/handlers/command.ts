@@ -64,7 +64,7 @@ Please revise the output based on the user's feedback above.`;
     model = getDefaultModelForPlan(plugin.settings.apiPlan);
   }
 
-  if (!plugin.settings.googleApiKey && !modelName) {
+  if (!plugin.settings.googleApiKey) {
     throw new Error("No API key configured. Please set up a Google API key in settings.");
   }
 

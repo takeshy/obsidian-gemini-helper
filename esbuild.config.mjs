@@ -96,6 +96,8 @@ const context = await esbuild.context({
     "debug": "./debug-stub.js",
     // Use browser version of @google/genai for mobile compatibility
     "@google/genai": "@google/genai/web",
+    // Use ESM version of lucide-react to enable tree-shaking (CJS barrel bundles all icons)
+    "lucide-react": "lucide-react/dist/esm/lucide-react.js",
   },
   define: {
     "process.env.NODE_ENV": JSON.stringify(prod ? "production" : "development"),

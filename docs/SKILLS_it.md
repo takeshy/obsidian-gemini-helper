@@ -109,9 +109,7 @@ I workflow degli skill vengono eseguiti con modali interattive (come nel pannell
 
 ### Configurazione
 
-1. Apri le impostazioni del plugin
-2. Trova la sezione **Skill dell'agente**
-3. Imposta il percorso della cartella degli skill (predefinito: `skills`)
+1. Crea una cartella `skills` nella radice del tuo vault
 
 ### Attivazione degli Skill
 
@@ -136,10 +134,6 @@ Puoi invocare uno skill direttamente digitando `/folder-name` nell'input della c
 - L'autocompletamento mostra gli skill disponibili mentre digiti `/`. La selezione invia immediatamente.
 
 Il nome della cartella (non il nome visualizzato dello skill) viene usato come comando — ad esempio, uno skill in `skills/weekly-report/` viene invocato con `/weekly-report`.
-
-### Supporto Modalità CLI
-
-Gli skill funzionano anche con i backend CLI (Gemini CLI, Claude CLI, Codex CLI). Poiché i provider CLI non supportano il Function Calling, i workflow degli skill utilizzano una convenzione testuale: l'IA emette un marcatore `[RUN_WORKFLOW: workflowId]`, e il plugin esegue automaticamente il workflow e mostra il risultato.
 
 ### Esempio: Creare uno Skill
 
@@ -403,9 +397,3 @@ nodes:
 Utilizzo: Attiva lo skill e di' "Crea le note della riunione per la revisione del design con Alice, Bob e Carol" — l'IA esegue il workflow con argomento/partecipanti, crea una nota strutturata e la apre.
 
 ---
-
-## Impostazioni
-
-| Impostazione | Predefinito | Descrizione |
-|-------------|-------------|-------------|
-| Cartella degli skill | `skills` | Percorso della cartella degli skill nel tuo vault |

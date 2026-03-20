@@ -109,9 +109,7 @@ Los flujos de trabajo de skills se ejecutan con modales interactivos (igual que 
 
 ### Configuración
 
-1. Abre la configuración del plugin
-2. Busca la sección **Skills de agente**
-3. Establece la ruta de la carpeta de skills (por defecto: `skills`)
+1. Crea una carpeta `skills` en la raíz de tu vault
 
 ### Activación de Skills
 
@@ -136,10 +134,6 @@ Puede invocar un skill directamente escribiendo `/folder-name` en la entrada del
 - El autocompletado muestra los skills disponibles al escribir `/`. Seleccionar del autocompletado envía inmediatamente.
 
 Se usa el nombre de la carpeta (no el nombre de visualización del skill) como comando — por ejemplo, un skill en `skills/weekly-report/` se invoca con `/weekly-report`.
-
-### Soporte de Modo CLI
-
-Los skills también funcionan con backends CLI (Gemini CLI, Claude CLI, Codex CLI). Dado que los proveedores CLI no admiten Function Calling, los flujos de trabajo de skills utilizan una convención basada en texto: la IA emite un marcador `[RUN_WORKFLOW: workflowId]`, y el plugin ejecuta automáticamente el flujo de trabajo y muestra el resultado.
 
 ### Ejemplo: Crear un Skill
 
@@ -403,9 +397,3 @@ nodes:
 Uso: Activa el skill y di "Crea notas de reunión para la revisión de diseño con Alice, Bob y Carol" — la IA ejecuta el flujo de trabajo con tema/asistentes, crea una nota estructurada y la abre.
 
 ---
-
-## Configuración
-
-| Opción | Valor por defecto | Descripción |
-|--------|-------------------|-------------|
-| Carpeta de skills | `skills` | Ruta a la carpeta de skills en tu vault |

@@ -122,14 +122,14 @@ Lorsque l'IA gère des notes dans le Chat, elle utilise les outils du Vault. Con
 |-----------|-----------------|------------|
 | Modèles Gemma | Vault: Désactivé | Non |
 | Web Search activé | Vault: Désactivé | Non |
-| RAG serveur activé | Vault: Désactivé | Non |
+| RAG activé | Vault: Désactivé | Non |
 | Sans RAG | Vault: Tous | Oui |
 
 **Pourquoi certains modes sont forcés :**
 
 - **Modèles Gemma** : Ces modèles ne prennent pas en charge les appels de fonction, donc les outils Vault ne peuvent pas être utilisés.
 - **Web Search** : Par conception, les outils Vault sont désactivés lorsque Web Search est activé.
-- **RAG serveur activé** : L'API Gemini ne prend pas en charge la combinaison de File Search (RAG) avec les appels de fonction. Lorsque le RAG serveur est activé, les outils Vault et MCP sont automatiquement désactivés.
+- **RAG activé** : L'API Gemini ne prend pas en charge la combinaison de File Search (RAG) avec les appels de fonction. Lorsque le RAG est activé, les outils Vault et MCP sont automatiquement désactivés.
 
 ## Édition Sécurisée
 
@@ -191,7 +191,6 @@ Génération Augmentée par Récupération pour une recherche intelligente dans 
 - **Fichiers supportés** - Markdown, PDF, Documents Office (Doc, Docx, XLS, XLSX, PPTX)
 - **Mode interne** - Synchroniser les fichiers du coffre vers Google File Search
 - **Mode externe** - Utiliser des IDs de store existants
-- **Mode local** - Embedding local avec l'API Gemini Embedding (compatible avec les outils Vault et MCP)
 - **Synchronisation incrémentale** - Uploader uniquement les fichiers modifiés
 - **Dossiers cibles** - Spécifier les dossiers à inclure
 - **Patterns d'exclusion** - Patterns regex pour exclure des fichiers
@@ -457,7 +456,6 @@ npm run build
 ![Paramètres de Base](docs/images/setting_basic.png)
 
 ### Paramètres de l'Espace de Travail
-- **Dossier de l'Espace de Travail** - Emplacement de l'historique de chat et des paramètres
 - **Prompt Système** - Instructions additionnelles pour l'IA
 - **Limites d'Outils** - Contrôler les limites d'appels de fonctions
 - **Historique d'Édition** - Suivez et restaurez les modifications faites par l'IA

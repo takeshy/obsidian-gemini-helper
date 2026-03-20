@@ -122,14 +122,14 @@ Wenn die KI Notizen im Chat verarbeitet, verwendet sie Vault-Tools. Steuern Sie,
 |-----------|---------------|----------|
 | Gemma-Modelle | Vault: Aus | Nein |
 | Web Search aktiviert | Vault: Aus | Nein |
-| Server RAG aktiviert | Vault: Aus | Nein |
+| RAG aktiviert | Vault: Aus | Nein |
 | Kein RAG | Vault: Alle | Ja |
 
 **Warum einige Modi erzwungen werden:**
 
 - **Gemma-Modelle**: Diese Modelle unterstützen keine Funktionsaufrufe, daher können Vault-Tools nicht verwendet werden.
 - **Web Search**: Gemäß Design sind Vault-Tools deaktiviert, wenn Web Search aktiviert ist.
-- **Server RAG aktiviert**: Die Gemini API unterstützt nicht die Kombination von File Search (RAG) mit Funktionsaufrufen. Bei aktiviertem Server RAG werden Vault-Tools und MCP automatisch deaktiviert.
+- **RAG aktiviert**: Die Gemini API unterstützt nicht die Kombination von File Search (RAG) mit Funktionsaufrufen. Bei aktiviertem RAG werden Vault-Tools und MCP automatisch deaktiviert.
 
 ## Sicheres Bearbeiten
 
@@ -191,7 +191,6 @@ Retrieval-Augmented Generation für intelligente Vault-Suche:
 - **Unterstützte Dateien** - Markdown, PDF, Office-Dokumente (Doc, Docx, XLS, XLSX, PPTX)
 - **Interner Modus** - Vault-Dateien mit Google File Search synchronisieren
 - **Externer Modus** - Bestehende Store-IDs verwenden
-- **Lokaler Modus** - Lokale Einbettung mit Gemini Embedding API (kompatibel mit Vault-Tools und MCP)
 - **Inkrementelle Synchronisierung** - Nur geänderte Dateien hochladen
 - **Zielordner** - Ordner zum Einschließen angeben
 - **Ausschlussmuster** - Regex-Muster zum Ausschließen von Dateien
@@ -458,7 +457,6 @@ npm run build
 ![Grundeinstellungen](docs/images/setting_basic.png)
 
 ### Workspace-Einstellungen
-- **Workspace Folder** - Speicherort für Chat-Verlauf und Einstellungen
 - **System Prompt** - Zusätzliche KI-Anweisungen
 - **Tool Limits** - Steuerung der Function-Call-Limits
 - **Edit History** - Verfolgen und Wiederherstellen von KI-Änderungen

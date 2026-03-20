@@ -109,9 +109,7 @@ Os fluxos de trabalho de skills são executados com modais interativos (igual ao
 
 ### Configuração
 
-1. Abra as configurações do plugin
-2. Encontre a seção **Skills de agente**
-3. Defina o caminho da pasta de skills (padrão: `skills`)
+1. Crie uma pasta `skills` na raiz do seu vault
 
 ### Ativando Skills
 
@@ -136,10 +134,6 @@ Você pode invocar um skill diretamente digitando `/folder-name` na entrada do c
 - O autocompletar mostra os skills disponíveis ao digitar `/`. Selecionar do autocompletar envia imediatamente.
 
 O nome da pasta (não o nome de exibição do skill) é usado como comando — por exemplo, um skill em `skills/weekly-report/` é invocado com `/weekly-report`.
-
-### Suporte ao Modo CLI
-
-Os skills também funcionam com backends CLI (Gemini CLI, Claude CLI, Codex CLI). Como os provedores CLI não suportam Function Calling, os fluxos de trabalho de skills utilizam uma convenção baseada em texto: a IA emite um marcador `[RUN_WORKFLOW: workflowId]`, e o plugin executa automaticamente o fluxo de trabalho e exibe o resultado.
 
 ### Exemplo: Criando um Skill
 
@@ -403,9 +397,3 @@ nodes:
 Uso: Ative o skill e diga "Crie notas de reunião para a revisão de design com Alice, Bob e Carol" — a IA executa o fluxo de trabalho com tema/participantes, cria uma nota estruturada e a abre.
 
 ---
-
-## Configurações
-
-| Configuração | Padrão | Descrição |
-|--------------|--------|-----------|
-| Pasta de skills | `skills` | Caminho para a pasta de skills no seu vault |

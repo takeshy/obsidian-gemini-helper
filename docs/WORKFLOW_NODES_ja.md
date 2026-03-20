@@ -84,20 +84,6 @@ nodes:
   content: "![cat](data:{{generatedImage.mimeType}};base64,{{generatedImage.data}})"
 ```
 
-**CLI モデル:**
-
-プラグイン設定で CLI が構成されている場合、ワークフローで CLI モデル（`gemini-cli`、`claude-cli`、`codex-cli`）を使用できます。CLI モデルは API コストなしでフラッグシップモデルにアクセスするのに便利です。
-
-```yaml
-- id: analyze
-  type: command
-  model: claude-cli
-  prompt: "このコードを分析して:\n\n{{code}}"
-  saveTo: analysis
-```
-
-> **注意:** CLI モデルは RAG、Web 検索、画像生成をサポートしていません。CLI モデルでは `ragSetting` と `saveImageTo` プロパティは無視されます。
-
 ### note
 
 ノートファイルにコンテンツを書き込み。

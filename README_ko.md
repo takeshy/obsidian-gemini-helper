@@ -122,14 +122,14 @@ AI가 Chat에서 노트를 처리할 때 Vault 도구를 사용합니다. 첨부
 |------|-----------|-----------|
 | Gemma 모델 | Vault: 끄기 | 아니오 |
 | Web Search 활성화 | Vault: 끄기 | 아니오 |
-| 서버 RAG 활성화 | Vault: 끄기 | 아니오 |
+| RAG 활성화 | Vault: 끄기 | 아니오 |
 | RAG 없음 | Vault: 전체 | 예 |
 
 **일부 모드가 강제되는 이유:**
 
 - **Gemma 모델**: 이러한 모델은 함수 호출을 지원하지 않으므로 Vault 도구를 사용할 수 없습니다.
 - **Web Search**: 설계상 Web Search가 활성화되면 Vault 도구가 비활성화됩니다.
-- **서버 RAG 활성화**: Gemini API는 File Search(RAG)와 함수 호출의 조합을 지원하지 않습니다. 서버 RAG가 활성화되면 Vault 도구와 MCP가 자동으로 비활성화됩니다.
+- **RAG 활성화**: Gemini API는 File Search(RAG)와 함수 호출의 조합을 지원하지 않습니다. RAG가 활성화되면 Vault 도구와 MCP가 자동으로 비활성화됩니다.
 
 ## 안전한 편집
 
@@ -191,7 +191,6 @@ vault의 지능적 검색을 위한 검색 증강 생성:
 - **지원 파일** - Markdown, PDF, Office 문서(Doc, Docx, XLS, XLSX, PPTX)
 - **Internal 모드** - vault 파일을 Google File Search에 동기화
 - **External 모드** - 기존 store ID 사용
-- **로컬 모드** - Gemini Embedding API를 사용한 로컬 임베딩 (Vault 도구 및 MCP와 호환)
 - **증분 동기화** - 변경된 파일만 업로드
 - **대상 폴더** - 포함할 폴더 지정
 - **제외 패턴** - 파일 제외를 위한 정규식 패턴
@@ -458,7 +457,6 @@ npm run build
 ![Basic Settings](docs/images/setting_basic.png)
 
 ### Workspace 설정
-- **Workspace Folder** - 채팅 기록 및 설정 저장 위치
 - **System Prompt** - 추가 AI 지시사항
 - **Tool Limits** - function call 제한 설정
 - **Edit History** - AI가 만든 변경 사항을 추적하고 복원

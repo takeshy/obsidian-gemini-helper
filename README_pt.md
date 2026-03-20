@@ -122,14 +122,14 @@ Quando a IA manipula notas no Chat, ela usa ferramentas do Vault. Controle quais
 |----------|-------------|-----------|
 | Modelos Gemma | Vault: Desligado | Não |
 | Web Search habilitado | Vault: Desligado | Não |
-| RAG servidor ativado | Vault: Desligado | Não |
+| RAG ativado | Vault: Desligado | Não |
 | Sem RAG | Vault: Tudo | Sim |
 
 **Por que alguns modos são forçados:**
 
 - **Modelos Gemma**: Esses modelos não suportam chamadas de função, então as ferramentas do Vault não podem ser usadas.
 - **Web Search**: Por design, as ferramentas do Vault são desabilitadas quando Web Search está habilitado.
-- **RAG servidor ativado**: A API Gemini não suporta combinar File Search (RAG) com chamadas de função. Quando RAG servidor está habilitado, as ferramentas do Vault e MCP são automaticamente desabilitadas.
+- **RAG ativado**: A API Gemini não suporta combinar File Search (RAG) com chamadas de função. Quando RAG está habilitado, as ferramentas do Vault e MCP são automaticamente desabilitadas.
 
 ## Edição Segura
 
@@ -191,7 +191,6 @@ Geração Aumentada por Recuperação para busca inteligente no vault:
 - **Arquivos suportados** - Markdown, PDF, Documentos Office (Doc, Docx, XLS, XLSX, PPTX)
 - **Modo interno** - Sincronizar arquivos do vault com o Google File Search
 - **Modo externo** - Usar IDs de stores existentes
-- **Modo local** - Incorporação local com Gemini Embedding API (compatível com ferramentas Vault e MCP)
 - **Sincronização incremental** - Enviar apenas arquivos alterados
 - **Pastas de destino** - Especificar pastas a incluir
 - **Padrões de exclusão** - Padrões regex para excluir arquivos
@@ -458,7 +457,6 @@ npm run build
 ![Configurações Básicas](docs/images/setting_basic.png)
 
 ### Configurações de Workspace
-- **Workspace Folder** - Localização do histórico de chat e configurações
 - **System Prompt** - Instruções adicionais para a IA
 - **Tool Limits** - Controlar limites de chamadas de função
 - **Edit History** - Rastrear e restaurar alterações feitas pela IA

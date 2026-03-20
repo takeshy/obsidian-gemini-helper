@@ -122,14 +122,14 @@ Cuando la IA maneja notas en el Chat, usa herramientas del Vault. Controla qué 
 |-----------|---------------------|-------------|
 | Modelos Gemma | Vault: Desactivado | No |
 | Web Search habilitado | Vault: Desactivado | No |
-| RAG en servidor habilitado | Vault: Desactivado | No |
+| RAG habilitado | Vault: Desactivado | No |
 | Sin RAG | Vault: Todo | Sí |
 
 **Por qué algunos modos son forzados:**
 
 - **Modelos Gemma**: Estos modelos no soportan llamadas a funciones, por lo que las herramientas del Vault no se pueden usar.
 - **Web Search**: Por diseño, las herramientas del Vault están deshabilitadas cuando Web Search está habilitado.
-- **RAG en servidor habilitado**: La API de Gemini no soporta combinar File Search (RAG) con llamadas a funciones. Cuando el RAG en servidor está habilitado, las herramientas del Vault y MCP se deshabilitan automáticamente.
+- **RAG habilitado**: La API de Gemini no soporta combinar File Search (RAG) con llamadas a funciones. Cuando el RAG está habilitado, las herramientas del Vault y MCP se deshabilitan automáticamente.
 
 ## Edición Segura
 
@@ -191,7 +191,6 @@ Generación Aumentada por Recuperación para búsqueda inteligente en el vault:
 - **Archivos soportados** - Markdown, PDF, Documentos de Office (Doc, Docx, XLS, XLSX, PPTX)
 - **Modo interno** - Sincroniza archivos del vault con Google File Search
 - **Modo externo** - Usa IDs de almacenes existentes
-- **Modo local** - Embedding local usando la API de Embedding de Gemini (compatible con herramientas del Vault y MCP)
 - **Sincronización incremental** - Solo sube archivos modificados
 - **Carpetas objetivo** - Especifica carpetas a incluir
 - **Patrones de exclusión** - Patrones regex para excluir archivos
@@ -457,7 +456,6 @@ npm run build
 ![Configuración Básica](docs/images/setting_basic.png)
 
 ### Configuración del Espacio de Trabajo
-- **Workspace Folder** - Ubicación del historial de chat y configuración
 - **System Prompt** - Instrucciones adicionales para la IA
 - **Tool Limits** - Controla los límites de llamadas a funciones
 - **Edit History** - Rastrea y restaura cambios hechos por IA

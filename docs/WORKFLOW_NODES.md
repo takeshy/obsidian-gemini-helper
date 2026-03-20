@@ -84,20 +84,6 @@ Execute an LLM prompt with optional model, search, vault tools, and MCP settings
   content: "![cat](data:{{generatedImage.mimeType}};base64,{{generatedImage.data}})"
 ```
 
-**CLI models:**
-
-You can use CLI models (`gemini-cli`, `claude-cli`, `codex-cli`) in workflows if the CLI is configured in plugin settings. CLI models are useful for accessing flagship models without API costs.
-
-```yaml
-- id: analyze
-  type: command
-  model: claude-cli
-  prompt: "Analyze this code:\n\n{{code}}"
-  saveTo: analysis
-```
-
-> **Note:** CLI models don't support RAG, web search, or image generation. The `ragSetting` and `saveImageTo` properties are ignored for CLI models.
-
 ### note
 
 Write content to a note file.

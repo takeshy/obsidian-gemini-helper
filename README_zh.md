@@ -122,14 +122,14 @@ AI 可以使用以下工具与您的仓库交互：
 |------|----------|--------|
 | Gemma 模型 | Vault: 关闭 | 否 |
 | 启用 Web Search | Vault: 关闭 | 否 |
-| 服务器 RAG 已启用 | Vault: 关闭 | 否 |
+| RAG 已启用 | Vault: 关闭 | 否 |
 | 无 RAG | Vault: 全部 | 是 |
 
 **为什么某些模式是强制的：**
 
 - **Gemma 模型**：这些模型不支持函数调用，因此无法使用 Vault 工具。
 - **Web Search**：按设计，当启用 Web Search 时，Vault 工具会被禁用。
-- **服务器 RAG 已启用**：Gemini API 不支持将 File Search（RAG）与函数调用结合使用。启用服务器 RAG 时，Vault 工具和 MCP 会自动禁用。
+- **RAG 已启用**：Gemini API 不支持将 File Search（RAG）与函数调用结合使用。启用 RAG 时，Vault 工具和 MCP 会自动禁用。
 
 ## 安全编辑
 
@@ -191,7 +191,6 @@ AI 可以使用以下工具与您的仓库交互：
 - **支持的文件** - Markdown、PDF、Office 文档（Doc、Docx、XLS、XLSX、PPTX）
 - **内部模式** - 将仓库文件同步到 Google File Search
 - **外部模式** - 使用现有的存储 ID
-- **本地模式** - 使用 Gemini Embedding API 进行本地嵌入（兼容 Vault 工具和 MCP）
 - **增量同步** - 仅上传更改的文件
 - **目标文件夹** - 指定要包含的文件夹
 - **排除模式** - 使用正则表达式模式排除文件
@@ -458,7 +457,6 @@ npm run build
 ![基础设置](docs/images/setting_basic.png)
 
 ### 工作区设置
-- **工作区文件夹** - 聊天历史和设置存储位置
 - **系统提示词** - 额外的 AI 指令
 - **工具限制** - 控制函数调用限制
 - **编辑历史** - 追踪和恢复 AI 所做的更改

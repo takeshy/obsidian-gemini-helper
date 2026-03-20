@@ -109,9 +109,7 @@ Skill workflows run with interactive modals (same as the Workflow panel):
 
 ### Setup
 
-1. Open plugin settings
-2. Find the **Agent Skills** section
-3. Set the skills folder path (default: `skills`)
+1. Create a `skills` folder in your vault root
 
 ### Activating Skills
 
@@ -136,10 +134,6 @@ You can invoke a skill directly by typing `/folder-name` in the chat input:
 - Autocomplete shows available skills as you type `/`. Selecting from autocomplete sends immediately.
 
 The folder name (not the skill display name) is used as the command — e.g., a skill at `skills/weekly-report/` is invoked with `/weekly-report`.
-
-### CLI Mode Support
-
-Skills also work with CLI backends (Gemini CLI, Claude CLI, Codex CLI). Since CLI providers do not support function calling, skill workflows use a text-based convention: the AI outputs a `[RUN_WORKFLOW: workflowId]` marker, and the plugin automatically executes the workflow and displays the result.
 
 ### Example: Creating a Skill
 
@@ -403,9 +397,3 @@ nodes:
 Usage: Activate the skill, then say "Create meeting notes for the design review with Alice, Bob, and Carol" — the AI calls the workflow with topic/attendees, creates a structured note, and opens it.
 
 ---
-
-## Settings
-
-| Setting | Default | Description |
-|---------|---------|-------------|
-| Skills folder | `skills` | Path to the skills folder in your vault |

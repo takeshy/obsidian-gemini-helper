@@ -84,20 +84,6 @@ Executer un prompt LLM avec des parametres optionnels de modele, recherche, outi
   content: "![cat](data:{{generatedImage.mimeType}};base64,{{generatedImage.data}})"
 ```
 
-**Modeles CLI :**
-
-Vous pouvez utiliser des modeles CLI (`gemini-cli`, `claude-cli`, `codex-cli`) dans les workflows si le CLI est configure dans les parametres du plugin. Les modeles CLI sont utiles pour acceder aux modeles phares sans frais d'API.
-
-```yaml
-- id: analyze
-  type: command
-  model: claude-cli
-  prompt: "Analyse ce code :\n\n{{code}}"
-  saveTo: analysis
-```
-
-> **Note :** Les modeles CLI ne supportent pas le RAG, la recherche web ou la generation d'images. Les proprietes `ragSetting` et `saveImageTo` sont ignorees pour les modeles CLI.
-
 ### note
 
 Ecrire du contenu dans un fichier de note.

@@ -122,14 +122,14 @@ Quando l'AI gestisce le note nella Chat, utilizza gli strumenti Vault. Controlla
 |------------|---------------------|--------------|
 | Modelli Gemma | Vault: Disattivato | No |
 | Web Search abilitata | Vault: Disattivato | No |
-| RAG server attivo | Vault: Disattivato | No |
+| RAG attivo | Vault: Disattivato | No |
 | Nessun RAG | Vault: Tutti | Sì |
 
 **Perché alcune modalità sono forzate:**
 
 - **Modelli Gemma**: Questi modelli non supportano le chiamate di funzione, quindi gli strumenti Vault non possono essere utilizzati.
 - **Web Search**: Per design, gli strumenti Vault sono disabilitati quando Web Search è abilitata.
-- **RAG server attivo**: L'API Gemini non supporta la combinazione di File Search (RAG) con le chiamate di funzione. Quando il RAG server è abilitato, gli strumenti Vault e MCP vengono automaticamente disabilitati.
+- **RAG attivo**: L'API Gemini non supporta la combinazione di File Search (RAG) con le chiamate di funzione. Quando il RAG è abilitato, gli strumenti Vault e MCP vengono automaticamente disabilitati.
 
 ## Modifica Sicura
 
@@ -191,7 +191,6 @@ Retrieval-Augmented Generation per ricerca intelligente nel vault:
 - **File supportati** - Markdown, PDF, Documenti Office (Doc, Docx, XLS, XLSX, PPTX)
 - **Modalità interna** - Sincronizza i file del vault con Google File Search
 - **Modalità esterna** - Usa ID di store esistenti
-- **Modalità locale** - Incorporamento locale con Gemini Embedding API (compatibile con strumenti Vault e MCP)
 - **Sincronizzazione incrementale** - Carica solo i file modificati
 - **Cartelle target** - Specifica le cartelle da includere
 - **Pattern di esclusione** - Pattern regex per escludere file
@@ -458,7 +457,6 @@ npm run build
 ![Impostazioni Base](docs/images/setting_basic.png)
 
 ### Impostazioni Workspace
-- **Workspace Folder** - Posizione della cronologia chat e impostazioni
 - **System Prompt** - Istruzioni aggiuntive per l'AI
 - **Tool Limits** - Controlla i limiti delle function call
 - **Edit History** - Traccia e ripristina le modifiche fatte dall'AI

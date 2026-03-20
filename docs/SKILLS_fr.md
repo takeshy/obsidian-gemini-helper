@@ -109,9 +109,7 @@ Les workflows de skills s'exécutent avec des modales interactives (comme dans l
 
 ### Configuration
 
-1. Ouvrez les paramètres du plugin
-2. Trouvez la section **Skills d'agent**
-3. Définissez le chemin du dossier des skills (par défaut : `skills`)
+1. Créez un dossier `skills` à la racine de votre coffre
 
 ### Activation des skills
 
@@ -136,10 +134,6 @@ Vous pouvez invoquer un skill directement en tapant `/folder-name` dans l'entré
 - L'autocomplétion affiche les skills disponibles lorsque vous tapez `/`. La sélection envoie immédiatement.
 
 Le nom du dossier (pas le nom d'affichage du skill) est utilisé comme commande — par exemple, un skill dans `skills/weekly-report/` est invoqué avec `/weekly-report`.
-
-### Support du Mode CLI
-
-Les skills fonctionnent également avec les backends CLI (Gemini CLI, Claude CLI, Codex CLI). Comme les fournisseurs CLI ne prennent pas en charge le Function Calling, les workflows de skills utilisent une convention textuelle : l'IA émet un marqueur `[RUN_WORKFLOW: workflowId]`, et le plugin exécute automatiquement le workflow et affiche le résultat.
 
 ### Exemple : Créer un skill
 
@@ -403,9 +397,3 @@ nodes:
 Utilisation : Activez le skill, puis dites « Crée les notes de réunion pour la revue de design avec Alice, Bob et Carol » — l'IA appelle le workflow avec le sujet/participants, crée une note structurée et l'ouvre.
 
 ---
-
-## Paramètres
-
-| Paramètre | Par défaut | Description |
-|-----------|------------|-------------|
-| Dossier des skills | `skills` | Chemin vers le dossier des skills dans votre coffre |

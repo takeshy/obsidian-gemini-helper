@@ -84,20 +84,6 @@ nodes:
   content: "![cat](data:{{generatedImage.mimeType}};base64,{{generatedImage.data}})"
 ```
 
-**CLI 模型：**
-
-如果在插件设置中配置了 CLI，您可以在工作流中使用 CLI 模型（`gemini-cli`、`claude-cli`、`codex-cli`）。CLI 模型适用于无需 API 费用即可访问旗舰模型。
-
-```yaml
-- id: analyze
-  type: command
-  model: claude-cli
-  prompt: "分析这段代码：\n\n{{code}}"
-  saveTo: analysis
-```
-
-> **注意：** CLI 模型不支持 RAG、网络搜索或图像生成。对于 CLI 模型，`ragSetting` 和 `saveImageTo` 属性将被忽略。
-
 ### note
 
 将内容写入笔记文件。

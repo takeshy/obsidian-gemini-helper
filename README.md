@@ -122,14 +122,14 @@ When the AI handles notes in Chat, it uses Vault tools. Control which vault tool
 |-----------|--------------|------------|
 | Gemma models | Vault: Off | No |
 | Web Search enabled | Vault: Off | No |
-| Server RAG enabled | Vault: Off | No |
+| RAG enabled | Vault: Off | No |
 | No RAG | Vault: All | Yes |
 
 **Why some modes are forced:**
 
 - **Gemma models**: These models do not support function calling, so Vault tools cannot be used.
 - **Web Search**: By design, Vault tools are disabled when Web Search is enabled.
-- **Server RAG enabled**: The Gemini API does not support combining File Search (RAG) with function calling. When server RAG is enabled, Vault tools and MCP are automatically disabled.
+- **RAG enabled**: The Gemini API does not support combining File Search (RAG) with function calling. When RAG is enabled, Vault tools and MCP are automatically disabled.
 
 ## Safe Editing
 
@@ -191,7 +191,6 @@ Retrieval-Augmented Generation for intelligent vault search:
 - **Supported files** - Markdown, PDF, Office documents (Doc, Docx, XLS, XLSX, PPTX)
 - **Internal mode** - Sync vault files to Google File Search
 - **External mode** - Use existing store IDs
-- **Local mode** - Local embedding using Gemini Embedding API (compatible with Vault tools and MCP)
 - **Incremental sync** - Only upload changed files
 - **Target folders** - Specify folders to include
 - **Exclude patterns** - Regex patterns to exclude files
@@ -458,7 +457,6 @@ npm run build
 ![Basic Settings](docs/images/setting_basic.png)
 
 ### Workspace Settings
-- **Workspace Folder** - Chat history and settings location
 - **System Prompt** - Additional AI instructions
 - **Tool Limits** - Control function call limits
 - **Edit History** - Track and restore AI-made changes

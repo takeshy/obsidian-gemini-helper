@@ -4,6 +4,21 @@
 
 **無料・オープンソース**の Obsidian 向け AI アシスタント。Google Gemini を活用した**チャット**、**ワークフロー自動化**、**RAG**を搭載。
 
+> **v1.11.0以降、このプラグインはGemini関連の機能に特化しました。**
+> CLI サポートは削除されました。CLI および複数の LLM プロバイダー（OpenAI、Claude、OpenRouter、Local LLM）をサポートする新しいプラグイン [obsidian-llm-hub](https://github.com/takeshy/obsidian-llm-hub) を作成しました。
+> また、GemiHub（Google Drive）との連携は [obsidian-gemihub](https://github.com/takeshy/obsidian-gemihub) に分離しました。
+
+### 関連プラグイン
+
+| プラグイン | 説明 |
+|-----------|------|
+| obsidian-gemini-helper | Gemini に特化（RAG は File Search API） |
+| obsidian-llm-hub | LLM 全般に対応、Desktop Only（RAG は Embedding、gemini-embedding-2-preview にも対応） |
+| obsidian-local-llm-hub | Local LLM 専門（RAG はローカル Embedding のみ） |
+| obsidian-gemihub | Web 版 gemini-helper である GemiHub と Google Drive 経由でファイル連携 |
+
+---
+
 > **このプラグインは完全に無料です。** [ai.google.dev](https://ai.google.dev) から Google Gemini API キー（無料または有料）が必要です。
 
 ## 主な機能

@@ -4,6 +4,21 @@
 
 **免费开源的** Obsidian AI 助手，提供由 Google Gemini 驱动的 **聊天**、**工作流自动化** 和 **RAG** 功能。
 
+> **从 v1.11.0 起，本插件专注于 Gemini 相关功能。**
+> CLI 支持已被移除。已创建新插件 [obsidian-llm-hub](https://github.com/takeshy/obsidian-llm-hub)，支持 CLI 和多种 LLM 提供商（OpenAI、Claude、OpenRouter、Local LLM）。
+> GemiHub（Google Drive）集成已分离至 [obsidian-gemihub](https://github.com/takeshy/obsidian-gemihub)。
+
+### 相关插件
+
+| 插件 | 说明 |
+|------|------|
+| obsidian-gemini-helper | 专注于 Gemini（RAG 通过 File Search API） |
+| obsidian-llm-hub | 多 LLM 支持，仅限桌面端（RAG 通过 Embedding，支持 gemini-embedding-2-preview） |
+| obsidian-local-llm-hub | 仅限本地 LLM（RAG 仅通过本地 Embedding） |
+| obsidian-gemihub | 通过 Google Drive 与 GemiHub（gemini-helper 网页版）进行文件同步 |
+
+---
+
 > **本插件完全免费。** 您只需要从 [ai.google.dev](https://ai.google.dev) 获取 Google Gemini API 密钥（免费或付费）。
 
 ## 主要特性

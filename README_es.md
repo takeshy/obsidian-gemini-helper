@@ -4,6 +4,21 @@
 
 Asistente de IA **gratuito y de código abierto** para Obsidian con **Chat**, **Automatización de Flujos de Trabajo** y **RAG** impulsado por Google Gemini.
 
+> **Desde v1.11.0, este plugin se enfoca exclusivamente en funciones relacionadas con Gemini.**
+> Se ha eliminado el soporte de CLI. Se ha creado un nuevo plugin [obsidian-llm-hub](https://github.com/takeshy/obsidian-llm-hub) con soporte de CLI y múltiples proveedores de LLM (OpenAI, Claude, OpenRouter, Local LLM).
+> La integración con GemiHub (Google Drive) se ha separado en [obsidian-gemihub](https://github.com/takeshy/obsidian-gemihub).
+
+### Plugins Relacionados
+
+| Plugin | Descripción |
+|--------|-------------|
+| obsidian-gemini-helper | Enfocado en Gemini (RAG vía File Search API) |
+| obsidian-llm-hub | Soporte multi-LLM, solo Desktop (RAG vía Embedding, compatible con gemini-embedding-2-preview) |
+| obsidian-local-llm-hub | Solo LLM local (RAG solo vía embeddings locales) |
+| obsidian-gemihub | Sincronización de archivos con GemiHub (versión web de gemini-helper) vía Google Drive |
+
+---
+
 > **Este plugin es completamente gratuito.** Solo necesitas una clave API de Google Gemini (gratuita o de pago) de [ai.google.dev](https://ai.google.dev).
 
 ## Características Principales

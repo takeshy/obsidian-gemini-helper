@@ -152,6 +152,7 @@ export async function handleFileExplorerNode(
   const extensionsStr = node.properties["extensions"] || "";
   const defaultPath = replaceVariables(node.properties["default"] || "", context);
   const directPath = replaceVariables(node.properties["path"] || "", context);
+  const title = replaceVariables(node.properties["title"] || "", context) || undefined;
   const saveTo = node.properties["saveTo"];
   const savePathTo = node.properties["savePathTo"];
 
@@ -174,13 +175,13 @@ export async function handleFileExplorerNode(
     if (!promptCallbacks?.promptForNewFilePath) {
       throw new Error("New file path prompt callback not available");
     }
-    filePath = await promptCallbacks.promptForNewFilePath(extensions, defaultPath);
+    filePath = await promptCallbacks.promptForNewFilePath(extensions, defaultPath, title);
   } else {
     // Select mode: pick existing file
     if (!promptCallbacks?.promptForAnyFile) {
       throw new Error("File picker callback not available");
     }
-    filePath = await promptCallbacks.promptForAnyFile(extensions, defaultPath);
+    filePath = await promptCallbacks.promptForAnyFile(extensions, defaultPath, title);
   }
 
   if (filePath === null) {

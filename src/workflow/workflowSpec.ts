@@ -183,6 +183,7 @@ Call MCP server tool.
 - **args** (optional): JSON object with arguments (supports {{variables}})
 - **headers** (optional): JSON headers (e.g., authentication)
 - **saveTo** (optional): Variable for result
+- **saveUiTo** (optional): Variable for MCP Apps UI info (if server returns UI resources)
 
 **Example**:
 \`\`\`yaml

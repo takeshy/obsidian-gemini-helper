@@ -161,16 +161,16 @@ export class WorkflowManager {
 
       // Prompt callbacks for hotkey execution
       const promptCallbacks = {
-        promptForFile: (defaultPath?: string) =>
-          promptForFile(this.app, defaultPath || t("workflowModal.selectFile")),
+        promptForFile: (defaultPath?: string, title?: string) =>
+          promptForFile(this.app, title || defaultPath || t("workflowModal.selectFile")),
         promptForSelection: () =>
           promptForSelection(this.app, t("workflowModal.selectText")),
         promptForValue: (prompt: string, defaultValue?: string, multiline?: boolean) =>
           promptForValue(this.app, prompt, defaultValue || "", multiline || false),
-        promptForAnyFile: (extensions?: string[], defaultPath?: string) =>
-          promptForAnyFile(this.app, extensions, defaultPath || "Select a file"),
-        promptForNewFilePath: (extensions?: string[], defaultPath?: string) =>
-          promptForNewFilePath(this.app, extensions, defaultPath),
+        promptForAnyFile: (extensions?: string[], defaultPath?: string, title?: string) =>
+          promptForAnyFile(this.app, extensions, title || defaultPath || "Select a file"),
+        promptForNewFilePath: (extensions?: string[], defaultPath?: string, title?: string) =>
+          promptForNewFilePath(this.app, extensions, defaultPath, title),
         promptForConfirmation: (confirmPath: string, confirmContent: string, mode: string) =>
           promptForConfirmation(this.app, confirmPath, confirmContent, mode),
         promptForDialog: (title: string, message: string, options: string[], multiSelect: boolean, button1: string, button2?: string, markdown?: boolean, inputTitle?: string, defaults?: { input?: string; selected?: string[] }, multiline?: boolean) =>

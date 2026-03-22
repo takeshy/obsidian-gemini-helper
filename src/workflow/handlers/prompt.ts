@@ -27,6 +27,7 @@ export async function handlePromptFileNode(
     node.properties["default"] || "",
     context
   );
+  const title = replaceVariables(node.properties["title"] || "", context) || undefined;
   const saveTo = node.properties["saveTo"];
   const saveFileTo = node.properties["saveFileTo"];
   const forcePrompt = node.properties["forcePrompt"] === "true";
@@ -47,7 +48,7 @@ export async function handlePromptFileNode(
     if (!promptCallbacks?.promptForFile) {
       throw new Error("File prompt callback not available");
     }
-    filePath = await promptCallbacks.promptForFile(defaultPath);
+    filePath = await promptCallbacks.promptForFile(defaultPath, title);
     if (filePath === null) {
       throw new Error("File selection cancelled by user");
     }
@@ -78,7 +79,7 @@ export async function handlePromptFileNode(
     if (!promptCallbacks?.promptForFile) {
       throw new Error("File prompt callback not available");
     }
-    filePath = await promptCallbacks.promptForFile(defaultPath);
+    filePath = await promptCallbacks.promptForFile(defaultPath, title);
   }
 
   if (filePath === null) {

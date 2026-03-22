@@ -435,10 +435,11 @@ class NewFilePathModal extends Modal {
 export function promptForNewFilePath(
   app: App,
   extensions?: string[],
-  defaultPath?: string
+  defaultPath?: string,
+  title?: string
 ): Promise<string | null> {
   return new Promise((resolve) => {
-    const modal = new NewFilePathModal(app, t("workflowModal.enterFilePath"), resolve, extensions, defaultPath);
+    const modal = new NewFilePathModal(app, title || t("workflowModal.enterFilePath"), resolve, extensions, defaultPath);
     modal.open();
   });
 }

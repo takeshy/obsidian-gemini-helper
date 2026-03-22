@@ -211,14 +211,16 @@ export interface DialogResult {
 
 // Prompt callbacks for interactive nodes
 export interface PromptCallbacks {
-  promptForFile: (defaultPath?: string) => Promise<string | null>;
+  promptForFile: (defaultPath?: string, title?: string) => Promise<string | null>;
   promptForAnyFile?: (
     extensions?: string[],
-    defaultPath?: string
+    defaultPath?: string,
+    title?: string
   ) => Promise<string | null>;
   promptForNewFilePath?: (
     extensions?: string[],
-    defaultPath?: string
+    defaultPath?: string,
+    title?: string
   ) => Promise<string | null>;
   promptForSelection: () => Promise<SelectionInfo | null>;
   promptForValue: (

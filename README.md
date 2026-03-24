@@ -636,17 +636,6 @@ This is useful for quickly running workflows without navigating to the workflow 
 
 ![Workflow History](docs/images/workflow_history.png)
 
-**Visualize as Flowchart:** Click the **Canvas** button (grid icon) in the Workflow panel to export your workflow as an Obsidian Canvas. This creates a visual flowchart where:
-- Loops and branches are clearly displayed with proper routing
-- Decision nodes (`if`/`while`) show Yes/No paths
-- Loop-back arrows are routed around nodes for clarity
-- Each node shows its full configuration
-- A link to the source workflow file is included for quick navigation
-
-![Workflow to Canvas](docs/images/workflow_to_canvas.png)
-
-This is especially helpful for understanding complex workflows with multiple branches and loops.
-
 **Export Execution History:** View execution history as an Obsidian Canvas for visual analysis. Click **Open Canvas view** in the History modal to create a Canvas file.
 
 > **Note:** Canvas files are dynamically created in the workspace folder. Delete them manually after review if no longer needed.

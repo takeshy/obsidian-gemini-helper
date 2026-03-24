@@ -62,6 +62,18 @@ The AI Chat feature provides an interactive conversation interface with Google G
 
 ![Chat Interface](docs/images/chat.png)
 
+## Opening Chat
+- Click Gemini icon in ribbon
+- Command: "Gemini Helper: Open chat"
+- Toggle: "Gemini Helper: Toggle chat / editor"
+
+## Chat Controls
+- **Enter** - Send message
+- **Shift+Enter** - New line
+- **Stop button** - Stop generation
+- **+ button** - New chat
+- **History button** - Load previous chats
+
 ## Slash Commands
 
 Create reusable prompt templates triggered by `/`:
@@ -276,6 +288,36 @@ Build automated multi-step workflows directly in Markdown files. **No programmin
 
 ![Visual Workflow Editor](docs/images/visual_workflow.png)
 
+## Running Workflows
+
+**From Sidebar:**
+1. Open **Workflow** tab in sidebar
+2. Open a file with `workflow` code block
+3. Select workflow from dropdown (or choose **Browse all workflows** to search all vault workflows)
+4. Click **Run** to execute
+5. Click **History** to view past runs
+
+**From Command Palette (Run Workflow):**
+
+Use the command "Gemini Helper: Run Workflow" to browse and execute workflows from anywhere:
+
+1. Open command palette and search "Run Workflow"
+2. Browse all vault files with workflow code blocks (files in `workflows/` folder are shown first)
+3. Preview the workflow content and AI generation history
+4. Select a workflow and click **Run** to execute
+
+![Run Workflow Modal](docs/images/workflow_list.png)
+
+This is useful for quickly running workflows without navigating to the workflow file first.
+
+![Workflow History](docs/images/workflow_history.png)
+
+**Export Execution History:** View execution history as an Obsidian Canvas for visual analysis. Click **Open Canvas view** in the History modal to create a Canvas file.
+
+> **Note:** Canvas files are dynamically created in the workspace folder. Delete them manually after review if no longer needed.
+
+![History Canvas View](docs/images/history_canvas.png)
+
 ## AI-Powered Workflow & Skill Creation
 
 **You don't need to learn YAML syntax or node types.** Simply describe your workflow in plain language:
@@ -284,17 +326,84 @@ Build automated multi-step workflows directly in Markdown files. **No programmin
 2. Select **+ New (AI)** from the dropdown
 3. Describe what you want: *"Create a workflow that summarizes the selected note and saves it to a summaries folder"*
 4. Check **"Create as agent skill"** if you want to create an agent skill instead of a standalone workflow
-5. Click **Generate** - the AI creates the complete workflow
+5. Select a model and click **Generate**
+6. The workflow is automatically created and saved
+> **Tip:** When using **+ New (AI)** from the dropdown on a file that already has workflows, the output path defaults to the current file. The generated workflow will be appended to that file.
 
-![Create Workflow with AI](docs/images/create_workflow_with_ai.png)
+**Create workflow from any file:**
 
+When opening the Workflow tab with a file that has no workflow code block, a **"Create workflow with AI"** button is displayed. Click it to generate a new workflow (default output: `workflows/{{name}}.md`).
+
+**@ File References:**
+
+Type `@` in the description field to reference files:
+- `@{selection}` - Current editor selection
+- `@{content}` - Active note content
+- `@path/to/file.md` - Any vault file
+
+When you click Generate, file content is embedded directly into the AI request. YAML frontmatter is automatically stripped.
+
+> **Tip:** This is useful for creating workflows based on existing workflow examples or templates in your vault.
+
+**File Attachments:**
+
+Click the attachment button to attach files (images, PDFs, text files) to your workflow generation request. This is useful for providing visual context or examples to the AI.
+
+**Using External LLMs (Copy Prompt / Paste Response):**
+
+You can use any external LLM (Claude, GPT, etc.) to generate workflows:
+
+1. Enter the workflow name and description as usual
+2. Click **Copy Prompt** - the full prompt is copied to your clipboard
+3. Paste the prompt into your preferred LLM
+4. Copy the LLM's response
+5. Paste it into the **Paste Response** textarea that appears
+6. Click **Apply** to create the workflow
+
+The pasted response can be either raw YAML or a full Markdown document with `` ```workflow `` code blocks. Markdown responses are saved as-is, preserving any documentation the LLM included.
+
+![Create Workflow with AI](docs/images/create_workflow.png)
+
+**Modal Controls:**
+
+The AI workflow modal supports drag-and-drop positioning and corner resizing for a better editing experience.
+
+**Request History:**
+
+Each AI-generated workflow saves a history entry above the workflow code block, including:
+- Timestamp and action (Created/Modified)
+- Your request description
+- Referenced file contents (in collapsible sections)
 **Modify existing workflows the same way:**
 1. Load any workflow
-2. Click the **AI Modify** button
+2. Click the **AI Modify** button (sparkle icon)
 3. Describe changes: *"Add a step to translate the summary to Japanese"*
-4. Review and apply
+4. Review the before/after comparison
+5. Click **Apply Changes** to update
 
-![AI Workflow Modification](docs/images/modify_workflow_with_ai.png)
+**Execution History Reference:**
+
+When modifying a workflow with AI, you can reference previous execution results to help the AI understand issues:
+
+1. Click **Reference execution history** button
+2. Select an execution run from the list (error runs are highlighted)
+3. Choose which steps to include (error steps are pre-selected)
+4. The AI receives the step input/output data to understand what went wrong
+
+This is especially useful for debugging workflows - you can tell the AI "Fix the error in step 2" and it will see exactly what input caused the failure.
+
+**Request History:**
+
+When regenerating a workflow (clicking "No" on the preview), all previous requests in the session are passed to the AI. This helps the AI understand the full context of your modifications across multiple iterations.
+
+**Manual Workflow Editing:**
+
+Edit workflows directly in the visual node editor with drag-and-drop interface.
+
+![Manual Workflow Editing](docs/images/modify_workflow_manual.png)
+
+**Reload from File:**
+- Select **Reload from file** from the dropdown to re-import workflow from the markdown file
 
 ## Quick Start (Manual)
 
@@ -597,139 +706,6 @@ Requires: `pip install cryptography`
 - Optional model and search override per command
 
 ![Slash Commands](docs/images/setting_slash_command.png)
-
-## Usage
-
-### Opening Chat
-- Click Gemini icon in ribbon
-- Command: "Gemini Helper: Open chat"
-- Toggle: "Gemini Helper: Toggle chat / editor"
-
-### Chat Controls
-- **Enter** - Send message
-- **Shift+Enter** - New line
-- **Stop button** - Stop generation
-- **+ button** - New chat
-- **History button** - Load previous chats
-
-### Using Workflows
-
-**From Sidebar:**
-1. Open **Workflow** tab in sidebar
-2. Open a file with `workflow` code block
-3. Select workflow from dropdown (or choose **Browse all workflows** to search all vault workflows)
-4. Click **Run** to execute
-5. Click **History** to view past runs
-
-**From Command Palette (Run Workflow):**
-
-Use the command "Gemini Helper: Run Workflow" to browse and execute workflows from anywhere:
-
-1. Open command palette and search "Run Workflow"
-2. Browse all vault files with workflow code blocks (files in `workflows/` folder are shown first)
-3. Preview the workflow content and AI generation history
-4. Select a workflow and click **Run** to execute
-
-![Run Workflow Modal](docs/images/workflow_list.png)
-
-This is useful for quickly running workflows without navigating to the workflow file first.
-
-![Workflow History](docs/images/workflow_history.png)
-
-**Export Execution History:** View execution history as an Obsidian Canvas for visual analysis. Click **Open Canvas view** in the History modal to create a Canvas file.
-
-> **Note:** Canvas files are dynamically created in the workspace folder. Delete them manually after review if no longer needed.
-
-![History Canvas View](docs/images/history_canvas.png)
-
-### AI Workflow Generation
-
-**Create New Workflow with AI:**
-1. Select **+ New (AI)** from the workflow dropdown
-2. Enter workflow name and output path (supports `{{name}}` variable)
-3. Describe what the workflow should do in natural language
-4. Select a model and click **Generate**
-5. The workflow is automatically created and saved
-
-> **Tip:** When using **+ New (AI)** from the dropdown on a file that already has workflows, the output path defaults to the current file. The generated workflow will be appended to that file.
-
-**Create workflow from any file:**
-
-When opening the Workflow tab with a file that has no workflow code block, a **"Create workflow with AI"** button is displayed. Click it to generate a new workflow (default output: `workflows/{{name}}.md`).
-
-**@ File References:**
-
-Type `@` in the description field to reference files:
-- `@{selection}` - Current editor selection
-- `@{content}` - Active note content
-- `@path/to/file.md` - Any vault file
-
-When you click Generate, file content is embedded directly into the AI request. YAML frontmatter is automatically stripped.
-
-> **Tip:** This is useful for creating workflows based on existing workflow examples or templates in your vault.
-
-**File Attachments:**
-
-Click the attachment button to attach files (images, PDFs, text files) to your workflow generation request. This is useful for providing visual context or examples to the AI.
-
-**Using External LLMs (Copy Prompt / Paste Response):**
-
-You can use any external LLM (Claude, GPT, etc.) to generate workflows:
-
-1. Fill in the workflow name and description as usual
-2. Click **Copy Prompt** - the full prompt is copied to your clipboard
-3. Paste the prompt into your preferred LLM
-4. Copy the LLM's response
-5. Paste it into the **Paste Response** textarea that appears
-6. Click **Apply** to create the workflow
-
-The pasted response can be either raw YAML or a full Markdown document with `` ```workflow `` code blocks. Markdown responses are saved as-is, preserving any documentation the LLM included.
-
-**Modal Controls:**
-
-The AI workflow modal supports drag-and-drop positioning and corner resizing for a better editing experience.
-
-**Request History:**
-
-Each AI-generated workflow saves a history entry above the workflow code block, including:
-- Timestamp and action (Created/Modified)
-- Your request description
-- Referenced file contents (in collapsible sections)
-
-![Workflow AI History](docs/images/workflow_ai_history.png)
-
-**Modify Existing Workflow with AI:**
-1. Load an existing workflow
-2. Click the **AI Modify** button (sparkle icon)
-3. Describe the changes you want
-4. Review the before/after comparison
-5. Click **Apply Changes** to update
-
-![AI Workflow Modification](docs/images/modify_workflow_with_ai.png)
-
-**Execution History Reference:**
-
-When modifying a workflow with AI, you can reference previous execution results to help the AI understand issues:
-
-1. Click **Reference execution history** button
-2. Select an execution run from the list (error runs are highlighted)
-3. Choose which steps to include (error steps are pre-selected)
-4. The AI receives the step input/output data to understand what went wrong
-
-This is especially useful for debugging workflows - you can tell the AI "Fix the error in step 2" and it will see exactly what input caused the failure.
-
-**Request History:**
-
-When regenerating a workflow (clicking "No" on the preview), all previous requests in the session are passed to the AI. This helps the AI understand the full context of your modifications across multiple iterations.
-
-**Manual Workflow Editing:**
-
-Edit workflows directly in the visual node editor with drag-and-drop interface.
-
-![Manual Workflow Editing](docs/images/modify_workflow_manual.png)
-
-**Reload from File:**
-- Select **Reload from file** from the dropdown to re-import workflow from the markdown file
 
 ## Requirements
 

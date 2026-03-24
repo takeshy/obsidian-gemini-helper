@@ -62,6 +62,18 @@ La funzionalità Chat AI fornisce un'interfaccia di conversazione interattiva co
 
 ![Interfaccia Chat](docs/images/chat.png)
 
+## Aprire la Chat
+- Clicca l'icona Gemini nel ribbon
+- Comando: "Gemini Helper: Open chat"
+- Toggle: "Gemini Helper: Toggle chat / editor"
+
+## Controlli della Chat
+- **Invio** - Invia messaggio
+- **Shift+Invio** - Nuova riga
+- **Pulsante Stop** - Ferma la generazione
+- **Pulsante +** - Nuova chat
+- **Pulsante Cronologia** - Carica chat precedenti
+
 ## Comandi Slash
 
 Crea template di prompt riutilizzabili attivati con `/`:
@@ -193,10 +205,6 @@ La cronologia modifiche usa un approccio basato su snapshot:
 
 **Archiviazione:** La cronologia delle modifiche è memorizzata in memoria e viene cancellata al riavvio di Obsidian. Il tracciamento persistente delle versioni è coperto dal recupero file integrato di Obsidian.
 
-**Impostazioni:**
-- Abilita/disabilita nelle impostazioni del plugin
-- Configura le righe di contesto per i diff
-
 ![Modale Cronologia Modifiche](docs/images/edit_history.png)
 
 ## RAG
@@ -280,6 +288,36 @@ Costruisci workflow automatizzati multi-step direttamente nei file Markdown. **N
 
 ![Editor Visuale dei Workflow](docs/images/visual_workflow.png)
 
+## Esecuzione dei Workflow
+
+**Dalla Sidebar:**
+1. Apri la scheda **Workflow** nella sidebar
+2. Apri un file con blocco di codice `workflow`
+3. Seleziona il workflow dal menu a tendina (o scegli **Browse all workflows** per cercare tutti i workflow nel vault)
+4. Clicca **Run** per eseguire
+5. Clicca **History** per vedere le esecuzioni passate
+
+**Dalla Palette Comandi (Run Workflow):**
+
+Usa il comando "Gemini Helper: Run Workflow" per navigare ed eseguire workflow da qualsiasi punto:
+
+1. Apri la palette comandi e cerca "Run Workflow"
+2. Naviga tra tutti i file del vault con blocchi di codice workflow (i file nella cartella `workflows/` sono mostrati per primi)
+3. Visualizza l'anteprima del contenuto del workflow e la cronologia di generazione AI
+4. Seleziona un workflow e clicca **Run** per eseguire
+
+![Modal Esegui Workflow](docs/images/workflow_list.png)
+
+Questo è utile per eseguire rapidamente workflow senza dover prima navigare al file del workflow.
+
+![Cronologia Workflow](docs/images/workflow_history.png)
+
+**Esporta cronologia esecuzione:** Visualizza la cronologia di esecuzione come Canvas Obsidian per analisi visiva. Clicca su **Open Canvas view** nel modal Cronologia per creare un file Canvas.
+
+> **Nota:** I file Canvas vengono creati dinamicamente nella cartella workspace. Eliminali manualmente dopo la revisione se non sono più necessari.
+
+![Vista Cronologia Canvas](docs/images/history_canvas.png)
+
 ## Creazione di Workflow e Skill con AI
 
 **Non hai bisogno di imparare la sintassi YAML o i tipi di nodo.** Descrivi semplicemente il tuo workflow in linguaggio naturale:
@@ -288,17 +326,84 @@ Costruisci workflow automatizzati multi-step direttamente nei file Markdown. **N
 2. Seleziona **+ New (AI)** dal menu a tendina
 3. Descrivi cosa vuoi: *"Crea un workflow che riassuma la nota selezionata e la salvi in una cartella summaries"*
 4. Seleziona **"Crea come agent skill"** se vuoi creare un agent skill invece di un workflow autonomo
-5. Clicca **Generate** - l'AI crea il workflow completo
+5. Seleziona un modello e clicca **Generate**
+6. Il workflow viene automaticamente creato e salvato
+> **Suggerimento:** Quando usi **+ New (AI)** dal menu a tendina su un file che ha già workflow, il percorso di output viene impostato sul file corrente per default. Il workflow generato verrà aggiunto a quel file.
 
-![Crea Workflow con AI](docs/images/create_workflow_with_ai.png)
+**Crea workflow da qualsiasi file:**
 
+Quando apri la scheda Workflow con un file che non ha un blocco di codice workflow, viene mostrato un pulsante **"Create workflow with AI"**. Cliccalo per generare un nuovo workflow (output predefinito: `workflows/{{name}}.md`).
+
+**Riferimenti File con @:**
+
+Digita `@` nel campo descrizione per riferire file:
+- `@{selection}` - Selezione corrente dell'editor
+- `@{content}` - Contenuto della nota attiva
+- `@path/to/file.md` - Qualsiasi file del vault
+
+Quando clicchi Generate, il contenuto del file viene incorporato direttamente nella richiesta AI. Il frontmatter YAML viene automaticamente rimosso.
+
+> **Suggerimento:** Questo è utile per creare workflow basati su esempi o template di workflow esistenti nel tuo vault.
+
+**Allegati File:**
+
+Clicca il pulsante allegati per allegare file (immagini, PDF, file di testo) alla tua richiesta di generazione workflow. Questo è utile per fornire contesto visivo o esempi all'AI.
+
+**Utilizzo di LLM Esterni (Copia Prompt / Incolla Risposta):**
+
+Puoi utilizzare qualsiasi LLM esterno (Claude, GPT, ecc.) per generare workflow:
+
+1. Compila il nome e la descrizione del workflow come al solito
+2. Clicca **Copy Prompt** - il prompt completo viene copiato negli appunti
+3. Incolla il prompt nel tuo LLM preferito
+4. Copia la risposta del LLM
+5. Incollala nell'area di testo **Incolla Risposta** che appare
+6. Clicca **Applica** per creare il workflow
+
+La risposta incollata può essere YAML grezzo o un documento Markdown completo con blocchi di codice `` ```workflow ``. Le risposte Markdown vengono salvate così come sono, preservando qualsiasi documentazione inclusa dal LLM.
+
+![Crea Workflow con AI](docs/images/create_workflow.png)
+
+**Controlli del Modal:**
+
+Il modal del workflow AI supporta il posizionamento drag-and-drop e il ridimensionamento dagli angoli per una migliore esperienza di modifica.
+
+**Cronologia Richieste:**
+
+Ogni workflow generato da AI salva una voce di cronologia sopra il blocco di codice del workflow, includendo:
+- Timestamp e azione (Creato/Modificato)
+- La tua descrizione della richiesta
+- Contenuti dei file riferiti (in sezioni collassabili)
 **Modifica i workflow esistenti allo stesso modo:**
 1. Carica un workflow qualsiasi
-2. Clicca il pulsante **AI Modify**
+2. Clicca il pulsante **AI Modify** (icona scintilla)
 3. Descrivi le modifiche: *"Aggiungi uno step per tradurre il riassunto in giapponese"*
-4. Rivedi e applica
+4. Rivedi il confronto prima/dopo
+5. Clicca **Apply Changes** per aggiornare
 
-![Modifica Workflow con AI](docs/images/modify_workflow_with_ai.png)
+**Riferimento alla Cronologia di Esecuzione:**
+
+Quando modifichi un workflow con AI, puoi fare riferimento ai risultati delle esecuzioni precedenti per aiutare l'AI a capire i problemi:
+
+1. Clicca il pulsante **Riferimento cronologia esecuzione**
+2. Seleziona un'esecuzione dalla lista (le esecuzioni con errori sono evidenziate)
+3. Scegli quali passaggi includere (i passaggi con errori sono preselezionati)
+4. L'AI riceve i dati di input/output del passaggio per capire cosa è andato storto
+
+Questo è particolarmente utile per il debug dei workflow - puoi dire all'AI "Correggi l'errore nel passaggio 2" e vedrà esattamente quale input ha causato l'errore.
+
+**Cronologia Richieste:**
+
+Quando rigeneri un workflow (cliccando "No" nell'anteprima), tutte le richieste precedenti della sessione vengono passate all'AI. Questo aiuta l'AI a capire il contesto completo delle tue modifiche attraverso più iterazioni.
+
+**Modifica Manuale dei Workflow:**
+
+Modifica i workflow direttamente nell'editor visuale dei nodi con interfaccia drag-and-drop.
+
+![Modifica Manuale Workflow](docs/images/modify_workflow_manual.png)
+
+**Ricarica da File:**
+- Seleziona **Reload from file** dal menu a tendina per reimportare il workflow dal file markdown
 
 ## Guida Rapida (Manuale)
 
@@ -474,9 +579,8 @@ npm run build
 ### Impostazioni Workspace
 - **System Prompt** - Istruzioni aggiuntive per l'AI
 - **Tool Limits** - Controlla i limiti delle function call
-- **Edit History** - Traccia e ripristina le modifiche fatte dall'AI
 
-![Limiti Strumenti e Cronologia Modifiche](docs/images/setting_tool_history.png)
+![Limiti Strumenti](docs/images/setting_tool_history.png)
 
 ### Crittografia
 
@@ -596,150 +700,6 @@ Richiede: `pip install cryptography`
 - Override opzionale di modello e ricerca per comando
 
 ![Comandi Slash](docs/images/setting_slash_command.png)
-
-## Utilizzo
-
-### Aprire la Chat
-- Clicca l'icona Gemini nel ribbon
-- Comando: "Gemini Helper: Open chat"
-- Toggle: "Gemini Helper: Toggle chat / editor"
-
-### Controlli della Chat
-- **Invio** - Invia messaggio
-- **Shift+Invio** - Nuova riga
-- **Pulsante Stop** - Ferma la generazione
-- **Pulsante +** - Nuova chat
-- **Pulsante Cronologia** - Carica chat precedenti
-
-### Usare i Workflow
-
-**Dalla Sidebar:**
-1. Apri la scheda **Workflow** nella sidebar
-2. Apri un file con blocco di codice `workflow`
-3. Seleziona il workflow dal menu a tendina (o scegli **Browse all workflows** per cercare tutti i workflow nel vault)
-4. Clicca **Run** per eseguire
-5. Clicca **History** per vedere le esecuzioni passate
-
-**Dalla Palette Comandi (Run Workflow):**
-
-Usa il comando "Gemini Helper: Run Workflow" per navigare ed eseguire workflow da qualsiasi punto:
-
-1. Apri la palette comandi e cerca "Run Workflow"
-2. Naviga tra tutti i file del vault con blocchi di codice workflow (i file nella cartella `workflows/` sono mostrati per primi)
-3. Visualizza l'anteprima del contenuto del workflow e la cronologia di generazione AI
-4. Seleziona un workflow e clicca **Run** per eseguire
-
-![Modal Esegui Workflow](docs/images/workflow_list.png)
-
-Questo è utile per eseguire rapidamente workflow senza dover prima navigare al file del workflow.
-
-![Cronologia Workflow](docs/images/workflow_history.png)
-
-**Visualizza come Diagramma di Flusso:** Clicca il pulsante **Canvas** (icona griglia) nel pannello Workflow per esportare il tuo workflow come Canvas Obsidian. Questo crea un diagramma di flusso visivo dove:
-- Loop e ramificazioni sono mostrati chiaramente con routing appropriato
-- I nodi decisionali (`if`/`while`) mostrano i percorsi Sì/No
-- Le frecce di ritorno sono instradate attorno ai nodi per chiarezza
-- Ogni nodo mostra la sua configurazione completa
-- È incluso un link al file workflow di origine per una navigazione rapida
-
-![Workflow to Canvas](docs/images/workflow_to_canvas.png)
-
-Questo è particolarmente utile per comprendere workflow complessi con più ramificazioni e loop.
-
-**Esporta cronologia esecuzione:** Visualizza la cronologia di esecuzione come Canvas Obsidian per analisi visiva. Clicca su **Open Canvas view** nel modal Cronologia per creare un file Canvas.
-
-> **Nota:** I file Canvas vengono creati dinamicamente nella cartella workspace. Eliminali manualmente dopo la revisione se non sono più necessari.
-
-![Vista Cronologia Canvas](docs/images/history_canvas.png)
-
-### Generazione di Workflow con AI
-
-**Crea Nuovo Workflow con AI:**
-1. Seleziona **+ New (AI)** dal menu a tendina dei workflow
-2. Inserisci il nome del workflow e il percorso di output (supporta la variabile `{{name}}`)
-3. Descrivi cosa dovrebbe fare il workflow in linguaggio naturale
-4. Seleziona un modello e clicca **Generate**
-5. Il workflow viene automaticamente creato e salvato
-
-> **Suggerimento:** Quando usi **+ New (AI)** dal menu a tendina su un file che ha già workflow, il percorso di output viene impostato sul file corrente per default. Il workflow generato verrà aggiunto a quel file.
-
-**Crea workflow da qualsiasi file:**
-
-Quando apri la scheda Workflow con un file che non ha un blocco di codice workflow, viene mostrato un pulsante **"Create workflow with AI"**. Cliccalo per generare un nuovo workflow (output predefinito: `workflows/{{name}}.md`).
-
-**Riferimenti File con @:**
-
-Digita `@` nel campo descrizione per riferire file:
-- `@{selection}` - Selezione corrente dell'editor
-- `@{content}` - Contenuto della nota attiva
-- `@path/to/file.md` - Qualsiasi file del vault
-
-Quando clicchi Generate, il contenuto del file viene incorporato direttamente nella richiesta AI. Il frontmatter YAML viene automaticamente rimosso.
-
-> **Suggerimento:** Questo è utile per creare workflow basati su esempi o template di workflow esistenti nel tuo vault.
-
-**Allegati File:**
-
-Clicca il pulsante allegati per allegare file (immagini, PDF, file di testo) alla tua richiesta di generazione workflow. Questo è utile per fornire contesto visivo o esempi all'AI.
-
-**Utilizzo di LLM Esterni (Copia Prompt / Incolla Risposta):**
-
-Puoi utilizzare qualsiasi LLM esterno (Claude, GPT, ecc.) per generare workflow:
-
-1. Compila il nome e la descrizione del workflow come al solito
-2. Clicca **Copy Prompt** - il prompt completo viene copiato negli appunti
-3. Incolla il prompt nel tuo LLM preferito
-4. Copia la risposta del LLM
-5. Incollala nell'area di testo **Incolla Risposta** che appare
-6. Clicca **Applica** per creare il workflow
-
-La risposta incollata può essere YAML grezzo o un documento Markdown completo con blocchi di codice `` ```workflow ``. Le risposte Markdown vengono salvate così come sono, preservando qualsiasi documentazione inclusa dal LLM.
-
-**Controlli del Modal:**
-
-Il modal del workflow AI supporta il posizionamento drag-and-drop e il ridimensionamento dagli angoli per una migliore esperienza di modifica.
-
-**Cronologia Richieste:**
-
-Ogni workflow generato da AI salva una voce di cronologia sopra il blocco di codice del workflow, includendo:
-- Timestamp e azione (Creato/Modificato)
-- La tua descrizione della richiesta
-- Contenuti dei file riferiti (in sezioni collassabili)
-
-![Cronologia AI del Workflow](docs/images/workflow_ai_history.png)
-
-**Modifica Workflow Esistente con AI:**
-1. Carica un workflow esistente
-2. Clicca il pulsante **AI Modify** (icona scintilla)
-3. Descrivi le modifiche che vuoi
-4. Rivedi il confronto prima/dopo
-5. Clicca **Apply Changes** per aggiornare
-
-![Modifica Workflow con AI](docs/images/modify_workflow_with_ai.png)
-
-**Riferimento alla Cronologia di Esecuzione:**
-
-Quando modifichi un workflow con AI, puoi fare riferimento ai risultati delle esecuzioni precedenti per aiutare l'AI a capire i problemi:
-
-1. Clicca il pulsante **Riferimento cronologia esecuzione**
-2. Seleziona un'esecuzione dalla lista (le esecuzioni con errori sono evidenziate)
-3. Scegli quali passaggi includere (i passaggi con errori sono preselezionati)
-4. L'AI riceve i dati di input/output del passaggio per capire cosa è andato storto
-
-Questo è particolarmente utile per il debug dei workflow - puoi dire all'AI "Correggi l'errore nel passaggio 2" e vedrà esattamente quale input ha causato l'errore.
-
-**Cronologia Richieste:**
-
-Quando rigeneri un workflow (cliccando "No" nell'anteprima), tutte le richieste precedenti della sessione vengono passate all'AI. Questo aiuta l'AI a capire il contesto completo delle tue modifiche attraverso più iterazioni.
-
-**Modifica Manuale dei Workflow:**
-
-Modifica i workflow direttamente nell'editor visuale dei nodi con interfaccia drag-and-drop.
-
-![Modifica Manuale Workflow](docs/images/modify_workflow_manual.png)
-
-**Ricarica da File:**
-- Seleziona **Reload from file** dal menu a tendina per reimportare il workflow dal file markdown
 
 ## Requisiti
 

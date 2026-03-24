@@ -62,6 +62,18 @@ O recurso de Chat com IA fornece uma interface de conversação interativa com o
 
 ![Interface do Chat](docs/images/chat.png)
 
+## Abrindo o Chat
+- Clique no ícone do Gemini na ribbon
+- Comando: "Gemini Helper: Open chat"
+- Alternar: "Gemini Helper: Toggle chat / editor"
+
+## Controles do Chat
+- **Enter** - Enviar mensagem
+- **Shift+Enter** - Nova linha
+- **Botão Stop** - Parar geração
+- **Botão +** - Novo chat
+- **Botão History** - Carregar chats anteriores
+
 ## Comandos de Barra
 
 Crie templates de prompts reutilizáveis acionados por `/`:
@@ -193,10 +205,6 @@ O histórico de edições usa uma abordagem baseada em snapshots:
 
 **Armazenamento:** O histórico de edição é armazenado em memória e limpo ao reiniciar o Obsidian. O rastreamento persistente de versões é coberto pela recuperação de arquivos integrada do Obsidian.
 
-**Configurações:**
-- Habilitar/desabilitar nas configurações do plugin
-- Configurar linhas de contexto para diffs
-
 ![Modal de Histórico de Edições](docs/images/edit_history.png)
 
 ## RAG
@@ -280,7 +288,37 @@ Construa workflows automatizados de múltiplas etapas diretamente em arquivos Ma
 
 ![Editor Visual de Workflows](docs/images/visual_workflow.png)
 
-## Criação de Workflows e Skills com AI
+## Executando Workflows
+
+**Da Barra Lateral:**
+1. Abra a aba **Workflow** na barra lateral
+2. Abra um arquivo com bloco de código `workflow`
+3. Selecione o workflow no dropdown (ou escolha **Browse all workflows** para pesquisar todos os workflows do vault)
+4. Clique em **Run** para executar
+5. Clique em **History** para ver execuções anteriores
+
+**Da Paleta de Comandos (Run Workflow):**
+
+Use o comando "Gemini Helper: Run Workflow" para navegar e executar workflows de qualquer lugar:
+
+1. Abra a paleta de comandos e pesquise "Run Workflow"
+2. Navegue por todos os arquivos do vault com blocos de código workflow (arquivos na pasta `workflows/` são mostrados primeiro)
+3. Visualize o conteúdo do workflow e o histórico de geração por AI
+4. Selecione um workflow e clique em **Run** para executar
+
+![Modal Executar Workflow](docs/images/workflow_list.png)
+
+Isso é útil para executar rapidamente workflows sem precisar navegar primeiro até o arquivo do workflow.
+
+![Histórico de Workflow](docs/images/workflow_history.png)
+
+**Exportar Histórico de Execução:** Visualize o histórico de execução como um Canvas do Obsidian para análise visual. Clique em **Open Canvas view** no modal de Histórico para criar um arquivo Canvas.
+
+> **Nota:** Arquivos Canvas são criados dinamicamente na pasta do workspace. Exclua-os manualmente após revisão se não forem mais necessários.
+
+![Visualização do Canvas de Histórico](docs/images/history_canvas.png)
+
+## Criação de Workflows e Skills com IA
 
 **Você não precisa aprender sintaxe YAML ou tipos de nós.** Simplesmente descreva seu workflow em linguagem simples:
 
@@ -288,17 +326,84 @@ Construa workflows automatizados de múltiplas etapas diretamente em arquivos Ma
 2. Selecione **+ New (AI)** no menu dropdown
 3. Descreva o que você quer: *"Crie um workflow que resuma a nota selecionada e salve em uma pasta de resumos"*
 4. Marque **"Criar como agent skill"** se deseja criar um agent skill em vez de um workflow independente
-5. Clique em **Generate** - a IA cria o workflow completo
+5. Selecione um modelo e clique em **Generate**
+6. O workflow é automaticamente criado e salvo
+> **Dica:** Ao usar **+ New (AI)** no dropdown em um arquivo que já tem workflows, o caminho de saída é definido como o arquivo atual por padrão. O workflow gerado será adicionado a esse arquivo.
 
-![Criar Workflow com IA](docs/images/create_workflow_with_ai.png)
+**Criar workflow de qualquer arquivo:**
 
+Ao abrir a aba Workflow com um arquivo que não tem bloco de código workflow, um botão **"Create workflow with AI"** é exibido. Clique para gerar um novo workflow (saída padrão: `workflows/{{name}}.md`).
+
+**Referências de Arquivos com @:**
+
+Digite `@` no campo de descrição para referenciar arquivos:
+- `@{selection}` - Seleção atual do editor
+- `@{content}` - Conteúdo da nota ativa
+- `@path/to/file.md` - Qualquer arquivo do vault
+
+Quando você clica em Generate, o conteúdo do arquivo é incorporado diretamente na solicitação da IA. O frontmatter YAML é automaticamente removido.
+
+> **Dica:** Isso é útil para criar workflows baseados em exemplos ou templates de workflow existentes em seu vault.
+
+**Anexos de Arquivos:**
+
+Clique no botão de anexo para anexar arquivos (imagens, PDFs, arquivos de texto) à sua solicitação de geração de workflow. Isso é útil para fornecer contexto visual ou exemplos para a IA.
+
+**Usando LLMs Externos (Copiar Prompt / Colar Resposta):**
+
+Você pode usar qualquer LLM externo (Claude, GPT, etc.) para gerar workflows:
+
+1. Preencha o nome e a descrição do workflow normalmente
+2. Clique em **Copy Prompt** - o prompt completo é copiado para a área de transferência
+3. Cole o prompt no seu LLM preferido
+4. Copie a resposta do LLM
+5. Cole na área de texto **Colar Resposta** que aparece
+6. Clique em **Aplicar** para criar o workflow
+
+A resposta colada pode ser YAML puro ou um documento Markdown completo com blocos de código `` ```workflow ``. Respostas em Markdown são salvas como estão, preservando qualquer documentação incluída pelo LLM.
+
+![Criar Workflow com IA](docs/images/create_workflow.png)
+
+**Controles do Modal:**
+
+O modal de workflow com IA suporta posicionamento por arrastar e soltar e redimensionamento pelos cantos para uma melhor experiência de edição.
+
+**Histórico de Solicitações:**
+
+Cada workflow gerado por IA salva uma entrada de histórico acima do bloco de código do workflow, incluindo:
+- Timestamp e ação (Criado/Modificado)
+- Sua descrição da solicitação
+- Conteúdos de arquivos referenciados (em seções recolhíveis)
 **Modifique workflows existentes da mesma forma:**
 1. Carregue qualquer workflow
-2. Clique no botão **AI Modify**
+2. Clique no botão **AI Modify** (ícone de brilho)
 3. Descreva as alterações: *"Adicione uma etapa para traduzir o resumo para japonês"*
-4. Revise e aplique
+4. Revise a comparação antes/depois
+5. Clique em **Apply Changes** para atualizar
 
-![Modificação de Workflow com IA](docs/images/modify_workflow_with_ai.png)
+**Referência ao Histórico de Execução:**
+
+Ao modificar um workflow com IA, você pode referenciar resultados de execuções anteriores para ajudar a IA a entender problemas:
+
+1. Clique no botão **Referenciar histórico de execução**
+2. Selecione uma execução da lista (execuções com erros são destacadas)
+3. Escolha quais passos incluir (passos com erros são pré-selecionados)
+4. A IA recebe os dados de entrada/saída do passo para entender o que deu errado
+
+Isso é especialmente útil para depurar workflows - você pode dizer à IA "Corrija o erro no passo 2" e ela verá exatamente qual entrada causou a falha.
+
+**Histórico de Solicitações:**
+
+Ao regenerar um workflow (clicando em "Não" na prévia), todas as solicitações anteriores da sessão são passadas para a IA. Isso ajuda a IA a entender o contexto completo das suas modificações ao longo de múltiplas iterações.
+
+**Edição Manual de Workflow:**
+
+Edite workflows diretamente no editor visual de nós com interface drag-and-drop.
+
+![Edição Manual de Workflow](docs/images/modify_workflow_manual.png)
+
+**Recarregar do Arquivo:**
+- Selecione **Reload from file** no dropdown para reimportar o workflow do arquivo markdown
 
 ## Início Rápido (Manual)
 
@@ -474,9 +579,8 @@ npm run build
 ### Configurações de Workspace
 - **System Prompt** - Instruções adicionais para a IA
 - **Tool Limits** - Controlar limites de chamadas de função
-- **Edit History** - Rastrear e restaurar alterações feitas pela IA
 
-![Limites de Ferramentas e Histórico de Edições](docs/images/setting_tool_history.png)
+![Limites de Ferramentas](docs/images/setting_tool_history.png)
 
 ### Criptografia
 
@@ -596,150 +700,6 @@ Requer: `pip install cryptography`
 - Override opcional de modelo e busca por comando
 
 ![Comandos de Barra](docs/images/setting_slash_command.png)
-
-## Uso
-
-### Abrindo o Chat
-- Clique no ícone do Gemini na ribbon
-- Comando: "Gemini Helper: Open chat"
-- Alternar: "Gemini Helper: Toggle chat / editor"
-
-### Controles do Chat
-- **Enter** - Enviar mensagem
-- **Shift+Enter** - Nova linha
-- **Botão Stop** - Parar geração
-- **Botão +** - Novo chat
-- **Botão History** - Carregar chats anteriores
-
-### Usando Workflows
-
-**Da Barra Lateral:**
-1. Abra a aba **Workflow** na barra lateral
-2. Abra um arquivo com bloco de código `workflow`
-3. Selecione o workflow no dropdown (ou escolha **Browse all workflows** para pesquisar todos os workflows do vault)
-4. Clique em **Run** para executar
-5. Clique em **History** para ver execuções anteriores
-
-**Da Paleta de Comandos (Run Workflow):**
-
-Use o comando "Gemini Helper: Run Workflow" para navegar e executar workflows de qualquer lugar:
-
-1. Abra a paleta de comandos e pesquise "Run Workflow"
-2. Navegue por todos os arquivos do vault com blocos de código workflow (arquivos na pasta `workflows/` são mostrados primeiro)
-3. Visualize o conteúdo do workflow e o histórico de geração por AI
-4. Selecione um workflow e clique em **Run** para executar
-
-![Modal Executar Workflow](docs/images/workflow_list.png)
-
-Isso é útil para executar rapidamente workflows sem precisar navegar primeiro até o arquivo do workflow.
-
-![Histórico de Workflow](docs/images/workflow_history.png)
-
-**Visualizar como Fluxograma:** Clique no botão **Canvas** (ícone de grade) no painel Workflow para exportar seu workflow como um Canvas do Obsidian. Isso cria um fluxograma visual onde:
-- Loops e ramificações são exibidos claramente com roteamento adequado
-- Nós de decisão (`if`/`while`) mostram caminhos Sim/Não
-- Setas de retorno são roteadas ao redor dos nós para clareza
-- Cada nó mostra sua configuração completa
-- Um link para o arquivo de workflow de origem está incluído para navegação rápida
-
-![Workflow to Canvas](docs/images/workflow_to_canvas.png)
-
-Isso é especialmente útil para entender workflows complexos com múltiplas ramificações e loops.
-
-**Exportar histórico de execução:** Visualize o histórico de execução como um Canvas do Obsidian para análise visual. Clique em **Open Canvas view** no modal de Histórico para criar um arquivo Canvas.
-
-> **Nota:** Arquivos Canvas são criados dinamicamente na pasta do workspace. Exclua-os manualmente após revisão se não forem mais necessários.
-
-![Visualização do Canvas de Histórico](docs/images/history_canvas.png)
-
-### Geração de Workflow com IA
-
-**Criar Novo Workflow com IA:**
-1. Selecione **+ New (AI)** no dropdown de workflow
-2. Digite o nome do workflow e caminho de saída (suporta variável `{{name}}`)
-3. Descreva o que o workflow deve fazer em linguagem natural
-4. Selecione um modelo e clique em **Generate**
-5. O workflow é automaticamente criado e salvo
-
-> **Dica:** Ao usar **+ New (AI)** no dropdown em um arquivo que já tem workflows, o caminho de saída é definido como o arquivo atual por padrão. O workflow gerado será adicionado a esse arquivo.
-
-**Criar workflow de qualquer arquivo:**
-
-Ao abrir a aba Workflow com um arquivo que não tem bloco de código workflow, um botão **"Create workflow with AI"** é exibido. Clique para gerar um novo workflow (saída padrão: `workflows/{{name}}.md`).
-
-**Referências de Arquivos com @:**
-
-Digite `@` no campo de descrição para referenciar arquivos:
-- `@{selection}` - Seleção atual do editor
-- `@{content}` - Conteúdo da nota ativa
-- `@path/to/file.md` - Qualquer arquivo do vault
-
-Quando você clica em Generate, o conteúdo do arquivo é incorporado diretamente na solicitação da IA. O frontmatter YAML é automaticamente removido.
-
-> **Dica:** Isso é útil para criar workflows baseados em exemplos ou templates de workflow existentes em seu vault.
-
-**Anexos de Arquivos:**
-
-Clique no botão de anexo para anexar arquivos (imagens, PDFs, arquivos de texto) à sua solicitação de geração de workflow. Isso é útil para fornecer contexto visual ou exemplos para a IA.
-
-**Usando LLMs Externos (Copiar Prompt / Colar Resposta):**
-
-Você pode usar qualquer LLM externo (Claude, GPT, etc.) para gerar workflows:
-
-1. Preencha o nome e a descrição do workflow normalmente
-2. Clique em **Copy Prompt** - o prompt completo é copiado para a área de transferência
-3. Cole o prompt no seu LLM preferido
-4. Copie a resposta do LLM
-5. Cole na área de texto **Colar Resposta** que aparece
-6. Clique em **Aplicar** para criar o workflow
-
-A resposta colada pode ser YAML puro ou um documento Markdown completo com blocos de código `` ```workflow ``. Respostas em Markdown são salvas como estão, preservando qualquer documentação incluída pelo LLM.
-
-**Controles do Modal:**
-
-O modal de workflow com IA suporta posicionamento por arrastar e soltar e redimensionamento pelos cantos para uma melhor experiência de edição.
-
-**Histórico de Solicitações:**
-
-Cada workflow gerado por IA salva uma entrada de histórico acima do bloco de código do workflow, incluindo:
-- Timestamp e ação (Criado/Modificado)
-- Sua descrição da solicitação
-- Conteúdos de arquivos referenciados (em seções recolhíveis)
-
-![Histórico de IA do Workflow](docs/images/workflow_ai_history.png)
-
-**Modificar Workflow Existente com IA:**
-1. Carregue um workflow existente
-2. Clique no botão **AI Modify** (ícone de brilho)
-3. Descreva as alterações que você deseja
-4. Revise a comparação antes/depois
-5. Clique em **Apply Changes** para atualizar
-
-![Modificação de Workflow com IA](docs/images/modify_workflow_with_ai.png)
-
-**Referência ao Histórico de Execução:**
-
-Ao modificar um workflow com IA, você pode referenciar resultados de execuções anteriores para ajudar a IA a entender problemas:
-
-1. Clique no botão **Referenciar histórico de execução**
-2. Selecione uma execução da lista (execuções com erros são destacadas)
-3. Escolha quais passos incluir (passos com erros são pré-selecionados)
-4. A IA recebe os dados de entrada/saída do passo para entender o que deu errado
-
-Isso é especialmente útil para depurar workflows - você pode dizer à IA "Corrija o erro no passo 2" e ela verá exatamente qual entrada causou a falha.
-
-**Histórico de Solicitações:**
-
-Ao regenerar um workflow (clicando em "Não" na prévia), todas as solicitações anteriores da sessão são passadas para a IA. Isso ajuda a IA a entender o contexto completo das suas modificações ao longo de múltiplas iterações.
-
-**Edição Manual de Workflow:**
-
-Edite workflows diretamente no editor visual de nós com interface drag-and-drop.
-
-![Edição Manual de Workflow](docs/images/modify_workflow_manual.png)
-
-**Recarregar do Arquivo:**
-- Selecione **Reload from file** no dropdown para reimportar o workflow do arquivo markdown
 
 ## Requisitos
 

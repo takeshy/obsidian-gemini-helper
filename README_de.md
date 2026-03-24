@@ -62,6 +62,18 @@ Die KI-Chat-Funktion bietet eine interaktive Konversationsschnittstelle mit Goog
 
 ![Chat-Oberfläche](docs/images/chat.png)
 
+## Chat öffnen
+- Klicken Sie auf das Gemini-Symbol im Ribbon
+- Befehl: "Gemini Helper: Open chat"
+- Umschalten: "Gemini Helper: Toggle chat / editor"
+
+## Chat-Steuerung
+- **Enter** - Nachricht senden
+- **Shift+Enter** - Neue Zeile
+- **Stop-Schaltfläche** - Generierung stoppen
+- **+-Schaltfläche** - Neuer Chat
+- **Verlauf-Schaltfläche** - Frühere Chats laden
+
 ## Slash-Befehle
 
 Erstellen Sie wiederverwendbare Prompt-Vorlagen, die mit `/` ausgelöst werden:
@@ -193,10 +205,6 @@ Der Bearbeitungsverlauf verwendet einen Snapshot-basierten Ansatz:
 
 **Speicher:** Der Bearbeitungsverlauf wird im Arbeitsspeicher gespeichert und beim Neustart von Obsidian gelöscht. Die dauerhafte Versionsverfolgung wird durch die integrierte Dateiwiederherstellung von Obsidian abgedeckt.
 
-**Einstellungen:**
-- Aktivieren/Deaktivieren in den Plugin-Einstellungen
-- Kontextzeilen für Diffs konfigurieren
-
 ![Bearbeitungsverlauf-Modal](docs/images/edit_history.png)
 
 ## RAG
@@ -280,6 +288,36 @@ Erstellen Sie automatisierte mehrstufige Workflows direkt in Markdown-Dateien. *
 
 ![Visueller Workflow-Editor](docs/images/visual_workflow.png)
 
+## Workflows ausführen
+
+**Von der Seitenleiste:**
+1. Öffnen Sie den **Workflow**-Tab in der Seitenleiste
+2. Öffnen Sie eine Datei mit `workflow`-Codeblock
+3. Wählen Sie einen Workflow aus dem Dropdown (oder wählen Sie **Browse all workflows**, um alle Vault-Workflows zu durchsuchen)
+4. Klicken Sie auf **Run**, um auszuführen
+5. Klicken Sie auf **History**, um vergangene Durchläufe anzuzeigen
+
+**Von der Befehlspalette (Run Workflow):**
+
+Verwenden Sie den Befehl "Gemini Helper: Run Workflow", um Workflows von überall zu durchsuchen und auszuführen:
+
+1. Öffnen Sie die Befehlspalette und suchen Sie nach "Run Workflow"
+2. Durchsuchen Sie alle Vault-Dateien mit Workflow-Codeblöcken (Dateien im `workflows/`-Ordner werden zuerst angezeigt)
+3. Zeigen Sie den Workflow-Inhalt und die AI-Generierungshistorie in der Vorschau an
+4. Wählen Sie einen Workflow und klicken Sie auf **Run**, um auszuführen
+
+![Workflow-Ausführen-Modal](docs/images/workflow_list.png)
+
+Dies ist nützlich, um Workflows schnell auszuführen, ohne zuerst zur Workflow-Datei navigieren zu müssen.
+
+![Workflow-Verlauf](docs/images/workflow_history.png)
+
+**Ausführungsverlauf exportieren:** Zeigen Sie den Ausführungsverlauf als Obsidian Canvas zur visuellen Analyse an. Klicken Sie auf **Open Canvas view** im History-Modal, um eine Canvas-Datei zu erstellen.
+
+> **Hinweis:** Canvas-Dateien werden dynamisch im Workspace-Ordner erstellt. Löschen Sie sie nach der Überprüfung manuell, wenn sie nicht mehr benötigt werden.
+
+![Verlaufs-Canvas-Ansicht](docs/images/history_canvas.png)
+
 ## AI-gestützte Workflow- & Skill-Erstellung
 
 **Sie müssen keine YAML-Syntax oder Node-Typen lernen.** Beschreiben Sie Ihren Workflow einfach in natürlicher Sprache:
@@ -288,17 +326,84 @@ Erstellen Sie automatisierte mehrstufige Workflows direkt in Markdown-Dateien. *
 2. Wählen Sie **+ New (AI)** aus dem Dropdown
 3. Beschreiben Sie, was Sie möchten: *"Erstelle einen Workflow, der die ausgewählte Notiz zusammenfasst und in einem Zusammenfassungsordner speichert"*
 4. Aktivieren Sie **„Als Agent-Skill erstellen"**, wenn Sie statt eines eigenständigen Workflows einen Agent-Skill erstellen möchten
-5. Klicken Sie auf **Generate** - die KI erstellt den kompletten Workflow
+5. Wählen Sie ein Modell und klicken Sie auf **Generate**
+6. Der Workflow wird automatisch erstellt und gespeichert
+> **Tipp:** Wenn Sie **+ New (AI)** aus dem Dropdown bei einer Datei verwenden, die bereits Workflows enthält, wird der Ausgabepfad standardmäßig auf die aktuelle Datei gesetzt. Der generierte Workflow wird an diese Datei angehängt.
 
-![Workflow mit KI erstellen](docs/images/create_workflow_with_ai.png)
+**Workflow von beliebiger Datei erstellen:**
 
+Wenn Sie den Workflow-Tab mit einer Datei öffnen, die keinen Workflow-Codeblock hat, wird eine **"Create workflow with AI"**-Schaltfläche angezeigt. Klicken Sie darauf, um einen neuen Workflow zu generieren (Standard-Ausgabe: `workflows/{{name}}.md`).
+
+**@ Dateireferenzen:**
+
+Geben Sie `@` im Beschreibungsfeld ein, um Dateien zu referenzieren:
+- `@{selection}` - Aktuelle Editor-Auswahl
+- `@{content}` - Inhalt der aktiven Notiz
+- `@path/to/file.md` - Beliebige Vault-Datei
+
+Wenn Sie auf Generate klicken, wird der Dateiinhalt direkt in die KI-Anfrage eingebettet. YAML-Frontmatter wird automatisch entfernt.
+
+> **Tipp:** Dies ist nützlich, um Workflows basierend auf bestehenden Workflow-Beispielen oder Vorlagen in Ihrem Vault zu erstellen.
+
+**Dateianhänge:**
+
+Klicken Sie auf die Anhang-Schaltfläche, um Dateien (Bilder, PDFs, Textdateien) an Ihre Workflow-Generierungsanfrage anzuhängen. Dies ist nützlich, um der KI visuellen Kontext oder Beispiele zu liefern.
+
+**Externe LLMs verwenden (Prompt kopieren / Antwort einfügen):**
+
+Sie können jedes externe LLM (Claude, GPT usw.) verwenden, um Workflows zu generieren:
+
+1. Geben Sie wie gewohnt den Workflow-Namen und die Beschreibung ein
+2. Klicken Sie auf **Copy Prompt** - der vollständige Prompt wird in die Zwischenablage kopiert
+3. Fügen Sie den Prompt in Ihr bevorzugtes LLM ein
+4. Kopieren Sie die Antwort des LLM
+5. Fügen Sie sie in das angezeigte **Paste Response**-Textfeld ein
+6. Klicken Sie auf **Apply**, um den Workflow zu erstellen
+
+Die eingefügte Antwort kann entweder rohes YAML oder ein vollständiges Markdown-Dokument mit `` ```workflow ``-Codeblöcken sein. Markdown-Antworten werden unverändert gespeichert, einschließlich der vom LLM erstellten Dokumentation.
+
+![Workflow mit KI erstellen](docs/images/create_workflow.png)
+
+**Modal-Steuerung:**
+
+Das KI-Workflow-Modal unterstützt Drag-and-Drop-Positionierung und Größenänderung von den Ecken für eine bessere Bearbeitungserfahrung.
+
+**Anfrageverlauf:**
+
+Jeder KI-generierte Workflow speichert einen Verlaufseintrag über dem Workflow-Codeblock, einschließlich:
+- Zeitstempel und Aktion (Erstellt/Geändert)
+- Ihre Anfragebeschreibung
+- Referenzierte Dateiinhalte (in zusammenklappbaren Abschnitten)
 **Bestehende Workflows auf die gleiche Weise ändern:**
 1. Laden Sie einen beliebigen Workflow
-2. Klicken Sie auf die Schaltfläche **AI Modify**
+2. Klicken Sie auf die Schaltfläche **AI Modify** (Funkelsymbol)
 3. Beschreiben Sie die Änderungen: *"Füge einen Schritt hinzu, um die Zusammenfassung ins Japanische zu übersetzen"*
-4. Überprüfen und anwenden
+4. Überprüfen Sie den Vorher/Nachher-Vergleich
+5. Klicken Sie auf **Apply Changes**, um zu aktualisieren
 
-![KI-Workflow-Änderung](docs/images/modify_workflow_with_ai.png)
+**Ausführungsverlauf-Referenz:**
+
+Beim Ändern eines Workflows mit KI können Sie auf vorherige Ausführungsergebnisse verweisen, um der KI Probleme zu erklären:
+
+1. Klicken Sie auf die Schaltfläche **Ausführungsverlauf referenzieren**
+2. Wählen Sie einen Ausführungslauf aus der Liste (Fehlerläufe sind hervorgehoben)
+3. Wählen Sie die einzuschließenden Schritte (Fehlerschritte sind vorausgewählt)
+4. Die KI erhält die Schritt-Input/Output-Daten, um zu verstehen, was schief gelaufen ist
+
+Dies ist besonders nützlich zum Debuggen von Workflows - Sie können der KI sagen "Behebe den Fehler in Schritt 2" und sie sieht genau, welche Eingabe den Fehler verursacht hat.
+
+**Anfrageverlauf:**
+
+Beim Regenerieren eines Workflows (Klicken auf "Nein" in der Vorschau) werden alle vorherigen Anfragen der Sitzung an die KI übergeben. Dies hilft der KI, den vollständigen Kontext Ihrer Änderungen über mehrere Iterationen hinweg zu verstehen.
+
+**Manuelle Workflow-Bearbeitung:**
+
+Bearbeiten Sie Workflows direkt im visuellen Node-Editor mit Drag-and-Drop-Oberfläche.
+
+![Manuelle Workflow-Bearbeitung](docs/images/modify_workflow_manual.png)
+
+**Aus Datei neu laden:**
+- Wählen Sie **Reload from file** aus dem Dropdown, um den Workflow aus der Markdown-Datei neu zu importieren
 
 ## Schnellstart (Manuell)
 
@@ -474,9 +579,8 @@ npm run build
 ### Workspace-Einstellungen
 - **System Prompt** - Zusätzliche KI-Anweisungen
 - **Tool Limits** - Steuerung der Function-Call-Limits
-- **Edit History** - Verfolgen und Wiederherstellen von KI-Änderungen
 
-![Tool-Limits & Bearbeitungsverlauf](docs/images/setting_tool_history.png)
+![Tool-Limits](docs/images/setting_tool_history.png)
 
 ### Verschlüsselung
 
@@ -596,150 +700,6 @@ Benötigt: `pip install cryptography`
 - Optionale Modell- und Suchüberschreibung pro Befehl
 
 ![Slash-Befehle](docs/images/setting_slash_command.png)
-
-## Verwendung
-
-### Chat öffnen
-- Klicken Sie auf das Gemini-Symbol im Ribbon
-- Befehl: "Gemini Helper: Open chat"
-- Umschalten: "Gemini Helper: Toggle chat / editor"
-
-### Chat-Steuerung
-- **Enter** - Nachricht senden
-- **Shift+Enter** - Neue Zeile
-- **Stop-Schaltfläche** - Generierung stoppen
-- **+-Schaltfläche** - Neuer Chat
-- **Verlauf-Schaltfläche** - Frühere Chats laden
-
-### Workflows verwenden
-
-**Von der Seitenleiste:**
-1. Öffnen Sie den **Workflow**-Tab in der Seitenleiste
-2. Öffnen Sie eine Datei mit `workflow`-Codeblock
-3. Wählen Sie einen Workflow aus dem Dropdown (oder wählen Sie **Browse all workflows**, um alle Vault-Workflows zu durchsuchen)
-4. Klicken Sie auf **Run**, um auszuführen
-5. Klicken Sie auf **History**, um vergangene Durchläufe anzuzeigen
-
-**Von der Befehlspalette (Run Workflow):**
-
-Verwenden Sie den Befehl "Gemini Helper: Run Workflow", um Workflows von überall zu durchsuchen und auszuführen:
-
-1. Öffnen Sie die Befehlspalette und suchen Sie nach "Run Workflow"
-2. Durchsuchen Sie alle Vault-Dateien mit Workflow-Codeblöcken (Dateien im `workflows/`-Ordner werden zuerst angezeigt)
-3. Zeigen Sie den Workflow-Inhalt und die AI-Generierungshistorie in der Vorschau an
-4. Wählen Sie einen Workflow und klicken Sie auf **Run**, um auszuführen
-
-![Workflow-Ausführen-Modal](docs/images/workflow_list.png)
-
-Dies ist nützlich, um Workflows schnell auszuführen, ohne zuerst zur Workflow-Datei navigieren zu müssen.
-
-![Workflow-Verlauf](docs/images/workflow_history.png)
-
-**Als Flussdiagramm visualisieren:** Klicken Sie auf die **Canvas**-Schaltfläche (Gittersymbol) im Workflow-Panel, um Ihren Workflow als Obsidian Canvas zu exportieren. Dies erstellt ein visuelles Flussdiagramm, bei dem:
-- Schleifen und Verzweigungen mit korrekter Routenführung klar dargestellt werden
-- Entscheidungsknoten (`if`/`while`) Ja/Nein-Pfade anzeigen
-- Rückwärtspfeile für Schleifen um Knoten herum geleitet werden
-- Jeder Knoten seine vollständige Konfiguration anzeigt
-- Ein Link zur Quell-Workflow-Datei für schnelle Navigation enthalten ist
-
-![Workflow to Canvas](docs/images/workflow_to_canvas.png)
-
-Dies ist besonders hilfreich zum Verständnis komplexer Workflows mit mehreren Verzweigungen und Schleifen.
-
-**Ausführungsverlauf exportieren:** Zeigen Sie den Ausführungsverlauf als Obsidian Canvas zur visuellen Analyse an. Klicken Sie auf **Open Canvas view** im History-Modal, um eine Canvas-Datei zu erstellen.
-
-> **Hinweis:** Canvas-Dateien werden dynamisch im Workspace-Ordner erstellt. Löschen Sie sie nach der Überprüfung manuell, wenn sie nicht mehr benötigt werden.
-
-![Verlaufs-Canvas-Ansicht](docs/images/history_canvas.png)
-
-### KI-Workflow-Generierung
-
-**Neuen Workflow mit KI erstellen:**
-1. Wählen Sie **+ New (AI)** aus dem Workflow-Dropdown
-2. Geben Sie Workflow-Namen und Ausgabepfad ein (unterstützt `{{name}}`-Variable)
-3. Beschreiben Sie in natürlicher Sprache, was der Workflow tun soll
-4. Wählen Sie ein Modell und klicken Sie auf **Generate**
-5. Der Workflow wird automatisch erstellt und gespeichert
-
-> **Tipp:** Wenn Sie **+ New (AI)** aus dem Dropdown bei einer Datei verwenden, die bereits Workflows enthält, wird der Ausgabepfad standardmäßig auf die aktuelle Datei gesetzt. Der generierte Workflow wird an diese Datei angehängt.
-
-**Workflow von beliebiger Datei erstellen:**
-
-Wenn Sie den Workflow-Tab mit einer Datei öffnen, die keinen Workflow-Codeblock hat, wird eine **"Create workflow with AI"**-Schaltfläche angezeigt. Klicken Sie darauf, um einen neuen Workflow zu generieren (Standard-Ausgabe: `workflows/{{name}}.md`).
-
-**@ Dateireferenzen:**
-
-Geben Sie `@` im Beschreibungsfeld ein, um Dateien zu referenzieren:
-- `@{selection}` - Aktuelle Editor-Auswahl
-- `@{content}` - Inhalt der aktiven Notiz
-- `@path/to/file.md` - Beliebige Vault-Datei
-
-Wenn Sie auf Generate klicken, wird der Dateiinhalt direkt in die KI-Anfrage eingebettet. YAML-Frontmatter wird automatisch entfernt.
-
-> **Tipp:** Dies ist nützlich, um Workflows basierend auf bestehenden Workflow-Beispielen oder Vorlagen in Ihrem Vault zu erstellen.
-
-**Dateianhänge:**
-
-Klicken Sie auf die Anhang-Schaltfläche, um Dateien (Bilder, PDFs, Textdateien) an Ihre Workflow-Generierungsanfrage anzuhängen. Dies ist nützlich, um der KI visuellen Kontext oder Beispiele zu liefern.
-
-**Externe LLMs verwenden (Prompt kopieren / Antwort einfügen):**
-
-Sie können jedes externe LLM (Claude, GPT usw.) verwenden, um Workflows zu generieren:
-
-1. Geben Sie wie gewohnt den Workflow-Namen und die Beschreibung ein
-2. Klicken Sie auf **Copy Prompt** - der vollständige Prompt wird in die Zwischenablage kopiert
-3. Fügen Sie den Prompt in Ihr bevorzugtes LLM ein
-4. Kopieren Sie die Antwort des LLM
-5. Fügen Sie sie in das angezeigte **Antwort einfügen**-Textfeld ein
-6. Klicken Sie auf **Anwenden**, um den Workflow zu erstellen
-
-Die eingefügte Antwort kann entweder rohes YAML oder ein vollständiges Markdown-Dokument mit `` ```workflow ``-Codeblöcken sein. Markdown-Antworten werden unverändert gespeichert, einschließlich der vom LLM erstellten Dokumentation.
-
-**Modal-Steuerung:**
-
-Das KI-Workflow-Modal unterstützt Drag-and-Drop-Positionierung und Größenänderung von den Ecken für eine bessere Bearbeitungserfahrung.
-
-**Anfrageverlauf:**
-
-Jeder KI-generierte Workflow speichert einen Verlaufseintrag über dem Workflow-Codeblock, einschließlich:
-- Zeitstempel und Aktion (Erstellt/Geändert)
-- Ihre Anfragebeschreibung
-- Referenzierte Dateiinhalte (in zusammenklappbaren Abschnitten)
-
-![Workflow AI-Verlauf](docs/images/workflow_ai_history.png)
-
-**Bestehenden Workflow mit KI ändern:**
-1. Laden Sie einen bestehenden Workflow
-2. Klicken Sie auf die Schaltfläche **AI Modify** (Funkelsymbol)
-3. Beschreiben Sie die gewünschten Änderungen
-4. Überprüfen Sie den Vorher/Nachher-Vergleich
-5. Klicken Sie auf **Apply Changes**, um zu aktualisieren
-
-![KI-Workflow-Änderung](docs/images/modify_workflow_with_ai.png)
-
-**Ausführungsverlauf-Referenz:**
-
-Beim Ändern eines Workflows mit KI können Sie auf vorherige Ausführungsergebnisse verweisen, um der KI Probleme zu erklären:
-
-1. Klicken Sie auf die Schaltfläche **Ausführungsverlauf referenzieren**
-2. Wählen Sie einen Ausführungslauf aus der Liste (Fehlerläufe sind hervorgehoben)
-3. Wählen Sie die einzuschließenden Schritte (Fehlerschritte sind vorausgewählt)
-4. Die KI erhält die Schritt-Input/Output-Daten, um zu verstehen, was schief gelaufen ist
-
-Dies ist besonders nützlich zum Debuggen von Workflows - Sie können der KI sagen "Behebe den Fehler in Schritt 2" und sie sieht genau, welche Eingabe den Fehler verursacht hat.
-
-**Anfrageverlauf:**
-
-Beim Regenerieren eines Workflows (Klicken auf "Nein" in der Vorschau) werden alle vorherigen Anfragen der Sitzung an die KI übergeben. Dies hilft der KI, den vollständigen Kontext Ihrer Änderungen über mehrere Iterationen hinweg zu verstehen.
-
-**Manuelle Workflow-Bearbeitung:**
-
-Bearbeiten Sie Workflows direkt im visuellen Node-Editor mit Drag-and-Drop-Oberfläche.
-
-![Manuelle Workflow-Bearbeitung](docs/images/modify_workflow_manual.png)
-
-**Aus Datei neu laden:**
-- Wählen Sie **Reload from file** aus dem Dropdown, um den Workflow aus der Markdown-Datei neu zu importieren
 
 ## Anforderungen
 

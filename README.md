@@ -193,10 +193,6 @@ Edit history uses a snapshot-based approach:
 
 **Storage:** Edit history is stored in memory and cleared on Obsidian restart. Obsidian's built-in file recovery covers persistent version tracking.
 
-**Settings:**
-- Enable/disable in plugin settings
-- Configure context lines for diffs
-
 ![Edit History Modal](docs/images/edit_history.png)
 
 ## RAG
@@ -474,9 +470,8 @@ npm run build
 ### Workspace Settings
 - **System Prompt** - Additional AI instructions
 - **Tool Limits** - Control function call limits
-- **Edit History** - Track and restore AI-made changes
 
-![Tool Limits & Edit History](docs/images/setting_tool_history.png)
+![Tool Limits](docs/images/setting_tool_history.png)
 
 ### Encryption
 

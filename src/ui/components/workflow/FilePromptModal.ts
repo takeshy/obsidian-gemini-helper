@@ -9,7 +9,10 @@ class FileSuggestModal extends FuzzySuggestModal<TFile> {
   constructor(app: App, onSelect: (file: TFile | null) => void) {
     super(app);
     this.onSelect = onSelect;
-    this.files = this.app.vault.getMarkdownFiles();
+    // Include both .md and .encrypted files
+    const mdFiles = this.app.vault.getMarkdownFiles();
+    const encryptedFiles = this.app.vault.getFiles().filter(f => f.extension === "encrypted");
+    this.files = [...mdFiles, ...encryptedFiles].sort((a, b) => a.path.localeCompare(b.path));
     this.setPlaceholder(t("workflowModal.selectFilePlaceholder"));
   }
 

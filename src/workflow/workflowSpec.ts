@@ -207,9 +207,22 @@ Write/create note.
 - **history** (optional): "true" (default) / "false" to record edit history
 
 #### note-read
-Read note content.
+Read note content. Encrypted files (.md.encrypted) are automatically detected — specify the path without the .encrypted extension and the content is decrypted transparently (a password prompt appears if needed).
 - **path** (required): Note path. Use prompt-file first to get file path if needed.
 - **saveTo** (required): Variable for content
+
+**Example** (read encrypted file with dialog):
+\`\`\`yaml
+- id: select-file
+  type: prompt-file
+  title: "Select encrypted file"
+  saveTo: content
+  saveFileTo: fileInfo
+- id: process
+  type: command
+  prompt: "Summarize: {{content}}"
+  saveTo: summary
+\`\`\`
 
 #### note-search
 Search notes.

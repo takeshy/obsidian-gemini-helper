@@ -163,10 +163,14 @@ export async function handleNoteReadNode(
 
   const path = replaceVariables(pathRaw, context);
 
-  // Ensure .md extension
-  const notePath = path.endsWith(".md") ? path : `${path}.md`;
+  // Ensure .md extension (but also try .md.encrypted for encrypted files)
+  const notePath = path.endsWith(".md") || path.endsWith(".encrypted") ? path : `${path}.md`;
 
-  const file = app.vault.getAbstractFileByPath(notePath);
+  let file = app.vault.getAbstractFileByPath(notePath);
+  // If not found and path ends with .md, try the encrypted variant
+  if (!file && notePath.endsWith(".md")) {
+    file = app.vault.getAbstractFileByPath(`${notePath}.encrypted`);
+  }
   if (!file) {
     throw new Error(`Note not found: ${notePath}`);
   }

@@ -1,6 +1,8 @@
 import { App, TFile } from "obsidian";
 import { WorkflowNode, ExecutionContext, PromptCallbacks } from "../types";
 import { replaceVariables, getVariable } from "./utils";
+import { isEncryptedFile, decryptFileContent } from "../../core/crypto";
+import { cryptoCache } from "../../core/cryptoCache";
 
 // Helper function to create file info object from path
 function createFileInfo(filePath: string): { path: string; basename: string; name: string; extension: string } {
@@ -86,13 +88,33 @@ export async function handlePromptFileNode(
     throw new Error("File selection cancelled by user");
   }
 
-  // Read file content
-  const notePath = filePath.endsWith(".md") ? filePath : `${filePath}.md`;
-  const file = app.vault.getAbstractFileByPath(notePath);
+  // Read file content (support .md and .md.encrypted)
+  const notePath = filePath.endsWith(".md") || filePath.endsWith(".encrypted") ? filePath : `${filePath}.md`;
+  let file = app.vault.getAbstractFileByPath(notePath);
+  if (!file && notePath.endsWith(".md")) {
+    file = app.vault.getAbstractFileByPath(`${notePath}.encrypted`);
+  }
   if (!file || !(file instanceof TFile)) {
     throw new Error(`File not found: ${notePath}`);
   }
-  const content = await app.vault.read(file);
+  let content = await app.vault.read(file);
+
+  // Decrypt if encrypted
+  if (isEncryptedFile(content)) {
+    let password = cryptoCache.getPassword();
+    if (!password && promptCallbacks?.promptForPassword) {
+      password = await promptCallbacks.promptForPassword();
+    }
+    if (!password) {
+      throw new Error(`Cannot read encrypted file without password: ${file.path}`);
+    }
+    try {
+      content = await decryptFileContent(content, password);
+      cryptoCache.setPassword(password);
+    } catch {
+      throw new Error(`Failed to decrypt file (wrong password?): ${file.path}`);
+    }
+  }
 
   // Set content to saveTo
   context.variables.set(saveTo, content);

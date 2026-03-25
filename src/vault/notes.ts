@@ -565,8 +565,19 @@ export async function applyEdit(
     // Save edit history before writing
     const historyManager = getEditHistoryManager();
     if (historyManager) {
-      // Ensure snapshot exists before modification
+      // ensureSnapshot reads the real file to detect external changes
+      // between file-open and now, recording them as "auto" diffs.
       await historyManager.ensureSnapshot(pendingEdit.originalPath);
+
+      // Fallback: if ensureSnapshot still didn't establish a snapshot
+      // (e.g. settings.enabled was temporarily false, non-.md path edge
+      // case, or file read failed silently), seed it from the original
+      // content we captured at proposeEdit time so saveEdit has a
+      // baseline to diff against.
+      if (historyManager.getSnapshot(pendingEdit.originalPath) === null) {
+        historyManager.setSnapshot(pendingEdit.originalPath, pendingEdit.originalContent);
+      }
+
       historyManager.saveEdit({
         path: pendingEdit.originalPath,
         modifiedContent: pendingEdit.newContent,
@@ -837,6 +848,9 @@ export async function applyBulkEdit(
         // Save edit history before writing
         if (historyManager) {
           await historyManager.ensureSnapshot(item.path);
+          if (historyManager.getSnapshot(item.path) === null) {
+            historyManager.setSnapshot(item.path, item.originalContent);
+          }
           historyManager.saveEdit({
             path: item.path,
             modifiedContent: item.newContent,

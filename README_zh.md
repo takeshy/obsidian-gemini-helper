@@ -176,8 +176,6 @@ AI 可以使用以下工具与您的仓库交互：
   - **快照** - 将当前状态保存为快照
   - **历史** - 打开编辑历史模态框
 
-![文件菜单](docs/images/snap_history.png)
-
 - **命令面板** - 也可通过"Show edit history"命令访问
 - **差异视图** - 使用颜色编码的添加/删除准确显示更改内容
 - **恢复** - 一键恢复到任何之前的版本
@@ -247,8 +245,6 @@ MCP（Model Context Protocol）服务器提供额外的工具，扩展 AI 在 Va
 ### MCP Apps（交互式 UI）
 
 一些 MCP 工具返回交互式 UI，允许您以可视化方式与工具结果进行交互。此功能基于 [MCP Apps 规范](https://github.com/anthropics/anthropic-cookbook/tree/main/misc/mcp_apps)。
-
-![MCP Apps](docs/images/mcp_apps.png)
 
 **工作原理：**
 
@@ -362,7 +358,7 @@ MCP（Model Context Protocol）服务器提供额外的工具，扩展 AI 在 Va
 
 粘贴的响应可以是原始 YAML 或包含 `` ```workflow `` 代码块的完整 Markdown 文档。Markdown 响应将按原样保存，保留 LLM 包含的所有文档。
 
-![使用 AI 创建工作流](docs/images/create_workflow.png)
+![使用 AI 创建工作流](docs/images/create_workflow_with_ai.png)
 
 **模态框控制：**
 

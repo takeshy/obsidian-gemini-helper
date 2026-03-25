@@ -176,8 +176,6 @@ AI가 `propose_edit`을 사용할 때:
   - **Snapshot** - 현재 상태를 스냅샷으로 저장
   - **History** - 편집 히스토리 모달 열기
 
-![File Menu](docs/images/snap_history.png)
-
 - **명령 팔레트** - "Show edit history" 명령어로도 사용 가능
 - **Diff 뷰** - 색상으로 구분된 추가/삭제로 정확히 무엇이 변경되었는지 확인
 - **복원** - 한 번의 클릭으로 이전 버전으로 되돌리기
@@ -247,8 +245,6 @@ MCP(Model Context Protocol) 서버는 Vault 작업 이외의 AI 기능을 확장
 ### MCP Apps (인터랙티브 UI)
 
 일부 MCP 도구는 도구 결과와 시각적으로 상호작용할 수 있는 인터랙티브 UI를 반환합니다. 이 기능은 [MCP Apps 사양](https://github.com/anthropics/anthropic-cookbook/tree/main/misc/mcp_apps)을 기반으로 합니다.
-
-![MCP Apps](docs/images/mcp_apps.png)
 
 **작동 방식:**
 
@@ -362,7 +358,7 @@ Generate를 클릭하면 파일 내용이 AI 요청에 직접 포함됩니다. Y
 
 붙여넣는 응답은 원시 YAML 또는 `` ```workflow `` 코드 블록이 포함된 전체 Markdown 문서일 수 있습니다. Markdown 응답은 LLM이 포함한 문서를 보존하며 그대로 저장됩니다.
 
-![Create Workflow with AI](docs/images/create_workflow.png)
+![Create Workflow with AI](docs/images/create_workflow_with_ai.png)
 
 **모달 컨트롤:**
 

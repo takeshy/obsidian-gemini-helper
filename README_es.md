@@ -176,8 +176,6 @@ Rastrea y restaura cambios hechos a tus notas:
   - **Snapshot** - Guardar el estado actual como instantanea
   - **History** - Abrir el modal de historial de edicion
 
-![Menu de Archivo](docs/images/snap_history.png)
-
 - **Paleta de comandos** - Tambien disponible via comando "Show edit history"
 - **Vista de diferencias** - Ve exactamente que cambio con adiciones/eliminaciones codificadas por color
 - **Restaurar** - Revierte a cualquier version anterior con un clic
@@ -247,8 +245,6 @@ Los servidores MCP (Model Context Protocol) proporcionan herramientas adicionale
 ### MCP Apps (UI Interactiva)
 
 Algunas herramientas MCP devuelven UI interactiva que te permite interactuar visualmente con los resultados de la herramienta. Esta funcion se basa en la [especificacion MCP Apps](https://github.com/anthropics/anthropic-cookbook/tree/main/misc/mcp_apps).
-
-![MCP Apps](docs/images/mcp_apps.png)
 
 **Como funciona:**
 
@@ -362,7 +358,7 @@ Puedes usar cualquier LLM externo (Claude, GPT, etc.) para generar flujos de tra
 
 La respuesta pegada puede ser YAML puro o un documento Markdown completo con bloques de codigo `` ```workflow ``. Las respuestas en Markdown se guardan tal cual, preservando cualquier documentacion incluida por el LLM.
 
-![Crear Flujo de Trabajo con IA](docs/images/create_workflow.png)
+![Crear Flujo de Trabajo con IA](docs/images/create_workflow_with_ai.png)
 
 **Controles del Modal:**
 

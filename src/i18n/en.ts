@@ -21,6 +21,14 @@ export const en = {
 
 
   // Settings - Workspace
+  "settings.workspaceFolder": "Workspace folder",
+  "settings.workspaceFolder.desc": "Name of the folder for storing chat history, search indexes, and workflow history. Use a name starting with \".\" (e.g. \".GeminiHelper\") to hide from Obsidian search and file explorer",
+  "settings.workspaceFolder.invalidPath": "Absolute paths and \"..\" are not allowed. Please use a folder name within the vault.",
+  "settings.moveWorkspaceFolder": "Move existing data from \"{{from}}\" to \"{{to}}\"?",
+  "settings.moveWorkspaceFolder.move": "Move",
+  "settings.moveWorkspaceFolder.skip": "Skip",
+  "settings.moveWorkspaceFolder.error": "Failed to move workspace folder: {{error}}",
+
   "settings.hideWorkspaceFolder": "Hide workspace folder",
   "settings.hideWorkspaceFolder.desc": "Hide the workspace folder from the file explorer",
   "settings.saveChatHistory": "Save chat history",
@@ -268,6 +276,17 @@ export const en = {
   "message.editFeedbackHeader": "The proposed edit to \"{{filePath}}\" was rejected.",
   "message.editFeedbackUserRequest": "Feedback:",
   "message.editFeedbackRetry": "Please try again with a different approach.",
+  // Diff viewer
+  "diff.unifiedView": "Unified",
+  "diff.splitView": "Split",
+  "diff.commentPlaceholder": "Add your comment about this line...",
+  "diff.saveComment": "Save",
+  "diff.cancelComment": "Cancel",
+  "diff.removeComment": "Remove",
+  "diff.lineComments": "Line comments",
+  "diff.lineCommentsCount": "{{count}} line comment(s)",
+  "diff.generalFeedback": "General feedback (optional)",
+  "diff.applyWithCommentsConfirm": "You have line comments that haven't been submitted. Apply changes anyway?",
   "message.appliedChanges": "Applied changes to",
   "message.discardedChanges": "Discarded changes",
   "message.deleted": "Deleted",

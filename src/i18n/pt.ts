@@ -21,6 +21,14 @@ export const pt: Record<string, string> = {
 
 
   // Settings - Workspace
+  "settings.workspaceFolder": "Pasta da area de trabalho",
+  "settings.workspaceFolder.desc": "Nome da pasta para armazenar historico de chat, indices RAG e historico de fluxos de trabalho. Use um nome que comece com \".\" (ex. \".GeminiHelper\") para ocultar da busca e do explorador de arquivos do Obsidian.",
+  "settings.workspaceFolder.invalidPath": "Caminhos absolutos e \"..\" não são permitidos. Use um nome de pasta dentro do cofre.",
+  "settings.moveWorkspaceFolder": "Mover dados existentes de \"{{from}}\" para \"{{to}}\"?",
+  "settings.moveWorkspaceFolder.move": "Mover",
+  "settings.moveWorkspaceFolder.skip": "Pular",
+  "settings.moveWorkspaceFolder.error": "Falha ao mover a pasta: {{error}}",
+
   "settings.hideWorkspaceFolder": "Ocultar pasta da area de trabalho",
   "settings.hideWorkspaceFolder.desc": "Ocultar a pasta da area de trabalho do explorador de arquivos",
   "settings.saveChatHistory": "Salvar historico de chat",
@@ -268,6 +276,17 @@ export const pt: Record<string, string> = {
   "message.editFeedbackHeader": "A edicao proposta para \"{{filePath}}\" foi rejeitada.",
   "message.editFeedbackUserRequest": "Feedback:",
   "message.editFeedbackRetry": "Por favor, tente novamente com uma abordagem diferente.",
+  // Diff viewer
+  "diff.unifiedView": "Unificado",
+  "diff.splitView": "Dividido",
+  "diff.commentPlaceholder": "Adicione seu comentario sobre esta linha...",
+  "diff.saveComment": "Salvar",
+  "diff.cancelComment": "Cancelar",
+  "diff.removeComment": "Remover",
+  "diff.lineComments": "Comentarios de linha",
+  "diff.lineCommentsCount": "{{count}} comentario(s) de linha",
+  "diff.generalFeedback": "Feedback geral (opcional)",
+  "diff.applyWithCommentsConfirm": "Voce tem comentarios de linha nao enviados. Aplicar as alteracoes mesmo assim?",
   "message.appliedChanges": "Alteracoes aplicadas a",
   "message.discardedChanges": "Alteracoes descartadas",
   "message.deleted": "Excluido",

@@ -7,7 +7,7 @@ import { getWorkflowSpecification } from "src/workflow/workflowSpec";
 import type { SidebarNode, WorkflowNodeType, ExecutionStep } from "src/workflow/types";
 import { listWorkflowOptions, normalizeYamlText } from "src/workflow/parser";
 import { ExecutionHistoryManager } from "src/workflow/history";
-import { computeLineDiff } from "./EditConfirmationModal";
+import { renderDiffView, createDiffViewToggle } from "./DiffRenderer";
 import { WorkflowGenerationModal } from "./WorkflowGenerationModal";
 import { showWorkflowPreview } from "./WorkflowPreviewModal";
 import { showExecutionHistorySelect } from "./ExecutionHistorySelectModal";
@@ -58,8 +58,6 @@ class WorkflowConfirmModal extends Modal {
   private previousRequest: string;
   private resolvePromise: (result: WorkflowConfirmResult) => void;
   private additionalRequestEl: HTMLTextAreaElement | null = null;
-  private additionalRequestContainerEl: HTMLElement | null = null;
-  private isShowingAdditionalRequest = false;
 
   constructor(
     app: App,
@@ -95,44 +93,30 @@ class WorkflowConfirmModal extends Modal {
       explanationContainer.createEl("p", { text: this.explanation });
     }
 
-    // Create diff view
-    const diffContainer = contentEl.createDiv({ cls: "gemini-helper-diff-view" });
-    const diffLines = computeLineDiff(this.oldYaml, this.newYaml);
+    // Create diff view with toggle
+    const diffLabel = contentEl.createDiv({ cls: "gemini-helper-edit-confirm-preview-label" });
+    diffLabel.createEl("span", { text: t("workflowModal.changes") });
+    const diffWrapper = contentEl.createDiv();
+    const diffState = renderDiffView(diffWrapper, this.oldYaml, this.newYaml);
+    createDiffViewToggle(diffLabel, diffState);
 
-    for (const line of diffLines) {
-      const lineEl = diffContainer.createDiv({
-        cls: `gemini-helper-diff-line gemini-helper-diff-${line.type}`,
-      });
-
-      // Line number gutter
-      const gutterEl = lineEl.createSpan({ cls: "gemini-helper-diff-gutter" });
-      if (line.type === "removed") {
-        gutterEl.textContent = "-";
-      } else if (line.type === "added") {
-        gutterEl.textContent = "+";
-      } else {
-        gutterEl.textContent = " ";
-      }
-
-      // Content
-      const contentEl = lineEl.createSpan({ cls: "gemini-helper-diff-content" });
-      contentEl.textContent = line.content;
-    }
-
-    // Additional request container (hidden initially)
-    this.additionalRequestContainerEl = contentEl.createDiv({
-      cls: "workflow-preview-additional is-hidden"
+    // Feedback textarea (always visible)
+    const additionalRequestContainer = contentEl.createDiv({
+      cls: "workflow-preview-additional",
     });
-    this.additionalRequestContainerEl.createEl("label", {
-      text: t("workflow.preview.additionalRequest")
+    additionalRequestContainer.createEl("label", {
+      text: t("workflow.preview.additionalRequest"),
     });
-    this.additionalRequestEl = this.additionalRequestContainerEl.createEl("textarea", {
+    this.additionalRequestEl = additionalRequestContainer.createEl("textarea", {
       cls: "workflow-preview-additional-input",
       attr: {
         placeholder: t("workflow.preview.additionalPlaceholder"),
-        rows: "3"
+        rows: "3",
       },
     });
+    if (this.previousRequest) {
+      this.additionalRequestEl.value = this.previousRequest;
+    }
 
     // Buttons
     const buttonContainer = contentEl.createDiv({ cls: "ai-workflow-buttons" });
@@ -143,28 +127,21 @@ class WorkflowConfirmModal extends Modal {
       this.close();
     });
 
-    const noBtn = buttonContainer.createEl("button", { text: t("workflow.preview.no") });
-    noBtn.addEventListener("click", () => {
-      if (!this.isShowingAdditionalRequest) {
-        // First click: show additional request input with previous request pre-filled
-        this.isShowingAdditionalRequest = true;
-        this.additionalRequestContainerEl?.removeClass("is-hidden");
-        if (this.additionalRequestEl && this.previousRequest) {
-          this.additionalRequestEl.value = this.previousRequest;
-        }
-        this.additionalRequestEl?.focus();
-        noBtn.textContent = t("workflow.preview.regenerate");
-        noBtn.addClass("mod-cta");
-        applyBtn.removeClass("mod-cta");
-      } else {
-        // Second click: submit with additional request
-        const additionalRequest = this.additionalRequestEl?.value?.trim() || "";
-        this.resolvePromise({
-          result: "no",
-          additionalRequest,
-        });
-        this.close();
-      }
+    const requestChangesBtn = buttonContainer.createEl("button", {
+      text: t("message.requestChanges"),
+      cls: "mod-warning",
+    });
+    requestChangesBtn.disabled = !(this.previousRequest?.trim());
+    this.additionalRequestEl.addEventListener("input", () => {
+      requestChangesBtn.disabled = !(this.additionalRequestEl?.value?.trim());
+    });
+    requestChangesBtn.addEventListener("click", () => {
+      const additionalRequest = this.additionalRequestEl?.value?.trim() || "";
+      this.resolvePromise({
+        result: "no",
+        additionalRequest,
+      });
+      this.close();
     });
 
     const applyBtn = buttonContainer.createEl("button", {
@@ -622,7 +599,8 @@ export class AIWorkflowModal extends Modal {
       } : undefined;
       const historyManager = new ExecutionHistoryManager(
         this.app,
-        encryptionConfig
+        encryptionConfig,
+        this.plugin.settings.workspaceFolder
       );
       const executionRecords = await historyManager.loadRecords(activeFile.path);
 

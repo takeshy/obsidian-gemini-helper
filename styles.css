@@ -23,11 +23,7 @@
   display: none !important;
 }
 
-/* Hide workspace folder in file explorer */
-body.gemini-helper-hide-workspace-folder .nav-folder[data-path="GeminiHelper"],
-body.gemini-helper-hide-workspace-folder .nav-folder:has(> [data-path="GeminiHelper"]) {
-  display: none !important;
-}
+/* Hide workspace folder in file explorer — handled dynamically in plugin.ts */
 
 /* Folder icons in file explorer */
 .nav-folder[data-path="skills"] > .nav-folder-title > .nav-folder-title-content::before,
@@ -2761,7 +2757,7 @@ body.gemini-helper-hide-workspace-folder .nav-folder:has(> [data-path="GeminiHel
    =============================================== */
 
 .gemini-helper-edit-confirm-modal {
-  width: 600px;
+  width: 800px;
   height: 500px;
   max-width: 90vw;
   max-height: 80vh;
@@ -2820,6 +2816,8 @@ body.gemini-helper-hide-workspace-folder .nav-folder:has(> [data-path="GeminiHel
 }
 
 .gemini-helper-edit-confirm-preview-label {
+  display: flex;
+  align-items: center;
   font-size: 12px;
   font-weight: 500;
   color: var(--text-muted);
@@ -3819,6 +3817,233 @@ body.gemini-helper-hide-workspace-folder .nav-folder:has(> [data-path="GeminiHel
 
 .theme-dark .gemini-helper-diff-removed .gemini-helper-diff-gutter {
   background: rgba(255, 100, 100, 0.2);
+}
+
+/* ===============================================
+   Line Numbers
+   =============================================== */
+
+.gemini-helper-diff-linenum {
+  flex-shrink: 0;
+  width: 40px;
+  text-align: right;
+  padding-right: 4px;
+  color: var(--text-faint);
+  user-select: none;
+  font-size: 11px;
+}
+
+/* ===============================================
+   View Toggle (Unified / Split)
+   =============================================== */
+
+.gemini-helper-diff-view-toggle {
+  display: inline-flex;
+  gap: 0;
+  margin-left: auto;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.gemini-helper-diff-view-toggle-btn {
+  padding: 2px 10px;
+  font-size: 11px;
+  cursor: pointer;
+  background: var(--background-primary);
+  color: var(--text-muted);
+  border: none;
+  border-right: 1px solid var(--background-modifier-border);
+  line-height: 1.4;
+}
+
+.gemini-helper-diff-view-toggle-btn:last-child {
+  border-right: none;
+}
+
+.gemini-helper-diff-view-toggle-btn.is-active {
+  background: var(--interactive-accent);
+  color: var(--text-on-accent);
+}
+
+.gemini-helper-diff-view-toggle-btn:hover:not(.is-active) {
+  background: var(--background-modifier-hover);
+}
+
+/* ===============================================
+   Split (Side-by-Side) View
+   =============================================== */
+
+.gemini-helper-diff-split .gemini-helper-diff-split-row {
+  display: flex;
+  border-bottom: 1px solid var(--background-modifier-border-focus);
+}
+
+.gemini-helper-diff-split-cell {
+  width: 50%;
+  display: flex;
+  white-space: pre;
+  min-height: 1.5em;
+  font-family: var(--font-monospace);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.gemini-helper-diff-split-left {
+  border-right: 1px solid var(--background-modifier-border);
+}
+
+.gemini-helper-diff-split-filler {
+  background: var(--background-secondary-alt, var(--background-secondary));
+}
+
+/* ===============================================
+   Word-Level Diff Highlighting
+   =============================================== */
+
+.gemini-helper-diff-word-added {
+  background: rgba(0, 200, 83, 0.35);
+  border-radius: 2px;
+}
+
+.gemini-helper-diff-word-removed {
+  background: rgba(255, 100, 100, 0.35);
+  border-radius: 2px;
+}
+
+.theme-dark .gemini-helper-diff-word-added {
+  background: rgba(0, 200, 83, 0.25);
+}
+
+.theme-dark .gemini-helper-diff-word-removed {
+  background: rgba(255, 100, 100, 0.25);
+}
+
+/* ===============================================
+   Click-to-Comment on Diff Lines
+   =============================================== */
+
+.gemini-helper-diff-commentable {
+  cursor: pointer;
+}
+
+.gemini-helper-diff-commentable:hover {
+  filter: brightness(0.95);
+}
+
+.theme-dark .gemini-helper-diff-commentable:hover {
+  filter: brightness(1.15);
+}
+
+.gemini-helper-diff-has-comment .gemini-helper-diff-gutter::after {
+  content: "\25CF";
+  font-size: 8px;
+  color: var(--interactive-accent);
+  margin-left: 2px;
+}
+
+.gemini-helper-diff-comment-preview {
+  padding: 4px 12px 4px 108px;
+  background: var(--background-secondary);
+  border-bottom: 1px solid var(--background-modifier-border);
+  font-family: var(--font-interface);
+  font-size: 12px;
+  color: var(--text-muted);
+  font-style: italic;
+  white-space: normal;
+  word-break: break-word;
+}
+
+.gemini-helper-diff-split .gemini-helper-diff-comment-preview {
+  padding-left: 12px;
+}
+
+.gemini-helper-diff-comment-editor {
+  padding: 8px 12px 8px 108px;
+  background: var(--background-secondary);
+  border-top: 1px solid var(--background-modifier-border);
+  border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.gemini-helper-diff-split .gemini-helper-diff-comment-editor {
+  padding-left: 12px;
+}
+
+.gemini-helper-diff-comment-input {
+  width: 100%;
+  min-height: 40px;
+  padding: 6px 8px;
+  font-size: 12px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 4px;
+  background: var(--background-primary);
+  color: var(--text-normal);
+  font-family: var(--font-interface);
+  resize: vertical;
+  box-sizing: border-box;
+}
+
+.gemini-helper-diff-comment-input:focus {
+  border-color: var(--interactive-accent);
+  outline: none;
+}
+
+.gemini-helper-diff-comment-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 6px;
+  justify-content: flex-end;
+}
+
+.gemini-helper-diff-comment-actions button {
+  padding: 4px 10px;
+  font-size: 11px;
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+/* ===============================================
+   Apply with Comments Confirmation Dialog
+   =============================================== */
+
+.gemini-helper-diff-confirm-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  border-radius: inherit;
+}
+
+.gemini-helper-diff-confirm-dialog {
+  background: var(--background-primary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 8px;
+  padding: 20px;
+  max-width: 400px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.gemini-helper-diff-confirm-dialog p {
+  margin: 0 0 16px;
+  font-size: 14px;
+  color: var(--text-normal);
+  line-height: 1.5;
+}
+
+.gemini-helper-diff-confirm-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.gemini-helper-diff-confirm-dialog-actions button {
+  padding: 6px 14px;
+  font-size: 13px;
+  border-radius: 4px;
+  cursor: pointer;
 }
 
 /* ============================================ */

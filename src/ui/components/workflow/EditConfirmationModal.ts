@@ -1,5 +1,6 @@
 import { Modal, App, MarkdownRenderer, Component } from "obsidian";
 import { t } from "src/i18n";
+import { renderDiffView, formatLineComments, createDiffViewToggle, type DiffRendererState } from "./DiffRenderer";
 
 /**
  * Diff line types
@@ -101,9 +102,9 @@ export class EditConfirmationModal extends Modal {
   private mode: string;
   private resolvePromise: ((value: EditConfirmationResult) => void) | null = null;
   private component: Component;
-  private isShowingAdditionalRequest = false;
   private additionalRequestEl: HTMLTextAreaElement | null = null;
   private requestChangesBtn: HTMLButtonElement | null = null;
+  private diffState: DiffRendererState | null = null;
 
   // Drag state
   private isDragging = false;
@@ -174,29 +175,10 @@ export class EditConfirmationModal extends Modal {
     // Render diff view if we have original content, otherwise render markdown preview
     this.component.load();
     if (this.originalContent || this.mode === "create") {
-      // For new files or when we have original content, show diff
-      const diffLines = computeLineDiff(this.originalContent, this.content);
-      const diffContainer = previewContent.createDiv({ cls: "gemini-helper-diff-view" });
-
-      for (const line of diffLines) {
-        const lineEl = diffContainer.createDiv({
-          cls: `gemini-helper-diff-line gemini-helper-diff-${line.type}`,
-        });
-
-        // Line number gutter
-        const gutterEl = lineEl.createSpan({ cls: "gemini-helper-diff-gutter" });
-        if (line.type === "removed") {
-          gutterEl.textContent = "-";
-        } else if (line.type === "added") {
-          gutterEl.textContent = "+";
-        } else {
-          gutterEl.textContent = " ";
-        }
-
-        // Line content
-        const lineContentEl = lineEl.createSpan({ cls: "gemini-helper-diff-content" });
-        lineContentEl.textContent = line.content || " "; // Empty lines show space
-      }
+      this.diffState = renderDiffView(previewContent, this.originalContent, this.content, {
+        enableComments: true,
+      });
+      createDiffViewToggle(previewLabel, this.diffState);
     } else {
       // Fallback to markdown preview if no original content
       void MarkdownRenderer.render(
@@ -208,9 +190,9 @@ export class EditConfirmationModal extends Modal {
       );
     }
 
-    // Additional request textarea (hidden initially)
+    // Feedback textarea (always visible)
     const additionalRequestContainer = contentEl.createDiv({
-      cls: "gemini-helper-edit-additional-container gemini-helper-hidden",
+      cls: "gemini-helper-edit-additional-container",
     });
 
     additionalRequestContainer.createEl("label", {
@@ -239,24 +221,40 @@ export class EditConfirmationModal extends Modal {
       text: t("message.requestChanges"),
       cls: "mod-warning",
     });
+    this.requestChangesBtn.disabled = true;
+
+    // Helper to enable/disable Request Changes based on comments + textarea
+    const updateRequestChangesState = () => {
+      if (!this.requestChangesBtn) return;
+      const hasComments = this.diffState ? this.diffState.lineComments.size > 0 : false;
+      const hasText = (this.additionalRequestEl?.value || "").trim().length > 0;
+      this.requestChangesBtn.disabled = !hasComments && !hasText;
+    };
+
+    // Listen for comment changes from the diff renderer
+    if (this.diffState) {
+      this.diffState.onCommentsChange = () => updateRequestChangesState();
+    }
+
+    // Monitor textarea input
+    this.additionalRequestEl.addEventListener("input", () => updateRequestChangesState());
+
     this.requestChangesBtn.addEventListener("click", () => {
-      if (this.isShowingAdditionalRequest) {
-        // Second click: submit with additional request
-        const additionalRequest = this.additionalRequestEl?.value || "";
-        this.resolvePromise?.({
-          confirmed: false,
-          additionalRequest,
-        });
-        this.close();
-      } else {
-        // First click: show textarea
-        this.isShowingAdditionalRequest = true;
-        additionalRequestContainer.removeClass("gemini-helper-hidden");
-        if (this.requestChangesBtn) {
-          this.requestChangesBtn.textContent = t("message.regenerate");
-        }
-        this.additionalRequestEl?.focus();
-      }
+      const generalFeedback = this.additionalRequestEl?.value || "";
+      const lineCommentsFeedback = this.diffState
+        ? formatLineComments(this.filePath, this.diffState.lineComments)
+        : "";
+
+      const parts: string[] = [];
+      if (lineCommentsFeedback) parts.push(lineCommentsFeedback);
+      if (generalFeedback.trim()) parts.push(generalFeedback.trim());
+      const additionalRequest = parts.join("\n");
+
+      this.resolvePromise?.({
+        confirmed: false,
+        additionalRequest,
+      });
+      this.close();
     });
 
     const confirmBtn = actions.createEl("button", {
@@ -264,8 +262,45 @@ export class EditConfirmationModal extends Modal {
       cls: "mod-cta",
     });
     confirmBtn.addEventListener("click", () => {
-      this.resolvePromise?.({ confirmed: true });
-      this.close();
+      const hasComments = this.diffState ? this.diffState.lineComments.size > 0 : false;
+      const hasText = (this.additionalRequestEl?.value || "").trim().length > 0;
+      if (hasComments || hasText) {
+        // Warn when there are unsubmitted line comments
+        const overlay = document.createElement("div");
+        overlay.className = "gemini-helper-diff-confirm-overlay";
+
+        const dialog = document.createElement("div");
+        dialog.className = "gemini-helper-diff-confirm-dialog";
+
+        const msg = document.createElement("p");
+        msg.textContent = t("diff.applyWithCommentsConfirm");
+        dialog.appendChild(msg);
+
+        const btns = document.createElement("div");
+        btns.className = "gemini-helper-diff-confirm-dialog-actions";
+
+        const dialogCancelBtn = document.createElement("button");
+        dialogCancelBtn.textContent = t("workflowModal.cancel");
+        dialogCancelBtn.addEventListener("click", () => overlay.remove());
+        btns.appendChild(dialogCancelBtn);
+
+        const applyBtn = document.createElement("button");
+        applyBtn.textContent = t("message.apply");
+        applyBtn.className = "mod-cta";
+        applyBtn.addEventListener("click", () => {
+          overlay.remove();
+          this.resolvePromise?.({ confirmed: true });
+          this.close();
+        });
+        btns.appendChild(applyBtn);
+
+        dialog.appendChild(btns);
+        overlay.appendChild(dialog);
+        this.modalEl.appendChild(overlay);
+      } else {
+        this.resolvePromise?.({ confirmed: true });
+        this.close();
+      }
     });
 
     // Add resize handles
@@ -419,6 +454,8 @@ export class EditConfirmationModal extends Modal {
   }
 
   onClose() {
+    this.diffState?.destroy();
+    this.diffState = null;
     this.component.unload();
     this.contentEl.empty();
     // If closed without clicking a button, treat as cancel
@@ -905,30 +942,7 @@ export class BulkEditConfirmationModal extends Modal {
 
   private renderPreview(container: HTMLElement, item: BulkEditConfirmItem) {
     const preview = container.createDiv({ cls: "gemini-helper-bulk-preview" });
-
-    // Compute and render diff
-    const diffLines = computeLineDiff(item.originalContent, item.newContent);
-    const diffContainer = preview.createDiv({ cls: "gemini-helper-diff-view" });
-
-    for (const line of diffLines) {
-      const lineEl = diffContainer.createDiv({
-        cls: `gemini-helper-diff-line gemini-helper-diff-${line.type}`,
-      });
-
-      // Line number gutter
-      const gutterEl = lineEl.createSpan({ cls: "gemini-helper-diff-gutter" });
-      if (line.type === "removed") {
-        gutterEl.textContent = "-";
-      } else if (line.type === "added") {
-        gutterEl.textContent = "+";
-      } else {
-        gutterEl.textContent = " ";
-      }
-
-      // Line content
-      const contentEl = lineEl.createSpan({ cls: "gemini-helper-diff-content" });
-      contentEl.textContent = line.content || " "; // Empty lines show space
-    }
+    renderDiffView(preview, item.originalContent, item.newContent);
   }
 
   private getModeLabel(mode: string): string {

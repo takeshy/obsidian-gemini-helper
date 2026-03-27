@@ -22,6 +22,14 @@ export const ko: Record<string, string> = {
 
 
   // Settings - Workspace
+  "settings.workspaceFolder": "워크스페이스 폴더",
+  "settings.workspaceFolder.desc": "채팅 기록, RAG 인덱스, 워크플로 기록을 저장할 폴더 이름. \".\"로 시작하는 이름(예: \".GeminiHelper\")을 사용하면 Obsidian 검색 및 파일 탐색기에서 숨길 수 있습니다.",
+  "settings.workspaceFolder.invalidPath": "절대 경로와 \"..\"는 사용할 수 없습니다. 보관함 내의 폴더 이름을 지정하세요.",
+  "settings.moveWorkspaceFolder": "기존 데이터를 \"{{from}}\"에서 \"{{to}}\"로 이동하시겠습니까?",
+  "settings.moveWorkspaceFolder.move": "이동",
+  "settings.moveWorkspaceFolder.skip": "건너뛰기",
+  "settings.moveWorkspaceFolder.error": "워크스페이스 폴더 이동 실패: {{error}}",
+
   "settings.hideWorkspaceFolder": "워크스페이스 폴더 숨기기",
   "settings.hideWorkspaceFolder.desc": "파일 탐색기에서 워크스페이스 폴더를 숨깁니다",
   "settings.saveChatHistory": "채팅 기록 저장",
@@ -269,6 +277,17 @@ export const ko: Record<string, string> = {
   "message.editFeedbackHeader": "\"{{filePath}}\"에 대한 편집 제안이 거부되었습니다.",
   "message.editFeedbackUserRequest": "피드백:",
   "message.editFeedbackRetry": "다른 접근 방식으로 다시 시도해 주세요.",
+  // Diff viewer
+  "diff.unifiedView": "통합",
+  "diff.splitView": "분할",
+  "diff.commentPlaceholder": "이 줄에 대한 코멘트를 추가하세요...",
+  "diff.saveComment": "저장",
+  "diff.cancelComment": "취소",
+  "diff.removeComment": "삭제",
+  "diff.lineComments": "줄 코멘트",
+  "diff.lineCommentsCount": "{{count}}개의 줄 코멘트",
+  "diff.generalFeedback": "전체 피드백 (선택사항)",
+  "diff.applyWithCommentsConfirm": "제출되지 않은 줄 코멘트가 있습니다. 그래도 변경 사항을 적용하시겠습니까?",
   "message.appliedChanges": "변경 사항 적용됨:",
   "message.discardedChanges": "변경 사항 취소됨",
   "message.deleted": "삭제됨",

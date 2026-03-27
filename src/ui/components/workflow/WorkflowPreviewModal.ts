@@ -99,8 +99,6 @@ export class WorkflowPreviewModal extends Modal {
   private previousRequest: string;
   private resolvePromise: (result: WorkflowPreviewResult) => void;
   private additionalRequestEl: HTMLTextAreaElement | null = null;
-  private additionalRequestContainerEl: HTMLElement | null = null;
-  private isShowingAdditionalRequest = false;
 
   constructor(
     app: App,
@@ -152,20 +150,23 @@ export class WorkflowPreviewModal extends Modal {
     const yamlPre = yamlDetails.createEl("pre", { cls: "workflow-preview-yaml" });
     yamlPre.textContent = this.yaml;
 
-    // Additional request container (hidden initially)
-    this.additionalRequestContainerEl = contentEl.createDiv({
-      cls: "workflow-preview-additional is-hidden"
+    // Feedback textarea (always visible)
+    const additionalRequestContainer = contentEl.createDiv({
+      cls: "workflow-preview-additional",
     });
-    this.additionalRequestContainerEl.createEl("label", {
-      text: t("workflow.preview.additionalRequest")
+    additionalRequestContainer.createEl("label", {
+      text: t("workflow.preview.additionalRequest"),
     });
-    this.additionalRequestEl = this.additionalRequestContainerEl.createEl("textarea", {
+    this.additionalRequestEl = additionalRequestContainer.createEl("textarea", {
       cls: "workflow-preview-additional-input",
       attr: {
         placeholder: t("workflow.preview.additionalPlaceholder"),
-        rows: "3"
+        rows: "3",
       },
     });
+    if (this.previousRequest) {
+      this.additionalRequestEl.value = this.previousRequest;
+    }
 
     // On mobile, hide upper content when textarea is focused to make room for keyboard
     if (Platform.isMobile) {
@@ -188,28 +189,21 @@ export class WorkflowPreviewModal extends Modal {
       this.close();
     });
 
-    const noBtn = buttonContainer.createEl("button", {
-      text: t("workflow.preview.no"),
+    const requestChangesBtn = buttonContainer.createEl("button", {
+      text: t("message.requestChanges"),
+      cls: "mod-warning",
     });
-    noBtn.addEventListener("click", () => {
-      if (!this.isShowingAdditionalRequest) {
-        // First click: show additional request input with previous request pre-filled
-        this.isShowingAdditionalRequest = true;
-        this.additionalRequestContainerEl?.removeClass("is-hidden");
-        if (this.additionalRequestEl && this.previousRequest) {
-          this.additionalRequestEl.value = this.previousRequest;
-        }
-        this.additionalRequestEl?.focus();
-        noBtn.textContent = t("workflow.preview.regenerate");
-      } else {
-        // Second click: submit with additional request
-        const additionalRequest = this.additionalRequestEl?.value?.trim() || "";
-        this.resolvePromise({
-          result: "no",
-          additionalRequest,
-        });
-        this.close();
-      }
+    requestChangesBtn.disabled = !(this.previousRequest?.trim());
+    this.additionalRequestEl.addEventListener("input", () => {
+      requestChangesBtn.disabled = !(this.additionalRequestEl?.value?.trim());
+    });
+    requestChangesBtn.addEventListener("click", () => {
+      const additionalRequest = this.additionalRequestEl?.value?.trim() || "";
+      this.resolvePromise({
+        result: "no",
+        additionalRequest,
+      });
+      this.close();
     });
 
     const okBtn = buttonContainer.createEl("button", {

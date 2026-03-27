@@ -100,6 +100,7 @@ export interface GeminiHelperSettings {
   ragTopK: number;  // Number of chunks to retrieve (default: 5)
 
   // Workspace settings
+  workspaceFolder: string;
   hideWorkspaceFolder: boolean;
   saveChatHistory: boolean;
   systemPrompt: string;
@@ -564,8 +565,8 @@ export const DEFAULT_SLASH_COMMANDS: SlashCommand[] = [
   },
 ];
 
-/** Fixed workspace folder name (not user-configurable). */
-export const WORKSPACE_FOLDER = "GeminiHelper";
+/** Default workspace folder name. */
+export const DEFAULT_WORKSPACE_FOLDER = "GeminiHelper";
 /** Fixed skills folder name. */
 export const SKILLS_FOLDER = "skills";
 /** Fixed workflows folder name. */
@@ -577,6 +578,7 @@ export const DEFAULT_SETTINGS: GeminiHelperSettings = {
   apiPlan: "paid",
   ragEnabled: false,
   ragTopK: 5,  // Default: retrieve 5 chunks
+  workspaceFolder: DEFAULT_WORKSPACE_FOLDER,
   hideWorkspaceFolder: true,
   saveChatHistory: true,
   systemPrompt: "",

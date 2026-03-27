@@ -84,7 +84,8 @@ export class WorkflowExecutor {
 
     this.historyManager = new ExecutionHistoryManager(
       app,
-      encryptionConfig
+      encryptionConfig,
+      plugin.settings.workspaceFolder
     );
   }
 

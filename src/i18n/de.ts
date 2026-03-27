@@ -20,6 +20,14 @@ export const de: Record<string, string> = {
 
 
   // Settings - Workspace
+  "settings.workspaceFolder": "Arbeitsbereichsordner",
+  "settings.workspaceFolder.desc": "Ordnername zum Speichern von Chatverlauf, RAG-Indizes und Workflow-Verlauf. Ein Name mit \".\" am Anfang (z.B. \".GeminiHelper\") wird in der Obsidian-Suche und im Datei-Explorer ausgeblendet.",
+  "settings.workspaceFolder.invalidPath": "Absolute Pfade und \"..\" sind nicht erlaubt. Bitte verwenden Sie einen Ordnernamen innerhalb des Tresors.",
+  "settings.moveWorkspaceFolder": "Vorhandene Daten von \"{{from}}\" nach \"{{to}}\" verschieben?",
+  "settings.moveWorkspaceFolder.move": "Verschieben",
+  "settings.moveWorkspaceFolder.skip": "Überspringen",
+  "settings.moveWorkspaceFolder.error": "Fehler beim Verschieben des Arbeitsbereichsordners: {{error}}",
+
   "settings.hideWorkspaceFolder": "Arbeitsbereichsordner ausblenden",
   "settings.hideWorkspaceFolder.desc": "Den Arbeitsbereichsordner im Datei-Explorer ausblenden",
   "settings.saveChatHistory": "Chat-Verlauf speichern",
@@ -267,6 +275,17 @@ export const de: Record<string, string> = {
   "message.editFeedbackHeader": "Die vorgeschlagene Bearbeitung für \"{{filePath}}\" wurde abgelehnt.",
   "message.editFeedbackUserRequest": "Feedback:",
   "message.editFeedbackRetry": "Bitte versuchen Sie es mit einem anderen Ansatz erneut.",
+  // Diff viewer
+  "diff.unifiedView": "Einheitlich",
+  "diff.splitView": "Nebeneinander",
+  "diff.commentPlaceholder": "Kommentar zu dieser Zeile hinzufügen...",
+  "diff.saveComment": "Speichern",
+  "diff.cancelComment": "Abbrechen",
+  "diff.removeComment": "Entfernen",
+  "diff.lineComments": "Zeilenkommentare",
+  "diff.lineCommentsCount": "{{count}} Zeilenkommentar(e)",
+  "diff.generalFeedback": "Allgemeines Feedback (optional)",
+  "diff.applyWithCommentsConfirm": "Es gibt nicht übermittelte Zeilenkommentare. Änderungen trotzdem anwenden?",
   "message.appliedChanges": "Änderungen angewendet auf",
   "message.discardedChanges": "Änderungen verworfen",
   "message.deleted": "Gelöscht",

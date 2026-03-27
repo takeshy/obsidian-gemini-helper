@@ -4,7 +4,7 @@ import { listWorkflowOptions, WorkflowOption } from "src/workflow/parser";
 import { loadFromCodeBlock, LoadResult } from "src/workflow/codeblockSync";
 import { SidebarNode, WorkflowNodeType } from "src/workflow/types";
 import type { GeminiHelperPlugin } from "src/plugin";
-import { WORKSPACE_FOLDER, WORKFLOWS_FOLDER } from "src/types";
+import { DEFAULT_WORKSPACE_FOLDER, WORKFLOWS_FOLDER } from "src/types";
 
 function getNodeTypeLabels(): Record<WorkflowNodeType, string> {
   return {
@@ -128,7 +128,7 @@ export class WorkflowSelectorModal extends Modal {
     modalEl.addClass("workflow-selector-modal-container");
 
     // Load and sort files (workflows/ first), excluding workspace folder (chat history etc.)
-    const wsFolder = WORKSPACE_FOLDER;
+    const wsFolder = this.plugin.settings.workspaceFolder || DEFAULT_WORKSPACE_FOLDER;
     this.files = this.app.vault
       .getMarkdownFiles()
       .filter((file) => !file.path.startsWith(wsFolder + "/"))

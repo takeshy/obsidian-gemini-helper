@@ -171,8 +171,8 @@ export class WorkflowManager {
           promptForAnyFile(this.app, extensions, title || defaultPath || "Select a file"),
         promptForNewFilePath: (extensions?: string[], defaultPath?: string, title?: string) =>
           promptForNewFilePath(this.app, extensions, defaultPath, title),
-        promptForConfirmation: (confirmPath: string, confirmContent: string, mode: string) =>
-          promptForConfirmation(this.app, confirmPath, confirmContent, mode),
+        promptForConfirmation: (confirmPath: string, confirmContent: string, mode: string, originalContent?: string) =>
+          promptForConfirmation(this.app, confirmPath, confirmContent, mode, originalContent),
         promptForDialog: (title: string, message: string, options: string[], multiSelect: boolean, button1: string, button2?: string, markdown?: boolean, inputTitle?: string, defaults?: { input?: string; selected?: string[] }, multiline?: boolean) =>
           promptForDialog(this.app, title, message, options, multiSelect, button1, button2, markdown, inputTitle, defaults, multiline),
         openFile: async (notePath: string) => {
@@ -260,6 +260,8 @@ export class WorkflowManager {
       this.app.vault.on("delete", (file) => {
         if (file instanceof TFile) {
           void this.handleEvent("delete", file.path, { file });
+          // Clean up triggers and hotkeys referencing the deleted workflow file
+          void this.cleanupDeletedWorkflow(file.path);
         }
       })
     );
@@ -292,6 +294,30 @@ export class WorkflowManager {
         }
       })
     );
+  }
+
+  /**
+   * Remove event triggers and hotkeys that reference a deleted workflow file.
+   */
+  private async cleanupDeletedWorkflow(deletedPath: string): Promise<void> {
+    const settings = this.plugin.settings;
+    const prefix = deletedPath + "#";
+
+    const newTriggers = settings.enabledWorkflowEventTriggers.filter(
+      (t) => !t.workflowId.startsWith(prefix)
+    );
+    const newHotkeys = settings.enabledWorkflowHotkeys.filter(
+      (id) => !id.startsWith(prefix)
+    );
+
+    if (
+      newTriggers.length !== settings.enabledWorkflowEventTriggers.length ||
+      newHotkeys.length !== settings.enabledWorkflowHotkeys.length
+    ) {
+      settings.enabledWorkflowEventTriggers = newTriggers;
+      settings.enabledWorkflowHotkeys = newHotkeys;
+      await this.plugin.saveSettings();
+    }
   }
 
   /**
@@ -466,11 +492,11 @@ export class WorkflowManager {
         promptForFile: () => Promise.resolve(null),
         promptForSelection: () => Promise.resolve(null),
         promptForValue: () => Promise.resolve(null),
-        promptForConfirmation: (confirmPath: string, confirmContent: string, mode: string) => {
+        promptForConfirmation: (confirmPath: string, confirmContent: string, mode: string, originalContent?: string) => {
           // Track the file being confirmed for modification
           this.workflowModifiedFiles.add(confirmPath);
           setTimeout(() => this.workflowModifiedFiles.delete(confirmPath), 2000);
-          return promptForConfirmation(this.app, confirmPath, confirmContent, mode);
+          return promptForConfirmation(this.app, confirmPath, confirmContent, mode, originalContent);
         },
         promptForDialog: (title: string, message: string, options: string[], multiSelect: boolean, button1: string, button2?: string, markdown?: boolean, inputTitle?: string, defaults?: { input?: string; selected?: string[] }, multiline?: boolean) =>
           promptForDialog(this.app, title, message, options, multiSelect, button1, button2, markdown, inputTitle, defaults, multiline),

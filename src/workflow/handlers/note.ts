@@ -59,14 +59,25 @@ export async function handleNoteNode(
   // Ensure .md extension and sanitize path
   const notePath = sanitizePath(path.endsWith(".md") ? path : `${path}.md`);
 
+  const existingFile = app.vault.getAbstractFileByPath(notePath);
+  const originalContent = existingFile instanceof TFile
+    ? await app.vault.read(existingFile)
+    : "";
+
+  let finalContent = content;
+  if (mode === "append" && existingFile instanceof TFile) {
+    finalContent = `${originalContent}\n${content}`;
+  }
+
   // Check if confirmation is required (default: true)
   const confirm = node.properties["confirm"] !== "false";
 
   if (confirm && promptCallbacks?.promptForConfirmation) {
     const confirmResult = await promptCallbacks.promptForConfirmation(
       notePath,
-      content,
-      mode
+      finalContent,
+      mode,
+      originalContent
     );
     if (!confirmResult.confirmed) {
       // Check if user requested regeneration
@@ -88,9 +99,6 @@ export async function handleNoteNode(
     }
   }
 
-  // Check if file exists
-  const existingFile = app.vault.getAbstractFileByPath(notePath);
-
   // Ensure snapshot exists before modification (for edit history)
   if (saveHistory && existingFile && historyManager) {
     await historyManager.ensureSnapshot(notePath);
@@ -98,8 +106,6 @@ export async function handleNoteNode(
 
   // Ensure parent folder exists for all modes when creating new file
   const folderPath = notePath.substring(0, notePath.lastIndexOf("/"));
-
-  let finalContent = content;
 
   if (mode === "create") {
     // Only create if file doesn't exist
@@ -111,9 +117,6 @@ export async function handleNoteNode(
     await app.vault.create(notePath, content);
   } else if (mode === "append") {
     if (existingFile && existingFile instanceof TFile) {
-      // Append to existing file
-      const currentContent = await app.vault.read(existingFile);
-      finalContent = currentContent + "\n" + content;
       await app.vault.modify(existingFile, finalContent);
     } else {
       // Create new file with content

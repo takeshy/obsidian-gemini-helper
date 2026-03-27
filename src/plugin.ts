@@ -36,7 +36,7 @@ import {
 } from "src/core/editHistory";
 import { EditHistoryModal } from "src/ui/components/EditHistoryModal";
 import { formatError } from "src/utils/error";
-import { DEFAULT_EDIT_HISTORY_SETTINGS, DEFAULT_LANGFUSE_SETTINGS } from "src/types";
+import { DEFAULT_EDIT_HISTORY_SETTINGS, DEFAULT_LANGFUSE_SETTINGS, DEFAULT_WORKSPACE_FOLDER } from "src/types";
 import { initLocale, t } from "src/i18n";
 import { registerWorkflowCodeBlockProcessor } from "src/ui/workflowCodeBlock";
 
@@ -436,8 +436,9 @@ export class GeminiHelperPlugin extends Plugin {
     resetFileSearchManager();
     resetEditHistoryManager();
 
-    // Clean up hide workspace folder style element
-    document.getElementById("gemini-helper-hide-workspace-folder-style")?.remove();
+    // Restore workspace folder visibility on unload
+    this.settings.hideWorkspaceFolder = false;
+    this.updateWorkspaceFolderVisibility();
 
     // Clean up workflow timers
     this.workflowMgr.cleanup();
@@ -496,6 +497,8 @@ export class GeminiHelperPlugin extends Plugin {
         (dataToSave as Record<string, unknown>)[key] = currentValue;
       }
     }
+    // Always persist workspaceFolder to survive migrations and plugin updates
+    (dataToSave as Record<string, unknown>).workspaceFolder = this.settings.workspaceFolder;
     await this.saveData(dataToSave);
     this.settingsEmitter.emit("settings-updated", this.settings);
 
@@ -527,7 +530,8 @@ export class GeminiHelperPlugin extends Plugin {
   }
 
   async loadWorkspaceState(): Promise<void> {
-    return this.wsManager.loadWorkspaceState();
+    await this.wsManager.loadWorkspaceState();
+    this.settingsEmitter.emit("workspace-state-loaded", this.workspaceState);
   }
 
   async loadOrCreateWorkspaceState(): Promise<void> {
@@ -540,7 +544,12 @@ export class GeminiHelperPlugin extends Plugin {
 
   /** Show or hide the workspace folder in the file explorer. */
   updateWorkspaceFolderVisibility(): void {
-    document.body.toggleClass("gemini-helper-hide-workspace-folder", this.settings.hideWorkspaceFolder);
+    const wsFolder = this.settings.workspaceFolder || DEFAULT_WORKSPACE_FOLDER;
+    const hide = this.settings.hideWorkspaceFolder;
+    // Find and toggle visibility on the exact matching nav-folder element
+    document.querySelectorAll(`.nav-folder[data-path="${CSS.escape(wsFolder)}"]`).forEach((el) => {
+      (el as HTMLElement).style.display = hide ? "none" : "";
+    });
   }
 
   getSelectedRagSetting(): RagSetting | null {

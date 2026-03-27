@@ -20,6 +20,14 @@ export const es: Record<string, string> = {
 
 
   // Settings - Workspace
+  "settings.workspaceFolder": "Carpeta del espacio de trabajo",
+  "settings.workspaceFolder.desc": "Nombre de la carpeta para almacenar el historial de chat, índices RAG e historial de flujos de trabajo. Use un nombre que comience con \".\" (ej. \".GeminiHelper\") para ocultarlo de la búsqueda y el explorador de archivos de Obsidian.",
+  "settings.workspaceFolder.invalidPath": "No se permiten rutas absolutas ni \"..\". Use un nombre de carpeta dentro de la bóveda.",
+  "settings.moveWorkspaceFolder": "¿Mover los datos existentes de \"{{from}}\" a \"{{to}}\"?",
+  "settings.moveWorkspaceFolder.move": "Mover",
+  "settings.moveWorkspaceFolder.skip": "Omitir",
+  "settings.moveWorkspaceFolder.error": "Error al mover la carpeta: {{error}}",
+
   "settings.hideWorkspaceFolder": "Ocultar carpeta del espacio de trabajo",
   "settings.hideWorkspaceFolder.desc": "Ocultar la carpeta del espacio de trabajo del explorador de archivos",
   "settings.saveChatHistory": "Guardar historial de chat",
@@ -267,6 +275,17 @@ export const es: Record<string, string> = {
   "message.editFeedbackHeader": "La edición propuesta a \"{{filePath}}\" fue rechazada.",
   "message.editFeedbackUserRequest": "Comentarios:",
   "message.editFeedbackRetry": "Por favor, intenta de nuevo con un enfoque diferente.",
+  // Diff viewer
+  "diff.unifiedView": "Unificado",
+  "diff.splitView": "Dividido",
+  "diff.commentPlaceholder": "Agrega tu comentario sobre esta línea...",
+  "diff.saveComment": "Guardar",
+  "diff.cancelComment": "Cancelar",
+  "diff.removeComment": "Eliminar",
+  "diff.lineComments": "Comentarios de línea",
+  "diff.lineCommentsCount": "{{count}} comentario(s) de línea",
+  "diff.generalFeedback": "Comentarios generales (opcional)",
+  "diff.applyWithCommentsConfirm": "Tiene comentarios de línea sin enviar. ¿Aplicar los cambios de todos modos?",
   "message.appliedChanges": "Cambios aplicados a",
   "message.discardedChanges": "Cambios descartados",
   "message.deleted": "Eliminado",

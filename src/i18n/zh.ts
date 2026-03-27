@@ -21,6 +21,14 @@ export const zh: Record<string, string> = {
 
 
   // Settings - Workspace
+  "settings.workspaceFolder": "工作区文件夹",
+  "settings.workspaceFolder.desc": "用于存储聊天记录、RAG索引和工作流历史的文件夹名称。使用以 \".\" 开头的名称（如 \".GeminiHelper\"）可从 Obsidian 搜索和文件浏览器中隐藏。",
+  "settings.workspaceFolder.invalidPath": "绝对路径和 \"..\" 不允许使用。请使用保管库内的文件夹名称。",
+  "settings.moveWorkspaceFolder": "将现有数据从 \"{{from}}\" 移动到 \"{{to}}\"？",
+  "settings.moveWorkspaceFolder.move": "移动",
+  "settings.moveWorkspaceFolder.skip": "跳过",
+  "settings.moveWorkspaceFolder.error": "移动工作区文件夹失败: {{error}}",
+
   "settings.hideWorkspaceFolder": "隐藏工作区文件夹",
   "settings.hideWorkspaceFolder.desc": "在文件浏览器中隐藏工作区文件夹",
   "settings.saveChatHistory": "保存聊天记录",
@@ -268,6 +276,17 @@ export const zh: Record<string, string> = {
   "message.editFeedbackHeader": "对 \"{{filePath}}\" 的编辑建议已被拒绝。",
   "message.editFeedbackUserRequest": "反馈：",
   "message.editFeedbackRetry": "请尝试使用不同的方法重试。",
+  // Diff viewer
+  "diff.unifiedView": "统一",
+  "diff.splitView": "分栏",
+  "diff.commentPlaceholder": "添加关于此行的评论...",
+  "diff.saveComment": "保存",
+  "diff.cancelComment": "取消",
+  "diff.removeComment": "删除",
+  "diff.lineComments": "行评论",
+  "diff.lineCommentsCount": "{{count}} 条行评论",
+  "diff.generalFeedback": "整体反馈（可选）",
+  "diff.applyWithCommentsConfirm": "有未提交的行评论。是否忽略评论并应用更改？",
   "message.appliedChanges": "已应用更改到",
   "message.discardedChanges": "已放弃更改",
   "message.deleted": "已删除",

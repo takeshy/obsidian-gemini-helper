@@ -22,6 +22,14 @@ export const it: Record<string, string> = {
 
 
   // Settings - Workspace
+  "settings.workspaceFolder": "Cartella area di lavoro",
+  "settings.workspaceFolder.desc": "Nome della cartella per archiviare cronologia chat, indici RAG e cronologia dei flussi di lavoro. Usa un nome che inizia con \".\" (es. \".GeminiHelper\") per nasconderlo dalla ricerca e dall'esploratore file di Obsidian.",
+  "settings.workspaceFolder.invalidPath": "I percorsi assoluti e \"..\" non sono consentiti. Usa un nome di cartella all'interno del vault.",
+  "settings.moveWorkspaceFolder": "Spostare i dati esistenti da \"{{from}}\" a \"{{to}}\"?",
+  "settings.moveWorkspaceFolder.move": "Sposta",
+  "settings.moveWorkspaceFolder.skip": "Salta",
+  "settings.moveWorkspaceFolder.error": "Errore nello spostamento della cartella: {{error}}",
+
   "settings.hideWorkspaceFolder": "Nascondi cartella area di lavoro",
   "settings.hideWorkspaceFolder.desc": "Nascondi la cartella dell'area di lavoro dall'esploratore file",
   "settings.saveChatHistory": "Salva cronologia chat",
@@ -269,6 +277,17 @@ export const it: Record<string, string> = {
   "message.editFeedbackHeader": "La modifica proposta per \"{{filePath}}\" è stata rifiutata.",
   "message.editFeedbackUserRequest": "Feedback:",
   "message.editFeedbackRetry": "Riprova con un approccio diverso.",
+  // Diff viewer
+  "diff.unifiedView": "Unificato",
+  "diff.splitView": "Affiancato",
+  "diff.commentPlaceholder": "Aggiungi il tuo commento su questa riga...",
+  "diff.saveComment": "Salva",
+  "diff.cancelComment": "Annulla",
+  "diff.removeComment": "Rimuovi",
+  "diff.lineComments": "Commenti di riga",
+  "diff.lineCommentsCount": "{{count}} commento/i di riga",
+  "diff.generalFeedback": "Feedback generale (opzionale)",
+  "diff.applyWithCommentsConfirm": "Ci sono commenti di riga non inviati. Applicare le modifiche comunque?",
   "message.appliedChanges": "Modifiche applicate a",
   "message.discardedChanges": "Modifiche annullate",
   "message.deleted": "Eliminato",

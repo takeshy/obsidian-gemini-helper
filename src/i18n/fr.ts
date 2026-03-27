@@ -22,6 +22,14 @@ export const fr: Record<string, string> = {
 
 
   // Settings - Workspace
+  "settings.workspaceFolder": "Dossier de l'espace de travail",
+  "settings.workspaceFolder.desc": "Nom du dossier pour stocker l'historique des chats, les index RAG et l'historique des workflows. Un nom commençant par \".\" (ex. \".GeminiHelper\") sera masqué dans la recherche et l'explorateur de fichiers d'Obsidian.",
+  "settings.workspaceFolder.invalidPath": "Les chemins absolus et \"..\" ne sont pas autorisés. Veuillez utiliser un nom de dossier dans le coffre.",
+  "settings.moveWorkspaceFolder": "Déplacer les données existantes de \"{{from}}\" vers \"{{to}}\" ?",
+  "settings.moveWorkspaceFolder.move": "Déplacer",
+  "settings.moveWorkspaceFolder.skip": "Ignorer",
+  "settings.moveWorkspaceFolder.error": "Erreur lors du déplacement du dossier : {{error}}",
+
   "settings.hideWorkspaceFolder": "Masquer le dossier de l'espace de travail",
   "settings.hideWorkspaceFolder.desc": "Masquer le dossier de l'espace de travail dans l'explorateur de fichiers",
   "settings.saveChatHistory": "Sauvegarder l'historique des chats",
@@ -269,6 +277,17 @@ export const fr: Record<string, string> = {
   "message.editFeedbackHeader": "La modification proposée pour \"{{filePath}}\" a été rejetée.",
   "message.editFeedbackUserRequest": "Commentaires :",
   "message.editFeedbackRetry": "Veuillez réessayer avec une approche différente.",
+  // Diff viewer
+  "diff.unifiedView": "Unifié",
+  "diff.splitView": "Côte à côte",
+  "diff.commentPlaceholder": "Ajoutez votre commentaire sur cette ligne...",
+  "diff.saveComment": "Enregistrer",
+  "diff.cancelComment": "Annuler",
+  "diff.removeComment": "Supprimer",
+  "diff.lineComments": "Commentaires de ligne",
+  "diff.lineCommentsCount": "{{count}} commentaire(s) de ligne",
+  "diff.generalFeedback": "Commentaire général (optionnel)",
+  "diff.applyWithCommentsConfirm": "Vous avez des commentaires de ligne non soumis. Appliquer les modifications quand même ?",
   "message.appliedChanges": "Modifications appliquées à",
   "message.discardedChanges": "Modifications annulées",
   "message.deleted": "Supprimé",

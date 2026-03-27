@@ -1,5 +1,5 @@
 import { App } from "obsidian";
-import { type McpAppInfo, type StreamChunkUsage, WORKSPACE_FOLDER } from "../types";
+import { type McpAppInfo, type StreamChunkUsage } from "../types";
 import {
   ExecutionRecord,
   ExecutionStatus,
@@ -28,9 +28,9 @@ export class ExecutionHistoryManager {
   private historyFolder: string;
   private encryptionConfig: EncryptionConfig | null;
 
-  constructor(app: App, encryptionConfig?: EncryptionConfig) {
+  constructor(app: App, encryptionConfig?: EncryptionConfig, workspaceFolder?: string) {
     this.app = app;
-    this.historyFolder = `${WORKSPACE_FOLDER}/workflow-history`;
+    this.historyFolder = `${workspaceFolder ?? "GeminiHelper"}/workflow-history`;
     this.encryptionConfig = encryptionConfig || null;
   }
 
@@ -136,12 +136,7 @@ export class ExecutionHistoryManager {
       filePath = basePath;
     }
 
-    const existingFile = this.app.vault.getAbstractFileByPath(filePath);
-    if (existingFile) {
-      await this.app.vault.adapter.write(filePath, content);
-    } else {
-      await this.app.vault.create(filePath, content);
-    }
+    await this.app.vault.adapter.write(filePath, content);
 
     // Emit event to notify UI components
     globalEventEmitter.emit("execution-history-saved", record.workflowPath);

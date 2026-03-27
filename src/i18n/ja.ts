@@ -21,6 +21,14 @@ export const ja: Record<string, string> = {
 
 
   // Settings - Workspace
+  "settings.workspaceFolder": "ワークスペースフォルダ",
+  "settings.workspaceFolder.desc": "チャット履歴、RAGインデックス、ワークフロー履歴を保存するフォルダ名。\".\" で始まる名前（例: \".GeminiHelper\"）にすると、Obsidianの検索やファイルエクスプローラーに表示されなくなります。",
+  "settings.workspaceFolder.invalidPath": "絶対パスや \"..\" は使用できません。vault内のフォルダ名を指定してください。",
+  "settings.moveWorkspaceFolder": "既存データを \"{{from}}\" から \"{{to}}\" に移動しますか？",
+  "settings.moveWorkspaceFolder.move": "移動",
+  "settings.moveWorkspaceFolder.skip": "スキップ",
+  "settings.moveWorkspaceFolder.error": "ワークスペースフォルダの移動に失敗しました: {{error}}",
+
   "settings.hideWorkspaceFolder": "ワークスペースフォルダを非表示",
   "settings.hideWorkspaceFolder.desc": "ファイルエクスプローラーからワークスペースフォルダを非表示にする",
   "settings.saveChatHistory": "チャット履歴を保存",
@@ -268,6 +276,17 @@ export const ja: Record<string, string> = {
   "message.editFeedbackHeader": "「{{filePath}}」への編集提案は却下されました。",
   "message.editFeedbackUserRequest": "フィードバック:",
   "message.editFeedbackRetry": "別のアプローチで再度お試しください。",
+  // Diff viewer
+  "diff.unifiedView": "統合",
+  "diff.splitView": "分割",
+  "diff.commentPlaceholder": "この行についてのコメントを追加...",
+  "diff.saveComment": "保存",
+  "diff.cancelComment": "キャンセル",
+  "diff.removeComment": "削除",
+  "diff.lineComments": "行コメント",
+  "diff.lineCommentsCount": "{{count}} 件の行コメント",
+  "diff.generalFeedback": "全体のフィードバック（任意）",
+  "diff.applyWithCommentsConfirm": "未送信の行コメントがあります。コメントを無視して変更を適用しますか？",
   "message.appliedChanges": "変更を適用しました：",
   "message.discardedChanges": "変更を破棄しました",
   "message.deleted": "削除しました",

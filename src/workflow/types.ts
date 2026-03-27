@@ -231,7 +231,8 @@ export interface PromptCallbacks {
   promptForConfirmation: (
     filePath: string,
     content: string,
-    mode: string
+    mode: string,
+    originalContent?: string
   ) => Promise<EditConfirmationResult>;
   promptForDialog?: (
     title: string,

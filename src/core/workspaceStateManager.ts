@@ -9,7 +9,7 @@ import {
   DEFAULT_WORKSPACE_STATE,
   DEFAULT_RAG_SETTING,
   DEFAULT_RAG_STATE,
-  WORKSPACE_FOLDER,
+  DEFAULT_WORKSPACE_FOLDER,
   isModelAllowedForPlan,
   getDefaultModelForPlan,
 } from "../types";
@@ -35,19 +35,23 @@ export class WorkspaceStateManager {
     return this.getSettings();
   }
 
+  private get workspaceFolder(): string {
+    return this.settings.workspaceFolder || DEFAULT_WORKSPACE_FOLDER;
+  }
+
   // Get the path to the workspace state file
   getWorkspaceStateFilePath(): string {
-    return `${WORKSPACE_FOLDER}/${WORKSPACE_STATE_FILENAME}`;
+    return `${this.workspaceFolder}/${WORKSPACE_STATE_FILENAME}`;
   }
 
   // Get the path to the old RAG state file (for migration)
   private getOldRagStateFilePath(): string {
-    return `${WORKSPACE_FOLDER}/${OLD_RAG_STATE_FILENAME}`;
+    return `${this.workspaceFolder}/${OLD_RAG_STATE_FILENAME}`;
   }
 
   // Get old workspace state file path (for migration)
   private getOldWorkspaceStateFilePath(): string {
-    return `${WORKSPACE_FOLDER}/${OLD_WORKSPACE_STATE_FILENAME}`;
+    return `${this.workspaceFolder}/${OLD_WORKSPACE_STATE_FILENAME}`;
   }
 
   // Load workspace state from file
@@ -189,9 +193,10 @@ export class WorkspaceStateManager {
     const content = JSON.stringify(this.workspaceState, null, 2);
 
     // Ensure folder exists
-    const folderExists = await this.app.vault.adapter.exists(WORKSPACE_FOLDER);
+    const wsFolder = this.workspaceFolder;
+    const folderExists = await this.app.vault.adapter.exists(wsFolder);
     if (!folderExists) {
-      await this.app.vault.createFolder(WORKSPACE_FOLDER);
+      await this.app.vault.adapter.mkdir(wsFolder);
     }
 
     await this.app.vault.adapter.write(filePath, content);
@@ -374,10 +379,6 @@ export class WorkspaceStateManager {
     // Clean up legacy fields
     if (data.chatsFolder !== undefined) {
       delete data.chatsFolder;
-      needsSave = true;
-    }
-    if (data.workspaceFolder !== undefined) {
-      delete data.workspaceFolder;
       needsSave = true;
     }
     if (data.skillsFolderPath !== undefined) {

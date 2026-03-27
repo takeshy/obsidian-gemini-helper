@@ -1,9 +1,13 @@
 import {
   GoogleGenAI,
   Type,
+  FinishReason,
+  HarmCategory,
+  HarmBlockThreshold,
   type Content,
   type Part,
   type Tool,
+  type SafetySetting,
   type Schema,
   type Chat,
   type ThinkingLevel,
@@ -144,6 +148,28 @@ function shouldEnableThinkingByKeyword(message: string): boolean {
     || THINKING_KEYWORDS_CJK.some(kw => lower.includes(kw));
 }
 
+// Default safety settings per Gemini best practices
+// Using BLOCK_MEDIUM_AND_ABOVE as a balanced default
+const DEFAULT_SAFETY_SETTINGS: SafetySetting[] = [
+  { category: HarmCategory.HARM_CATEGORY_HARASSMENT, threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE },
+  { category: HarmCategory.HARM_CATEGORY_HATE_SPEECH, threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE },
+  { category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT, threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE },
+  { category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT, threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE },
+];
+
+// Check finishReason for blocked/filtered responses (best practice: always inspect why generation stopped)
+function checkFinishReason(candidates: Array<{ finishReason?: string }> | undefined): string | null {
+  if (!candidates || candidates.length === 0) return null;
+  const reason = candidates[0].finishReason;
+  if (reason === FinishReason.SAFETY) {
+    return "Response blocked by safety filters. Please rephrase your message.";
+  }
+  if (reason === FinishReason.RECITATION) {
+    return "Response blocked due to potential recitation of copyrighted content.";
+  }
+  return null;
+}
+
 // Function call limit options
 export interface FunctionCallLimitOptions {
   maxFunctionCalls?: number;           // 最大function call回数 (default: 20)
@@ -169,6 +195,36 @@ export class GeminiClient {
 
   setModel(model: ModelType): void {
     this.model = model;
+  }
+
+  // Build thinking config based on model capabilities (shared across streaming methods)
+  private buildThinkingConfig(enableThinking: boolean): Record<string, unknown> | undefined {
+    const supportsThinking = !this.model.toLowerCase().includes("gemma");
+    if (!supportsThinking) return undefined;
+
+    const modelLower = this.model.toLowerCase();
+
+    // gemini-3.1-flash-lite: uses thinkingLevel instead of thinkingBudget
+    if (modelLower.includes("gemini-3.1-flash-lite")) {
+      if (!enableThinking) return undefined;
+      return { includeThoughts: true, thinkingLevel: "HIGH" as ThinkingLevel };
+    }
+
+    // gemini-3-pro / gemini-3.1-pro models require thinking — cannot disable
+    const thinkingRequired = modelLower.includes("gemini-3-pro") || modelLower.includes("gemini-3.1-pro");
+    if (!enableThinking && !thinkingRequired) return { thinkingBudget: 0 };
+
+    // gemini-2.5-flash-lite requires thinkingBudget: -1 to enable
+    if (modelLower === "gemini-2.5-flash-lite") {
+      return { includeThoughts: true, thinkingBudget: -1 };
+    }
+
+    return { includeThoughts: true };
+  }
+
+  // Check if model supports thinking
+  private supportsThinking(): boolean {
+    return !this.model.toLowerCase().includes("gemma");
   }
 
   // Build Gemini Part[] from a Message's attachments and text content
@@ -288,8 +344,13 @@ export class GeminiClient {
         contents,
         config: {
           systemInstruction: systemPrompt,
+          safetySettings: DEFAULT_SAFETY_SETTINGS,
         },
       });
+
+      // Check for blocked responses (best practice: always check finishReason)
+      const blockReason = checkFinishReason(response.candidates);
+      if (blockReason) throw new Error(blockReason);
 
       const text = response.text ?? "";
       tracing.generationEnd(genId, {
@@ -325,6 +386,7 @@ export class GeminiClient {
         contents,
         config: {
           systemInstruction: systemPrompt,
+          safetySettings: DEFAULT_SAFETY_SETTINGS,
         },
       });
 
@@ -334,6 +396,17 @@ export class GeminiClient {
       for await (const chunk of response) {
         hasReceivedChunk = true;
         if (chunk.usageMetadata) lastUsage = extractUsage(chunk.usageMetadata, { model: this.model });
+        const chunkWithCandidates = chunk as {
+          candidates?: Array<{
+            finishReason?: string;
+          }>;
+        };
+        const blockReason = checkFinishReason(chunkWithCandidates.candidates);
+        if (blockReason) {
+          tracing.generationEnd(genId, { error: blockReason, usage: lastUsage });
+          yield { type: "error", error: blockReason };
+          return;
+        }
         const text = chunk.text;
         if (text) {
           accumulatedText += text;
@@ -391,7 +464,7 @@ export class GeminiClient {
 
     if (!options?.disableTools) {
       if (webSearchEnabled) {
-        geminiTools = [{ googleSearch: {} } as Tool];
+        geminiTools = [{ googleSearch: {} }];
       } else {
         // Only add function tools if there are any defined
         // Skip function calling when RAG is enabled (fileSearch + functionDeclarations not supported)
@@ -408,7 +481,7 @@ export class GeminiClient {
               fileSearchStoreNames: ragStoreIds,
               topK: clampedTopK,
             },
-          } as Tool);
+          });
         }
       }
     }
@@ -424,39 +497,13 @@ export class GeminiClient {
       return;
     }
 
-    // Check if model supports thinking (Gemma models don't support it)
-    const supportsThinking = !this.model.toLowerCase().includes("gemma");
-
     // Enable thinking: explicit option overrides keyword detection
-    const enableThinking = supportsThinking &&
+    const enableThinking = this.supportsThinking() &&
       (options?.enableThinking !== undefined
         ? options.enableThinking
         : shouldEnableThinkingByKeyword(lastMessage.content || ""));
 
-    // Build thinking config based on model
-    // - When thinking disabled: set thinkingBudget: 0 to override model default
-    //   (Gemini 2.5+/3 models have thinking enabled by default)
-    // - Gemini 2.5 Flash Lite requires thinkingBudget: -1 to enable thinking
-    // - Other models work with just includeThoughts: true
-    const getThinkingConfig = () => {
-      if (!supportsThinking) return undefined;
-      const modelLower = this.model.toLowerCase();
-      // gemini-3.1-flash-lite: uses thinkingLevel instead of thinkingBudget
-      // Default is "minimal" (no thinking). thinkingBudget: 0 is invalid for this model.
-      if (modelLower.includes("gemini-3.1-flash-lite")) {
-        if (!enableThinking) return undefined;
-        return { includeThoughts: true, thinkingLevel: "HIGH" as ThinkingLevel };
-      }
-      // gemini-3-pro models require thinking — cannot set thinkingBudget: 0
-      const thinkingRequired = modelLower.includes("gemini-3-pro") || modelLower.includes("gemini-3.1-pro");
-      if (!enableThinking && !thinkingRequired) return { thinkingBudget: 0 };
-      if (modelLower === "gemini-2.5-flash-lite") {
-        return { includeThoughts: true, thinkingBudget: -1 };
-      }
-      return { includeThoughts: true };
-    };
-
-    const thinkingConfig = getThinkingConfig();
+    const thinkingConfig = this.buildThinkingConfig(enableThinking);
 
     // Create a chat session with history
     const chat: Chat = this.ai.chats.create({
@@ -464,6 +511,7 @@ export class GeminiClient {
       history,
       config: {
         systemInstruction: systemPrompt,
+        safetySettings: DEFAULT_SAFETY_SETTINGS,
         ...(geminiTools ? { tools: geminiTools } : {}),
         ...(thinkingConfig ? { thinkingConfig } : {}),
       },
@@ -495,6 +543,7 @@ export class GeminiClient {
     try {
       // Send initial message
       let response = await chat.sendMessageStream({ message: messageParts });
+      let blockedReason: string | null = null;
 
       while (continueLoop) {
         roundNumber++;
@@ -526,10 +575,11 @@ export class GeminiClient {
             }
           }
 
-          // Check for grounding metadata and thinking parts
+          // Check for grounding metadata, thinking parts, and finishReason
           // Access candidates via type assertion for grounding metadata and thought parts
           const chunkWithCandidates = chunk as {
             candidates?: Array<{
+              finishReason?: string;
               content?: {
                 parts?: Array<{
                   text?: string;
@@ -544,6 +594,16 @@ export class GeminiClient {
             }>;
           };
           const candidates = chunkWithCandidates.candidates;
+
+          // Check finishReason for blocked responses (best practice)
+          const blockReason = checkFinishReason(candidates);
+          if (blockReason) {
+            blockedReason = blockReason;
+            tracing.spanEnd(roundSpanId, { error: blockReason, metadata: { usage: roundUsage } });
+            yield { type: "error", error: blockReason };
+            continueLoop = false;
+            break;
+          }
 
           // Extract and yield thinking parts
           if (candidates && candidates.length > 0) {
@@ -620,6 +680,10 @@ export class GeminiClient {
           tracing.spanEnd(roundSpanId, { error: "No response received from API" });
           yield { type: "error", error: "No response received from API (possible server error)" };
           return;
+        }
+
+        if (blockedReason) {
+          break;
         }
 
         // Process function calls if any
@@ -768,6 +832,15 @@ export class GeminiClient {
         }
       }
 
+      if (blockedReason) {
+        tracing.generationEnd(generationId, {
+          error: blockedReason,
+          usage: totalUsage.total ? totalUsage : undefined,
+          metadata: { toolCallCount: toolCallTraceCount, roundCount: roundNumber },
+        });
+        return;
+      }
+
       const generationMetadata: Record<string, unknown> = { toolCallCount: toolCallTraceCount, roundCount: roundNumber };
       if (totalUsage.toolUsePromptTokens) {
         generationMetadata.toolUsePromptTokens = totalUsage.toolUsePromptTokens;
@@ -814,19 +887,7 @@ export class GeminiClient {
     }
 
     // Workflow generation always enables thinking (unless model doesn't support it)
-    const supportsThinking = !this.model.toLowerCase().includes("gemma");
-
-    const getThinkingConfig = () => {
-      if (!supportsThinking) return undefined;
-      const modelLower = this.model.toLowerCase();
-      if (modelLower.includes("gemini-3.1-flash-lite")) {
-        return { includeThoughts: true, thinkingLevel: "HIGH" as ThinkingLevel };
-      }
-      if (modelLower === "gemini-2.5-flash-lite") {
-        return { includeThoughts: true, thinkingBudget: -1 };
-      }
-      return { includeThoughts: true };
-    };
+    const thinkingConfig = this.buildThinkingConfig(true);
 
     // Create a chat session with history (no tools for workflow generation)
     const chat: Chat = this.ai.chats.create({
@@ -834,7 +895,8 @@ export class GeminiClient {
       history,
       config: {
         systemInstruction: systemPrompt,
-        thinkingConfig: getThinkingConfig(),
+        safetySettings: DEFAULT_SAFETY_SETTINGS,
+        thinkingConfig,
       },
     });
 
@@ -843,7 +905,7 @@ export class GeminiClient {
     const genId = tracing.generationStart(traceId ?? null, "generateWorkflowStream", {
       model: this.model,
       input: lastMessage.content,
-      metadata: { enableThinking: supportsThinking },
+      metadata: { enableThinking: this.supportsThinking() },
     });
 
     try {
@@ -853,9 +915,10 @@ export class GeminiClient {
 
       for await (const chunk of response) {
         if (chunk.usageMetadata) lastUsage = extractUsage(chunk.usageMetadata, { model: this.model });
-        // Access candidates via type assertion for thought parts
+        // Access candidates via type assertion for thought parts and finishReason
         const chunkWithCandidates = chunk as {
           candidates?: Array<{
+            finishReason?: string;
             content?: {
               parts?: Array<{
                 text?: string;
@@ -865,6 +928,14 @@ export class GeminiClient {
           }>;
         };
         const candidates = chunkWithCandidates.candidates;
+
+        // Check finishReason for blocked responses (best practice)
+        const blockReason = checkFinishReason(candidates);
+        if (blockReason) {
+          tracing.generationEnd(genId, { error: blockReason, usage: lastUsage });
+          yield { type: "error", error: blockReason };
+          return;
+        }
 
         // Extract and yield thinking parts
         if (candidates && candidates.length > 0) {
@@ -926,7 +997,7 @@ export class GeminiClient {
     const tools: Tool[] = [];
 
     if (webSearchEnabled) {
-      tools.push({ googleSearch: {} } as Tool);
+      tools.push({ googleSearch: {} });
     }
 
     const genId = tracing.generationStart(traceId ?? null, "generateImageStream", {
@@ -941,10 +1012,19 @@ export class GeminiClient {
         contents: [...history, { role: "user", parts: messageParts }],
         config: {
           systemInstruction: systemPrompt,
+          safetySettings: DEFAULT_SAFETY_SETTINGS,
           responseModalities: ["TEXT", "IMAGE"],
           tools: tools.length > 0 ? tools : undefined,
         },
       });
+
+      // Check for blocked responses (best practice: always check finishReason)
+      const blockReason = checkFinishReason(response.candidates);
+      if (blockReason) {
+        tracing.generationEnd(genId, { error: blockReason });
+        yield { type: "error", error: blockReason };
+        return;
+      }
 
       // Emit web search used if enabled
       if (webSearchEnabled) {

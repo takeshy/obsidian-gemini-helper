@@ -1347,13 +1347,9 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 					? plugin.getSelectedStoreIds()
 					: [];
 
-				// RAG-only mode: server RAG enabled means only fileSearch tool is sent,
-				// so vault tool descriptions should be excluded from the system prompt
-				const ragOnlyMode = ragStoreIds.length > 0;
-
 				let systemPrompt = "You are a helpful AI assistant integrated with Obsidian.";
 
-				if (toolsEnabled && !ragOnlyMode) {
+				if (toolsEnabled) {
 					systemPrompt += `
 
 Available tools allow you to:
@@ -1366,7 +1362,7 @@ Available tools allow you to:
 				}
 
 				// Add RAG sync status info if server RAG is enabled (uses FileSearchManager)
-				if (allowRag && toolsEnabled && !ragOnlyMode) {
+				if (allowRag && toolsEnabled) {
 						systemPrompt += `
 - Check RAG sync status: When users ask about imported files, use the get_rag_sync_status tool to:
   - Check a specific file's sync status (when it was imported, if it has changes)

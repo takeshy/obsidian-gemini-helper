@@ -148,15 +148,13 @@ When the AI handles notes in Chat, it uses Vault tools. Control which vault tool
 | Condition | Default Mode | Changeable |
 |-----------|--------------|------------|
 | Gemma models | Vault: Off | No |
-| Web Search enabled | Vault: Off | No |
-| RAG enabled | Vault: Off | No |
-| No RAG | Vault: All | Yes |
+| Other models | Vault: All | Yes |
 
-**Why some modes are forced:**
+**Why Gemma mode is forced:**
 
 - **Gemma models**: These models do not support function calling, so Vault tools cannot be used.
-- **Web Search**: By design, Vault tools are disabled when Web Search is enabled.
-- **RAG enabled**: The Gemini API does not support combining File Search (RAG) with function calling. When RAG is enabled, Vault tools and MCP are automatically disabled.
+
+> **Note:** RAG, Web Search, Vault tools, and MCP can all be used simultaneously via the Interactions API.
 
 ## Safe Editing
 
@@ -308,12 +306,6 @@ This is useful for quickly running workflows without navigating to the workflow 
 
 ![Workflow History](docs/images/workflow_history.png)
 
-**Export Execution History:** View execution history as an Obsidian Canvas for visual analysis. Click **Open Canvas view** in the History modal to create a Canvas file.
-
-> **Note:** Canvas files are dynamically created in the workspace folder. Delete them manually after review if no longer needed.
-
-![History Canvas View](docs/images/history_canvas.png)
-
 ## AI-Powered Workflow & Skill Creation
 
 **You don't need to learn YAML syntax or node types.** Simply describe your workflow in plain language:
@@ -400,33 +392,6 @@ Edit workflows directly in the visual node editor with drag-and-drop interface.
 
 **Reload from File:**
 - Select **Reload from file** from the dropdown to re-import workflow from the markdown file
-
-## Quick Start (Manual)
-
-You can also write workflows manually. Add a workflow code block to any Markdown file:
-
-````markdown
-```workflow
-name: Quick Summary
-nodes:
-  - id: input
-    type: dialog
-    title: Enter topic
-    inputTitle: Topic
-    saveTo: topic
-  - id: generate
-    type: command
-    prompt: "Write a brief summary about {{topic.input}}"
-    saveTo: result
-  - id: save
-    type: note
-    path: "summaries/{{topic.input}}.md"
-    content: "{{result}}"
-    mode: create
-```
-````
-
-Open the **Workflow** tab in the Gemini sidebar to run it.
 
 ## Available Node Types
 

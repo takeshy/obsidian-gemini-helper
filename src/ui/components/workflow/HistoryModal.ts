@@ -1,7 +1,6 @@
 import { App, Modal, Notice } from "obsidian";
 import { ExecutionRecord } from "src/workflow/types";
 import { ExecutionHistoryManager, formatDuration, EncryptionConfig } from "src/workflow/history";
-import { openHistoryCanvas } from "src/workflow/historyCanvas";
 import { cryptoCache } from "src/core/cryptoCache";
 import { decryptPrivateKey } from "src/core/crypto";
 import { showMcpApp } from "./McpAppModal";
@@ -14,7 +13,6 @@ export class HistoryModal extends Modal {
   private onRetryFromError?: (workflowPath: string, workflowName: string | undefined, errorNodeId: string, variablesSnapshot: Record<string, string | number>) => void;
   private records: ExecutionRecord[] = [];
   private selectedRecord: ExecutionRecord | null = null;
-  private selectedRecordEncrypted: boolean = false;
   private listEl: HTMLElement | null = null;
   private detailEl: HTMLElement | null = null;
   private historySavedHandler: ((path: string) => void) | null = null;
@@ -210,7 +208,6 @@ export class HistoryModal extends Modal {
     // Clear selection if selected record was deleted
     if (this.selectedRecord && this.checkedRecordIds.has(this.selectedRecord.id)) {
       this.selectedRecord = null;
-      this.selectedRecordEncrypted = false;
     }
 
     // Clear checked IDs
@@ -288,12 +285,8 @@ export class HistoryModal extends Modal {
       item.addEventListener("click", () => {
         this.selectedRecord = record;
         // Check if this record is encrypted
-        void (async () => {
-          const historyManager = this.getHistoryManager();
-          this.selectedRecordEncrypted = await historyManager.isRecordEncrypted(record.id);
-          this.renderList();
-          this.renderDetail();
-        })();
+        this.renderList();
+        this.renderDetail();
       });
     }
   }
@@ -407,24 +400,6 @@ export class HistoryModal extends Modal {
     // Actions
     const actions = this.detailEl.createDiv({ cls: "workflow-detail-actions" });
 
-    // Canvas button - disabled if record is encrypted and not decrypted
-    const canDecrypt = cryptoCache.hasPassword();
-    const canOpenCanvas = !this.selectedRecordEncrypted || canDecrypt;
-
-    const canvasBtn = actions.createEl("button", { text: t("workflowModal.openCanvasView") });
-    if (!canOpenCanvas) {
-      canvasBtn.addClass("workflow-btn-disabled");
-      canvasBtn.setAttribute("disabled", "true");
-      canvasBtn.setAttribute("title", t("workflowModal.canvasNeedsDecrypt"));
-    }
-    canvasBtn.addEventListener("click", () => {
-      if (!canOpenCanvas) return;
-      void (async () => {
-        await openHistoryCanvas(this.app, record, this.workspaceFolder);
-        this.close();
-      })();
-    });
-
     // Retry from error button
     if (record.status === "error" && record.errorNodeId && record.variablesSnapshot && this.onRetryFromError) {
       const retryBtn = actions.createEl("button", {
@@ -447,7 +422,6 @@ export class HistoryModal extends Modal {
         await historyManager.deleteRecord(record.id);
         this.records = this.records.filter((r) => r.id !== record.id);
         this.selectedRecord = null;
-        this.selectedRecordEncrypted = false;
         this.renderList();
         this.renderDetail();
       })();

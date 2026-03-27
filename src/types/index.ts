@@ -72,10 +72,8 @@ export type VaultToolMode = "all" | "noSearch" | "none";
 
 // Reason why vault tools are set to "none"
 // "manual" = user manually turned off (MCP servers remain unchanged)
-// "rag" = RAG enabled (fileSearch + functionDeclarations not supported, MCP servers also disabled)
 // "gemma" = Gemma model (no function calling support, MCP servers also disabled)
-// "websearch" = Web search mode (MCP servers also disabled)
-export type VaultToolNoneReason = "manual" | "rag" | "gemma" | "websearch";
+export type VaultToolNoneReason = "manual" | "gemma";
 
 // Slash command definition
 export interface SlashCommand {
@@ -437,6 +435,7 @@ export interface Message {
   mcpApps?: McpAppInfo[];  // MCP Apps with UI (MCP Apps拡張)
   usage?: StreamChunkUsage;  // Token usage and cost
   elapsedMs?: number;        // Response time in milliseconds
+  interactionId?: string;    // Interactions API interaction ID for conversation chaining
 }
 
 // 保留中の編集情報
@@ -539,6 +538,7 @@ export interface StreamChunk {
   ragSources?: string[];  // RAG検索で見つかったソースファイル
   generatedImage?: GeneratedImage;  // 生成された画像
   usage?: StreamChunkUsage;  // Token usage and cost (populated on "done" chunks)
+  interactionId?: string;  // Interactions API interaction ID (populated on "done" chunks)
 }
 
 // Default models by plan

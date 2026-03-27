@@ -59,6 +59,7 @@ export async function messagesToMarkdown(
 		if (msg.pendingRename) metadata.pendingRename = msg.pendingRename;
 		if (msg.usage) metadata.usage = msg.usage;
 		if (msg.elapsedMs) metadata.elapsedMs = msg.elapsedMs;
+		if (msg.interactionId) metadata.interactionId = msg.interactionId;
 		metadata.timestamp = msg.timestamp;
 
 		md += `<!-- msg-meta:${JSON.stringify(metadata)} -->\n\n---\n\n`;
@@ -167,6 +168,7 @@ export function parseMarkdownToMessages(content: string): { messages: Message[];
 						if (meta.pendingRename) message.pendingRename = meta.pendingRename as Message["pendingRename"];
 						if (meta.usage) message.usage = meta.usage as Message["usage"];
 						if (meta.elapsedMs) message.elapsedMs = meta.elapsedMs as number;
+						if (meta.interactionId) message.interactionId = meta.interactionId as string;
 						if (meta.timestamp) message.timestamp = meta.timestamp as number;
 					} catch {
 						// Ignore parse errors for backward compatibility

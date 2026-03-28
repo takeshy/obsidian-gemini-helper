@@ -1417,11 +1417,18 @@ Always be helpful and provide clear, concise responses. When working with notes,
 
 				let stopped = false;
 
-				// Resolve previous interaction ID from the immediately preceding assistant message.
-				// Only use it if the last assistant turn has an interactionId — skipping over
-				// non-interaction messages (e.g. image generation) would resume a stale server-side thread.
-				const lastAssistantMsg = [...messages].reverse().find(m => m.role === "assistant");
-				const previousInteractionId = lastAssistantMsg?.interactionId ?? undefined;
+				// Resolve previous interaction ID for Interactions API conversation chaining.
+				// Only chain when the most recent assistant message (array tail) carries an
+				// interactionId.  If it doesn't (old chat history, image generation response,
+				// CLI response, etc.) we fall back to local history replay in gemini.ts.
+				const previousInteractionId = (() => {
+					for (let i = messages.length - 1; i >= 0; i--) {
+						if (messages[i].role === "assistant") {
+							return messages[i].interactionId;  // undefined if absent → fallback
+						}
+					}
+					return undefined;
+				})();
 
 				// Use image generation stream or regular chat stream
 				const chunkStream = isImageGeneration

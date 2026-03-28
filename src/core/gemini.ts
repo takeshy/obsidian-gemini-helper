@@ -545,6 +545,49 @@ export class GeminiClient {
     return contents;
   }
 
+  // Build Interactions API input with local history replay.
+  // Used when there is no previous_interaction_id (old chats, after non-Interactions responses).
+  // Prepends conversation history as a text block, then appends the last user message
+  // (with attachments preserved) so the model has full context.
+  private static buildHistoryReplayInput(
+    messages: Message[],
+  ): string | Interactions.Content[] {
+    const historyMessages = messages.slice(0, -1);
+    const lastMessage = messages[messages.length - 1];
+
+    // No history to replay — just send the last message directly
+    if (historyMessages.length === 0) {
+      return GeminiClient.buildInteractionInput(lastMessage);
+    }
+
+    // Build a conversation transcript from history
+    const lines: string[] = [];
+    for (const msg of historyMessages) {
+      const role = msg.role === "user" ? "User" : "Assistant";
+      if (msg.content) {
+        lines.push(`${role}: ${msg.content}`);
+      }
+    }
+    const historyText = "[Previous conversation]\n" + lines.join("\n\n") + "\n\n[Current message]\n";
+
+    // Simple text-only last message — merge into a single string
+    if (!lastMessage.attachments || lastMessage.attachments.length === 0) {
+      return historyText + (lastMessage.content || "");
+    }
+
+    // Multimodal: history as text prefix, then attachments + text from the last message
+    const contents: Interactions.Content[] = [
+      { type: "text" as const, text: historyText } as Interactions.Content,
+    ];
+    const lastParts = GeminiClient.buildInteractionInput(lastMessage);
+    if (Array.isArray(lastParts)) {
+      contents.push(...lastParts);
+    } else {
+      contents.push({ type: "text" as const, text: lastParts } as Interactions.Content);
+    }
+    return contents;
+  }
+
   // Convert tool definitions to Gemini format
   private toolsToGeminiFormat(tools: ToolDefinition[]): Tool[] {
     const convertProperty = (value: ToolPropertyDefinition): Schema => {
@@ -818,8 +861,12 @@ export class GeminiClient {
     let currentInteractionId: string | undefined;
     let streamErrored = false;
 
-    // Build the initial input
-    const input = GeminiClient.buildInteractionInput(lastMessage);
+    // Build the initial input.
+    // When chaining via previous_interaction_id the server already knows the conversation,
+    // so we only send the latest user message.  Otherwise replay local history as context.
+    const input = previousInteractionId
+      ? GeminiClient.buildInteractionInput(lastMessage)
+      : GeminiClient.buildHistoryReplayInput(messages);
 
     try {
       let continueLoop = true;

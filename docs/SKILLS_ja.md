@@ -2,7 +2,23 @@
 
 エージェントスキルは、カスタム指示、参考資料、実行可能なワークフローを提供することでAIの機能を拡張します。スキルは[OpenAI Codex](https://github.com/openai/codex)などのツールで使用されている業界標準のパターンに従います。
 
-## フォルダ構成
+## ビルトインスキル
+
+[kepano/obsidian-skills](https://github.com/kepano/obsidian-skills)に基づく3つのビルトインスキルが組み込まれており、Obsidian固有のファイル形式についてAIに知識を提供します。Vaultへの設定不要ですぐに利用できます。
+
+| スキル | 説明 | デフォルト |
+|--------|------|-----------|
+| **obsidian-markdown** | Obsidian固有のMarkdown: wikilinks `[[]]`、callouts `> [!note]`、embeds `![[]]`、properties（frontmatter）、tags、ハイライト、コメント | ON |
+| **json-canvas** | JSON Canvasファイル（`.canvas`）: ノード、エッジ、グループ、カラー、レイアウト | OFF |
+| **obsidian-bases** | Obsidian Basesファイル（`.base`）: フィルタ、数式、ビュー（テーブル/カード/リスト/マップ）、サマリー | OFF |
+
+ビルトインスキルはスキル選択ドロップダウンに **built-in** バッジ付きで表示されます。他のスキルと同様にON/OFFを切り替えられます。有効なスキルチップにマウスを乗せると説明が表示されます。
+
+**obsidian-markdown** が有効（デフォルト）の場合、AIはノートの作成・編集時に通常のMarkdownリンクではなくwikilinksを使用し、calloutを正しくフォーマットし、Obsidianのfrontmatter規則に従います。
+
+## カスタムスキル
+
+### フォルダ構成
 
 スキルはVault内の設定可能なフォルダに保存されます（デフォルト: `skills/`）。各スキルは`SKILL.md`ファイルを含むサブフォルダです：
 
@@ -109,7 +125,7 @@ nodes:
 
 ### セットアップ
 
-1. Vaultのルートに `skills` フォルダを作成する
+ビルトインスキルは設定不要ですぐに使えます。カスタムスキルを追加するには、Vaultのルートに `skills` フォルダを作成してください。
 
 ### スキルの有効化
 

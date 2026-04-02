@@ -2,7 +2,23 @@
 
 Gli Skill dell'Agente estendono le capacita dell'IA fornendo istruzioni personalizzate, materiali di riferimento e workflow eseguibili. Gli skill seguono il modello standard del settore utilizzato da strumenti come [OpenAI Codex](https://github.com/openai/codex).
 
-## Struttura delle Cartelle
+## Skill Integrati
+
+Il plugin include tre skill integrati basati su [kepano/obsidian-skills](https://github.com/kepano/obsidian-skills) che insegnano all'IA i formati di file specifici di Obsidian. Nessuna configurazione del vault necessaria — sono disponibili immediatamente.
+
+| Skill | Descrizione | Predefinito |
+|-------|-------------|-------------|
+| **obsidian-markdown** | Obsidian Flavored Markdown: wikilinks `[[]]`, callout `> [!note]`, embed `![[]]`, proprietà (frontmatter), tag, evidenziazioni, commenti | ON |
+| **json-canvas** | File JSON Canvas (`.canvas`): nodi, archi, gruppi, colori, layout | OFF |
+| **obsidian-bases** | File Obsidian Bases (`.base`): filtri, formule, viste (tabella/schede/lista/mappa), riepiloghi | OFF |
+
+Gli skill integrati appaiono nel menu a tendina del selettore skill con un badge **built-in**. Attivali o disattivali come qualsiasi altro skill. Passa il mouse su un chip di skill attivo per vederne la descrizione.
+
+Con **obsidian-markdown** abilitato (predefinito), l'IA utilizzerà i wikilinks invece dei link Markdown standard, formatterà correttamente i callout e seguirà le convenzioni di frontmatter di Obsidian durante la creazione o la modifica delle note.
+
+## Skill Personalizzati
+
+### Struttura delle Cartelle
 
 Gli skill sono memorizzati in una cartella configurabile all'interno del tuo vault (predefinita: `skills/`). Ogni skill e una sottocartella contenente un file `SKILL.md`:
 
@@ -109,7 +125,7 @@ I workflow degli skill vengono eseguiti con modali interattive (come nel pannell
 
 ### Configurazione
 
-1. Crea una cartella `skills` nella radice del tuo vault
+Gli skill integrati funzionano subito — nessuna configurazione necessaria. Per aggiungere skill personalizzati, crea una cartella `skills` nella radice del tuo vault.
 
 ### Attivazione degli Skill
 

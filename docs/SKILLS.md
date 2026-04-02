@@ -2,7 +2,23 @@
 
 Agent Skills extend the AI's capabilities by providing custom instructions, reference materials, and executable workflows. Skills follow the industry-standard pattern used by tools like [OpenAI Codex](https://github.com/openai/codex).
 
-## Folder Structure
+## Built-in Skills
+
+The plugin includes three built-in skills based on [kepano/obsidian-skills](https://github.com/kepano/obsidian-skills) that teach the AI about Obsidian-specific file formats. No vault setup required — they are available immediately.
+
+| Skill | Description | Default |
+|-------|-------------|---------|
+| **obsidian-markdown** | Obsidian Flavored Markdown: wikilinks `[[]]`, callouts `> [!note]`, embeds `![[]]`, properties (frontmatter), tags, highlights, comments | ON |
+| **json-canvas** | JSON Canvas files (`.canvas`): nodes, edges, groups, colors, layout | OFF |
+| **obsidian-bases** | Obsidian Bases files (`.base`): filters, formulas, views (table/cards/list/map), summaries | OFF |
+
+Built-in skills appear in the skill selector dropdown with a **built-in** badge. Toggle them on/off like any other skill. Hover over an active skill chip to see its description.
+
+With **obsidian-markdown** enabled (default), the AI will use wikilinks instead of standard Markdown links, format callouts correctly, and follow Obsidian's frontmatter conventions when creating or editing notes.
+
+## Custom Skills
+
+### Folder Structure
 
 Skills are stored in a configurable folder within your vault (default: `skills/`). Each skill is a subfolder containing a `SKILL.md` file:
 
@@ -109,7 +125,7 @@ Skill workflows run with interactive modals (same as the Workflow panel):
 
 ### Setup
 
-1. Create a `skills` folder in your vault root
+Built-in skills work out of the box — no setup needed. To add custom skills, create a `skills` folder in your vault root.
 
 ### Activating Skills
 

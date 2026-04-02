@@ -2,7 +2,23 @@
 
 代理技能通过提供自定义指令、参考资料和可执行工作流来扩展 AI 的能力。技能遵循 [OpenAI Codex](https://github.com/openai/codex) 等工具使用的业界标准模式。
 
-## 文件夹结构
+## 内置技能
+
+插件包含三个基于 [kepano/obsidian-skills](https://github.com/kepano/obsidian-skills) 的内置技能，教 AI 了解 Obsidian 特定的文件格式。无需 vault 设置 — 它们立即可用。
+
+| 技能 | 描述 | 默认 |
+|------|------|------|
+| **obsidian-markdown** | Obsidian 风格 Markdown：维基链接 `[[]]`、标注 `> [!note]`、嵌入 `![[]]`、属性（frontmatter）、标签、高亮、注释 | 开启 |
+| **json-canvas** | JSON Canvas 文件（`.canvas`）：节点、边、组、颜色、布局 | 关闭 |
+| **obsidian-bases** | Obsidian Bases 文件（`.base`）：过滤器、公式、视图（表格/卡片/列表/地图）、摘要 | 关闭 |
+
+内置技能在技能选择器下拉菜单中显示，带有 **built-in** 徽章。像其他技能一样开启或关闭它们。将鼠标悬停在活动技能标签上可查看其描述。
+
+启用 **obsidian-markdown**（默认）后，AI 将使用维基链接而非标准 Markdown 链接，正确格式化标注，并在创建或编辑笔记时遵循 Obsidian 的 frontmatter 约定。
+
+## 自定义技能
+
+### 文件夹结构
 
 技能存储在 vault 中的可配置文件夹中（默认：`skills/`）。每个技能是一个包含 `SKILL.md` 文件的子文件夹：
 
@@ -109,7 +125,7 @@ nodes:
 
 ### 设置
 
-1. 在 vault 根目录创建 `skills` 文件夹
+内置技能开箱即用 — 无需设置。要添加自定义技能，请在 vault 根目录创建 `skills` 文件夹。
 
 ### 激活技能
 

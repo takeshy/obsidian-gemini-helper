@@ -2,7 +2,23 @@
 
 Los Skills de Agente extienden las capacidades de la IA proporcionando instrucciones personalizadas, materiales de referencia y flujos de trabajo ejecutables. Los skills siguen el patrón estándar de la industria utilizado por herramientas como [OpenAI Codex](https://github.com/openai/codex).
 
-## Estructura de Carpetas
+## Skills Integrados
+
+El plugin incluye tres skills integrados basados en [kepano/obsidian-skills](https://github.com/kepano/obsidian-skills) que enseñan a la IA sobre formatos de archivo específicos de Obsidian. No se requiere configuración del vault — están disponibles de inmediato.
+
+| Skill | Descripción | Por defecto |
+|-------|-------------|-------------|
+| **obsidian-markdown** | Obsidian Flavored Markdown: wikilinks `[[]]`, callouts `> [!note]`, embeds `![[]]`, propiedades (frontmatter), etiquetas, resaltados, comentarios | ON |
+| **json-canvas** | Archivos JSON Canvas (`.canvas`): nodos, aristas, grupos, colores, diseño | OFF |
+| **obsidian-bases** | Archivos Obsidian Bases (`.base`): filtros, fórmulas, vistas (tabla/tarjetas/lista/mapa), resúmenes | OFF |
+
+Los skills integrados aparecen en el menú desplegable del selector de skills con una insignia **built-in**. Actívalos o desactívalos como cualquier otro skill. Pasa el cursor sobre un chip de skill activo para ver su descripción.
+
+Con **obsidian-markdown** habilitado (por defecto), la IA usará wikilinks en lugar de enlaces Markdown estándar, formateará los callouts correctamente y seguirá las convenciones de frontmatter de Obsidian al crear o editar notas.
+
+## Skills Personalizados
+
+### Estructura de Carpetas
 
 Los skills se almacenan en una carpeta configurable dentro de tu vault (por defecto: `skills/`). Cada skill es una subcarpeta que contiene un archivo `SKILL.md`:
 
@@ -109,7 +125,7 @@ Los flujos de trabajo de skills se ejecutan con modales interactivos (igual que 
 
 ### Configuración
 
-1. Crea una carpeta `skills` en la raíz de tu vault
+Los skills integrados funcionan de inmediato — no se necesita configuración. Para agregar skills personalizados, crea una carpeta `skills` en la raíz de tu vault.
 
 ### Activación de Skills
 

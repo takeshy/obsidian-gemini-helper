@@ -269,6 +269,7 @@ MCP（Model Context Protocol）サーバーは、Vault操作以外のAI機能を
 
 カスタム指示、参考資料、実行可能なワークフローでAIの機能を拡張します。スキルは[OpenAI Codex](https://github.com/openai/codex)の`.codex/skills/`など、業界標準のエージェントスキルパターンに従います。
 
+- **ビルトインスキル** - Obsidian固有の知識（Markdown、Canvas、Bases）が最初から組み込み済み。[kepano/obsidian-skills](https://github.com/kepano/obsidian-skills)に基づく
 - **カスタム指示** - `SKILL.md`ファイルでドメイン固有の動作を定義
 - **参考資料** - `references/`にスタイルガイド、テンプレート、チェックリストを含める
 - **ワークフロー統合** - スキルがワークフローをFunction Callingツールとして公開可能

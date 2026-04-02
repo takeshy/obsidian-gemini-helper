@@ -2,7 +2,23 @@
 
 Les Skills d'Agent étendent les capacités de l'IA en fournissant des instructions personnalisées, des documents de référence et des workflows exécutables. Les skills suivent le modèle standard de l'industrie utilisé par des outils comme [OpenAI Codex](https://github.com/openai/codex).
 
-## Structure des dossiers
+## Skills intégrés
+
+Le plugin inclut trois skills intégrés basés sur [kepano/obsidian-skills](https://github.com/kepano/obsidian-skills) qui enseignent à l'IA les formats de fichiers spécifiques à Obsidian. Aucune configuration du coffre requise — ils sont disponibles immédiatement.
+
+| Skill | Description | Par défaut |
+|-------|-------------|------------|
+| **obsidian-markdown** | Obsidian Flavored Markdown : wikilinks `[[]]`, callouts `> [!note]`, embeds `![[]]`, propriétés (frontmatter), tags, surlignages, commentaires | ON |
+| **json-canvas** | Fichiers JSON Canvas (`.canvas`) : nœuds, arêtes, groupes, couleurs, disposition | OFF |
+| **obsidian-bases** | Fichiers Obsidian Bases (`.base`) : filtres, formules, vues (tableau/cartes/liste/carte), résumés | OFF |
+
+Les skills intégrés apparaissent dans le menu déroulant du sélecteur de skills avec un badge **built-in**. Activez-les ou désactivez-les comme tout autre skill. Survolez un chip de skill actif pour voir sa description.
+
+Avec **obsidian-markdown** activé (par défaut), l'IA utilisera des wikilinks au lieu de liens Markdown standard, formatera correctement les callouts et suivra les conventions de frontmatter d'Obsidian lors de la création ou de la modification de notes.
+
+## Skills personnalisés
+
+### Structure des dossiers
 
 Les skills sont stockés dans un dossier configurable au sein de votre coffre (par défaut : `skills/`). Chaque skill est un sous-dossier contenant un fichier `SKILL.md` :
 
@@ -109,7 +125,7 @@ Les workflows de skills s'exécutent avec des modales interactives (comme dans l
 
 ### Configuration
 
-1. Créez un dossier `skills` à la racine de votre coffre
+Les skills intégrés fonctionnent directement — aucune configuration nécessaire. Pour ajouter des skills personnalisés, créez un dossier `skills` à la racine de votre coffre.
 
 ### Activation des skills
 

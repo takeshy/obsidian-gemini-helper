@@ -264,6 +264,7 @@ Some MCP tools return interactive UI that allows you to interact with the tool r
 
 Extend the AI with custom instructions, reference materials, and executable workflows. Skills follow the industry-standard agent skills pattern (e.g., [OpenAI Codex](https://github.com/openai/codex) `.codex/skills/`).
 
+- **Built-in skills** - Obsidian-specific knowledge (Markdown, Canvas, Bases) included out of the box. Based on [kepano/obsidian-skills](https://github.com/kepano/obsidian-skills)
 - **Custom instructions** - Define domain-specific behavior via `SKILL.md` files
 - **Reference materials** - Include style guides, templates, and checklists in `references/`
 - **Workflow integration** - Skills can expose workflows as function calling tools

@@ -266,6 +266,7 @@ MCP（Model Context Protocol）服务器提供额外的工具，扩展 AI 在 Va
 
 通过自定义指令、参考资料和可执行工作流扩展 AI 的能力。技能遵循业界标准的代理技能模式（如 [OpenAI Codex](https://github.com/openai/codex) 的 `.codex/skills/`）。
 
+- **内置技能** - 开箱即用的 Obsidian 专属知识（Markdown、Canvas、Bases）。基于 [kepano/obsidian-skills](https://github.com/kepano/obsidian-skills)
 - **自定义指令** - 通过 `SKILL.md` 文件定义特定领域的行为
 - **参考资料** - 在 `references/` 中包含风格指南、模板和检查清单
 - **工作流集成** - 技能可以将工作流作为 Function Calling 工具公开

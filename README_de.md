@@ -266,6 +266,7 @@ Einige MCP-Werkzeuge geben interaktive UI zurück, die es Ihnen ermöglicht, vis
 
 Erweitern Sie die KI mit benutzerdefinierten Anweisungen, Referenzmaterialien und ausführbaren Workflows. Skills folgen dem branchenüblichen Agent-Skills-Muster (z.B. [OpenAI Codex](https://github.com/openai/codex) `.codex/skills/`).
 
+- **Integrierte Skills** - Obsidian-spezifisches Wissen (Markdown, Canvas, Bases) sofort verfügbar. Basierend auf [kepano/obsidian-skills](https://github.com/kepano/obsidian-skills)
 - **Benutzerdefinierte Anweisungen** - Definieren Sie domänenspezifisches Verhalten über `SKILL.md`-Dateien
 - **Referenzmaterialien** - Styleguides, Vorlagen und Checklisten in `references/` einbinden
 - **Workflow-Integration** - Skills können Workflows als Function-Calling-Werkzeuge bereitstellen

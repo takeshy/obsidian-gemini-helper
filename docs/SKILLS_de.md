@@ -2,7 +2,23 @@
 
 Agent-Skills erweitern die Fähigkeiten der KI durch benutzerdefinierte Anweisungen, Referenzmaterialien und ausführbare Workflows. Skills folgen dem branchenüblichen Muster, das von Tools wie [OpenAI Codex](https://github.com/openai/codex) verwendet wird.
 
-## Ordnerstruktur
+## Integrierte Skills
+
+Das Plugin enthält drei integrierte Skills basierend auf [kepano/obsidian-skills](https://github.com/kepano/obsidian-skills), die der KI Obsidian-spezifische Dateiformate beibringen. Keine Vault-Einrichtung erforderlich — sie sind sofort verfügbar.
+
+| Skill | Beschreibung | Standard |
+|-------|-------------|----------|
+| **obsidian-markdown** | Obsidian Flavored Markdown: Wikilinks `[[]]`, Callouts `> [!note]`, Embeds `![[]]`, Properties (Frontmatter), Tags, Highlights, Kommentare | EIN |
+| **json-canvas** | JSON Canvas-Dateien (`.canvas`): Knoten, Kanten, Gruppen, Farben, Layout | AUS |
+| **obsidian-bases** | Obsidian Bases-Dateien (`.base`): Filter, Formeln, Ansichten (Tabelle/Karten/Liste/Karte), Zusammenfassungen | AUS |
+
+Integrierte Skills erscheinen im Skill-Auswahldropdown mit einem **built-in**-Badge. Schalten Sie sie wie jeden anderen Skill ein/aus. Fahren Sie mit der Maus über einen aktiven Skill-Chip, um seine Beschreibung zu sehen.
+
+Mit aktiviertem **obsidian-markdown** (Standard) verwendet die KI Wikilinks anstelle von Standard-Markdown-Links, formatiert Callouts korrekt und befolgt Obsidians Frontmatter-Konventionen beim Erstellen oder Bearbeiten von Notizen.
+
+## Benutzerdefinierte Skills
+
+### Ordnerstruktur
 
 Skills werden in einem konfigurierbaren Ordner innerhalb Ihres Vaults gespeichert (Standard: `skills/`). Jeder Skill ist ein Unterordner mit einer `SKILL.md`-Datei:
 
@@ -109,7 +125,7 @@ Skill-Workflows werden mit interaktiven Modals ausgeführt (wie im Workflow-Pane
 
 ### Einrichtung
 
-1. Erstellen Sie einen `skills`-Ordner im Stammverzeichnis Ihres Vaults
+Integrierte Skills funktionieren sofort — keine Einrichtung erforderlich. Um benutzerdefinierte Skills hinzuzufügen, erstellen Sie einen `skills`-Ordner im Stammverzeichnis Ihres Vaults.
 
 ### Skills aktivieren
 

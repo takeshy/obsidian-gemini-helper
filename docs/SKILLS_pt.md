@@ -2,7 +2,23 @@
 
 Os Skills de Agente estendem as capacidades da IA fornecendo instruções personalizadas, materiais de referência e fluxos de trabalho executáveis. Os skills seguem o padrão da indústria utilizado por ferramentas como o [OpenAI Codex](https://github.com/openai/codex).
 
-## Estrutura de Pastas
+## Skills Integrados
+
+O plugin inclui três skills integrados baseados em [kepano/obsidian-skills](https://github.com/kepano/obsidian-skills) que ensinam a IA sobre formatos de arquivo específicos do Obsidian. Nenhuma configuração do vault necessária — eles estão disponíveis imediatamente.
+
+| Skill | Descrição | Padrão |
+|-------|-----------|--------|
+| **obsidian-markdown** | Obsidian Flavored Markdown: wikilinks `[[]]`, callouts `> [!note]`, embeds `![[]]`, propriedades (frontmatter), tags, destaques, comentários | ON |
+| **json-canvas** | Arquivos JSON Canvas (`.canvas`): nós, arestas, grupos, cores, layout | OFF |
+| **obsidian-bases** | Arquivos Obsidian Bases (`.base`): filtros, fórmulas, visualizações (tabela/cards/lista/mapa), resumos | OFF |
+
+Os skills integrados aparecem no dropdown do seletor de skills com um badge **built-in**. Ative ou desative-os como qualquer outro skill. Passe o mouse sobre um chip de skill ativo para ver sua descrição.
+
+Com **obsidian-markdown** habilitado (padrão), a IA usará wikilinks em vez de links Markdown padrão, formatará callouts corretamente e seguirá as convenções de frontmatter do Obsidian ao criar ou editar notas.
+
+## Skills Personalizados
+
+### Estrutura de Pastas
 
 Os skills são armazenados em uma pasta configurável dentro do seu vault (padrão: `skills/`). Cada skill é uma subpasta contendo um arquivo `SKILL.md`:
 
@@ -109,7 +125,7 @@ Os fluxos de trabalho de skills são executados com modais interativos (igual ao
 
 ### Configuração
 
-1. Crie uma pasta `skills` na raiz do seu vault
+Os skills integrados funcionam imediatamente — nenhuma configuração necessária. Para adicionar skills personalizados, crie uma pasta `skills` na raiz do seu vault.
 
 ### Ativando Skills
 

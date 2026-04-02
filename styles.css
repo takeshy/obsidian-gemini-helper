@@ -7163,6 +7163,18 @@
   color: var(--text-normal);
 }
 
+.gemini-helper-skill-builtin-badge {
+  font-size: 9px;
+  font-weight: 500;
+  color: var(--text-on-accent);
+  background-color: var(--interactive-accent);
+  padding: 1px 4px;
+  border-radius: 3px;
+  margin-left: 4px;
+  vertical-align: middle;
+  opacity: 0.8;
+}
+
 .gemini-helper-skill-dropdown-desc {
   font-size: 11px;
   color: var(--text-muted);

@@ -69,6 +69,7 @@ import {
 import { cryptoCache } from "src/core/cryptoCache";
 import { formatError } from "src/utils/error";
 import { discoverSkills, loadSkill, buildSkillSystemPrompt, collectSkillWorkflows, type SkillMetadata, type LoadedSkill, type SkillWorkflowRef } from "src/core/skillsLoader";
+import { DEFAULT_BUILTIN_SKILL_IDS, builtinFolderPath, getBuiltinSkillMetadata } from "src/core/builtinSkills";
 import { parseWorkflowFromMarkdown } from "src/workflow/parser";
 import { WorkflowExecutor } from "src/workflow/executor";
 import { WorkflowExecutionModal } from "./workflow/WorkflowExecutionModal";
@@ -168,9 +169,11 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 	const [thinkFlash, setThinkFlash] = useState(false);
 	const [thinkFlashLite, setThinkFlashLite] = useState(true);
 
-	// Agent Skills state
-	const [availableSkills, setAvailableSkills] = useState<SkillMetadata[]>([]);
-	const [activeSkillPaths, setActiveSkillPaths] = useState<string[]>([]);
+	// Agent Skills state (initialise with built-in skills so they are available synchronously)
+	const [availableSkills, setAvailableSkills] = useState<SkillMetadata[]>(getBuiltinSkillMetadata);
+	const [activeSkillPaths, setActiveSkillPaths] = useState<string[]>(
+		() => DEFAULT_BUILTIN_SKILL_IDS.map(builtinFolderPath)
+	);
 
 	// Check if configuration is ready (API key set)
 	const isConfigReady = hasApiKey;
@@ -769,6 +772,7 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 		}
 		setMessages([]);
 		setCurrentChatId(null);
+		setActiveSkillPaths(DEFAULT_BUILTIN_SKILL_IDS.map(builtinFolderPath));
 		setStreamingContent("");
 		setStreamingThinking("");
 		setShowHistory(false);
@@ -2110,11 +2114,18 @@ async function executeSkillWorkflow(
 			message: log.message,
 		}));
 
+		// Extract saved files from successful note/file operations
+		const fileNodeTypes = new Set(["note", "file-save"]);
+		const savedFiles = result.context.logs
+			.filter(log => fileNodeTypes.has(log.nodeType) && log.status === "success" && typeof log.output === "string")
+			.map(log => log.output as string);
+
 		return {
 			success: true,
 			workflowId,
 			variables: outputVars,
 			logs,
+			...(savedFiles.length > 0 ? { savedFiles } : {}),
 		};
 	} catch (e) {
 		modal.setComplete(false);

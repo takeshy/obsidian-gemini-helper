@@ -1,6 +1,7 @@
 import { type App, TFile, TFolder, parseYaml } from "obsidian";
 import { parseWorkflowFromMarkdown } from "src/workflow/parser";
 import { SKILLS_FOLDER } from "src/types";
+import { getBuiltinSkillMetadata, isBuiltinSkillPath, loadBuiltinSkill } from "./builtinSkills";
 
 export interface SkillWorkflowRef {
   path: string;            // relative path from skill folder (e.g. "workflows/lint.md")
@@ -23,14 +24,15 @@ export interface LoadedSkill extends SkillMetadata {
 }
 
 /**
- * Discover all skills in the skills folder.
+ * Discover all skills: built-in skills + vault skills.
  * Each subfolder containing a SKILL.md is treated as a skill.
  */
 export async function discoverSkills(app: App): Promise<SkillMetadata[]> {
-  const folder = app.vault.getAbstractFileByPath(SKILLS_FOLDER);
-  if (!(folder instanceof TFolder)) return [];
+  // Start with built-in skills
+  const skills: SkillMetadata[] = [...getBuiltinSkillMetadata()];
 
-  const skills: SkillMetadata[] = [];
+  const folder = app.vault.getAbstractFileByPath(SKILLS_FOLDER);
+  if (!(folder instanceof TFolder)) return skills;
 
   for (const child of folder.children) {
     if (!(child instanceof TFolder)) continue;
@@ -93,8 +95,16 @@ export async function discoverSkills(app: App): Promise<SkillMetadata[]> {
 
 /**
  * Load a skill's full content including references.
+ * Handles both built-in skills and vault-installed skills.
  */
 export async function loadSkill(app: App, metadata: SkillMetadata): Promise<LoadedSkill> {
+  // Handle built-in skills (no vault read needed)
+  if (isBuiltinSkillPath(metadata.folderPath)) {
+    const builtin = loadBuiltinSkill(metadata.folderPath);
+    if (builtin) return builtin;
+    return { ...metadata, instructions: "", references: [] };
+  }
+
   const skillFile = app.vault.getAbstractFileByPath(metadata.skillFilePath);
   if (!(skillFile instanceof TFile)) {
     return { ...metadata, instructions: "", references: [] };
@@ -166,7 +176,25 @@ export function buildSkillSystemPrompt(skills: LoadedSkill[]): string {
     return section;
   });
 
-  return `\n\nThe following agent skills are active. Proactively use the skill's instructions and workflows to fulfill the user's request.\nWhen a workflow lists "Input variables", pass them via the variables parameter as a JSON object. Infer values from the user's message when possible. If a required variable cannot be inferred, ask the user before calling the workflow.\n\n${parts.join("\n\n---\n\n")}`;
+  const hasWorkflows = skills.some(s => s.workflows.length > 0);
+
+  let preamble = `\n\nThe following agent skills are active. Proactively use the skill's instructions and workflows to fulfill the user's request.\nWhen a workflow lists "Input variables", pass them via the variables parameter as a JSON object. Infer values from the user's message when possible. If a required variable cannot be inferred, ask the user before calling the workflow.`;
+
+  if (hasWorkflows) {
+    preamble += `
+
+## Skill Workflow Execution Protocol
+
+When you need to run **multiple workflows in sequence** (e.g. creating several files), follow this loop:
+
+1. **Plan** — List the workflows you intend to run and their order.
+2. **Create** — Execute one workflow at a time. Check each result (especially \`savedFiles\`) before proceeding to the next.
+3. **Verify** — After all workflows complete, read back modified files to confirm correctness. Fix and re-run if needed.
+
+For a **single, explicit workflow request** (slash command, direct user instruction), execute it immediately — do not ask for confirmation first.`;
+  }
+
+  return `${preamble}\n\n${parts.join("\n\n---\n\n")}`;
 }
 
 /**

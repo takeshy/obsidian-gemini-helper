@@ -40,7 +40,7 @@ export default function SkillSelector({
     <div className="gemini-helper-skill-selector">
       <Sparkles size={14} className="gemini-helper-skill-icon" />
       {activeSkills.map(skill => (
-        <span key={skill.folderPath} className="gemini-helper-skill-chip">
+        <span key={skill.folderPath} className="gemini-helper-skill-chip" title={skill.description}>
           {skill.name}
           <button
             className="gemini-helper-skill-chip-remove"

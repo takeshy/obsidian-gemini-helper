@@ -7120,8 +7120,9 @@
   position: absolute;
   bottom: 100%;
   left: 0;
-  min-width: 200px;
-  max-height: 200px;
+  min-width: 260px;
+  max-width: 360px;
+  max-height: 300px;
   overflow-y: auto;
   background: var(--background-primary);
   border: 1px solid var(--background-modifier-border);
@@ -7178,9 +7179,8 @@
 .gemini-helper-skill-dropdown-desc {
   font-size: 11px;
   color: var(--text-muted);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  white-space: normal;
+  word-break: break-word;
 }
 
 /* Skills used indicator in message */

@@ -368,10 +368,10 @@ export class GeminiClient {
 
   // Build thinking config based on model capabilities (shared across streaming methods)
   private buildThinkingConfig(enableThinking: boolean): Record<string, unknown> | undefined {
-    const supportsThinking = !this.model.toLowerCase().includes("gemma");
-    if (!supportsThinking) return undefined;
-
     const modelLower = this.model.toLowerCase();
+
+    // Gemma 4: thinking config not supported
+    if (modelLower.includes("gemma-4")) return undefined;
 
     // gemini-3.1-flash-lite: uses thinkingLevel instead of thinkingBudget
     if (modelLower.includes("gemini-3.1-flash-lite")) {
@@ -391,9 +391,8 @@ export class GeminiClient {
     return { includeThoughts: true };
   }
 
-  // Check if model supports thinking
   private supportsThinking(): boolean {
-    return !this.model.toLowerCase().includes("gemma");
+    return true;
   }
 
   // Build Gemini Part[] from a Message's attachments and text content
@@ -825,6 +824,8 @@ export class GeminiClient {
     const getThinkingLevel = (): "minimal" | "low" | "medium" | "high" | undefined => {
       if (!this.supportsThinking()) return undefined;
       const modelLower = this.model.toLowerCase();
+      // Gemma 4: thinking config not supported via Interactions API
+      if (modelLower.includes("gemma-4")) return undefined;
       // Pro models require thinking — always return high
       const thinkingRequired = modelLower.includes("gemini-3-pro") || modelLower.includes("gemini-3.1-pro");
       if (thinkingRequired) return "high";

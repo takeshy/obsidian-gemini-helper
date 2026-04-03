@@ -72,8 +72,7 @@ export type VaultToolMode = "all" | "noSearch" | "none";
 
 // Reason why vault tools are set to "none"
 // "manual" = user manually turned off (MCP servers remain unchanged)
-// "gemma" = Gemma model (no function calling support, MCP servers also disabled)
-export type VaultToolNoneReason = "manual" | "gemma";
+export type VaultToolNoneReason = "manual";
 
 // Slash command definition
 export interface SlashCommand {
@@ -268,10 +267,8 @@ export type ModelType =
   | "gemini-2.5-flash-lite"
   | "gemini-3-pro-image-preview"
   | "gemini-3.1-flash-image-preview"
-  | "gemma-3-27b-it"
-  | "gemma-3-12b-it"
-  | "gemma-3-4b-it"
-  | "gemma-3-1b-it";
+  | "gemma-4-31b-it"
+  | "gemma-4-26b-a4b-it";
 
 export interface ModelInfo {
   name: ModelType;
@@ -312,6 +309,16 @@ export const PAID_MODELS: ModelInfo[] = [
     description: "Pro model with 1M context",
   },
   {
+    name: "gemma-4-31b-it",
+    displayName: "Gemma 4 31B",
+    description: "Gemma 4 model with function calling and thinking",
+  },
+  {
+    name: "gemma-4-26b-a4b-it",
+    displayName: "Gemma 4 26B A4B (MoE)",
+    description: "Gemma 4 MoE model with function calling and thinking",
+  },
+  {
     name: "gemini-3-pro-image-preview",
     displayName: "Gemini 3 Pro (Image)",
     description: "Pro quality image generation, up to 4K",
@@ -347,24 +354,14 @@ export const FREE_MODELS: ModelInfo[] = [
     description: "Free tier cost-effective model",
   },
   {
-    name: "gemma-3-27b-it",
-    displayName: "Gemma 3 27B (No vault ops)",
-    description: "Free tier Gemma model (no function calling)",
+    name: "gemma-4-31b-it",
+    displayName: "Gemma 4 31B",
+    description: "Free tier Gemma 4 model with function calling and thinking",
   },
   {
-    name: "gemma-3-12b-it",
-    displayName: "Gemma 3 12B (No vault ops)",
-    description: "Free tier Gemma model (no function calling)",
-  },
-  {
-    name: "gemma-3-4b-it",
-    displayName: "Gemma 3 4B (No vault ops)",
-    description: "Free tier Gemma model (no function calling)",
-  },
-  {
-    name: "gemma-3-1b-it",
-    displayName: "Gemma 3 1B (No vault ops)",
-    description: "Free tier Gemma model (no function calling)",
+    name: "gemma-4-26b-a4b-it",
+    displayName: "Gemma 4 26B A4B (MoE)",
+    description: "Free tier Gemma 4 MoE model with function calling and thinking",
   },
 ];
 

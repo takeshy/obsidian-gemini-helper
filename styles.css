@@ -7091,11 +7091,6 @@
   opacity: 1;
 }
 
-.gemini-helper-skill-dropdown-wrapper {
-  position: relative;
-  display: inline-flex;
-}
-
 .gemini-helper-skill-add-btn {
   display: inline-flex;
   align-items: center;
@@ -7117,20 +7112,15 @@
 }
 
 .gemini-helper-skill-dropdown {
-  position: absolute;
-  bottom: 100%;
-  left: 0;
-  min-width: 260px;
-  max-width: 360px;
+  position: fixed;
+  z-index: 10000;
   max-height: 300px;
   overflow-y: auto;
   background: var(--background-primary);
   border: 1px solid var(--background-modifier-border);
   border-radius: 6px;
   box-shadow: var(--shadow-s);
-  z-index: 100;
   padding: 4px;
-  margin-bottom: 4px;
 }
 
 .gemini-helper-skill-dropdown-item {

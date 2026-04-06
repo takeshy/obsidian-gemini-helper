@@ -315,6 +315,24 @@ export interface ChatWithToolsOptions {
   previousInteractionId?: string | null;  // For Interactions API conversation chaining
 }
 
+// Sanitize function call results for Gemini API.
+// The API rejects function_response containing empty arrays ([]).
+// This recursively replaces empty arrays with null.
+function sanitizeFunctionResult(value: unknown): unknown {
+  if (value === undefined || value === null) return value;
+  if (Array.isArray(value)) {
+    return value.length === 0 ? null : value.map(sanitizeFunctionResult);
+  }
+  if (typeof value === "object") {
+    const result: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
+      result[k] = sanitizeFunctionResult(v);
+    }
+    return result;
+  }
+  return value;
+}
+
 // Interactions API usage → TracingUsage converter
 function extractInteractionsUsage(usage: Interactions.Usage | undefined, model?: string): TracingUsage | undefined {
   if (!usage) return undefined;
@@ -1121,11 +1139,12 @@ export class GeminiClient {
 
             // Build FunctionResultContent for Interactions API
             // Preserve original result structure (object/array) so the model can consume fields directly
+            // Sanitize to avoid API rejection of empty values (empty arrays, empty strings)
             functionResults.push({
               type: "function_result",
               call_id: fc.id,
               name: fc.name,
-              result: result,
+              result: sanitizeFunctionResult(result),
             } as Interactions.Content);
           }
 

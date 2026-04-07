@@ -783,7 +783,7 @@ const InputArea = forwardRef<InputAreaHandle, InputAreaProps>(function InputArea
               <option
                 key={name}
                 value={name}
-                disabled={isImageGenerationModel(model)}
+                disabled={isImageGenerationModel(model) || model.toLowerCase().includes("gemma-4")}
               >
                 {t("input.rag", { name })}
               </option>

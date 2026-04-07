@@ -601,11 +601,17 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 			}
 			setVaultToolMode("all");
 			setVaultToolNoneReason(null);
-		} else if (isGemma4(model) && selectedRagSetting === "__websearch__") {
-			// Gemma 4 with Web Search active → disable vault tools
-			setVaultToolMode("none");
-			setVaultToolNoneReason("manual");
-			setMcpServers(servers => servers.map(s => ({ ...s, enabled: false })));
+		} else if (isGemma4(model)) {
+			// Gemma 4: file_search not supported, google_search cannot combine with function calling
+			if (selectedRagSetting && selectedRagSetting !== "__websearch__") {
+				// Clear RAG (file_search not supported)
+				handleRagSettingChange(null);
+			} else if (selectedRagSetting === "__websearch__") {
+				// Web Search active → disable vault tools
+				setVaultToolMode("none");
+				setVaultToolNoneReason("manual");
+				setMcpServers(servers => servers.map(s => ({ ...s, enabled: false })));
+			}
 		} else {
 			// Normal models: restore vault tools
 			setVaultToolMode("all");

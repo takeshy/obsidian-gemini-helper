@@ -813,14 +813,19 @@ export class GeminiClient {
 
     // Build tools for Interactions API
     // Unlike Chat API, Interactions API allows function tools + file search + Google search together
+    // Gemma 4: file_search not supported; cannot combine google_search with function calling
+    const isGemma4Model = this.model.toLowerCase().includes("gemma-4");
+    const effectiveRagEnabled = ragEnabled && !isGemma4Model;
+    const effectiveWebSearch = webSearchEnabled ?? false;
     let interactionTools: Interactions.Tool[] | undefined;
     if (!options?.disableTools) {
-      const functionTools = tools.length > 0 ? tools : [];
+      // Gemma 4: when google_search is active, drop function calling tools
+      const functionTools = isGemma4Model && effectiveWebSearch ? [] : (tools.length > 0 ? tools : []);
       interactionTools = this.toolsToInteractionsFormat(
         functionTools,
-        ragEnabled ? ragStoreIds : undefined,
-        ragEnabled ? clampedTopK : undefined,
-        webSearchEnabled,
+        effectiveRagEnabled ? ragStoreIds : undefined,
+        effectiveRagEnabled ? clampedTopK : undefined,
+        effectiveWebSearch,
       );
       if (interactionTools.length === 0) interactionTools = undefined;
     }

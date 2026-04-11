@@ -314,7 +314,7 @@ export function createMcpToolExecutor(
       const key = getServerKey(tool.mcpServer);
       const client = clientPool.get(key);
       if (client) {
-        await client.close().catch(() => {});
+        await client.close().catch((e: unknown) => console.warn("MCP client close error:", e));
         clientPool.delete(key);
       }
 
@@ -326,7 +326,7 @@ export function createMcpToolExecutor(
 
   const cleanup = async (): Promise<void> => {
     const closePromises = Array.from(clientPool.values()).map(client =>
-      client.close().catch(() => {})
+      client.close().catch((e: unknown) => console.warn("MCP client close error:", e))
     );
     await Promise.all(closePromises);
     clientPool.clear();

@@ -37,6 +37,25 @@ export function isSupportedFile(file: TFile): boolean {
   return SUPPORTED_EXTENSIONS.includes(file.extension.toLowerCase());
 }
 
+// Cache compiled exclude-pattern regexes per FilterConfig instance
+const compiledPatternsCache = new WeakMap<FilterConfig, RegExp[]>();
+
+function getCompiledExcludePatterns(config: FilterConfig): RegExp[] {
+  let cached = compiledPatternsCache.get(config);
+  if (cached) return cached;
+
+  cached = [];
+  for (const pattern of config.excludePatterns) {
+    try {
+      cached.push(new RegExp(pattern));
+    } catch {
+      // Invalid regex pattern, skip
+    }
+  }
+  compiledPatternsCache.set(config, cached);
+  return cached;
+}
+
 // Standalone filter check for use outside the class
 export function shouldIncludeFile(filePath: string, config: FilterConfig): boolean {
   // Check include folders (if empty, include all)
@@ -57,15 +76,10 @@ export function shouldIncludeFile(filePath: string, config: FilterConfig): boole
     }
   }
 
-  // Check regex pattern exclusions
-  for (const pattern of config.excludePatterns) {
-    try {
-      const regex = new RegExp(pattern);
-      if (regex.test(filePath)) {
-        return false;
-      }
-    } catch {
-      // Invalid regex pattern, skip
+  // Check regex pattern exclusions (pre-compiled)
+  for (const regex of getCompiledExcludePatterns(config)) {
+    if (regex.test(filePath)) {
+      return false;
     }
   }
 

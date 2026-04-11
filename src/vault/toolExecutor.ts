@@ -58,6 +58,15 @@ export async function executeToolCall(
   }
 }
 
+// Coerce an AI-provided argument to string (AI may send numbers or other types)
+function asString(value: unknown): string | undefined {
+  if (value == null) return undefined;
+  if (typeof value === "string") return value;
+  if (typeof value === "number" || typeof value === "boolean") return String(value);
+  // Avoid [object Object] for complex types
+  try { return JSON.stringify(value); } catch { return undefined; }
+}
+
 // Internal function that may throw
 async function executeToolCallInternal(
   app: App,
@@ -69,17 +78,17 @@ async function executeToolCallInternal(
     case "read_note":
       return readNote(
         app,
-        args.fileName as string | undefined,
+        asString(args.fileName),
         args.activeNote as boolean | undefined,
         context?.maxNoteChars ?? DEFAULT_SETTINGS.maxNoteChars
       );
 
     case "create_note": {
-      let name = args.name as string | undefined;
-      let folder = args.folder as string | undefined;
+      let name = asString(args.name);
+      let folder = asString(args.folder);
       if (!name && args.path) {
         // Fallback: extract name and folder from path argument
-        const pathStr = args.path as string;
+        const pathStr = asString(args.path) || "";
         const lastSlash = pathStr.lastIndexOf("/");
         if (lastSlash >= 0) {
           name = pathStr.slice(lastSlash + 1);
@@ -97,43 +106,48 @@ async function executeToolCallInternal(
       return createNote(
         app,
         name,
-        args.content as string,
+        asString(args.content) || "",
         folder,
-        args.tags as string | undefined
+        asString(args.tags)
       );
     }
 
     case "update_note":
       return updateNote(
         app,
-        args.fileName as string | undefined,
+        asString(args.fileName),
         args.activeNote as boolean | undefined,
-        args.newContent as string | undefined,
-        (args.mode as "replace" | "append" | "prepend") || "replace"
+        asString(args.newContent),
+        (asString(args.mode) as "replace" | "append" | "prepend") || "replace"
       );
 
-    case "delete_note":
-      if (!args.fileName) {
+    case "delete_note": {
+      const fileName = asString(args.fileName);
+      if (!fileName) {
         return { success: false, error: "Required parameter 'fileName' is missing" };
       }
-      return deleteNote(app, args.fileName as string);
+      return deleteNote(app, fileName);
+    }
 
-    case "rename_note":
-      if (!args.oldPath) {
+    case "rename_note": {
+      const oldPath = asString(args.oldPath);
+      const newPath = asString(args.newPath);
+      if (!oldPath) {
         return { success: false, error: "Required parameter 'oldPath' is missing" };
       }
-      if (!args.newPath) {
+      if (!newPath) {
         return { success: false, error: "Required parameter 'newPath' is missing" };
       }
-      return proposeRename(app, args.oldPath as string, args.newPath as string);
+      return proposeRename(app, oldPath, newPath);
+    }
 
     case "search_notes": {
-      if (!args.query) {
+      const query = asString(args.query);
+      if (!query) {
         return { success: false, error: "Required parameter 'query' is missing" };
       }
-      const query = args.query as string;
       const searchContent = args.searchContent as boolean | undefined;
-      const parsedLimit = args.limit ? parseInt(args.limit as string, 10) : 10;
+      const parsedLimit = args.limit ? parseInt(asString(args.limit) || "10", 10) : 10;
       const limit = Number.isNaN(parsedLimit) || parsedLimit <= 0 ? 10 : parsedLimit;
 
       if (searchContent) {
@@ -158,10 +172,10 @@ async function executeToolCallInternal(
     }
 
     case "list_notes": {
-      const folder = args.folder as string | undefined;
+      const folder = asString(args.folder);
       const recursive = args.recursive as boolean | undefined;
       const defaultLimit = context?.listNotesLimit ?? DEFAULT_SETTINGS.listNotesLimit;
-      const parsedLimit = args.limit ? parseInt(args.limit as string, 10) : defaultLimit;
+      const parsedLimit = args.limit ? parseInt(asString(args.limit) || String(defaultLimit), 10) : defaultLimit;
       const limit = Number.isNaN(parsedLimit) || parsedLimit <= 0 ? defaultLimit : parsedLimit;
       const { results, totalCount, hasMore } = listNotes(app, folder, recursive, limit);
       return {
@@ -177,7 +191,7 @@ async function executeToolCallInternal(
     }
 
     case "list_folders": {
-      const parentFolder = args.parentFolder as string | undefined;
+      const parentFolder = asString(args.parentFolder);
       const folders = listFolders(app, parentFolder);
       return {
         success: true,
@@ -186,8 +200,13 @@ async function executeToolCallInternal(
       };
     }
 
-    case "create_folder":
-      return createFolder(app, args.path as string);
+    case "create_folder": {
+      const path = asString(args.path);
+      if (!path) {
+        return { success: false, error: "Required parameter 'path' is missing" };
+      }
+      return createFolder(app, path);
+    }
 
     case "get_active_note_info": {
       const info = getActiveNoteInfo(app);
@@ -216,8 +235,8 @@ async function executeToolCallInternal(
         };
       }
 
-      const filePath = args.filePath as string | undefined;
-      const directory = args.directory as string | undefined;
+      const filePath = asString(args.filePath);
+      const directory = asString(args.directory);
       const listAll = args.listAll as boolean | undefined;
 
       // Query specific file
@@ -304,10 +323,10 @@ async function executeToolCallInternal(
     case "propose_edit":
       return proposeEdit(
         app,
-        args.fileName as string | undefined,
+        asString(args.fileName),
         args.activeNote as boolean | undefined,
-        args.newContent as string | undefined,
-        (args.mode as "replace" | "append" | "prepend" | "patch") || "replace",
+        asString(args.newContent),
+        (asString(args.mode) as "replace" | "append" | "prepend" | "patch") || "replace",
         undefined,
         args.patches as Array<{ search: string; replace: string }> | undefined
       );
@@ -318,8 +337,13 @@ async function executeToolCallInternal(
     case "discard_edit":
       return discardEdit(app);
 
-    case "propose_delete":
-      return proposeDelete(app, args.fileName as string);
+    case "propose_delete": {
+      const fileName = asString(args.fileName);
+      if (!fileName) {
+        return { success: false, error: "Required parameter 'fileName' is missing" };
+      }
+      return proposeDelete(app, fileName);
+    }
 
     case "apply_delete":
       return applyDelete(app);

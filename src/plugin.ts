@@ -50,6 +50,9 @@ export class GeminiHelperPlugin extends Plugin {
   private lastActiveMarkdownView: MarkdownView | null = null;
   private workflowMgr!: WorkflowManager;
 
+  /** In-memory only — cleared on Obsidian restart */
+  lastActiveChatId: string | null = null;
+
   // Delegate workspaceState to the manager
   get workspaceState(): WorkspaceState {
     return this.wsManager.workspaceState;

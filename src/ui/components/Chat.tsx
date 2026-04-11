@@ -99,6 +99,8 @@ export interface ChatRef {
 	setActiveChat: (chat: TFile | null) => void;
 }
 
+const MAX_BACKGROUND_STREAMS = 3;
+
 interface ChatProps {
 	plugin: GeminiHelperPlugin;
 }
@@ -139,6 +141,18 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 	const inputAreaRef = useRef<InputAreaHandle>(null);
 	const currentSlashCommandRef = useRef<SlashCommand | null>(null);
 	const mcpExecutorRef = useRef<McpToolExecutor | null>(null);
+	// Session ID to track which chat session owns the UI; incremented on startNewChat/loadChat
+	// so background streams can detect they've been detached from the UI.
+	const activeSessionIdRef = useRef(0);
+	// AbortControllers for background (detached) streams, capped at MAX_BACKGROUND_STREAMS.
+	const backgroundAbortControllersRef = useRef<AbortController[]>([]);
+	// Chat IDs that have been deleted — background streams check this to avoid
+	// resurrecting a deleted chat when they complete.
+	const deletedChatIdsRef = useRef<Set<string>>(new Set());
+	// Preserve the plugin-level last active chat across the component's first render
+	// so the mount-time restore effect can read it before sync-back starts.
+	const initialLastActiveChatIdRef = useRef<string | null>(plugin.lastActiveChatId);
+	const hasCompletedInitialRestoreRef = useRef(false);
 	const [vaultFiles, setVaultFiles] = useState<string[]>([]);
 	const [hasSelection, setHasSelection] = useState(false);
 	const [hasApiKey, setHasApiKey] = useState(!!plugin.settings.googleApiKey);
@@ -284,43 +298,53 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 		}
 	}, [plugin]);
 
-	// Save current chat to Markdown file
-	const saveCurrentChat = useCallback(async (msgs: Message[], overrideChatId?: string) => {
+	// Save chat to Markdown file (low-level: uses functional updater to avoid stale closures)
+	const saveChatToDisk = useCallback(async (
+		msgs: Message[],
+		chatId: string,
+		opts: { foreground?: boolean } = {},
+	) => {
 		if (msgs.length === 0) return;
 		if (!plugin.settings.saveChatHistory) return;
+		// Skip if this chat was deleted while the stream was running
+		if (deletedChatIdsRef.current.has(chatId)) return;
 
-		const chatId = overrideChatId || currentChatId || generateChatId();
+		const { foreground = false } = opts;
 		const title = msgs[0].content.slice(0, 50) + (msgs[0].content.length > 50 ? "..." : "");
 		const folder = getChatHistoryFolder();
 
-		// Ensure folder exists
 		try {
-			const folderExists = await plugin.app.vault.adapter.exists(folder);
-			if (!folderExists) {
+			if (!(await plugin.app.vault.adapter.exists(folder))) {
 				await plugin.app.vault.adapter.mkdir(folder);
 			}
 		} catch {
 			// Folder might already exist
 		}
 
-		const existingHistory = chatHistories.find(h => h.id === chatId);
-		const createdAt = existingHistory?.createdAt || Date.now();
+		// Use functional updater to read the latest chatHistories without
+		// depending on the outer closure (avoids stale-closure races).
+		setChatHistories(prev => {
+			const existing = prev.find(h => h.id === chatId);
+			const createdAt = existing?.createdAt || Date.now();
 
-		const markdown = await messagesToMarkdown(msgs, title, createdAt, plugin.settings.encryption);
-		const basePath = getChatFilePath(chatId);
-		const encrypted = isEncryptedFile(markdown);
-		const filePath = encrypted ? basePath + ".encrypted" : basePath;
-		const oldPath = encrypted ? basePath : basePath + ".encrypted";
+			// Fire-and-forget the async disk write; state update is synchronous
+			void (async () => {
+				try {
+					const markdown = await messagesToMarkdown(msgs, title, createdAt, plugin.settings.encryption);
+					const basePath = getChatFilePath(chatId);
+					const encrypted = isEncryptedFile(markdown);
+					const filePath = encrypted ? basePath + ".encrypted" : basePath;
+					const oldPath = encrypted ? basePath : basePath + ".encrypted";
 
-		try {
-			// Delete old file if encryption status changed (extension mismatch)
-			if (await plugin.app.vault.adapter.exists(oldPath)) {
-				await plugin.app.vault.adapter.remove(oldPath);
-			}
+					if (await plugin.app.vault.adapter.exists(oldPath)) {
+						await plugin.app.vault.adapter.remove(oldPath);
+					}
+					await plugin.app.vault.adapter.write(filePath, markdown);
+				} catch (e) {
+					console.warn("Failed to write chat file:", chatId, e);
+				}
+			})();
 
-			await plugin.app.vault.adapter.write(filePath, markdown);
-
-			// Update local state
 			const newHistory: ChatHistory = {
 				id: chatId,
 				title,
@@ -329,30 +353,134 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 				updatedAt: Date.now(),
 			};
 
-			const existingIndex = chatHistories.findIndex(h => h.id === chatId);
-			let newHistories: ChatHistory[];
-
-			if (existingIndex >= 0) {
-				newHistories = [...chatHistories];
-				newHistories[existingIndex] = newHistory;
+			const idx = prev.findIndex(h => h.id === chatId);
+			let updated: ChatHistory[];
+			if (idx >= 0) {
+				updated = [...prev];
+				updated[idx] = newHistory;
 			} else {
-				newHistories = [newHistory, ...chatHistories];
+				updated = [newHistory, ...prev];
 			}
+			return updated.slice(0, 50);
+		});
 
-			// Keep only last 50 chats
-			newHistories = newHistories.slice(0, 50);
-
-			setChatHistories(newHistories);
+		if (foreground) {
 			setCurrentChatId(chatId);
-		} catch {
-			// Failed to save chat
 		}
-	}, [currentChatId, chatHistories, plugin]);
+	}, [plugin]);
 
-	// Load chat histories on mount
+	// Save current (foreground) chat to Markdown file
+	const saveCurrentChat = useCallback(async (msgs: Message[], overrideChatId?: string) => {
+		const chatId = overrideChatId || currentChatId || generateChatId();
+		await saveChatToDisk(msgs, chatId, { foreground: true });
+	}, [currentChatId, saveChatToDisk]);
+
+	// Create a stream session that tracks whether this stream still owns the UI.
+	// Called at the top of sendMessage; the returned helpers centralise the
+	// isActive/save/finally logic so background streams save silently.
+	const createStreamSession = useCallback(() => {
+		const mySessionId = activeSessionIdRef.current;
+		const myChatId = currentChatId || generateChatId();
+		const isActive = () => mySessionId === activeSessionIdRef.current;
+
+		const saveResult = async (msgs: Message[]) => {
+			if (isActive()) {
+				setMessages(msgs);
+				await saveChatToDisk(msgs, myChatId, { foreground: true });
+			} else {
+				await saveChatToDisk(msgs, myChatId, {});
+			}
+		};
+
+		// Called in `finally` — cleans up UI state if still foreground.
+		// Pass the stream's AbortController so it can be removed from
+		// the background tracking list when the stream was backgrounded.
+		const cleanup = (myAbortController?: AbortController | null) => {
+			if (isActive()) {
+				setIsLoading(false);
+				setStreamingContent("");
+				setStreamingThinking("");
+				abortControllerRef.current = null;
+			} else if (myAbortController) {
+				const bgList = backgroundAbortControllersRef.current;
+				backgroundAbortControllersRef.current = bgList.filter(ac => ac !== myAbortController);
+			}
+		};
+
+		return { mySessionId, myChatId, isActive, saveResult, cleanup };
+	}, [currentChatId, saveChatToDisk]);
+
+	// Detach the currently running stream (if any) so it continues in the
+	// background. Moves its AbortController to the background list and
+	// aborts the oldest background stream if we exceed the cap.
+	const detachActiveStream = useCallback(() => {
+		activeSessionIdRef.current += 1;
+
+		// Move the foreground AbortController to the background list
+		if (abortControllerRef.current) {
+			backgroundAbortControllersRef.current.push(abortControllerRef.current);
+			abortControllerRef.current = null;
+			// Abort oldest if over the cap
+			while (backgroundAbortControllersRef.current.length > MAX_BACKGROUND_STREAMS) {
+				const oldest = backgroundAbortControllersRef.current.shift();
+				oldest?.abort();
+			}
+		}
+
+		// Detach MCP executor — background stream cleans up its own copy
+		mcpExecutorRef.current = null;
+		setIsLoading(false);
+		setStreamingContent("");
+		setStreamingThinking("");
+	}, []);
+
+	// Load chat histories on mount, and restore last active chat if available
 	useEffect(() => {
-		void loadChatHistories();
+		// Capture session ID at mount time so we can detect if the user
+		// navigated elsewhere before the async restore completes.
+		const mountSessionId = activeSessionIdRef.current;
+		void loadChatHistories().then(async () => {
+			try {
+				// Skip restore if the user already started a new chat or loaded one
+				if (activeSessionIdRef.current !== mountSessionId) return;
+
+				const lastId = initialLastActiveChatIdRef.current;
+				if (!lastId) return;
+
+				const basePath = getChatFilePath(lastId);
+				let filePath = basePath;
+				let exists = await plugin.app.vault.adapter.exists(filePath);
+				if (!exists) {
+					filePath = basePath + ".encrypted";
+					exists = await plugin.app.vault.adapter.exists(filePath);
+				}
+				if (!exists) return;
+				// Re-check after async gap
+				if (activeSessionIdRef.current !== mountSessionId) return;
+
+				const content = await plugin.app.vault.adapter.read(filePath);
+				if (isEncryptedFile(content)) return; // Cannot auto-restore encrypted chats
+
+				const parsed = parseMarkdownToMessages(content);
+				if (parsed?.messages && parsed.messages.length > 0) {
+					// Final check before touching state
+					if (activeSessionIdRef.current !== mountSessionId) return;
+					setMessages(parsed.messages);
+					setCurrentChatId(lastId);
+				}
+			} catch (e) {
+				console.warn("Failed to restore last active chat:", e);
+			} finally {
+				hasCompletedInitialRestoreRef.current = true;
+			}
+		});
 	}, [loadChatHistories]);
+
+	// Sync currentChatId -> plugin.lastActiveChatId (in-memory, cleared on restart)
+	useEffect(() => {
+		if (!hasCompletedInitialRestoreRef.current) return;
+		plugin.lastActiveChatId = currentChatId;
+	}, [currentChatId, plugin]);
 
 	// Discover skills (on mount + when skills-changed is emitted)
 	const refreshSkills = useCallback(() => {
@@ -757,29 +885,35 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 	};
 
 	// Start new chat
+	// Start new chat (works even while a stream is running — the old stream
+	// continues in the background and saves its result to history when done).
 	const startNewChat = () => {
 		if (isLoading) {
-			new Notice(t("chat.generationInProgress"));
-			return;
+			detachActiveStream();
+		} else {
+			// Bump session ID even without an active stream so that
+			// pending async operations (e.g. mount-time restore) are cancelled.
+			activeSessionIdRef.current += 1;
+			if (mcpExecutorRef.current) {
+				void mcpExecutorRef.current.cleanup();
+				mcpExecutorRef.current = null;
+			}
 		}
+
 		setMessages([]);
 		setCurrentChatId(null);
 		setActiveSkillPaths(DEFAULT_BUILTIN_SKILL_IDS.map(builtinFolderPath));
 		setStreamingContent("");
 		setStreamingThinking("");
 		setShowHistory(false);
-		// Cleanup MCP executor session
-		if (mcpExecutorRef.current) {
-			void mcpExecutorRef.current.cleanup();
-			mcpExecutorRef.current = null;
-		}
 	};
 
 	// Decrypt and load encrypted chat
 	const decryptAndLoadChat = async (chatId: string, password: string) => {
 		if (isLoading) {
-			new Notice(t("chat.generationInProgress"));
-			return;
+			detachActiveStream();
+		} else {
+			activeSessionIdRef.current += 1;
 		}
 		try {
 			// Try .md.encrypted first, then fall back to .md
@@ -827,8 +961,9 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 	// Load a chat from history
 	const loadChat = (history: ChatHistory) => {
 		if (isLoading) {
-			new Notice(t("chat.generationInProgress"));
-			return;
+			detachActiveStream();
+		} else {
+			activeSessionIdRef.current += 1;
 		}
 		if (history.isEncrypted) {
 			// If password is cached, try to decrypt automatically
@@ -852,10 +987,9 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 	// Delete a chat from history
 	const deleteChat = async (chatId: string, e: React.MouseEvent) => {
 		e.stopPropagation();
-		if (isLoading) {
-			new Notice(t("chat.generationInProgress"));
-			return;
-		}
+
+		// Prevent background streams from resurrecting this chat
+		deletedChatIdsRef.current.add(chatId);
 
 		// Delete the Markdown file (try both .md and .md.encrypted)
 		const basePath = getChatFilePath(chatId);
@@ -869,8 +1003,7 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 			}
 		}
 
-		const newHistories = chatHistories.filter(h => h.id !== chatId);
-		setChatHistories(newHistories);
+		setChatHistories(prev => prev.filter(h => h.id !== chatId));
 
 		if (currentChatId === chatId) {
 			startNewChat();
@@ -881,6 +1014,8 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 	// Send message to Gemini
 	const sendMessage = async (content: string, attachments?: Attachment[], skillPath?: string) => {
 		if ((!content.trim() && !skillPath && (!attachments || attachments.length === 0)) || isLoading) return;
+
+		const { isActive, saveResult, cleanup: cleanupStream } = createStreamSession();
 
 		const client = getGeminiClient();
 		if (!client) {
@@ -953,6 +1088,10 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 			input: resolvedContent,
 		});
 
+		// Track MCP executor for background cleanup (runStreamOnce creates it locally,
+		// but if the stream is backgrounded we need to clean it up in finally).
+		const mcpCleanupRef: { executor: McpToolExecutor | null } = { executor: null };
+
 		try {
 			const runStreamOnce = async () => {
 				const { settings } = plugin;
@@ -998,8 +1137,9 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 					? createMcpToolExecutor(mcpTools, traceId)
 					: undefined;
 
-				// Store for session reuse
+				// Store for session reuse and background cleanup
 				mcpExecutorRef.current = mcpToolExecutor ?? null;
+				mcpCleanupRef.executor = mcpToolExecutor ?? null;
 
 				// Merge Obsidian tools and MCP tools
 				const allTools = [...obsidianTools, ...mcpTools];
@@ -1451,13 +1591,12 @@ Always be helpful and provide clear, concise responses. When working with notes,
 				switch (chunk.type) {
 					case "text":
 						fullContent += chunk.content || "";
-						setStreamingContent(fullContent);
+						if (isActive()) setStreamingContent(fullContent);
 						break;
 
 					case "thinking":
 						thinkingContent += chunk.content || "";
-						// thinkingは別stateで管理（折りたたみ表示用）
-						setStreamingThinking(thinkingContent);
+						if (isActive()) setStreamingThinking(thinkingContent);
 						break;
 
 					case "tool_call":
@@ -1548,10 +1687,7 @@ Always be helpful and provide clear, concise responses. When working with notes,
 				};
 
 				const newMessages = [...messages, userMessage, assistantMessage];
-				setMessages(newMessages);
-
-				// Save chat history
-				await saveCurrentChat(newMessages);
+				await saveResult(newMessages);
 
 				tracing.traceEnd(traceId, {
 					output: fullContent,
@@ -1571,7 +1707,7 @@ Always be helpful and provide clear, concise responses. When working with notes,
 				});
 
 				// Check if user requested changes with feedback - use state to trigger send after re-render
-				if (pendingAdditionalRequestRef.current) {
+				if (isActive() && pendingAdditionalRequestRef.current) {
 					const requestInfo = pendingAdditionalRequestRef.current;
 					pendingAdditionalRequestRef.current = null; // Clear to prevent re-sending
 					// Set state to trigger useEffect which will send the message after messages state is updated
@@ -1588,8 +1724,10 @@ Always be helpful and provide clear, concise responses. When working with notes,
 					break;
 				} catch (error) {
 					if (abortController.signal.aborted) {
-						setStreamingContent("");
-						setStreamingThinking("");
+						if (isActive()) {
+							setStreamingContent("");
+							setStreamingThinking("");
+						}
 						tracing.traceEnd(traceId, { metadata: { status: "aborted" } });
 						tracing.score(traceId, { name: "status", value: 0.5, comment: "aborted during retry" });
 						return;
@@ -1597,8 +1735,10 @@ Always be helpful and provide clear, concise responses. When working with notes,
 					if (apiPlan === "paid" && isRateLimitError(error) && retryCount < retryDelays.length) {
 						const delayMs = retryDelays[retryCount];
 						retryCount += 1;
-						setStreamingContent("");
-						setStreamingThinking("");
+						if (isActive()) {
+							setStreamingContent("");
+							setStreamingThinking("");
+						}
 						new Notice(
 							t("chat.rateLimitRetrying", {
 								seconds: String(Math.ceil(delayMs / 1000)),
@@ -1619,7 +1759,7 @@ Always be helpful and provide clear, concise responses. When working with notes,
 				content: errorMessageText,
 				timestamp: Date.now(),
 			};
-			setMessages((prev) => [...prev, errorMessage]);
+			await saveResult([...messages, userMessage, errorMessage]);
 			tracing.traceEnd(traceId, {
 				output: errorMessageText,
 				metadata: { error: true },
@@ -1634,10 +1774,11 @@ Always be helpful and provide clear, concise responses. When working with notes,
 			if (autoSwitchedToImage) {
 				client.setModel(originalModel);
 			}
-			setIsLoading(false);
-			setStreamingContent("");
-			setStreamingThinking("");
-			abortControllerRef.current = null;
+			cleanupStream(abortController);
+			// Clean up MCP executor if stream was backgrounded
+			if (!isActive() && mcpCleanupRef.executor) {
+				void mcpCleanupRef.executor.cleanup().catch(() => {});
+			}
 		}
 	};
 

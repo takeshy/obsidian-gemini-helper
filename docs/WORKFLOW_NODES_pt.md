@@ -679,6 +679,29 @@ Declarar e atualizar variaveis.
   value: "{{counter}} + 1"
 ```
 
+**`value` e opcional em nos `variable`.** Omiti-lo oferece dois comportamentos uteis:
+
+- **Declaracao de entrada** — Se a variavel ja foi definida pelo chamador (workflow pai, invocacao de skill, gatilho de hotkey), o valor existente e preservado. Isso permite a um workflow declarar as entradas que espera sem sobrescreve-las.
+- **Acumulador vazio** — Se nenhum chamador definiu a variavel, ela e inicializada como `""`. Seguro para acumuladores que receberao texto posteriormente.
+
+```yaml
+# Declaracao de entrada — usa o valor do chamador, ou "" se nao fornecido
+- id: declare-input
+  type: variable
+  name: inputText
+
+# Acumulador — comeca como "" e e anexado mais adiante
+- id: init-output
+  type: variable
+  name: outputMarkdown
+
+# Valor inicial explicito — sempre reseta para 0 independente do estado do chamador
+- id: init-counter
+  type: variable
+  name: counter
+  value: 0
+```
+
 **Variável especial `_clipboard`:**
 
 Se você definir uma variável chamada `_clipboard`, seu valor será copiado para a área de transferência do sistema:
@@ -949,17 +972,60 @@ path: "{{parsed.notes[{{counter}}].path}}"
 
 ### Modificador de Escape JSON
 
-Use `{{variable:json}}` para escapar o valor para incorporacao em strings JSON. Isso escapa corretamente quebras de linha, aspas e outros caracteres especiais.
+Use `{{variable:json}}` para escapar o valor para incorporacao **dentro de um literal de string**. Isso escapa corretamente quebras de linha, aspas e outros caracteres especiais.
+
+**Importante:** `:json` apenas escapa o *conteudo* — ele **nao** adiciona aspas envolventes. Voce deve fornecer as aspas ao incorporar dentro de uma string.
 
 ```yaml
 # Sem :json - falha se o conteudo tiver quebras de linha/aspas
 args: '{"text": "{{content}}"}'  # ERRO se o conteudo tiver caracteres especiais
 
-# Com :json - seguro para qualquer conteudo
+# Com :json - seguro para qualquer conteudo (as "..." ao redor sao seu literal de string)
 args: '{"text": "{{content:json}}"}'  # OK - corretamente escapado
 ```
 
-Isso e essencial ao passar conteudo de arquivo ou entrada do usuario para nos `mcp` ou `http` com corpos JSON.
+**Em nos `script` (JavaScript):**
+
+`:json` substitui texto simples antes da execucao do codigo, entao voce deve envolve-lo em aspas quando o valor deve ser uma string JS:
+
+```yaml
+# ✅ Correto — literal de string com conteudo escapado
+code: |
+  var text = "{{userInput:json}}";
+  var data = JSON.parse("{{jsonStr:json}}");
+
+# ❌ Errado — aspas externas ausentes, produz JS invalido
+code: |
+  var text = {{userInput:json}};          # erro de sintaxe
+  JSON.parse({{jsonStr:json}});           # precisa de um argumento string
+```
+
+Se a variavel ja contem um objeto/array parseado (ex: de um no `json` anterior), use `{{var:json}}` *sem* aspas para que se torne um literal de objeto/array JS:
+
+```yaml
+code: |
+  var arr = {{parsedArray:json}};         # vira: var arr = [{"url":"..."}]
+```
+
+Isso e essencial ao passar conteudo de arquivo ou entrada do usuario para nos `mcp`, `http` ou `script`.
+
+### No `json` — `source` e um nome de variavel puro
+
+A propriedade `source` do no `json` aceita **apenas o nome da variavel** — sem expressao interpolada, sem aspas, sem colchetes:
+
+```yaml
+# ✅ Correto
+- id: parse-body
+  type: json
+  source: apiResponseBody
+  saveTo: parsed
+
+# ❌ Errado
+- id: parse-body
+  type: json
+  source: "{{apiResponseBody}}"          # nao ha interpolacao aqui
+  # ou: source: "[{{apiResponseBody}}]"  # envolver corrompe JSON valido
+```
 
 ## Nos de Entrada Inteligentes
 

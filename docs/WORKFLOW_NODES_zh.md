@@ -679,6 +679,29 @@ nodes:
   value: "{{counter}} + 1"
 ```
 
+**`variable` 节点的 `value` 是可选的。** 省略它会带来两种有用的行为：
+
+- **输入声明** — 如果变量已经由调用者（父工作流、技能调用、热键触发器）设置，则保留现有值。这允许工作流声明它期望的输入而不覆盖它们。
+- **空累加器** — 如果没有调用者设置该变量，则初始化为 `""`。对于稍后将被追加的累加器是安全的。
+
+```yaml
+# 输入声明 — 使用调用者的值，如果未提供则为 ""
+- id: declare-input
+  type: variable
+  name: inputText
+
+# 累加器 — 以 "" 开始，后续追加
+- id: init-output
+  type: variable
+  name: outputMarkdown
+
+# 显式初始值 — 无论调用者状态如何，始终重置为 0
+- id: init-counter
+  type: variable
+  name: counter
+  value: 0
+```
+
 **特殊变量 `_clipboard`:**
 
 如果设置名为 `_clipboard` 的变量，其值将被复制到系统剪贴板：
@@ -949,17 +972,60 @@ path: "{{parsed.notes[{{counter}}].path}}"
 
 ### JSON转义修饰符
 
-使用 `{{variable:json}}` 来转义值以嵌入JSON字符串。这可以正确转义换行符、引号和其他特殊字符。
+使用 `{{variable:json}}` 来转义值以**嵌入字符串字面量内部**。这可以正确转义换行符、引号和其他特殊字符。
+
+**重要：** `:json` 只转义*内容* — 它**不会**添加外围引号。在字符串内部嵌入时，您必须自己提供引号。
 
 ```yaml
 # 不使用 :json - 如果内容包含换行符/引号会出错
 args: '{"text": "{{content}}"}'  # 如果内容有特殊字符会出错
 
-# 使用 :json - 对任何内容都安全
+# 使用 :json - 对任何内容都安全（周围的 "..." 是您的字符串字面量）
 args: '{"text": "{{content:json}}"}'  # OK - 正确转义
 ```
 
-这在将文件内容或用户输入传递给带有JSON正文的 `mcp` 或 `http` 节点时是必需的。
+**在 `script` 节点（JavaScript）中：**
+
+`:json` 在代码执行前替换为纯文本，因此当值应为 JS 字符串时，您必须用引号将其包起来：
+
+```yaml
+# ✅ 正确 — 包含已转义内容的字符串字面量
+code: |
+  var text = "{{userInput:json}}";
+  var data = JSON.parse("{{jsonStr:json}}");
+
+# ❌ 错误 — 缺少外围引号，产生无效的 JS
+code: |
+  var text = {{userInput:json}};          # 语法错误
+  JSON.parse({{jsonStr:json}});           # 需要字符串参数
+```
+
+如果变量已经包含已解析的对象/数组（例如来自先前的 `json` 节点），使用*不带*引号的 `{{var:json}}`，使其成为 JS 对象/数组字面量：
+
+```yaml
+code: |
+  var arr = {{parsedArray:json}};         # 变为：var arr = [{"url":"..."}]
+```
+
+这在将文件内容或用户输入传递给 `mcp`、`http` 或 `script` 节点时是必需的。
+
+### `json` 节点 — `source` 是纯变量名
+
+`json` 节点的 `source` 属性**仅接受变量名** — 不接受插值表达式、引号或方括号：
+
+```yaml
+# ✅ 正确
+- id: parse-body
+  type: json
+  source: apiResponseBody
+  saveTo: parsed
+
+# ❌ 错误
+- id: parse-body
+  type: json
+  source: "{{apiResponseBody}}"          # 这里不会插值
+  # 或: source: "[{{apiResponseBody}}]"  # 包裹会破坏有效的 JSON
+```
 
 ## 智能输入节点
 

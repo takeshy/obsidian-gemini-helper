@@ -679,6 +679,29 @@ Declara y actualiza variables.
   value: "{{counter}} + 1"
 ```
 
+**`value` es opcional en los nodos `variable`.** Omitirlo brinda dos comportamientos utiles:
+
+- **Declaracion de entrada** — Si la variable ya fue establecida por el invocador (workflow padre, invocacion de skill, trigger de hotkey), el valor existente se preserva. Esto permite declarar las entradas esperadas sin sobrescribirlas.
+- **Acumulador vacio** — Si ningun invocador establecio la variable, se inicializa a `""`. Seguro para acumuladores que se iran anexando despues.
+
+```yaml
+# Declaracion de entrada — usa el valor del invocador, o "" si no fue provisto
+- id: declare-input
+  type: variable
+  name: inputText
+
+# Acumulador — empieza como "" y se anexa mas adelante
+- id: init-output
+  type: variable
+  name: outputMarkdown
+
+# Valor inicial explicito — siempre resetea a 0 sin importar el estado del invocador
+- id: init-counter
+  type: variable
+  name: counter
+  value: 0
+```
+
 **Variable especial `_clipboard`:**
 
 Si establece una variable llamada `_clipboard`, su valor se copiará al portapapeles del sistema:
@@ -949,17 +972,60 @@ path: "{{parsed.notes[{{counter}}].path}}"
 
 ### Modificador de Escape JSON
 
-Usa `{{variable:json}}` para escapar el valor para incrustar en cadenas JSON. Esto escapa correctamente saltos de línea, comillas y otros caracteres especiales.
+Usa `{{variable:json}}` para escapar el valor e incrustarlo **dentro de un literal de cadena**. Esto escapa correctamente saltos de linea, comillas y otros caracteres especiales.
+
+**Importante:** `:json` solo escapa el *contenido* — **no** agrega comillas envolventes. Debes proveer las comillas tu mismo al incrustar dentro de una cadena.
 
 ```yaml
-# Sin :json - falla si el contenido tiene saltos de línea/comillas
+# Sin :json - falla si el contenido tiene saltos de linea/comillas
 args: '{"text": "{{content}}"}'  # ERROR si el contenido tiene caracteres especiales
 
-# Con :json - seguro para cualquier contenido
+# Con :json - seguro para cualquier contenido (las "..." son tu literal de cadena)
 args: '{"text": "{{content:json}}"}'  # OK - escapado correctamente
 ```
 
-Esto es esencial cuando se pasa contenido de archivo o entrada de usuario a nodos `mcp` o `http` con cuerpos JSON.
+**En nodos `script` (JavaScript):**
+
+`:json` sustituye texto plano antes de ejecutar el codigo, por lo que debes envolverlo en comillas cuando el valor deba ser una cadena JS:
+
+```yaml
+# ✅ Correcto — literal de cadena con contenido escapado
+code: |
+  var text = "{{userInput:json}}";
+  var data = JSON.parse("{{jsonStr:json}}");
+
+# ❌ Incorrecto — faltan las comillas externas, produce JS invalido
+code: |
+  var text = {{userInput:json}};          # error de sintaxis
+  JSON.parse({{jsonStr:json}});           # necesita un argumento de tipo cadena
+```
+
+Si la variable ya contiene un objeto/arreglo parseado (p. ej. de un nodo `json` previo), usa `{{var:json}}` *sin* comillas para que se convierta en un literal de objeto/arreglo JS:
+
+```yaml
+code: |
+  var arr = {{parsedArray:json}};         # se convierte en: var arr = [{"url":"..."}]
+```
+
+Esto es esencial al pasar contenido de archivo o entrada de usuario a nodos `mcp`, `http` o `script`.
+
+### Nodo `json` — `source` es un nombre de variable puro
+
+La propiedad `source` del nodo `json` acepta **solo el nombre de la variable** — ni expresiones interpoladas, ni comillas, ni corchetes:
+
+```yaml
+# ✅ Correcto
+- id: parse-body
+  type: json
+  source: apiResponseBody
+  saveTo: parsed
+
+# ❌ Incorrecto
+- id: parse-body
+  type: json
+  source: "{{apiResponseBody}}"          # aqui no hay interpolacion
+  # o: source: "[{{apiResponseBody}}]"  # envolverlo corrompe el JSON valido
+```
 
 ## Nodos de Entrada Inteligente
 

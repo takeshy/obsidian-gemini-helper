@@ -862,6 +862,45 @@
   background: var(--background-modifier-hover);
 }
 
+/* Tool indicator + open-workflow button pair */
+.gemini-helper-tool-indicator-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.gemini-helper-tool-open-workflow-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 12px;
+  background: var(--background-modifier-error, var(--background-modifier-hover));
+  color: var(--text-error, var(--text-normal));
+  border: 1px solid var(--background-modifier-border);
+  cursor: pointer;
+  line-height: 1;
+  height: auto;
+  box-shadow: none;
+}
+
+.gemini-helper-tool-open-workflow-btn:hover {
+  background: var(--background-modifier-error-hover, var(--background-modifier-active));
+}
+
+/* Helpful hint shown when a skill workflow fails */
+.gemini-helper-workflow-error-hint {
+  margin-top: 6px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  background: var(--background-secondary);
+  border-left: 3px solid var(--color-yellow, var(--interactive-accent));
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-muted);
+}
+
 /* Attachments */
 .gemini-helper-attachments {
   display: flex;
@@ -1816,6 +1855,30 @@
   text-align: center;
   color: var(--text-muted);
   padding: 24px;
+}
+
+/* Workflow-vs-skill explainer shown under the Create buttons */
+.workflow-empty-create-hint {
+  margin-top: 8px;
+  padding: 10px 12px;
+  background: var(--background-secondary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 6px;
+  text-align: left;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-muted);
+}
+
+.workflow-empty-create-hint p {
+  margin: 4px 0;
+}
+
+.workflow-empty-create-hint p:first-child { margin-top: 0; }
+.workflow-empty-create-hint p:last-child { margin-bottom: 0; }
+
+.workflow-empty-create-hint strong {
+  color: var(--text-normal);
 }
 
 /* Node Card */
@@ -3170,6 +3233,10 @@
   border-top: 1px solid var(--background-modifier-border);
 }
 
+.ai-workflow-paste-section.is-hidden {
+  display: none;
+}
+
 /* AI Workflow attachment */
 .ai-workflow-attachment-row {
   display: flex;
@@ -3375,6 +3442,43 @@
 .ai-workflow-confirm-modal {
   min-width: 700px;
   max-width: 90vw;
+}
+
+/* Single scrollable middle region holds explanation + diff + generation context.
+   Textarea and buttons sit below it, always visible at the bottom of the modal.
+   Uses block layout (not flex) so the diff view's internal structure renders
+   cleanly without flex-child constraints. Spacing is handled by child margins. */
+.ai-workflow-confirm-scrollable {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  /* Explicitly allow text selection (some ancestors disable it). */
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+.ai-workflow-confirm-scrollable > * + * {
+  margin-top: 12px;
+}
+
+/* Ensure explanation / diff content stays selectable & copyable. */
+.ai-workflow-confirm-modal .ai-workflow-explanation,
+.ai-workflow-confirm-modal .ai-workflow-explanation *,
+.ai-workflow-confirm-modal .ai-workflow-confirm-diff-wrapper,
+.ai-workflow-confirm-modal .ai-workflow-confirm-diff-wrapper * {
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+.ai-workflow-confirm-diff-wrapper {
+  /* Inside the scrollable wrapper, let the diff show its full content;
+     the wrapper handles overall scrolling. */
+  min-height: 0;
+}
+
+.ai-workflow-confirm-modal .workflow-preview-additional,
+.ai-workflow-confirm-modal .ai-workflow-buttons {
+  flex-shrink: 0;
 }
 
 .gemini-helper-modal-resizable.modal {
@@ -5610,6 +5714,70 @@
   min-width: 500px;
 }
 
+.workflow-generation-modal-content {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Fixed (non-flexing) sections */
+.workflow-generation-modal-content > .modal-drag-handle,
+.workflow-generation-modal-content > .workflow-generation-request,
+.workflow-generation-modal-content > .workflow-generation-history-info,
+.workflow-generation-modal-content > .workflow-generation-phase-indicator,
+.workflow-generation-modal-content > .workflow-generation-status,
+.workflow-generation-buttons button.is-hidden {
+  display: none;
+}
+
+.workflow-generation-modal-content > .workflow-generation-buttons,
+.workflow-generation-modal-content > .workflow-generation-plan-confirm {
+  flex-shrink: 0;
+}
+
+/* Plan section grows when active */
+.workflow-generation-modal-content > .workflow-generation-plan-section:not(.is-collapsed):not(.is-hidden) {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.workflow-generation-modal-content > .workflow-generation-plan-section:not(.is-collapsed):not(.is-hidden) .workflow-generation-plan {
+  flex: 1 1 0;
+  min-height: 0;
+  max-height: none;
+  overflow-y: auto;
+}
+
+/* Thinking content in the generation modal — bounded height so the buttons
+   below stay visible, and overflow-y:auto so users can scroll through the
+   streamed text. Using explicit px max-height + !important because flex-based
+   sizing failed to produce a scrollbar in practice. */
+.workflow-generation-modal-content .workflow-generation-thinking-details[open] .gemini-helper-thinking-content {
+  max-height: 50vh !important;
+  overflow-y: auto !important;
+}
+
+/* Outside the generating phase, tighten the cap so plan/review stays visible. */
+.workflow-generation-modal-content:not([data-phase="generating"]) .workflow-generation-thinking-details[open] .gemini-helper-thinking-content {
+  max-height: 25vh !important;
+}
+
+/* Review section grows when visible */
+.workflow-generation-modal-content > .workflow-generation-review-section:not(.is-hidden) {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.workflow-generation-modal-content > .workflow-generation-review-section:not(.is-hidden) .workflow-generation-review {
+  flex: 1 1 0;
+  min-height: 0;
+  max-height: none;
+  overflow-y: auto;
+}
+
 .workflow-generation-modal-content .modal-drag-handle {
   cursor: move;
   padding: 8px 0;
@@ -5673,32 +5841,305 @@
   font-weight: 500;
 }
 
-.workflow-generation-thinking-section {
+/* Phase indicator for plan & review mode */
+.workflow-generation-phase-indicator {
+  display: flex;
+  gap: 8px;
   margin-bottom: 16px;
+  padding: 8px 0;
 }
 
-.workflow-generation-thinking-section h3 {
-  margin: 0 0 8px 0;
+.workflow-generation-phase-step {
+  padding: 4px 12px;
+  border-radius: 12px;
   font-size: 12px;
+  font-weight: 500;
+  background: var(--background-secondary);
+  color: var(--text-muted);
+  border: 1px solid var(--background-modifier-border);
+  transition: all 0.2s ease;
+}
+
+.workflow-generation-phase-step.is-active {
+  background: var(--interactive-accent);
+  color: var(--text-on-accent);
+  border-color: var(--interactive-accent);
+}
+
+.workflow-generation-phase-step.is-completed {
+  background: var(--background-modifier-success);
+  color: var(--text-on-accent);
+  border-color: var(--background-modifier-success);
+}
+
+/* Plan section */
+/* Plan and Review sections share a card-style layout */
+.workflow-generation-plan-section,
+.workflow-generation-review-section {
+  margin-bottom: 12px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 6px;
+  background: var(--background-secondary);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.workflow-generation-plan-section.is-hidden,
+.workflow-generation-review-section.is-hidden {
+  display: none;
+}
+
+.workflow-generation-plan-section.is-collapsed {
+  display: none;
+}
+
+/* Header row: title + copy button */
+.workflow-generation-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--background-modifier-border);
+  background: var(--background-secondary);
+}
+
+.workflow-generation-section-header h3 {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
   color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 
-.workflow-generation-thinking {
-  min-height: 80px;
-  max-height: 150px;
-  overflow-y: auto;
-  padding: 8px;
+.workflow-generation-copy-btn {
+  padding: 2px 8px;
+  font-size: 11px;
+  height: auto;
+  line-height: 1.4;
   background: var(--background-secondary);
+  color: var(--text-muted);
   border: 1px solid var(--background-modifier-border);
   border-radius: 4px;
+  cursor: pointer;
+}
+
+.workflow-generation-copy-btn:hover {
+  color: var(--text-normal);
+  background: var(--background-modifier-hover);
+}
+
+/* For thinking summary: copy button floats right */
+.gemini-helper-thinking-summary .workflow-generation-copy-btn {
+  float: right;
+}
+
+/* Ensure content is selectable */
+.workflow-generation-plan,
+.workflow-generation-review,
+.gemini-helper-thinking-content,
+.workflow-generation-context-content {
+  user-select: text;
+  -webkit-user-select: text;
+  cursor: text;
+}
+
+/* Markdown-rendered plan — override plain-text styling for a readable document view.
+   Uses high specificity to win against .workflow-generation-plan / .workflow-generation-context-content. */
+.workflow-generation-plan-rendered.workflow-generation-plan-rendered {
+  font-family: var(--font-text, inherit);
+  font-size: var(--font-ui-medium, 14px);
+  line-height: 1.6;
+  white-space: normal;
+  word-break: normal;
+  overflow-wrap: anywhere;
+  color: var(--text-normal);
+}
+
+.workflow-generation-plan-rendered h1,
+.workflow-generation-plan-rendered h2,
+.workflow-generation-plan-rendered h3,
+.workflow-generation-plan-rendered h4 {
+  margin: 14px 0 6px;
+  font-weight: 600;
+  color: var(--text-normal);
+}
+
+.workflow-generation-plan-rendered h1 { font-size: 1.25em; }
+.workflow-generation-plan-rendered h2 { font-size: 1.15em; }
+.workflow-generation-plan-rendered h3 { font-size: 1.05em; }
+.workflow-generation-plan-rendered h4 { font-size: 1em; }
+
+.workflow-generation-plan-rendered p {
+  margin: 6px 0;
+}
+
+.workflow-generation-plan-rendered ul,
+.workflow-generation-plan-rendered ol {
+  margin: 6px 0;
+  padding-left: 1.6em;
+}
+
+.workflow-generation-plan-rendered li {
+  margin: 4px 0;
+}
+
+.workflow-generation-plan-rendered li > p {
+  margin: 0;
+}
+
+.workflow-generation-plan-rendered strong {
+  color: var(--text-normal);
+  font-weight: 600;
+}
+
+.workflow-generation-plan-rendered code {
+  font-size: 0.9em;
+  padding: 1px 4px;
+  background: var(--background-modifier-hover);
+  border-radius: 3px;
+}
+
+.workflow-generation-plan-rendered pre {
+  margin: 6px 0;
+  padding: 8px;
+  background: var(--background-primary-alt);
+  border-radius: 4px;
+  font-size: 0.9em;
+}
+
+.workflow-generation-plan-rendered blockquote {
+  margin: 6px 0;
+  padding-left: 10px;
+  border-left: 3px solid var(--background-modifier-border);
+  color: var(--text-muted);
+}
+
+.workflow-generation-plan-rendered > *:first-child { margin-top: 0; }
+.workflow-generation-plan-rendered > *:last-child { margin-bottom: 0; }
+
+/* In preview/confirm modals the context content defaults to max-height: 200px.
+   Give the rendered plan more breathing room since it's the primary reference. */
+.workflow-generation-context-content.workflow-generation-plan-rendered {
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+
+.workflow-generation-plan {
+  flex: 1;
+  min-height: 40px;
+  max-height: 200px;
+  overflow-y: auto;
+  padding: 10px 12px;
+  background: var(--background-primary);
   font-size: 12px;
-  line-height: 1.4;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* Review section */
+.workflow-generation-review {
+  flex: 1;
+  min-height: 40px;
+  max-height: 200px;
+  overflow-y: auto;
+  padding: 10px 12px;
+  background: var(--background-primary);
+  font-size: 12px;
+  line-height: 1.5;
   font-family: var(--font-monospace);
   white-space: pre-wrap;
   word-break: break-word;
 }
+
+/* Thinking details in generation modal — card style with custom disclosure triangle */
+.workflow-generation-thinking-details {
+  margin-bottom: 12px;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.workflow-generation-thinking-details > summary {
+  list-style: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.workflow-generation-thinking-details > summary::-webkit-details-marker {
+  display: none;
+}
+
+.workflow-generation-thinking-details > summary > span:first-child {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+}
+
+.workflow-generation-thinking-details > summary > span:first-child::before {
+  content: "▸";
+  display: inline-block;
+  color: var(--text-muted);
+  font-size: 10px;
+  transition: transform 0.15s ease;
+  width: 10px;
+  text-align: center;
+}
+
+.workflow-generation-thinking-details[open] > summary > span:first-child::before {
+  transform: rotate(90deg);
+}
+
+/* Content visible only when open; bordered to separate from summary */
+.workflow-generation-thinking-details[open] > .gemini-helper-thinking-content {
+  border-top: 1px solid var(--background-modifier-border);
+  padding-top: 10px;
+}
+
+/* Plan confirmation UI */
+.workflow-generation-plan-confirm {
+  margin-top: 12px;
+}
+
+.workflow-generation-plan-confirm-buttons {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  margin-top: 8px;
+}
+
+.workflow-generation-plan-feedback {
+  margin-bottom: 8px;
+}
+
+.workflow-generation-plan-feedback.is-hidden {
+  display: none;
+}
+
+.workflow-generation-plan-feedback-input {
+  width: 100%;
+  min-height: 60px;
+  resize: vertical;
+  font-size: 13px;
+}
+
+.workflow-generation-thinking-separator {
+  margin: 8px 0;
+  padding: 2px 0;
+  text-align: center;
+  font-size: 11px;
+  color: var(--text-muted);
+  letter-spacing: 1px;
+  border-top: 1px solid var(--background-modifier-border);
+}
+
 
 .workflow-generation-status {
   display: flex;
@@ -5710,6 +6151,14 @@
   border-radius: 4px;
   font-size: 14px;
   color: var(--text-muted);
+}
+
+/* Emphasize the status bar while a background pass (e.g., refinement) is running
+   so the user can see that work is still in progress. */
+.workflow-generation-status.workflow-generation-status-active {
+  background: var(--background-modifier-border);
+  color: var(--text-normal);
+  border-left: 3px solid var(--interactive-accent);
 }
 
 .workflow-generation-loading-dots {
@@ -5827,9 +6276,19 @@
   font-family: var(--font-monospace);
 }
 
-.workflow-preview-node-summary {
+.workflow-preview-node-comment {
   font-size: 13px;
   color: var(--text-normal);
+  line-height: 1.4;
+  margin-bottom: 4px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.workflow-preview-node-summary {
+  font-size: 13px;
+  color: var(--text-muted);
+  font-family: var(--font-monospace);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -5856,6 +6315,82 @@
 
 .workflow-preview-yaml-section summary:hover {
   background: var(--background-modifier-active);
+}
+
+/* Generation context (plan/thinking/review) in preview & confirm modals */
+.workflow-generation-context {
+  margin-bottom: 16px;
+}
+
+.workflow-generation-context {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.workflow-generation-context-details {
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 6px;
+  background: var(--background-secondary);
+  overflow: hidden;
+}
+
+.workflow-generation-context-details summary {
+  cursor: pointer;
+  padding: 8px 12px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-normal);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  list-style: none;
+  user-select: none;
+}
+
+.workflow-generation-context-details summary::-webkit-details-marker {
+  display: none;
+}
+
+/* Custom disclosure triangle on the left of the label */
+.workflow-generation-context-details summary > span:first-child {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+}
+
+.workflow-generation-context-details summary > span:first-child::before {
+  content: "▸";
+  display: inline-block;
+  color: var(--text-muted);
+  font-size: 10px;
+  transition: transform 0.15s ease;
+  width: 10px;
+  text-align: center;
+}
+
+.workflow-generation-context-details[open] > summary > span:first-child::before {
+  transform: rotate(90deg);
+}
+
+.workflow-generation-context-details summary:hover {
+  background: var(--background-modifier-hover);
+}
+
+.workflow-generation-context-content {
+  margin: 0;
+  padding: 10px 12px;
+  border-top: 1px solid var(--background-modifier-border);
+  background: var(--background-primary);
+  font-size: 12px;
+  line-height: 1.5;
+  max-height: 240px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
 }
 
 .workflow-preview-yaml {
@@ -5950,17 +6485,8 @@
   overflow-y: auto;
 }
 
-.is-mobile .workflow-generation-thinking-section {
+.is-mobile .workflow-generation-thinking-details {
   flex-shrink: 0;
-  display: flex;
-  flex-direction: column;
-}
-
-.is-mobile .workflow-generation-thinking {
-  min-height: 60px;
-  max-height: 120px;
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
 }
 
 .is-mobile .workflow-generation-status {
@@ -7073,6 +7599,27 @@
   white-space: nowrap;
 }
 
+.gemini-helper-skill-chip-name {
+  display: inline-flex;
+  align-items: center;
+  padding: 0 2px;
+  border-radius: 3px;
+}
+
+.gemini-helper-skill-chip-name.gemini-helper-tool-clickable {
+  cursor: pointer;
+  text-decoration: underline dotted;
+  text-underline-offset: 2px;
+}
+
+.gemini-helper-skill-chip-name.gemini-helper-tool-clickable:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.gemini-helper-skill-chip-name.is-static {
+  cursor: default;
+}
+
 .gemini-helper-skill-chip-remove {
   display: inline-flex;
   align-items: center;
@@ -7177,6 +7724,7 @@
 .gemini-helper-skills-used {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 4px;
   font-size: 0.75em;
   color: var(--text-muted);
@@ -7188,4 +7736,27 @@
   display: inline-flex;
   align-items: center;
   gap: 3px;
+}
+
+.gemini-helper-skill-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 8px;
+  border-radius: 10px;
+  background: var(--background-modifier-hover);
+  color: var(--text-muted);
+  border: 1px solid var(--background-modifier-border);
+  font-size: 0.95em;
+  line-height: 1.4;
+}
+
+/* Clickable only when not static (i.e., vault skills) */
+.gemini-helper-skill-chip:not(.is-static):hover {
+  background: var(--background-modifier-active);
+  color: var(--text-normal);
+  cursor: pointer;
+}
+
+.gemini-helper-skill-chip.is-static {
+  cursor: default;
 }

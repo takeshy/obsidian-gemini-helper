@@ -6,7 +6,6 @@
 
 > **Seit v1.11.0 konzentriert sich dieses Plugin ausschließlich auf Gemini-bezogene Funktionen.**
 > Die CLI-Unterstützung wurde entfernt. Ein neues Plugin [obsidian-llm-hub](https://github.com/takeshy/obsidian-llm-hub) wurde mit CLI- und Multi-LLM-Anbieter-Unterstützung (OpenAI, Claude, OpenRouter, Local LLM) erstellt.
-> Die GemiHub (Google Drive)-Integration wurde in [obsidian-gemihub](https://github.com/takeshy/obsidian-gemihub) ausgelagert.
 
 ### Verwandte Plugins
 
@@ -15,7 +14,6 @@
 | obsidian-gemini-helper | Gemini-fokussiert (RAG über File Search API) |
 | obsidian-llm-hub | Multi-LLM-Unterstützung, nur Desktop (RAG über Embedding, unterstützt gemini-embedding-2-preview) |
 | obsidian-local-llm-hub | Nur lokale LLMs (RAG nur über lokale Embeddings) |
-| obsidian-gemihub | Dateisynchronisation mit GemiHub (Webversion von gemini-helper) über Google Drive |
 
 ---
 
@@ -52,7 +50,6 @@ Dieses Plugin benötigt einen Google Gemini API-Schlüssel. Sie können wählen 
 
 - **Rate-Limits** gelten pro Modell und werden täglich zurückgesetzt. Wechseln Sie das Modell, um weiterzuarbeiten.
 - **RAG-Sync** ist eingeschränkt. Führen Sie "Sync Vault" täglich aus - bereits hochgeladene Dateien werden übersprungen.
-- **Gemma-Modelle** unterstützen keine Vault-Operationen im Chat, aber **Workflows können weiterhin Notizen lesen/schreiben** mit `note`, `note-read` und anderen Node-Typen. Die Variablen `{content}` und `{selection}` funktionieren ebenfalls.
 
 ---
 
@@ -100,7 +97,7 @@ Referenzieren Sie Dateien und Variablen durch Eingabe von `@`:
 > Sowohl `{selection}` als auch `{content}` werden absichtlich **nicht erweitert** im Eingabebereich – da das Chat-Eingabefeld kompakt ist, würde das Erweitern von langem Text die Eingabe erschweren. Der Inhalt wird beim Senden der Nachricht erweitert, was Sie überprüfen können, indem Sie Ihre gesendete Nachricht im Chat betrachten.
 
 > [!NOTE]
-> Vault-Datei-@-Erwähnungen fügen nur den Dateipfad ein - die KI liest den Inhalt über Tools. Dies funktioniert nicht mit Gemma-Modellen (keine Vault-Tool-Unterstützung).
+> Vault-Datei-@-Erwähnungen fügen nur den Dateipfad ein — die KI liest den Inhalt über Tools.
 
 ## Dateianhänge
 
@@ -143,20 +140,7 @@ Wenn die KI Notizen im Chat verarbeitet, verwendet sie Vault-Tools. Steuern Sie,
 - **Vault: Ohne Suche** - Verwenden Sie diesen Modus, wenn Sie nur mit RAG suchen möchten oder wenn Sie die Zieldatei bereits kennen. Dies vermeidet redundante Vault-Suchen und spart Tokens und verbessert die Antwortzeit.
 - **Vault: Aus** - Verwenden Sie diesen Modus, wenn Sie überhaupt keinen Vault-Zugriff benötigen.
 
-**Automatische Modusauswahl:**
-
-| Bedingung | Standardmodus | Änderbar |
-|-----------|---------------|----------|
-| Gemma-Modelle | Vault: Aus | Nein |
-| Web Search aktiviert | Vault: Aus | Nein |
-| RAG aktiviert | Vault: Aus | Nein |
-| Kein RAG | Vault: Alle | Ja |
-
-**Warum einige Modi erzwungen werden:**
-
-- **Gemma-Modelle**: Diese Modelle unterstützen keine Funktionsaufrufe, daher können Vault-Tools nicht verwendet werden.
-- **Web Search**: Gemäß Design sind Vault-Tools deaktiviert, wenn Web Search aktiviert ist.
-- **RAG aktiviert**: Die Gemini API unterstützt nicht die Kombination von File Search (RAG) mit Funktionsaufrufen. Bei aktiviertem RAG werden Vault-Tools und MCP automatisch deaktiviert.
+> **Hinweis:** RAG, Web Search, Vault-Tools und MCP können über die Interactions API alle gleichzeitig verwendet werden.
 
 ## Sicheres Bearbeiten
 
@@ -272,8 +256,10 @@ Erweitern Sie die KI mit benutzerdefinierten Anweisungen, Referenzmaterialien un
 - **Workflow-Integration** - Skills können Workflows als Function-Calling-Werkzeuge bereitstellen
 - **Slash-Befehl** - Geben Sie `/folder-name` ein, um einen Skill sofort aufzurufen und zu senden
 - **Selektive Aktivierung** - Wählen Sie, welche Skills pro Konversation aktiv sind
+- **Klickbare Skill-Chips** - Aktive Skill-Chips im Eingabebereich und in Assistentennachrichten sind klickbar und öffnen die passende `SKILL.md` (integrierte Skills werden als statische Labels angezeigt)
+- **Workflow-Fehlerbehebung** - Wenn ein Skill-Workflow während eines Chats fehlschlägt, zeigt der fehlerhafte Tool-Aufruf einen **Workflow öffnen**-Button an, der die Datei öffnet *und* die Gemini-Ansicht auf den Workflow / skill-Tab umschaltet, sodass Sie sofort bearbeiten und erneut ausführen können
 
-Erstellen Sie Skills genauso wie Workflows — wählen Sie **+ New (AI)**, aktivieren Sie **„Als Agent-Skill erstellen"** und beschreiben Sie, was Sie möchten. Die AI generiert sowohl die `SKILL.md`-Anweisungen als auch den Workflow.
+Erstellen Sie Skills genauso wie Workflows — wählen Sie **+ New (AI)**, aktivieren Sie **„Als Agent-Skill erstellen"** und beschreiben Sie, was Sie möchten. Die AI generiert sowohl die `SKILL.md`-Anweisungen als auch den Workflow. Um einen bestehenden Skill zu bearbeiten, öffnen Sie seine `SKILL.md` und klicken Sie auf **Skill mit KI ändern** im Workflow / skill-Tab — die KI aktualisiert sowohl den Anweisungstext als auch den referenzierten Workflow zusammen.
 
 > **Für Einrichtungsanleitungen und Beispiele siehe [SKILLS.md](docs/SKILLS_de.md)**
 
@@ -288,7 +274,7 @@ Erstellen Sie automatisierte mehrstufige Workflows direkt in Markdown-Dateien. *
 ## Workflows ausführen
 
 **Von der Seitenleiste:**
-1. Öffnen Sie den **Workflow**-Tab in der Seitenleiste
+1. Öffnen Sie den **Workflow / skill**-Tab in der Seitenleiste
 2. Öffnen Sie eine Datei mit `workflow`-Codeblock
 3. Wählen Sie einen Workflow aus dem Dropdown (oder wählen Sie **Browse all workflows**, um alle Vault-Workflows zu durchsuchen)
 4. Klicken Sie auf **Run**, um auszuführen
@@ -319,17 +305,20 @@ Dies ist nützlich, um Workflows schnell auszuführen, ohne zuerst zur Workflow-
 
 **Sie müssen keine YAML-Syntax oder Node-Typen lernen.** Beschreiben Sie Ihren Workflow einfach in natürlicher Sprache:
 
-1. Öffnen Sie den **Workflow**-Tab in der Gemini-Seitenleiste
+1. Öffnen Sie den **Workflow / skill**-Tab in der Gemini-Seitenleiste
 2. Wählen Sie **+ New (AI)** aus dem Dropdown
 3. Beschreiben Sie, was Sie möchten: *"Erstelle einen Workflow, der die ausgewählte Notiz zusammenfasst und in einem Zusammenfassungsordner speichert"*
 4. Aktivieren Sie **„Als Agent-Skill erstellen"**, wenn Sie statt eines eigenständigen Workflows einen Agent-Skill erstellen möchten
 5. Wählen Sie ein Modell und klicken Sie auf **Generate**
-6. Der Workflow wird automatisch erstellt und gespeichert
+6. Die KI erzeugt zunächst einen **Plan** in einfacher Sprache — prüfen Sie ihn und klicken Sie auf **OK** zum Fortfahren, **Neu planen**, um Feedback zu geben und den Plan neu zu erzeugen, oder **Abbrechen**
+7. Nach der Generierung führt die KI eine **Überprüfung** des Ergebnisses durch. Werden Probleme gefunden, können Sie **OK** (mit Bestätigungsdialog), **Verfeinern** (neu generieren mit dem Review-Feedback) oder **Abbrechen** wählen. Saubere Reviews laufen automatisch weiter
+8. Der Workflow wird gespeichert, sobald Sie die finale Vorschau akzeptieren
+
 > **Tipp:** Wenn Sie **+ New (AI)** aus dem Dropdown bei einer Datei verwenden, die bereits Workflows enthält, wird der Ausgabepfad standardmäßig auf die aktuelle Datei gesetzt. Der generierte Workflow wird an diese Datei angehängt.
 
 **Workflow von beliebiger Datei erstellen:**
 
-Wenn Sie den Workflow-Tab mit einer Datei öffnen, die keinen Workflow-Codeblock hat, wird eine **"Create workflow with AI"**-Schaltfläche angezeigt. Klicken Sie darauf, um einen neuen Workflow zu generieren (Standard-Ausgabe: `workflows/{{name}}.md`).
+Wenn Sie den Workflow / skill-Tab mit einer Datei öffnen, die keinen Workflow-Codeblock hat, wird eine **"Create workflow with AI"**-Schaltfläche angezeigt. Klicken Sie darauf, um einen neuen Workflow zu generieren (Standard-Ausgabe: `workflows/{{name}}.md`).
 
 **@ Dateireferenzen:**
 
@@ -375,8 +364,13 @@ Jeder KI-generierte Workflow speichert einen Verlaufseintrag über dem Workflow-
 1. Laden Sie einen beliebigen Workflow
 2. Klicken Sie auf die Schaltfläche **AI Modify** (Funkelsymbol)
 3. Beschreiben Sie die Änderungen: *"Füge einen Schritt hinzu, um die Zusammenfassung ins Japanische zu übersetzen"*
-4. Überprüfen Sie den Vorher/Nachher-Vergleich
-5. Klicken Sie auf **Apply Changes**, um zu aktualisieren
+4. Der gleiche Ablauf Plan → Generierung → Überprüfung läuft ab. Sie können das Review-Ergebnis beliebig oft **Verfeinern**; jedes Verfeinern löst einen neuen Generierungsdurchlauf und eine neue Überprüfung aus, damit die angezeigte Review immer zum endgültigen YAML passt
+5. Überprüfen Sie den Vorher/Nachher-Diff
+6. Klicken Sie auf **Apply Changes**, um zu aktualisieren
+
+**Skill mit KI ändern:**
+
+Wenn die aktive Datei eine `SKILL.md` ist, zeigt der Workflow / skill-Tab statt (oder neben) der regulären Workflow-Modifikation eine **„Skill mit KI ändern"**-Schaltfläche. Sie bearbeitet den Skill als Ganzes — sowohl den SKILL.md-Anweisungstext *als auch* die referenzierte Workflow-Datei — in einem Durchgang und bewahrt das Frontmatter des Skills (name, description, workflows-Einträge).
 
 **Ausführungsverlauf-Referenz:**
 
@@ -427,7 +421,7 @@ nodes:
 ```
 ````
 
-Öffnen Sie den **Workflow**-Tab in der Gemini-Seitenleiste, um ihn auszuführen.
+Öffnen Sie den **Workflow / skill**-Tab in der Gemini-Seitenleiste, um ihn auszuführen.
 
 ## Verfügbare Node-Typen
 
@@ -541,7 +535,7 @@ Wenn ein Umschalter EIN ist, ist Thinking für diese Modellfamilie immer aktiv, 
 | Gemini 2.5 Flash Lite | ✅ |
 | Gemini 3 Flash Preview | ✅ |
 | Gemini 3.1 Flash Lite Preview | ✅ |
-| Gemma 3 (27B/12B/4B/1B) | ❌ |
+| Gemma 4 (31B, 26B A4B MoE) | ✅ |
 
 ## Installation
 

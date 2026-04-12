@@ -679,6 +679,29 @@ Dichiarano e aggiornano variabili.
   value: "{{counter}} + 1"
 ```
 
+**`value` è opzionale nei nodi `variable`.** Ometterlo offre due comportamenti utili:
+
+- **Dichiarazione di input** — Se la variabile è già stata impostata dal chiamante (workflow padre, invocazione di skill, trigger hotkey), il valore esistente viene preservato. Questo permette a un workflow di dichiarare gli input che si aspetta senza sovrascriverli.
+- **Accumulatore vuoto** — Se nessun chiamante ha impostato la variabile, viene inizializzata a `""`. Sicuro per accumulatori a cui verrà aggiunto testo in seguito.
+
+```yaml
+# Dichiarazione di input — usa il valore del chiamante, o "" se non fornito
+- id: declare-input
+  type: variable
+  name: inputText
+
+# Accumulatore — parte da "" e viene esteso a valle
+- id: init-output
+  type: variable
+  name: outputMarkdown
+
+# Valore iniziale esplicito — resetta sempre a 0 indipendentemente dallo stato del chiamante
+- id: init-counter
+  type: variable
+  name: counter
+  value: 0
+```
+
 **Variabile speciale `_clipboard`:**
 
 Se imposti una variabile chiamata `_clipboard`, il suo valore verrà copiato negli appunti di sistema:
@@ -949,17 +972,60 @@ path: "{{parsed.notes[{{counter}}].path}}"
 
 ### Modificatore di Escape JSON
 
-Usa `{{variable:json}}` per effettuare l'escape del valore per l'incorporamento in stringhe JSON. Questo effettua correttamente l'escape di newline, virgolette e altri caratteri speciali.
+Usa `{{variable:json}}` per effettuare l'escape del valore da incorporare **all'interno di un literal di stringa**. Questo effettua correttamente l'escape di newline, virgolette e altri caratteri speciali.
+
+**Importante:** `:json` effettua l'escape solo del *contenuto* — **non** aggiunge le virgolette esterne. Devi fornire tu stesso le virgolette quando incorpori dentro una stringa.
 
 ```yaml
 # Senza :json - fallisce se il contenuto ha newline/virgolette
 args: '{"text": "{{content}}"}'  # ERRORE se il contenuto ha caratteri speciali
 
-# Con :json - sicuro per qualsiasi contenuto
+# Con :json - sicuro per qualsiasi contenuto (le "..." attorno sono il tuo literal di stringa)
 args: '{"text": "{{content:json}}"}'  # OK - correttamente escapato
 ```
 
-Questo è essenziale quando si passa il contenuto del file o l'input dell'utente a nodi `mcp` o `http` con corpi JSON.
+**Nei nodi `script` (JavaScript):**
+
+`:json` sostituisce testo semplice prima dell'esecuzione del codice, quindi devi avvolgerlo in virgolette quando il valore deve essere una stringa JS:
+
+```yaml
+# ✅ Corretto — literal di stringa con contenuto escapato
+code: |
+  var text = "{{userInput:json}}";
+  var data = JSON.parse("{{jsonStr:json}}");
+
+# ❌ Errato — virgolette esterne mancanti, produce JS non valido
+code: |
+  var text = {{userInput:json}};          # errore di sintassi
+  JSON.parse({{jsonStr:json}});           # richiede un argomento stringa
+```
+
+Se la variabile contiene già un oggetto/array parsato (ad es. da un nodo `json` precedente), usa `{{var:json}}` *senza* virgolette cosi diventa un literal di oggetto/array JS:
+
+```yaml
+code: |
+  var arr = {{parsedArray:json}};         # diventa: var arr = [{"url":"..."}]
+```
+
+Questo è essenziale quando si passa il contenuto del file o l'input dell'utente a nodi `mcp`, `http` o `script`.
+
+### Nodo `json` — `source` è un nome di variabile semplice
+
+La proprietà `source` del nodo `json` accetta **solo il nome della variabile** — nessuna espressione interpolata, nessuna virgoletta, nessuna parentesi:
+
+```yaml
+# ✅ Corretto
+- id: parse-body
+  type: json
+  source: apiResponseBody
+  saveTo: parsed
+
+# ❌ Errato
+- id: parse-body
+  type: json
+  source: "{{apiResponseBody}}"          # qui non c'è interpolazione
+  # oppure: source: "[{{apiResponseBody}}]"  # avvolgerlo corrompe un JSON valido
+```
 
 ## Nodi di Input Intelligenti
 

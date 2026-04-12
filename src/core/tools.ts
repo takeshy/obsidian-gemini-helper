@@ -406,7 +406,7 @@ export function getEnabledTools(options: {
 export const skillWorkflowTool: ToolDefinition = {
   name: "run_skill_workflow",
   description:
-    "Run a workflow provided by an active agent skill. Workflows can execute commands, HTTP requests, file operations, and more. Specify the workflow ID from the active skills and optional input variables.",
+    "Run a workflow provided by an active agent skill. Workflows can execute commands, HTTP requests, file operations, and more. Specify the workflow ID from the active skills and optional input variables. If the workflow fails, do NOT retry automatically — report the error to the user instead.",
   parameters: {
     type: "object",
     properties: {

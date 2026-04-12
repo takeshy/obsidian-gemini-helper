@@ -3,12 +3,14 @@ import type { GeminiHelperPlugin } from "src/plugin";
 import type { TFile } from "obsidian";
 import Chat, { ChatRef } from "./Chat";
 import WorkflowPanel from "./workflow/WorkflowPanel";
+import { t } from "src/i18n";
 
 export type TabType = "chat" | "workflow";
 
 export interface TabContainerRef {
   getActiveChat: () => TFile | null;
   setActiveChat: (chat: TFile | null) => void;
+  setActiveTab: (tab: TabType) => void;
 }
 
 interface TabContainerProps {
@@ -23,6 +25,7 @@ const TabContainer = forwardRef<TabContainerRef, TabContainerProps>(
     useImperativeHandle(ref, () => ({
       getActiveChat: () => chatRef.current?.getActiveChat() ?? null,
       setActiveChat: (chat: TFile | null) => chatRef.current?.setActiveChat(chat),
+      setActiveTab: (tab: TabType) => setActiveTab(tab),
     }));
 
     return (
@@ -32,13 +35,13 @@ const TabContainer = forwardRef<TabContainerRef, TabContainerProps>(
             className={`gemini-helper-tab ${activeTab === "chat" ? "active" : ""}`}
             onClick={() => setActiveTab("chat")}
           >
-            Chat
+            {t("chat.title")}
           </button>
           <button
             className={`gemini-helper-tab ${activeTab === "workflow" ? "active" : ""}`}
             onClick={() => setActiveTab("workflow")}
           >
-            Workflow
+            {t("tab.workflowSkill")}
           </button>
         </div>
         <div className="gemini-helper-tab-content">

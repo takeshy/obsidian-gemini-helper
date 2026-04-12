@@ -6,7 +6,6 @@ Assistente de IA **gratuito e open-source** para Obsidian com **Chat**, **Automa
 
 > **Desde a v1.11.0, este plugin foca exclusivamente em funcionalidades relacionadas ao Gemini.**
 > O suporte a CLI foi removido. Um novo plugin [obsidian-llm-hub](https://github.com/takeshy/obsidian-llm-hub) foi criado com suporte a CLI e múltiplos provedores de LLM (OpenAI, Claude, OpenRouter, Local LLM).
-> A integração com GemiHub (Google Drive) foi separada em [obsidian-gemihub](https://github.com/takeshy/obsidian-gemihub).
 
 ### Plugins Relacionados
 
@@ -15,7 +14,6 @@ Assistente de IA **gratuito e open-source** para Obsidian com **Chat**, **Automa
 | obsidian-gemini-helper | Focado no Gemini (RAG via File Search API) |
 | obsidian-llm-hub | Suporte multi-LLM, apenas Desktop (RAG via Embedding, suporta gemini-embedding-2-preview) |
 | obsidian-local-llm-hub | Apenas LLM local (RAG apenas via embeddings locais) |
-| obsidian-gemihub | Sincronização de arquivos com GemiHub (versão web do gemini-helper) via Google Drive |
 
 ---
 
@@ -100,7 +98,7 @@ Referencie arquivos e variáveis digitando `@`:
 > Tanto `{selection}` quanto `{content}` **não são expandidos** intencionalmente na área de entrada—como a entrada do chat é compacta, expandir texto longo dificultaria a digitação. O conteúdo é expandido quando você envia a mensagem, o que pode ser verificado conferindo sua mensagem enviada no chat.
 
 > [!NOTE]
-> Menções de arquivos do vault com @ inserem apenas o caminho do arquivo - a IA lê o conteúdo via ferramentas. Isso não funciona com modelos Gemma (sem suporte a ferramentas do vault).
+> Menções de arquivos do vault com @ inserem apenas o caminho do arquivo — a IA lê o conteúdo via ferramentas.
 
 ## Anexos de Arquivos
 
@@ -143,20 +141,7 @@ Quando a IA manipula notas no Chat, ela usa ferramentas do Vault. Controle quais
 - **Vault: Sem pesquisa** - Use quando quiser pesquisar apenas com RAG, ou quando já souber o arquivo alvo. Isso evita pesquisas redundantes no vault, economizando tokens e melhorando o tempo de resposta.
 - **Vault: Desligado** - Use quando não precisar de acesso ao vault.
 
-**Seleção automática de modo:**
-
-| Condição | Modo Padrão | Alterável |
-|----------|-------------|-----------|
-| Modelos Gemma | Vault: Desligado | Não |
-| Web Search habilitado | Vault: Desligado | Não |
-| RAG ativado | Vault: Desligado | Não |
-| Sem RAG | Vault: Tudo | Sim |
-
-**Por que alguns modos são forçados:**
-
-- **Modelos Gemma**: Esses modelos não suportam chamadas de função, então as ferramentas do Vault não podem ser usadas.
-- **Web Search**: Por design, as ferramentas do Vault são desabilitadas quando Web Search está habilitado.
-- **RAG ativado**: A API Gemini não suporta combinar File Search (RAG) com chamadas de função. Quando RAG está habilitado, as ferramentas do Vault e MCP são automaticamente desabilitadas.
+> **Nota:** RAG, Web Search, ferramentas do Vault e MCP podem ser todos usados simultaneamente via a API de Interactions.
 
 ## Edição Segura
 
@@ -272,8 +257,10 @@ Estenda as capacidades da IA com instruções personalizadas, materiais de refer
 - **Integração com fluxos de trabalho** - Skills podem expor fluxos de trabalho como ferramentas de Function Calling
 - **Comando slash** - Digite `/folder-name` para invocar um skill instantaneamente e enviar
 - **Ativação seletiva** - Escolha quais skills estão ativos por conversa
+- **Chips de skill clicáveis** - Os chips de skills ativos na área de entrada e nas mensagens do assistente são clicáveis e abrem o `SKILL.md` correspondente (skills integrados são exibidos como rótulos estáticos)
+- **Recuperação de erros de workflow** - Se um workflow de skill falhar durante um chat, a chamada de ferramenta com falha mostra um botão **Abrir workflow** que abre o arquivo *e* alterna a visão do Gemini para a aba Workflow / skill para que você possa editar e reexecutar imediatamente
 
-Crie skills da mesma forma que workflows — selecione **+ New (AI)**, marque **"Criar como agent skill"** e descreva o que deseja. A AI gera tanto as instruções do `SKILL.md` quanto o workflow.
+Crie skills da mesma forma que workflows — selecione **+ New (AI)**, marque **"Criar como agent skill"** e descreva o que deseja. A AI gera tanto as instruções do `SKILL.md` quanto o workflow. Para editar um skill existente, abra o seu `SKILL.md` e clique em **Modificar skill com IA** na aba Workflow / skill — a IA atualiza juntos o corpo das instruções e o workflow referenciado.
 
 > **Para instruções de configuração e exemplos, consulte [SKILLS.md](docs/SKILLS_pt.md)**
 
@@ -288,7 +275,7 @@ Construa workflows automatizados de múltiplas etapas diretamente em arquivos Ma
 ## Executando Workflows
 
 **Da Barra Lateral:**
-1. Abra a aba **Workflow** na barra lateral
+1. Abra a aba **Workflow / skill** na barra lateral
 2. Abra um arquivo com bloco de código `workflow`
 3. Selecione o workflow no dropdown (ou escolha **Browse all workflows** para pesquisar todos os workflows do vault)
 4. Clique em **Run** para executar
@@ -319,17 +306,20 @@ Isso é útil para executar rapidamente workflows sem precisar navegar primeiro 
 
 **Você não precisa aprender sintaxe YAML ou tipos de nós.** Simplesmente descreva seu workflow em linguagem simples:
 
-1. Abra a aba **Workflow** na barra lateral do Gemini
+1. Abra a aba **Workflow / skill** na barra lateral do Gemini
 2. Selecione **+ New (AI)** no menu dropdown
 3. Descreva o que você quer: *"Crie um workflow que resuma a nota selecionada e salve em uma pasta de resumos"*
 4. Marque **"Criar como agent skill"** se deseja criar um agent skill em vez de um workflow independente
 5. Selecione um modelo e clique em **Generate**
-6. O workflow é automaticamente criado e salvo
+6. A IA produz primeiro um **plano** em linguagem simples — revise e clique em **OK** para prosseguir, **Replanejar** para dar feedback e regenerar o plano, ou **Cancelar**
+7. Após a geração, a IA executa uma **revisão** do resultado. Se forem encontrados problemas, você pode escolher **OK** (com diálogo de confirmação), **Refinar** (regenerar usando o feedback da revisão) ou **Cancelar**. Revisões limpas avançam automaticamente
+8. O workflow é salvo após você aceitar a pré-visualização final
+
 > **Dica:** Ao usar **+ New (AI)** no dropdown em um arquivo que já tem workflows, o caminho de saída é definido como o arquivo atual por padrão. O workflow gerado será adicionado a esse arquivo.
 
 **Criar workflow de qualquer arquivo:**
 
-Ao abrir a aba Workflow com um arquivo que não tem bloco de código workflow, um botão **"Create workflow with AI"** é exibido. Clique para gerar um novo workflow (saída padrão: `workflows/{{name}}.md`).
+Ao abrir a aba Workflow / skill com um arquivo que não tem bloco de código workflow, um botão **"Create workflow with AI"** é exibido. Clique para gerar um novo workflow (saída padrão: `workflows/{{name}}.md`).
 
 **Referências de Arquivos com @:**
 
@@ -375,8 +365,13 @@ Cada workflow gerado por IA salva uma entrada de histórico acima do bloco de c�
 1. Carregue qualquer workflow
 2. Clique no botão **AI Modify** (ícone de brilho)
 3. Descreva as alterações: *"Adicione uma etapa para traduzir o resumo para japonês"*
-4. Revise a comparação antes/depois
-5. Clique em **Apply Changes** para atualizar
+4. O mesmo fluxo de plano → geração → revisão é executado. Você pode **Refinar** o resultado da revisão quantas vezes quiser; cada Refinar dispara uma nova passagem de geração e uma revisão nova para que a revisão exibida sempre corresponda ao YAML final
+5. Revise o diff antes/depois
+6. Clique em **Apply Changes** para atualizar
+
+**Modificar Skill com IA:**
+
+Quando o arquivo ativo é um `SKILL.md`, a aba Workflow / skill mostra um botão **"Modificar skill com IA"** em vez de (ou junto com) o modificador de workflow regular. Ele edita o skill como um todo — tanto o corpo de instruções do SKILL.md *quanto* o arquivo de workflow referenciado — em uma única passagem, preservando o frontmatter do skill (name, description, entradas de workflows).
 
 **Referência ao Histórico de Execução:**
 
@@ -427,7 +422,7 @@ nodes:
 ```
 ````
 
-Abra a aba **Workflow** na barra lateral do Gemini para executá-lo.
+Abra a aba **Workflow / skill** na barra lateral do Gemini para executá-lo.
 
 ## Tipos de Nós Disponíveis
 
@@ -541,7 +536,7 @@ Quando um toggle está ativado, o thinking está sempre ativo para aquela famíl
 | Gemini 2.5 Flash Lite | ✅ |
 | Gemini 3 Flash Preview | ✅ |
 | Gemini 3.1 Flash Lite Preview | ✅ |
-| Gemma 3 (27B/12B/4B/1B) | ❌ |
+| Gemma 4 (31B, 26B A4B MoE) | ✅ |
 
 ## Instalação
 

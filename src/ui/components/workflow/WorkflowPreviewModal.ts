@@ -1,5 +1,6 @@
-import { App, Modal, Platform } from "obsidian";
+import { App, Modal, Platform, MarkdownRenderer, Component } from "obsidian";
 import type { SidebarNode, WorkflowNodeType } from "src/workflow/types";
+import type { GenerationContext } from "./AIWorkflowModal";
 import { t } from "src/i18n";
 
 export type PreviewResult = "ok" | "no" | "cancel";
@@ -97,8 +98,10 @@ export class WorkflowPreviewModal extends Modal {
   private nodes: SidebarNode[];
   private workflowName: string;
   private previousRequest: string;
+  private generationContext: GenerationContext;
   private resolvePromise: (result: WorkflowPreviewResult) => void;
   private additionalRequestEl: HTMLTextAreaElement | null = null;
+  private markdownComponent: Component | null = null;
 
   constructor(
     app: App,
@@ -106,6 +109,7 @@ export class WorkflowPreviewModal extends Modal {
     nodes: SidebarNode[],
     workflowName: string,
     previousRequest: string,
+    generationContext: GenerationContext,
     resolvePromise: (result: WorkflowPreviewResult) => void
   ) {
     super(app);
@@ -113,6 +117,7 @@ export class WorkflowPreviewModal extends Modal {
     this.nodes = nodes;
     this.workflowName = workflowName;
     this.previousRequest = previousRequest;
+    this.generationContext = generationContext;
     this.resolvePromise = resolvePromise;
   }
 
@@ -149,6 +154,9 @@ export class WorkflowPreviewModal extends Modal {
     yamlDetails.createEl("summary", { text: t("workflow.preview.showYaml") });
     const yamlPre = yamlDetails.createEl("pre", { cls: "workflow-preview-yaml" });
     yamlPre.textContent = this.yaml;
+
+    // Generation context (plan/thinking/review)
+    this.renderGenerationContext(contentEl);
 
     // Feedback textarea (always visible)
     const additionalRequestContainer = contentEl.createDiv({
@@ -229,6 +237,13 @@ export class WorkflowPreviewModal extends Modal {
       const idLabel = header.createSpan({ cls: "workflow-preview-node-id" });
       idLabel.textContent = node.id;
 
+      // Node comment (human-readable description of purpose)
+      const comment = node.properties.comment?.trim();
+      if (comment) {
+        const commentEl = nodeCard.createDiv({ cls: "workflow-preview-node-comment" });
+        commentEl.textContent = comment;
+      }
+
       // Node summary
       const summary = getNodeSummary(node);
       if (summary) {
@@ -248,6 +263,46 @@ export class WorkflowPreviewModal extends Modal {
       if (connections.length > 0) {
         const connEl = nodeCard.createDiv({ cls: "workflow-preview-node-connections" });
         connEl.textContent = connections.join(" | ");
+      }
+    }
+  }
+
+  private renderGenerationContext(container: HTMLElement): void {
+    const sections: { label: string; content: string; kind: "markdown" | "text" }[] = [];
+    if (this.generationContext.plan) sections.push({ label: t("workflow.generation.phasePlan"), content: this.generationContext.plan, kind: "markdown" });
+    if (this.generationContext.review) sections.push({ label: t("workflow.generation.phaseReview"), content: this.generationContext.review, kind: "markdown" });
+    if (this.generationContext.thinking) sections.push({ label: t("workflow.generation.thinking"), content: this.generationContext.thinking, kind: "text" });
+
+    if (sections.length === 0) return;
+
+    this.markdownComponent = new Component();
+    this.markdownComponent.load();
+
+    const wrapper = container.createDiv({ cls: "workflow-generation-context" });
+    for (const section of sections) {
+      const details = wrapper.createEl("details", { cls: "workflow-generation-context-details" });
+      if (section.kind === "markdown") details.setAttr("open", "");
+      const summary = details.createEl("summary");
+      summary.createSpan({ text: section.label });
+      const copyBtn = summary.createEl("button", {
+        cls: "workflow-generation-copy-btn",
+        text: t("message.copy"),
+      });
+      copyBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        e.preventDefault();
+        void navigator.clipboard.writeText(section.content).then(() => {
+          const original = copyBtn.textContent;
+          copyBtn.textContent = "✓";
+          setTimeout(() => { copyBtn.textContent = original; }, 1200);
+        });
+      });
+      if (section.kind === "markdown") {
+        const mdContainer = details.createDiv({ cls: "workflow-generation-context-content workflow-generation-plan-rendered" });
+        void MarkdownRenderer.render(this.app, section.content, mdContainer, "/", this.markdownComponent);
+      } else {
+        const pre = details.createEl("pre", { cls: "workflow-generation-context-content" });
+        pre.textContent = section.content;
       }
     }
   }
@@ -300,6 +355,10 @@ export class WorkflowPreviewModal extends Modal {
   }
 
   onClose(): void {
+    if (this.markdownComponent) {
+      this.markdownComponent.unload();
+      this.markdownComponent = null;
+    }
     const { contentEl } = this;
     contentEl.empty();
   }
@@ -313,10 +372,11 @@ export function showWorkflowPreview(
   yaml: string,
   nodes: SidebarNode[],
   workflowName: string,
-  previousRequest: string
+  previousRequest: string,
+  generationContext: GenerationContext = {}
 ): Promise<WorkflowPreviewResult> {
   return new Promise((resolve) => {
-    const modal = new WorkflowPreviewModal(app, yaml, nodes, workflowName, previousRequest, resolve);
+    const modal = new WorkflowPreviewModal(app, yaml, nodes, workflowName, previousRequest, generationContext, resolve);
     modal.open();
   });
 }

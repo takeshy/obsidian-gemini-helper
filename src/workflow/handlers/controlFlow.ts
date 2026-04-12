@@ -8,6 +8,14 @@ export function handleVariableNode(
   context: ExecutionContext
 ): void {
   const name = node.properties["name"];
+
+  // If value is not specified and the variable already exists (e.g. passed as
+  // workflow input or from a parent skill), preserve the existing value.
+  // This allows variable nodes without value to act as input declarations.
+  if (!("value" in node.properties) && context.variables.has(name)) {
+    return;
+  }
+
   const value: string | number = replaceVariables(
     node.properties["value"] || "",
     context

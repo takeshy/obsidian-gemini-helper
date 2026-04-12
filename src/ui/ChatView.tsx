@@ -1,7 +1,7 @@
 import { createRoot, Root } from "react-dom/client";
 import { ItemView, WorkspaceLeaf, IconName, TFile } from "obsidian";
 import type { GeminiHelperPlugin } from "src/plugin";
-import TabContainer, { TabContainerRef } from "./components/TabContainer";
+import TabContainer, { TabContainerRef, TabType } from "./components/TabContainer";
 
 export const VIEW_TYPE_GEMINI_CHAT = "gemini-chat-view";
 
@@ -58,5 +58,9 @@ export class ChatView extends ItemView {
 
   setActiveChat(chat: TFile | null): void {
     this.tabContainerRef?.setActiveChat(chat);
+  }
+
+  setActiveTab(tab: TabType): void {
+    this.tabContainerRef?.setActiveTab(tab);
   }
 }

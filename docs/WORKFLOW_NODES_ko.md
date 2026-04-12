@@ -679,6 +679,29 @@ FileExplorerData를 볼트에 파일로 저장합니다. 생성된 이미지나 
   value: "{{counter}} + 1"
 ```
 
+**`variable` 노드의 `value`는 선택 사항입니다.** 생략하면 두 가지 유용한 동작이 가능합니다:
+
+- **입력 선언** — 호출자(상위 워크플로우, 스킬 호출, 단축키 트리거)가 이미 변수를 설정했다면 기존 값이 보존됩니다. 이를 통해 워크플로우가 예상하는 입력을 덮어쓰지 않고 선언할 수 있습니다.
+- **빈 누적기** — 호출자가 변수를 설정하지 않은 경우 `""`로 초기화됩니다. 나중에 문자열을 누적하는 누적기에 안전합니다.
+
+```yaml
+# 입력 선언 — 호출자의 값을 사용, 제공되지 않으면 ""
+- id: declare-input
+  type: variable
+  name: inputText
+
+# 누적기 — ""로 시작하고 이후 단계에서 추가됨
+- id: init-output
+  type: variable
+  name: outputMarkdown
+
+# 명시적 초기값 — 호출자 상태와 무관하게 항상 0으로 리셋
+- id: init-counter
+  type: variable
+  name: counter
+  value: 0
+```
+
 **특수 변수 `_clipboard`:**
 
 `_clipboard`라는 이름의 변수를 설정하면 해당 값이 시스템 클립보드에 복사됩니다:
@@ -949,17 +972,60 @@ path: "{{parsed.notes[{{counter}}].path}}"
 
 ### JSON 이스케이프 수정자
 
-`{{variable:json}}`을 사용하여 JSON 문자열에 삽입하기 위해 값을 이스케이프합니다. 이것은 줄바꿈, 따옴표 및 기타 특수 문자를 올바르게 이스케이프합니다.
+`{{variable:json}}`을 사용하여 **문자열 리터럴 내부에** 삽입할 값을 이스케이프합니다. 줄바꿈, 따옴표 및 기타 특수 문자를 올바르게 이스케이프합니다.
+
+**중요:** `:json`은 *내용*만 이스케이프하며 **외부 따옴표를 추가하지 않습니다**. 문자열 내부에 삽입할 때 따옴표는 직접 작성해야 합니다.
 
 ```yaml
 # :json 없이 - 내용에 줄바꿈/따옴표가 있으면 실패
 args: '{"text": "{{content}}"}'  # 특수 문자가 있으면 오류
 
-# :json 사용 - 모든 내용에 안전
+# :json 사용 - 모든 내용에 안전 (주변의 "..."는 여러분이 작성한 문자열 리터럴)
 args: '{"text": "{{content:json}}"}'  # OK - 올바르게 이스케이프됨
 ```
 
-이것은 파일 내용이나 사용자 입력을 JSON 본문이 있는 `mcp` 또는 `http` 노드에 전달할 때 필수적입니다.
+**`script` 노드 (JavaScript)에서:**
+
+`:json`은 코드 실행 전에 일반 텍스트로 치환되므로 값이 JS 문자열이어야 할 때는 따옴표로 감싸야 합니다:
+
+```yaml
+# ✅ 올바름 — 이스케이프된 내용을 포함하는 문자열 리터럴
+code: |
+  var text = "{{userInput:json}}";
+  var data = JSON.parse("{{jsonStr:json}}");
+
+# ❌ 잘못됨 — 외부 따옴표 누락, 유효하지 않은 JS 생성
+code: |
+  var text = {{userInput:json}};          # 구문 오류
+  JSON.parse({{jsonStr:json}});           # 문자열 인수가 필요
+```
+
+변수가 이미 파싱된 객체/배열을 보유하고 있다면 (예: 이전 `json` 노드 결과), 따옴표 *없이* `{{var:json}}`을 사용하여 JS 객체/배열 리터럴로 만듭니다:
+
+```yaml
+code: |
+  var arr = {{parsedArray:json}};         # 변환 후: var arr = [{"url":"..."}]
+```
+
+이것은 파일 내용이나 사용자 입력을 `mcp`, `http` 또는 `script` 노드에 전달할 때 필수적입니다.
+
+### `json` 노드 — `source`는 변수명만
+
+`json` 노드의 `source` 속성은 **변수 이름만** 받습니다 — 보간 표현식, 따옴표, 대괄호 불가:
+
+```yaml
+# ✅ 올바름
+- id: parse-body
+  type: json
+  source: apiResponseBody
+  saveTo: parsed
+
+# ❌ 잘못됨
+- id: parse-body
+  type: json
+  source: "{{apiResponseBody}}"          # 여기는 보간되지 않습니다
+  # 또는: source: "[{{apiResponseBody}}]"  # 래핑하면 유효한 JSON이 깨집니다
+```
 
 ## 스마트 입력 노드
 

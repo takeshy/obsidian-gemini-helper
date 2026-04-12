@@ -121,6 +121,20 @@ I workflow degli skill vengono eseguiti con modali interattive (come nel pannell
 - I dialoghi di conferma richiedono l'approvazione dell'utente
 - L'IA riceve i log di esecuzione del workflow come risultato dello strumento
 
+### Restituire valori alla chat
+
+Quando l'IA invoca un workflow di skill tramite `run_skill_workflow`, **ogni variabile il cui nome non inizia con `_` viene restituita automaticamente all'IA della chat** come parte del risultato dello strumento. Non serve aggiungere un nodo `command` finale solo per "emettere" un risultato — usa semplicemente `saveTo:` con il valore che vuoi far vedere all'IA della chat.
+
+Un nodo `command` esegue una chiamata LLM separata *all'interno* del workflow e salva l'output in una variabile; non scrive direttamente nella chat. Se l'utente ha bisogno che una variabile specifica venga mostrata letteralmente nella risposta della chat, metti quell'istruzione nel corpo delle istruzioni di SKILL.md, ad esempio:
+
+> Dopo il completamento del workflow, mostra il valore di `ogpMarkdown` all'utente letteralmente, senza commenti aggiuntivi.
+
+L'IA lato chat, guidata da queste istruzioni, includerà la variabile nella sua risposta.
+
+### Ripristino da errori
+
+Se un workflow di skill fallisce durante una chat, la chiamata dello strumento fallita mostra un pulsante **Apri workflow**. Cliccandolo si apre il file del workflow *e* la vista Gemini passa alla scheda Workflow / skill, cosi puoi modificare il flusso e rieseguirlo. Una riga di suggerimento sotto indica anche "Modifica workflow con AI" → "Riferimento cronologia esecuzione" per il passaggio fallito.
+
 ## Utilizzo degli Skill nella Chat
 
 ### Configurazione

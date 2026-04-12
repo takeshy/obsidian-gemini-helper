@@ -121,6 +121,20 @@ Skill-Workflows werden mit interaktiven Modals ausgeführt (wie im Workflow-Pane
 - Bestätigungsdialoge erfordern die Zustimmung des Benutzers
 - Die KI erhält die Workflow-Ausführungsprotokolle als Werkzeugergebnis
 
+### Werte an den Chat zurückgeben
+
+Wenn die KI einen Skill-Workflow über `run_skill_workflow` aufruft, wird **jede Variable, deren Name nicht mit `_` beginnt, automatisch als Teil des Tool-Ergebnisses an die Chat-KI zurückgegeben**. Sie müssen keinen abschließenden `command`-Knoten hinzufügen, um ein Ergebnis zu „ausgeben" — speichern Sie einfach mit `saveTo:` den Wert, den die Chat-KI sehen soll.
+
+Ein `command`-Knoten führt einen separaten LLM-Aufruf *innerhalb* des Workflows aus und speichert dessen Ausgabe in einer Variable; er schreibt nicht direkt in den Chat. Wenn der Benutzer eine bestimmte Variable wörtlich in der Chat-Antwort sehen soll, schreiben Sie diese Anweisung in den Anweisungstext der SKILL.md, zum Beispiel:
+
+> Geben Sie nach Abschluss des Workflows den Wert von `ogpMarkdown` wörtlich und ohne zusätzliche Kommentare aus.
+
+Die Chat-KI, durch diese Anweisungen geleitet, wird die Variable in ihre Antwort einbeziehen.
+
+### Fehlerbehebung
+
+Wenn ein Skill-Workflow während eines Chats fehlschlägt, zeigt der fehlerhafte Tool-Aufruf einen **Workflow öffnen**-Button an. Ein Klick darauf öffnet die Workflow-Datei *und* schaltet die Gemini-Ansicht auf den Workflow / skill-Tab, damit Sie den Ablauf bearbeiten und erneut ausführen können. Ein Hinweis darunter verweist auf „Workflow mit KI ändern" → „Ausführungsverlauf referenzieren" für den fehlgeschlagenen Schritt.
+
 ## Skills im Chat verwenden
 
 ### Einrichtung

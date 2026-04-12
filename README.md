@@ -6,7 +6,6 @@
 
 > **Since v1.11.0, this plugin focuses exclusively on Gemini-related features.**
 > CLI support has been removed. A new plugin [obsidian-llm-hub](https://github.com/takeshy/obsidian-llm-hub) has been created with CLI and multiple LLM provider support (OpenAI, Claude, OpenRouter, Local LLM).
-> GemiHub (Google Drive) integration has been separated into [obsidian-gemihub](https://github.com/takeshy/obsidian-gemihub).
 
 ### Related Plugins
 
@@ -15,7 +14,6 @@
 | obsidian-gemini-helper | Gemini-focused (RAG via File Search API) |
 | obsidian-llm-hub | Multi-LLM support, Desktop Only (RAG via Embedding, supports gemini-embedding-2-preview) |
 | obsidian-local-llm-hub | Local LLM only (RAG via local embeddings only) |
-| obsidian-gemihub | File sync with GemiHub (web version of gemini-helper) via Google Drive |
 
 ---
 
@@ -52,7 +50,6 @@ This plugin requires a Google Gemini API key. You can choose between:
 
 - **Rate limits** are per-model and reset daily. Switch models to continue working.
 - **RAG sync** is limited. Run "Sync Vault" daily - already uploaded files are skipped.
-- **Gemma models** don't support vault operations in Chat, but **Workflows can still read/write notes** using `note`, `note-read`, and other node types. `{content}` and `{selection}` variables also work.
 
 ---
 
@@ -100,7 +97,7 @@ Reference files and variables by typing `@`:
 > Both `{selection}` and `{content}` are intentionally **not expanded** in the input area—since the chat input is compact, expanding long text would make typing difficult. The content is expanded when you send the message, which you can verify by checking your sent message in the chat.
 
 > [!NOTE]
-> Vault file @mentions insert only the file path - the AI reads content via tools. This doesn't work with Gemma models (no vault tool support).
+> Vault file @mentions insert only the file path — the AI reads content via tools.
 
 ## File Attachments
 
@@ -142,17 +139,6 @@ When the AI handles notes in Chat, it uses Vault tools. Control which vault tool
 - **Vault: All** - Default mode for general use. The AI can read, write, and search your vault.
 - **Vault: No search** - Use when you want to search only with RAG, or when you already know the target file. This avoids redundant vault searches, saving tokens and improving response time.
 - **Vault: Off** - Use when you don't need vault access at all.
-
-**Automatic mode selection:**
-
-| Condition | Default Mode | Changeable |
-|-----------|--------------|------------|
-| Gemma models | Vault: Off | No |
-| Other models | Vault: All | Yes |
-
-**Why Gemma mode is forced:**
-
-- **Gemma models**: These models do not support function calling, so Vault tools cannot be used.
 
 > **Note:** RAG, Web Search, Vault tools, and MCP can all be used simultaneously via the Interactions API.
 
@@ -270,8 +256,10 @@ Extend the AI with custom instructions, reference materials, and executable work
 - **Workflow integration** - Skills can expose workflows as function calling tools
 - **Slash command** - Type `/folder-name` to instantly invoke a skill and send
 - **Selective activation** - Choose which skills are active per conversation
+- **Clickable skill chips** - Active skill chips in the input area and on assistant messages are clickable and jump to the matching `SKILL.md` (built-in skills are shown as static labels)
+- **Workflow error recovery** - If a skill workflow fails during a chat, the failing tool call shows an **Open workflow** button that opens the file *and* switches the Gemini view to the Workflow / skill tab so you can immediately edit and re-run
 
-Create skills the same way as workflows — select **+ New (AI)**, check **"Create as agent skill"**, and describe what you want. The AI generates both the `SKILL.md` instructions and the workflow.
+Create skills the same way as workflows — select **+ New (AI)**, check **"Create as agent skill"**, and describe what you want. The AI generates both the `SKILL.md` instructions and the workflow. To edit an existing skill, open its `SKILL.md` and click **Modify skill with AI** in the Workflow / skill tab — the AI updates both the instructions body and the referenced workflow together.
 
 > **For setup instructions and examples, see [SKILLS.md](docs/SKILLS.md)**
 
@@ -286,7 +274,7 @@ Build automated multi-step workflows directly in Markdown files. **No programmin
 ## Running Workflows
 
 **From Sidebar:**
-1. Open **Workflow** tab in sidebar
+1. Open **Workflow / skill** tab in sidebar
 2. Open a file with `workflow` code block
 3. Select workflow from dropdown (or choose **Browse all workflows** to search all vault workflows)
 4. Click **Run** to execute
@@ -311,17 +299,20 @@ This is useful for quickly running workflows without navigating to the workflow 
 
 **You don't need to learn YAML syntax or node types.** Simply describe your workflow in plain language:
 
-1. Open the **Workflow** tab in the Gemini sidebar
+1. Open the **Workflow / skill** tab in the Gemini sidebar
 2. Select **+ New (AI)** from the dropdown
 3. Describe what you want: *"Create a workflow that summarizes the selected note and saves it to a summaries folder"*
 4. Check **"Create as agent skill"** if you want to create an agent skill instead of a standalone workflow
 5. Select a model and click **Generate**
-6. The workflow is automatically created and saved
+6. The AI produces a plain-language **plan** first — review it and click **OK** to proceed, **Re-plan** to give feedback and regenerate the plan, or **Cancel** to abort
+7. After generation, the AI runs a **review** over the result. If issues are found you can **OK** (with a confirmation prompt), **Refine** (regenerate using the review feedback), or **Cancel**. Clean reviews proceed automatically
+8. The workflow is saved once you accept the final preview
+
 > **Tip:** When using **+ New (AI)** from the dropdown on a file that already has workflows, the output path defaults to the current file. The generated workflow will be appended to that file.
 
 **Create workflow from any file:**
 
-When opening the Workflow tab with a file that has no workflow code block, a **"Create workflow with AI"** button is displayed. Click it to generate a new workflow (default output: `workflows/{{name}}.md`).
+When opening the Workflow / skill tab with a file that has no workflow code block, a **"Create workflow with AI"** button is displayed. Click it to generate a new workflow (default output: `workflows/{{name}}.md`).
 
 **@ File References:**
 
@@ -367,8 +358,13 @@ Each AI-generated workflow saves a history entry above the workflow code block, 
 1. Load any workflow
 2. Click the **AI Modify** button (sparkle icon)
 3. Describe changes: *"Add a step to translate the summary to Japanese"*
-4. Review the before/after comparison
-5. Click **Apply Changes** to update
+4. The same plan → generate → review flow runs. You can **Refine** the review result as many times as you want; each Refine triggers a new generation pass and a fresh review so the review always matches the final YAML
+5. Review the before/after diff
+6. Click **Apply Changes** to update
+
+**Modify Skill with AI:**
+
+When the active file is a `SKILL.md`, the Workflow / skill tab shows a **"Modify skill with AI"** button instead of (or alongside) the regular workflow modifier. It edits the skill as a whole — both the SKILL.md instructions body *and* the referenced workflow file — in one pass, preserving the skill's frontmatter (name, description, workflow entries).
 
 **Execution History Reference:**
 
@@ -506,7 +502,7 @@ When a toggle is ON, thinking is always active for that model family regardless 
 | Gemini 2.5 Flash Lite | ✅ |
 | Gemini 3 Flash Preview | ✅ |
 | Gemini 3.1 Flash Lite Preview | ✅ |
-| Gemma 3 (27B/12B/4B/1B) | ❌ |
+| Gemma 4 (31B, 26B A4B MoE) | ✅ |
 
 ## Installation
 

@@ -679,6 +679,29 @@ Declarer et mettre a jour des variables.
   value: "{{counter}} + 1"
 ```
 
+**`value` est optionnel sur les noeuds `variable`.** L'omettre offre deux comportements utiles :
+
+- **Declaration d'entree** — Si la variable a deja ete definie par l'appelant (workflow parent, invocation de skill, trigger hotkey), la valeur existante est preservee. Cela permet a un workflow de declarer les entrees qu'il attend sans les ecraser.
+- **Accumulateur vide** — Si aucun appelant n'a defini la variable, elle est initialisee a `""`. Sur pour les accumulateurs qui seront concatenes plus tard.
+
+```yaml
+# Declaration d'entree — utilise la valeur de l'appelant, ou "" si non fournie
+- id: declare-input
+  type: variable
+  name: inputText
+
+# Accumulateur — demarre a "" et est concatene en aval
+- id: init-output
+  type: variable
+  name: outputMarkdown
+
+# Valeur initiale explicite — reinitialise toujours a 0 quelle que soit l'etat de l'appelant
+- id: init-counter
+  type: variable
+  name: counter
+  value: 0
+```
+
 **Variable spéciale `_clipboard` :**
 
 Si vous définissez une variable nommée `_clipboard`, sa valeur sera copiée dans le presse-papiers du système :
@@ -949,17 +972,60 @@ path: "{{parsed.notes[{{counter}}].path}}"
 
 ### Modificateur d'Echappement JSON
 
-Utilisez `{{variable:json}}` pour echapper la valeur pour l'integration dans des chaines JSON. Cela echappe correctement les sauts de ligne, les guillemets et autres caracteres speciaux.
+Utilisez `{{variable:json}}` pour echapper la valeur a integrer **a l'interieur d'un litteral de chaine**. Cela echappe correctement les sauts de ligne, les guillemets et autres caracteres speciaux.
+
+**Important :** `:json` n'echappe que le *contenu* — il **n'ajoute pas** de guillemets englobants. Vous devez fournir vous-meme les guillemets lors de l'integration dans une chaine.
 
 ```yaml
 # Sans :json - echoue si le contenu contient des sauts de ligne/guillemets
 args: '{"text": "{{content}}"}'  # ERREUR si le contenu a des caracteres speciaux
 
-# Avec :json - sur pour tout contenu
+# Avec :json - sur pour tout contenu (les "..." qui l'entourent sont votre litteral de chaine)
 args: '{"text": "{{content:json}}"}'  # OK - correctement echappe
 ```
 
-Ceci est essentiel lors du passage de contenu de fichier ou d'entree utilisateur aux noeuds `mcp` ou `http` avec des corps JSON.
+**Dans les noeuds `script` (JavaScript) :**
+
+`:json` substitue du texte brut avant l'execution du code, donc vous devez l'entourer de guillemets lorsque la valeur doit etre une chaine JS :
+
+```yaml
+# ✅ Correct — litteral de chaine avec contenu echappe
+code: |
+  var text = "{{userInput:json}}";
+  var data = JSON.parse("{{jsonStr:json}}");
+
+# ❌ Incorrect — guillemets externes manquants, produit du JS invalide
+code: |
+  var text = {{userInput:json}};          # erreur de syntaxe
+  JSON.parse({{jsonStr:json}});           # a besoin d'un argument de type chaine
+```
+
+Si la variable contient deja un objet/tableau parse (par exemple depuis un noeud `json` precedent), utilisez `{{var:json}}` *sans* guillemets pour qu'elle devienne un litteral d'objet/tableau JS :
+
+```yaml
+code: |
+  var arr = {{parsedArray:json}};         # devient : var arr = [{"url":"..."}]
+```
+
+Ceci est essentiel lors du passage de contenu de fichier ou d'entree utilisateur aux noeuds `mcp`, `http` ou `script`.
+
+### Noeud `json` — `source` est un simple nom de variable
+
+La propriete `source` du noeud `json` accepte **uniquement le nom de la variable** — pas d'expression interpolee, pas de guillemets, pas de crochets :
+
+```yaml
+# ✅ Correct
+- id: parse-body
+  type: json
+  source: apiResponseBody
+  saveTo: parsed
+
+# ❌ Incorrect
+- id: parse-body
+  type: json
+  source: "{{apiResponseBody}}"          # pas d'interpolation ici
+  # ou : source: "[{{apiResponseBody}}]"  # l'enveloppe corrompt un JSON valide
+```
 
 ## Noeuds de Saisie Intelligents
 

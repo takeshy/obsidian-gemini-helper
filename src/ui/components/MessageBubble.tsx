@@ -1,10 +1,13 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { type App, MarkdownRenderer, Component, Notice, Platform } from "obsidian";
 import { Copy, Check, CheckCircle, XCircle, Download, Eye } from "lucide-react";
-import type { Message, ToolCall } from "src/types";
+import type { Message, ToolCall, ToolResult } from "src/types";
 import { AVAILABLE_MODELS } from "src/types";
 import { HTMLPreviewModal, extractHtmlFromCodeBlock } from "./HTMLPreviewModal";
 import { McpAppRenderer } from "./McpAppRenderer";
+import { discoverSkills } from "src/core/skillsLoader";
+import { isBuiltinSkillPath } from "src/core/builtinSkills";
+import { ChatView, VIEW_TYPE_GEMINI_CHAT } from "src/ui/ChatView";
 import { t } from "src/i18n";
 import { formatError } from "src/utils/error";
 
@@ -400,13 +403,9 @@ export default function MessageBubble({
         </div>
       )}
 
-      {/* Skills used indicator */}
+      {/* Skills used indicator — vault skills are clickable to open SKILL.md; built-in skills are displayed as plain labels */}
       {message.skillsUsed && message.skillsUsed.length > 0 && (
-        <div className="gemini-helper-skills-used">
-          <span className="gemini-helper-skills-indicator">
-            ✨ {t("message.skillsUsed")}: {message.skillsUsed.join(", ")}
-          </span>
-        </div>
+        <SkillsUsedIndicator skillNames={message.skillsUsed} app={app} />
       )}
 
       {/* Semantic search indicator with sources */}
@@ -442,21 +441,42 @@ export default function MessageBubble({
 
       {/* Tools used indicator */}
       {message.toolCalls && message.toolCalls.length > 0 && (
-        <div className="gemini-helper-tools-used">
-          {message.toolCalls.map((toolCall, index) => {
-            const { icon, label } = getToolDisplayInfo(toolCall.name);
-            return (
-              <span
-                key={index}
-                className="gemini-helper-tool-indicator gemini-helper-tool-clickable"
-                onClick={() => new Notice(getToolDetail(toolCall), 3000)}
-                title={t("message.clickToSeeDetails")}
-              >
-                {icon} {label}
-              </span>
-            );
-          })}
-        </div>
+        <>
+          <div className="gemini-helper-tools-used">
+            {message.toolCalls.map((toolCall, index) => {
+              const { icon, label } = getToolDisplayInfo(toolCall.name);
+              const failedWorkflowPath = getFailedWorkflowPath(toolCall, message.toolResults);
+              return (
+                <span key={index} className="gemini-helper-tool-indicator-group">
+                  <span
+                    className="gemini-helper-tool-indicator gemini-helper-tool-clickable"
+                    onClick={() => new Notice(getToolDetail(toolCall), 3000)}
+                    title={t("message.clickToSeeDetails")}
+                  >
+                    {icon} {label}
+                  </span>
+                  {failedWorkflowPath && (
+                    <button
+                      className="gemini-helper-tool-open-workflow-btn"
+                      onClick={() => {
+                        void openWorkflowInPanel(app, failedWorkflowPath);
+                      }}
+                      title={t("message.clickToOpen", { source: failedWorkflowPath })}
+                    >
+                      📂 {t("message.openWorkflow")}
+                    </button>
+                  )}
+                </span>
+              );
+            })}
+          </div>
+          {/* Error hint — shown once if any skill workflow failed */}
+          {message.toolCalls.some(tc => getFailedWorkflowPath(tc, message.toolResults)) && (
+            <div className="gemini-helper-workflow-error-hint">
+              {t("message.workflowErrorHint")}
+            </div>
+          )}
+        </>
       )}
 
       {/* Attachments display */}
@@ -672,6 +692,88 @@ export default function MessageBubble({
       )}
     </div>
   );
+}
+
+/**
+ * Renders the "✨ Skills used: ..." indicator.
+ * Vault skills are rendered as clickable chips that open their SKILL.md.
+ * Built-in skills (bundled with the plugin) are rendered as plain chips
+ * because they have no vault file to open.
+ */
+function SkillsUsedIndicator({ skillNames, app }: { skillNames: string[]; app: App }) {
+  const [skillMap, setSkillMap] = useState<Map<string, { path: string; builtin: boolean }>>(new Map());
+
+  useEffect(() => {
+    let cancelled = false;
+    void discoverSkills(app).then((skills) => {
+      if (cancelled) return;
+      const map = new Map<string, { path: string; builtin: boolean }>();
+      for (const s of skills) {
+        map.set(s.name, { path: s.skillFilePath, builtin: isBuiltinSkillPath(s.folderPath) });
+      }
+      setSkillMap(map);
+    });
+    return () => { cancelled = true; };
+  }, [app, skillNames]);
+
+  return (
+    <div className="gemini-helper-skills-used">
+      <span className="gemini-helper-skills-indicator">
+        ✨ {t("message.skillsUsed")}:
+      </span>
+      {skillNames.map((skillName, index) => {
+        const info = skillMap.get(skillName);
+        const isBuiltin = info?.builtin ?? false;
+        const isClickable = info && !isBuiltin;
+        return (
+          <span
+            key={index}
+            className={`gemini-helper-skill-chip${isClickable ? " gemini-helper-tool-clickable" : " is-static"}`}
+            onClick={isClickable ? () => {
+              void app.workspace.openLinkText(info.path, "", false);
+            } : undefined}
+            title={isClickable ? t("message.clickToOpen", { source: skillName }) : skillName}
+          >
+            {skillName}
+          </span>
+        );
+      })}
+    </div>
+  );
+}
+
+/**
+ * Open the given workflow file AND switch the Gemini chat view to the
+ * Workflow tab so the user sees the workflow editor rather than the raw YAML.
+ * Falls back to just opening the file if the chat view is not available.
+ */
+async function openWorkflowInPanel(app: App, workflowPath: string): Promise<void> {
+  // Open the file first so WorkflowPanel's "active file" listener picks it up
+  await app.workspace.openLinkText(workflowPath, "", false);
+
+  // Switch the Gemini chat view (if any) to the Workflow tab
+  const leaves = app.workspace.getLeavesOfType(VIEW_TYPE_GEMINI_CHAT);
+  for (const leaf of leaves) {
+    const view = leaf.view;
+    if (view instanceof ChatView) {
+      view.setActiveTab("workflow");
+      void app.workspace.revealLeaf(leaf);
+    }
+  }
+}
+
+/**
+ * If this tool call is a failed run_skill_workflow invocation, extract the
+ * vault path of the workflow so the UI can offer an "open workflow" button.
+ */
+function getFailedWorkflowPath(toolCall: ToolCall, toolResults?: ToolResult[]): string | null {
+  if (toolCall.name !== "run_skill_workflow") return null;
+  if (!toolResults) return null;
+  const result = toolResults.find((r) => r.toolCallId === toolCall.id)?.result;
+  if (!result || typeof result !== "object") return null;
+  const r = result as Record<string, unknown>;
+  if (typeof r.error !== "string") return null;
+  return typeof r.workflowPath === "string" ? r.workflowPath : null;
 }
 
 function formatTime(timestamp: number): string {

@@ -679,6 +679,29 @@ Variablen deklarieren und aktualisieren.
   value: "{{counter}} + 1"
 ```
 
+**`value` ist auf `variable`-Knoten optional.** Wenn Sie es weglassen, erhalten Sie zwei nützliche Verhaltensweisen:
+
+- **Eingabe-Deklaration** — Wurde die Variable bereits vom Aufrufer (übergeordneter Workflow, Skill-Aufruf, Hotkey-Trigger) gesetzt, bleibt ihr Wert erhalten. So kann ein Workflow die erwarteten Eingaben deklarieren, ohne sie zu überschreiben.
+- **Leerer Akkumulator** — Wenn kein Aufrufer die Variable gesetzt hat, wird sie mit `""` initialisiert. Sicher für Akkumulatoren, die später angehängt werden.
+
+```yaml
+# Eingabe-Deklaration — verwendet den Wert des Aufrufers oder "" wenn nicht gesetzt
+- id: declare-input
+  type: variable
+  name: inputText
+
+# Akkumulator — startet mit "" und wird nachgelagert erweitert
+- id: init-output
+  type: variable
+  name: outputMarkdown
+
+# Expliziter Startwert — setzt unabhängig vom Aufruferzustand immer auf 0
+- id: init-counter
+  type: variable
+  name: counter
+  value: 0
+```
+
 **Spezielle Variable `_clipboard`:**
 
 Wenn Sie eine Variable namens `_clipboard` setzen, wird ihr Wert in die System-Zwischenablage kopiert:
@@ -949,17 +972,60 @@ path: "{{parsed.notes[{{counter}}].path}}"
 
 ### JSON-Escape-Modifikator
 
-Verwenden Sie `{{variable:json}}`, um den Wert fuer die Einbettung in JSON-Strings zu escapen. Dies escapt korrekt Zeilenumbrueche, Anfuehrungszeichen und andere Sonderzeichen.
+Verwenden Sie `{{variable:json}}`, um den Wert fuer die Einbettung **innerhalb eines String-Literals** zu escapen. Dies escapt korrekt Zeilenumbrueche, Anfuehrungszeichen und andere Sonderzeichen.
+
+**Wichtig:** `:json` escapt nur den *Inhalt* — es fuegt **keine** umgebenden Anfuehrungszeichen hinzu. Sie muessen die Anfuehrungszeichen selbst setzen, wenn Sie in einem String einbetten.
 
 ```yaml
 # Ohne :json - schlaegt fehl, wenn der Inhalt Zeilenumbrueche/Anfuehrungszeichen hat
 args: '{"text": "{{content}}"}'  # FEHLER wenn der Inhalt Sonderzeichen hat
 
-# Mit :json - sicher fuer jeden Inhalt
+# Mit :json - sicher fuer jeden Inhalt (das "..." darum ist Ihr String-Literal)
 args: '{"text": "{{content:json}}"}'  # OK - korrekt escapt
 ```
 
-Dies ist essentiell, wenn Dateiinhalt oder Benutzereingaben an `mcp`- oder `http`-Knoten mit JSON-Body uebergeben werden.
+**In `script`-Knoten (JavaScript):**
+
+`:json` ersetzt einfachen Text vor der Code-Ausfuehrung, also muessen Sie es in Anfuehrungszeichen setzen, wenn der Wert ein JS-String sein soll:
+
+```yaml
+# ✅ Richtig — String-Literal mit escapem Inhalt
+code: |
+  var text = "{{userInput:json}}";
+  var data = JSON.parse("{{jsonStr:json}}");
+
+# ❌ Falsch — fehlende Anfuehrungszeichen, produziert ungueltiges JS
+code: |
+  var text = {{userInput:json}};          # Syntaxfehler
+  JSON.parse({{jsonStr:json}});           # benoetigt ein String-Argument
+```
+
+Wenn die Variable bereits ein geparstes Objekt/Array enthaelt (z.B. aus einem vorherigen `json`-Knoten), verwenden Sie `{{var:json}}` *ohne* Anfuehrungszeichen, damit es zu einem JS-Objekt-/Array-Literal wird:
+
+```yaml
+code: |
+  var arr = {{parsedArray:json}};         # wird zu: var arr = [{"url":"..."}]
+```
+
+Dies ist essentiell, wenn Dateiinhalt oder Benutzereingaben an `mcp`-, `http`- oder `script`-Knoten uebergeben werden.
+
+### `json`-Knoten — `source` ist ein einfacher Variablenname
+
+Die `source`-Eigenschaft des `json`-Knotens akzeptiert **nur den Variablennamen** — kein interpolierter Ausdruck, keine Anfuehrungszeichen, keine Klammern:
+
+```yaml
+# ✅ Richtig
+- id: parse-body
+  type: json
+  source: apiResponseBody
+  saveTo: parsed
+
+# ❌ Falsch
+- id: parse-body
+  type: json
+  source: "{{apiResponseBody}}"          # hier keine Interpolation
+  # oder: source: "[{{apiResponseBody}}]"  # Wrap zerstoert gueltiges JSON
+```
 
 ## Intelligente Eingabeknoten
 

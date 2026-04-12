@@ -679,6 +679,29 @@ Declare and update variables.
   value: "{{counter}} + 1"
 ```
 
+**`value` is optional on `variable` nodes.** Omitting it gives two useful behaviors:
+
+- **Input declaration** — If the variable has already been set by the caller (parent workflow, skill invocation, or hotkey trigger), the existing value is preserved. This lets a workflow declare the inputs it expects without overwriting them.
+- **Empty accumulator** — If no caller set the variable, it is initialized to `""`. This is safe for accumulators that will be appended to later.
+
+```yaml
+# Input declaration — uses the caller's value, or "" if not provided
+- id: declare-input
+  type: variable
+  name: inputText
+
+# Accumulator — starts as "" and is appended to downstream
+- id: init-output
+  type: variable
+  name: outputMarkdown
+
+# Explicit initial value — always resets to 0 regardless of caller state
+- id: init-counter
+  type: variable
+  name: counter
+  value: 0
+```
+
 **Special variable `_clipboard`:**
 
 Setting a variable named `_clipboard` copies its value to the system clipboard:
@@ -953,17 +976,60 @@ path: "{{parsed.notes[{{counter}}].path}}"
 
 ### JSON Escape Modifier
 
-Use `{{variable:json}}` to escape the value for embedding in JSON strings. This properly escapes newlines, quotes, and other special characters.
+Use `{{variable:json}}` to escape the value for embedding **inside a string literal**. It properly escapes newlines, quotes, and other special characters.
+
+**Important:** `:json` only escapes the *content* — it does **not** add surrounding quotes. You must provide the quotes yourself when embedding inside a string.
 
 ```yaml
 # Without :json - breaks if content has newlines/quotes
 args: '{"text": "{{content}}"}'  # ERROR if content has special chars
 
-# With :json - safe for any content
+# With :json - safe for any content (the "..." around it is your string literal)
 args: '{"text": "{{content:json}}"}'  # OK - properly escaped
 ```
 
-This is essential when passing file content or user input to `mcp` or `http` nodes with JSON bodies.
+**In `script` nodes (JavaScript):**
+
+`:json` substitutes plain text before the code runs, so you must wrap it in quotes when the value should be a JS string:
+
+```yaml
+# ✅ Correct — string literal with escaped content
+code: |
+  var text = "{{userInput:json}}";
+  var data = JSON.parse("{{jsonStr:json}}");
+
+# ❌ Wrong — missing outer quotes, produces invalid JS
+code: |
+  var text = {{userInput:json}};          # syntax error
+  JSON.parse({{jsonStr:json}});           # needs a string argument
+```
+
+If the variable already holds a parsed object/array (e.g. from a previous `json` node), use `{{var:json}}` *without* quotes so it becomes a JS object/array literal:
+
+```yaml
+code: |
+  var arr = {{parsedArray:json}};         # becomes: var arr = [{"url":"..."}]
+```
+
+This is essential when passing file content or user input to `mcp`, `http`, or `script` nodes.
+
+### `json` node — `source` is a bare variable name
+
+The `json` node's `source` property accepts the **variable name only** — not an interpolated expression, not wrapped in quotes, and not inside brackets:
+
+```yaml
+# ✅ Correct
+- id: parse-body
+  type: json
+  source: apiResponseBody
+  saveTo: parsed
+
+# ❌ Wrong
+- id: parse-body
+  type: json
+  source: "{{apiResponseBody}}"          # no interpolation here
+  # or: source: "[{{apiResponseBody}}]"  # wrapping corrupts valid JSON
+```
 
 ## Smart Input Nodes
 

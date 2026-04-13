@@ -749,6 +749,8 @@ export const ja: Record<string, string> = {
   "aiWorkflow.modifyTitle": "AIでワークフローを変更",
   "aiWorkflow.modifySkillTitle": "AIでスキルを変更",
   "aiWorkflow.confirmSkillChanges": "スキルの変更を確認",
+  "aiWorkflow.skillInstructionsChanges": "SKILL.md 指示内容の変更:",
+  "aiWorkflow.workflowYamlChanges": "ワークフロー YAML の変更:",
   "aiWorkflow.noChanges": "（変更なし）",
   "aiWorkflow.describeCreate": "作成したいワークフローまたはスキルを説明してください:",
   "aiWorkflow.describeModify": "希望する変更を説明してください:",

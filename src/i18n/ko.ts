@@ -750,6 +750,8 @@ export const ko: Record<string, string> = {
   "aiWorkflow.modifyTitle": "AI로 워크플로우 수정",
   "aiWorkflow.modifySkillTitle": "AI로 스킬 수정",
   "aiWorkflow.confirmSkillChanges": "스킬 변경 확인",
+  "aiWorkflow.skillInstructionsChanges": "SKILL.md 지침 — 변경사항:",
+  "aiWorkflow.workflowYamlChanges": "워크플로우 YAML — 변경사항:",
   "aiWorkflow.noChanges": "(변경 없음)",
   "aiWorkflow.describeCreate": "만들고 싶은 워크플로우 또는 스킬을 설명하세요:",
   "aiWorkflow.describeModify": "원하는 수정 사항을 설명하세요:",

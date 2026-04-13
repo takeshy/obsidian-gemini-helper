@@ -1178,7 +1178,13 @@ Fix the problem and output ONLY the complete, valid YAML workflow starting with 
           this.resolvePromise(null);
           return;
         }
-        response = repaired;
+        // Only replace the prior response if repair actually produced text —
+        // otherwise an empty/thinking-only repair would wipe the original
+        // output, degrading subsequent repair prompts and the parse-failure
+        // panel.
+        if (repaired.trim()) {
+          response = repaired;
+        }
         parsed = parseWorkflowResponseWithError(response);
         result = parsed.result;
       }

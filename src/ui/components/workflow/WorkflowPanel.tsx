@@ -1309,16 +1309,14 @@ ${newInstructions}
               <Sparkles size={14} />
               <span>{t("workflow.createWithAI")}</span>
             </button>
-            {!isSkillFile && (
-              <button
-                className="workflow-sidebar-ai-btn"
-                onClick={() => void handleCreateSkillWithAI()}
-              >
-                <Sparkles size={14} />
-                <span>{t("workflow.createSkillWithAI")}</span>
-              </button>
-            )}
-            {!isSkillFile && createHint}
+            <button
+              className="workflow-sidebar-ai-btn"
+              onClick={() => void handleCreateSkillWithAI()}
+            >
+              <Sparkles size={14} />
+              <span>{t("workflow.createSkillWithAI")}</span>
+            </button>
+            {createHint}
           </div>
         </div>
       </div>
@@ -1370,6 +1368,18 @@ ${newInstructions}
               {isSkillFile ? t("workflow.modifySkillWithAI") : t("workflow.modifyWithAI")}
             </span>
           </button>
+          {isSkillFile && (
+            <button
+              className="workflow-sidebar-ai-btn"
+              onClick={() => void handleCreateSkillWithAI()}
+              title={t("workflow.createSkillWithAI")}
+            >
+              <Sparkles size={14} />
+              <span className="gemini-helper-workflow-btn-label">
+                {t("workflow.createSkillWithAI")}
+              </span>
+            </button>
+          )}
         </div>
       </div>
 

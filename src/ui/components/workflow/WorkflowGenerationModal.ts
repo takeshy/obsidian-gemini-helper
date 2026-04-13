@@ -34,6 +34,7 @@ export class WorkflowGenerationModal extends Modal {
   private planContainerEl: HTMLElement | null = null;
   private thinkingSectionEl: HTMLElement | null = null;
   private thinkingContainerEl: HTMLElement | null = null;
+  private pendingThinkingSeparator: string | null = null;
   private reviewSectionEl: HTMLElement | null = null;
   private reviewContainerEl: HTMLElement | null = null;
   private statusEl: HTMLElement | null = null;
@@ -121,7 +122,10 @@ export class WorkflowGenerationModal extends Modal {
     this.addCopyButton(planHeader, () => this.planContainerEl?.textContent || "");
 
     // Thinking section (collapsible details, like chat bubble thinking)
-    this.thinkingSectionEl = contentEl.createEl("details", { cls: "gemini-helper-thinking workflow-generation-thinking-details" });
+    // Thinking section — hidden until the model emits real reasoning. Models
+    // without thinking chunks would otherwise show an empty panel with just
+    // phase separators.
+    this.thinkingSectionEl = contentEl.createEl("details", { cls: "gemini-helper-thinking workflow-generation-thinking-details is-hidden" });
     const thinkingSummary = this.thinkingSectionEl.createEl("summary", {
       cls: "gemini-helper-thinking-summary",
     });
@@ -280,9 +284,22 @@ export class WorkflowGenerationModal extends Modal {
   }
 
   /**
-   * Append thinking content to the thinking container
+   * Append thinking content to the thinking container.
+   * Reveals the thinking section on first content, and flushes any pending
+   * phase separator so we don't render separators for phases that produced
+   * no thinking output.
    */
   appendThinking(content: string): void {
+    if (this.thinkingSectionEl) {
+      this.thinkingSectionEl.removeClass("is-hidden");
+    }
+    if (this.pendingThinkingSeparator && this.thinkingContainerEl) {
+      const sep = document.createElement("div");
+      sep.className = "workflow-generation-thinking-separator";
+      sep.textContent = `── ${this.pendingThinkingSeparator} ──`;
+      this.thinkingContainerEl.appendChild(sep);
+      this.pendingThinkingSeparator = null;
+    }
     this.thinkingText += content;
     if (this.thinkingContainerEl) {
       const span = document.createElement("span");
@@ -294,16 +311,12 @@ export class WorkflowGenerationModal extends Modal {
   }
 
   /**
-   * Add a visual separator in the thinking container to mark a phase boundary
+   * Defer the phase separator — only render it once real thinking content
+   * arrives. Overwriting with the newest phase label keeps us from
+   * accumulating separators for phases that produced no thinking output.
    */
   appendThinkingSeparator(phaseLabel: string): void {
-    if (this.thinkingContainerEl) {
-      const sep = document.createElement("div");
-      sep.className = "workflow-generation-thinking-separator";
-      sep.textContent = `── ${phaseLabel} ──`;
-      this.thinkingContainerEl.appendChild(sep);
-      this.thinkingContainerEl.scrollTop = this.thinkingContainerEl.scrollHeight;
-    }
+    this.pendingThinkingSeparator = phaseLabel;
   }
 
   /**
@@ -522,6 +535,7 @@ export class WorkflowGenerationModal extends Modal {
       this.markdownComponent.unload();
       this.markdownComponent = null;
     }
+    this.pendingThinkingSeparator = null;
     this.planText = "";
     // Clear plan content
     if (this.planContainerEl) {
@@ -596,6 +610,7 @@ export class WorkflowGenerationModal extends Modal {
    * cancel button so the streaming UI is consistent with the first review.
    */
   resetReviewForIteration(): void {
+    this.pendingThinkingSeparator = null;
     this.reviewText = "";
     if (this.reviewContainerEl) {
       this.reviewContainerEl.empty();
@@ -682,11 +697,53 @@ export class WorkflowGenerationModal extends Modal {
     this.close();
   }
 
+  /**
+   * Shown when YAML parsing fails after all auto-repair attempts have been
+   * exhausted. Keeps the modal open with the raw response + error so the
+   * user can copy the prompt result into a stronger external LLM.
+   */
+  showParseFailure(response: string, errorMessage?: string): void {
+    this.setComplete();
+    this.setStatus(t("workflow.generation.parseFailed"));
+
+    const failureEl = this.contentEl.createDiv({ cls: "workflow-generation-parse-failure" });
+    failureEl.createEl("h3", { text: t("workflow.generation.parseFailed") });
+
+    if (errorMessage) {
+      failureEl.createEl("p", {
+        text: errorMessage,
+        cls: "workflow-generation-parse-failure-error",
+      });
+    }
+
+    const copyBtn = failureEl.createEl("button", {
+      text: t("message.copy"),
+      cls: "workflow-generation-copy-btn",
+    });
+    copyBtn.addEventListener("click", () => {
+      void navigator.clipboard.writeText(response).then(() => {
+        const original = copyBtn.textContent;
+        copyBtn.textContent = "✓";
+        setTimeout(() => { copyBtn.textContent = original; }, 1200);
+      });
+    });
+
+    const pre = failureEl.createEl("pre", { cls: "workflow-generation-parse-failure-body" });
+    pre.textContent = response;
+
+    const closeBtn = failureEl.createEl("button", {
+      text: t("common.close"),
+      cls: "mod-cta",
+    });
+    closeBtn.addEventListener("click", () => this.close());
+  }
+
   onClose(): void {
     if (this.markdownComponent) {
       this.markdownComponent.unload();
       this.markdownComponent = null;
     }
+    this.pendingThinkingSeparator = null;
     const { contentEl } = this;
     contentEl.empty();
   }

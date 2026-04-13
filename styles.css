@@ -7760,3 +7760,52 @@
 .gemini-helper-skill-chip.is-static {
   cursor: default;
 }
+
+/* Hide thinking details until content arrives (models with no reasoning output). */
+.workflow-generation-thinking-details.is-hidden {
+  display: none;
+}
+
+/* Parse-failure recovery — raw response shown inside the generation modal
+   when the LLM output cannot be parsed as workflow YAML. */
+.workflow-generation-parse-failure {
+  margin-top: 12px;
+  padding: 12px;
+  border: 1px solid var(--background-modifier-error-border, var(--background-modifier-error));
+  border-radius: 6px;
+  background: var(--background-secondary);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.workflow-generation-parse-failure h3 {
+  margin: 0;
+  color: var(--text-error);
+}
+
+.workflow-generation-parse-failure-body {
+  max-height: 40vh;
+  overflow: auto;
+  margin: 0;
+  padding: 8px;
+  background: var(--background-primary);
+  font-family: var(--font-monospace);
+  font-size: 12px;
+  white-space: pre-wrap;
+  word-break: break-word;
+  user-select: text;
+}
+
+.workflow-generation-parse-failure-error {
+  margin: 0;
+  padding: 6px 8px;
+  background: var(--background-modifier-error);
+  border-radius: 4px;
+  font-size: 12px;
+  font-family: var(--font-monospace);
+  color: var(--text-error);
+  white-space: pre-wrap;
+  word-break: break-word;
+  user-select: text;
+}

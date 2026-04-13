@@ -278,10 +278,11 @@ export class WorkflowPreviewModal extends Modal {
     this.markdownComponent = new Component();
     this.markdownComponent.load();
 
+    // Keep plan/thinking/review collapsed by default — the workflow node list
+    // below is the primary content in the preview modal.
     const wrapper = container.createDiv({ cls: "workflow-generation-context" });
     for (const section of sections) {
       const details = wrapper.createEl("details", { cls: "workflow-generation-context-details" });
-      if (section.kind === "markdown") details.setAttr("open", "");
       const summary = details.createEl("summary");
       summary.createSpan({ text: section.label });
       const copyBtn = summary.createEl("button", {

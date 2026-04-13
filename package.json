@@ -10,6 +10,7 @@
     "build:langfuse": "tsc -noEmit -skipLibCheck && node esbuild.config.mjs production langfuse",
     "test": "vitest run",
     "lint": "eslint .",
+    "preversion": "npm run lint && npm run build",
     "version": "node version-bump.mjs && git add manifest.json versions.json"
   },
   "keywords": [

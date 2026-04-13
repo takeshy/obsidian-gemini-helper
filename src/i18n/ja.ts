@@ -633,8 +633,8 @@ export const ja: Record<string, string> = {
   "workflow.preview.no": "修正する",
   "workflow.preview.regenerate": "再生成",
   "workflow.preview.cancel": "キャンセル",
-  "workflow.preview.additionalRequest": "依頼内容を全文入力してください:",
-  "workflow.preview.additionalPlaceholder": "ワークフローに求める内容を全て記述してください...",
+  "workflow.preview.additionalRequest": "追加の依頼:",
+  "workflow.preview.additionalPlaceholder": "そのまま採用する場合は空のままで構いません。修正したい場合は変更内容を入力してください...",
   "workflow.preview.referenceHistory": "実行履歴を参照",
   "workflow.preview.stepsSelected": "{{count}}ステップ選択中",
 
@@ -749,6 +749,7 @@ export const ja: Record<string, string> = {
   "aiWorkflow.modifyTitle": "AIでワークフローを変更",
   "aiWorkflow.modifySkillTitle": "AIでスキルを変更",
   "aiWorkflow.confirmSkillChanges": "スキルの変更を確認",
+  "aiWorkflow.noChanges": "（変更なし）",
   "aiWorkflow.describeCreate": "作成したいワークフローまたはスキルを説明してください:",
   "aiWorkflow.describeModify": "希望する変更を説明してください:",
   "aiWorkflow.placeholderCreate": "例: 現在のノートを要約してサマリーファイルに保存",

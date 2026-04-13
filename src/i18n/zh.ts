@@ -633,8 +633,8 @@ export const zh: Record<string, string> = {
   "workflow.preview.no": "否，修改",
   "workflow.preview.regenerate": "重新生成",
   "workflow.preview.cancel": "取消",
-  "workflow.preview.additionalRequest": "请输入完整的请求内容：",
-  "workflow.preview.additionalPlaceholder": "完整描述您希望工作流执行的操作...",
+  "workflow.preview.additionalRequest": "追加请求：",
+  "workflow.preview.additionalPlaceholder": "如需直接采用请留空，或描述需要更改的内容以调整结果...",
   "workflow.preview.referenceHistory": "参考执行历史",
   "workflow.preview.stepsSelected": "已选择{{count}}个步骤",
 
@@ -749,6 +749,7 @@ export const zh: Record<string, string> = {
   "aiWorkflow.modifyTitle": "使用 AI 修改工作流",
   "aiWorkflow.modifySkillTitle": "使用 AI 修改技能",
   "aiWorkflow.confirmSkillChanges": "确认技能更改",
+  "aiWorkflow.noChanges": "（无变更）",
   "aiWorkflow.describeCreate": "描述您要创建的工作流或技能：",
   "aiWorkflow.describeModify": "描述您想要的修改：",
   "aiWorkflow.placeholderCreate": "例如：总结当前笔记并保存到摘要文件",

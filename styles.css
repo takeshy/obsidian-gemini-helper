@@ -3476,6 +3476,42 @@
   min-height: 0;
 }
 
+/* Shown in place of a diff when old/new content is identical. */
+.ai-workflow-confirm-no-changes {
+  padding: 10px 14px;
+  color: var(--text-muted);
+  font-style: italic;
+  text-align: center;
+  background: var(--background-secondary);
+  border: 1px dashed var(--background-modifier-border);
+  border-radius: 6px;
+}
+
+/* Read-only display of the user's original request shown at the top of
+   the confirm modal so the user remembers what was asked. */
+.ai-workflow-confirm-user-request {
+  padding: 8px 12px;
+  background: var(--background-secondary);
+  border-left: 3px solid var(--interactive-accent);
+  border-radius: 4px;
+}
+
+.ai-workflow-confirm-user-request-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 4px;
+}
+
+.ai-workflow-confirm-user-request-body {
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
 .ai-workflow-confirm-modal .workflow-preview-additional,
 .ai-workflow-confirm-modal .ai-workflow-buttons {
   flex-shrink: 0;

@@ -632,8 +632,8 @@ export const es: Record<string, string> = {
   "workflow.preview.no": "No, modificar",
   "workflow.preview.regenerate": "Regenerar",
   "workflow.preview.cancel": "Cancelar",
-  "workflow.preview.additionalRequest": "Ingrese su solicitud completa:",
-  "workflow.preview.additionalPlaceholder": "Describa completamente lo que desea que haga el workflow...",
+  "workflow.preview.additionalRequest": "Solicitud adicional:",
+  "workflow.preview.additionalPlaceholder": "Déjelo vacío para aceptar tal cual, o describa qué debería cambiar para refinar el resultado...",
   "workflow.preview.referenceHistory": "Referir historial de ejecución",
   "workflow.preview.stepsSelected": "{{count}} paso(s) seleccionado(s)",
 
@@ -748,6 +748,7 @@ export const es: Record<string, string> = {
   "aiWorkflow.modifyTitle": "Modificar flujo de trabajo con IA",
   "aiWorkflow.modifySkillTitle": "Modificar skill con IA",
   "aiWorkflow.confirmSkillChanges": "Confirmar cambios del skill",
+  "aiWorkflow.noChanges": "(sin cambios)",
   "aiWorkflow.describeCreate": "Describe el workflow o skill que deseas crear:",
   "aiWorkflow.describeModify": "Describe las modificaciones que deseas:",
   "aiWorkflow.placeholderCreate": "Ej., Resumir la nota actual y guardar en un archivo de resumen",

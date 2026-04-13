@@ -63,7 +63,7 @@ class WorkflowConfirmModal extends Modal {
   private oldYaml: string;
   private newYaml: string;
   private explanation?: string;
-  private previousRequest: string;
+  private userRequest: string;
   private generationContext: GenerationContext;
   private isSkill: boolean;
   private resolvePromise: (result: WorkflowConfirmResult) => void;
@@ -75,7 +75,7 @@ class WorkflowConfirmModal extends Modal {
     oldYaml: string,
     newYaml: string,
     explanation: string | undefined,
-    previousRequest: string,
+    userRequest: string,
     generationContext: GenerationContext,
     isSkill: boolean,
     resolvePromise: (result: WorkflowConfirmResult) => void
@@ -84,7 +84,7 @@ class WorkflowConfirmModal extends Modal {
     this.oldYaml = oldYaml;
     this.newYaml = newYaml;
     this.explanation = explanation;
-    this.previousRequest = previousRequest;
+    this.userRequest = userRequest;
     this.generationContext = generationContext;
     this.isSkill = isSkill;
     this.resolvePromise = resolvePromise;
@@ -106,6 +106,20 @@ class WorkflowConfirmModal extends Modal {
     // Scrollable middle area holds everything that can grow (explanation + diff + context)
     // so the textarea and buttons below always remain visible.
     const scrollable = contentEl.createDiv({ cls: "ai-workflow-confirm-scrollable" });
+
+    // Read-only display of the user's request for this iteration so the user
+    // can see what was asked without re-prefilling the refinement textarea.
+    if (this.userRequest?.trim()) {
+      const requestContainer = scrollable.createDiv({ cls: "ai-workflow-confirm-user-request" });
+      requestContainer.createEl("div", {
+        cls: "ai-workflow-confirm-user-request-label",
+        text: t("workflow.generation.yourRequest"),
+      });
+      requestContainer.createEl("div", {
+        cls: "ai-workflow-confirm-user-request-body",
+        text: this.userRequest.trim(),
+      });
+    }
 
     // Explanation section (if available)
     if (this.explanation) {
@@ -130,9 +144,17 @@ class WorkflowConfirmModal extends Modal {
     // Create diff view with toggle
     const diffLabel = scrollable.createDiv({ cls: "gemini-helper-edit-confirm-preview-label" });
     diffLabel.createEl("span", { text: t("workflowModal.changes") });
-    const diffWrapper = scrollable.createDiv({ cls: "ai-workflow-confirm-diff-wrapper" });
-    const diffState = renderDiffView(diffWrapper, this.oldYaml, this.newYaml);
-    createDiffViewToggle(diffLabel, diffState);
+    const yamlUnchanged = this.oldYaml === this.newYaml;
+    if (yamlUnchanged) {
+      scrollable.createDiv({
+        cls: "ai-workflow-confirm-no-changes",
+        text: t("aiWorkflow.noChanges"),
+      });
+    } else {
+      const diffWrapper = scrollable.createDiv({ cls: "ai-workflow-confirm-diff-wrapper" });
+      const diffState = renderDiffView(diffWrapper, this.oldYaml, this.newYaml);
+      createDiffViewToggle(diffLabel, diffState);
+    }
 
     // Generation context (plan/thinking/review)
     this.markdownComponent = new Component();
@@ -155,9 +177,6 @@ class WorkflowConfirmModal extends Modal {
         rows: "3",
       },
     });
-    if (this.previousRequest) {
-      this.additionalRequestEl.value = this.previousRequest;
-    }
 
     // Buttons
     const buttonContainer = contentEl.createDiv({ cls: "ai-workflow-buttons" });
@@ -172,7 +191,8 @@ class WorkflowConfirmModal extends Modal {
       text: t("message.requestChanges"),
       cls: "mod-warning",
     });
-    requestChangesBtn.disabled = !(this.previousRequest?.trim());
+    // Start disabled — enabled once the user types a refinement.
+    requestChangesBtn.disabled = true;
     this.additionalRequestEl.addEventListener("input", () => {
       requestChangesBtn.disabled = !(this.additionalRequestEl?.value?.trim());
     });
@@ -259,12 +279,12 @@ function showWorkflowConfirmation(
   oldYaml: string,
   newYaml: string,
   explanation: string | undefined,
-  previousRequest: string,
+  userRequest: string,
   generationContext: GenerationContext,
   isSkill: boolean
 ): Promise<WorkflowConfirmResult> {
   return new Promise((resolve) => {
-    const modal = new WorkflowConfirmModal(app, oldYaml, newYaml, explanation, previousRequest, generationContext, isSkill, resolve);
+    const modal = new WorkflowConfirmModal(app, oldYaml, newYaml, explanation, userRequest, generationContext, isSkill, resolve);
     modal.open();
   });
 }

@@ -632,8 +632,8 @@ export const de: Record<string, string> = {
   "workflow.preview.no": "Nein, ändern",
   "workflow.preview.regenerate": "Neu generieren",
   "workflow.preview.cancel": "Abbrechen",
-  "workflow.preview.additionalRequest": "Geben Sie Ihre vollständige Anfrage ein:",
-  "workflow.preview.additionalPlaceholder": "Beschreiben Sie vollständig, was der Workflow tun soll...",
+  "workflow.preview.additionalRequest": "Zusätzliche Anfrage:",
+  "workflow.preview.additionalPlaceholder": "Leer lassen, um es unverändert zu übernehmen, oder beschreiben Sie, was geändert werden soll...",
   "workflow.preview.referenceHistory": "Ausführungsverlauf referenzieren",
   "workflow.preview.stepsSelected": "{{count}} Schritt(e) ausgewählt",
 
@@ -748,6 +748,7 @@ export const de: Record<string, string> = {
   "aiWorkflow.modifyTitle": "Workflow mit KI ändern",
   "aiWorkflow.modifySkillTitle": "Skill mit KI ändern",
   "aiWorkflow.confirmSkillChanges": "Skill-Änderungen bestätigen",
+  "aiWorkflow.noChanges": "(keine Änderungen)",
   "aiWorkflow.describeCreate": "Beschreiben Sie den Workflow oder Skill, den Sie erstellen möchten:",
   "aiWorkflow.describeModify": "Beschreiben Sie die gewünschten Änderungen:",
   "aiWorkflow.placeholderCreate": "Z.B. Die aktuelle Notiz zusammenfassen und in eine Zusammenfassungsdatei speichern",

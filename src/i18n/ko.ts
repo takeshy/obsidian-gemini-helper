@@ -634,8 +634,8 @@ export const ko: Record<string, string> = {
   "workflow.preview.no": "수정하기",
   "workflow.preview.regenerate": "다시 생성",
   "workflow.preview.cancel": "취소",
-  "workflow.preview.additionalRequest": "전체 요청 내용을 입력하세요:",
-  "workflow.preview.additionalPlaceholder": "워크플로우가 수행할 작업을 완전히 설명하세요...",
+  "workflow.preview.additionalRequest": "추가 요청:",
+  "workflow.preview.additionalPlaceholder": "그대로 적용하려면 비워두세요. 수정하려면 변경할 내용을 입력하세요...",
   "workflow.preview.referenceHistory": "실행 이력 참조",
   "workflow.preview.stepsSelected": "{{count}}개 단계 선택됨",
 
@@ -750,6 +750,7 @@ export const ko: Record<string, string> = {
   "aiWorkflow.modifyTitle": "AI로 워크플로우 수정",
   "aiWorkflow.modifySkillTitle": "AI로 스킬 수정",
   "aiWorkflow.confirmSkillChanges": "스킬 변경 확인",
+  "aiWorkflow.noChanges": "(변경 없음)",
   "aiWorkflow.describeCreate": "만들고 싶은 워크플로우 또는 스킬을 설명하세요:",
   "aiWorkflow.describeModify": "원하는 수정 사항을 설명하세요:",
   "aiWorkflow.placeholderCreate": "예: 현재 노트를 요약하고 요약 파일에 저장",

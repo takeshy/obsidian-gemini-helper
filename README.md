@@ -310,7 +310,7 @@ This is useful for quickly running workflows without navigating to the workflow 
 7. After generation, the AI runs a **review** over the result. If issues are found you can **OK** (with a confirmation prompt), **Refine** (regenerate using the review feedback), or **Cancel**. Clean reviews proceed automatically
 8. The workflow is saved once you accept the final preview
 
-> **Tip:** When using **+ New (AI)** from the dropdown on a file that already has a workflow block, the output path defaults to the current file's path. Because each file can only hold one workflow, the modal asks you to pick a different output path if that target is already taken.
+> **Tip:** **+ New (AI)** always defaults the output path to `workflows/{{name}}` — each file can only hold one workflow, so the currently open file is never auto-filled as the target. If you pick a path that already contains a workflow, the modal asks you to choose a different one.
 
 **Create workflow from any file:**
 

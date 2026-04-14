@@ -693,8 +693,10 @@ export default function WorkflowPanel({ plugin }: WorkflowPanelProps) {
     }
 
     if (value === "__new_ai__") {
-      const defaultOutputPath = workflowFile?.path?.replace(/\.md$/, "");
-      const result = await promptForAIWorkflow(plugin.app, plugin, "create", undefined, undefined, defaultOutputPath);
+      // Under 1-file-1-workflow the currently open file is already taken, so
+      // defaulting the output to its path would just trigger the collision
+      // check. Fall through to the modal's default template (workflows/{{name}}).
+      const result = await promptForAIWorkflow(plugin.app, plugin, "create");
 
       if (result && result.outputPath) {
         let targetFile: TFile;

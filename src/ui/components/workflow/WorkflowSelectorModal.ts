@@ -1,7 +1,6 @@
 import { App, Modal, TFile } from "obsidian";
 import { t } from "src/i18n";
-import { listWorkflowOptions, WorkflowOption } from "src/workflow/parser";
-import { loadFromCodeBlock, LoadResult } from "src/workflow/codeblockSync";
+import { loadFromCodeBlock, LoadResult, WorkflowBlockData } from "src/workflow/codeblockSync";
 import { SidebarNode, WorkflowNodeType } from "src/workflow/types";
 import type { GeminiHelperPlugin } from "src/plugin";
 import { DEFAULT_WORKSPACE_FOLDER, WORKFLOWS_FOLDER } from "src/types";
@@ -93,27 +92,26 @@ function getNodeSummary(node: SidebarNode): string {
 
 export class WorkflowSelectorModal extends Modal {
   private plugin: GeminiHelperPlugin;
-  private onExecute: (filePath: string, workflowName: string) => void;
-  private onOpenCallback?: (filePath: string, workflowName: string, workflowIndex: number) => void;
+  private onExecute: (filePath: string) => void;
+  private onOpenCallback?: (filePath: string) => void;
 
   private files: TFile[] = [];
   private filteredFiles: TFile[] = [];
   private selectedFile: TFile | null = null;
   private fileContent: string = "";
-  private workflowOptions: WorkflowOption[] = [];
-  private selectedWorkflowIndex = 0;
+  private loadedWorkflow: WorkflowBlockData | null = null;
+  private loadError: string | null = null;
 
   private searchInput: HTMLInputElement | null = null;
   private fileListEl: HTMLElement | null = null;
   private previewEl: HTMLElement | null = null;
-  private workflowSelectEl: HTMLSelectElement | null = null;
   private executeBtn: HTMLButtonElement | null = null;
 
   constructor(
     app: App,
     plugin: GeminiHelperPlugin,
-    onExecute: (filePath: string, workflowName: string) => void,
-    onOpen?: (filePath: string, workflowName: string, workflowIndex: number) => void
+    onExecute: (filePath: string) => void,
+    onOpen?: (filePath: string) => void
   ) {
     super(app);
     this.plugin = plugin;
@@ -179,17 +177,6 @@ export class WorkflowSelectorModal extends Modal {
 
     // Right pane: Preview
     const rightPane = mainContent.createDiv({ cls: "workflow-selector-right-pane" });
-
-    // Workflow selector (for files with multiple workflows)
-    const workflowSelectContainer = rightPane.createDiv({ cls: "workflow-selector-dropdown-container is-hidden" });
-    workflowSelectContainer.createEl("label", { text: t("workflowSelector.selectWorkflow") });
-    this.workflowSelectEl = workflowSelectContainer.createEl("select", {
-      cls: "workflow-selector-dropdown",
-    });
-    this.workflowSelectEl.addEventListener("change", () => {
-      this.selectedWorkflowIndex = this.workflowSelectEl!.selectedIndex;
-      void this.renderWorkflowPreview();
-    });
 
     // Preview area
     this.previewEl = rightPane.createDiv({ cls: "workflow-selector-preview" });
@@ -343,28 +330,27 @@ export class WorkflowSelectorModal extends Modal {
     this.plugin.settings.lastSelectedWorkflowPath = file.path;
     void this.plugin.saveSettings();
 
-    // Load file content and find workflows
+    // Load file content and find the single workflow block
     try {
       this.fileContent = await this.app.vault.read(file);
-      this.workflowOptions = listWorkflowOptions(this.fileContent);
-      this.selectedWorkflowIndex = 0;
-
-      // Update workflow dropdown
-      this.updateWorkflowDropdown();
+      const result: LoadResult = loadFromCodeBlock(this.fileContent);
+      this.loadedWorkflow = result.data;
+      this.loadError = result.error ?? null;
 
       // Update preview
-      void this.renderWorkflowPreview();
+      this.renderWorkflowPreview();
 
-      // Enable execute button if workflows found
+      // Enable execute button only when a parseable workflow is loaded
       if (this.executeBtn) {
-        this.executeBtn.disabled = this.workflowOptions.length === 0;
+        this.executeBtn.disabled = !this.loadedWorkflow;
       }
     } catch {
       if (this.previewEl) {
         this.previewEl.empty();
         this.previewEl.setText(t("workflowModal.failedToLoadPreview"));
       }
-      this.workflowOptions = [];
+      this.loadedWorkflow = null;
+      this.loadError = null;
       this.fileContent = "";
       if (this.executeBtn) {
         this.executeBtn.disabled = true;
@@ -376,23 +362,20 @@ export class WorkflowSelectorModal extends Modal {
     if (!this.previewEl || !this.selectedFile) return;
     this.previewEl.empty();
 
-    if (this.workflowOptions.length === 0) {
+    if (this.loadError) {
+      this.previewEl.setText(this.loadError);
+      return;
+    }
+    if (!this.loadedWorkflow) {
       this.previewEl.setText(t("workflow.noWorkflowInFile"));
       return;
     }
-
-    const selectedOption = this.workflowOptions[this.selectedWorkflowIndex];
-    const result: LoadResult = loadFromCodeBlock(
-      this.fileContent,
-      selectedOption.name,
-      selectedOption.name ? undefined : selectedOption.index
-    );
-
-    if (!result.data || result.data.nodes.length === 0) {
+    if (this.loadedWorkflow.nodes.length === 0) {
       this.previewEl.setText(t("workflow.noNodes"));
       return;
     }
 
+    const result: { data: WorkflowBlockData } = { data: this.loadedWorkflow };
     const nodes = result.data.nodes;
     const nodeTypeLabels = getNodeTypeLabels();
 
@@ -496,47 +479,11 @@ export class WorkflowSelectorModal extends Modal {
     }
   }
 
-  private updateWorkflowDropdown(): void {
-    if (!this.workflowSelectEl) return;
-
-    const container = this.workflowSelectEl.parentElement;
-    this.workflowSelectEl.empty();
-
-    if (this.workflowOptions.length === 0) {
-      // No workflows found
-      if (container) container.addClass("is-hidden");
-      return;
-    }
-
-    if (this.workflowOptions.length === 1) {
-      // Single workflow, hide dropdown
-      if (container) container.addClass("is-hidden");
-      this.selectedWorkflowIndex = 0;
-      return;
-    }
-
-    // Multiple workflows, show dropdown
-    if (container) container.removeClass("is-hidden");
-
-    for (let i = 0; i < this.workflowOptions.length; i++) {
-      const option = this.workflowOptions[i];
-      const optionEl = this.workflowSelectEl.createEl("option", {
-        value: String(i),
-        text: option.label,
-      });
-      if (i === this.selectedWorkflowIndex) {
-        optionEl.selected = true;
-      }
-    }
-  }
-
   private onOpenClick(): void {
     if (!this.selectedFile) return;
 
-    if (this.onOpenCallback && this.workflowOptions.length > 0) {
-      const selectedOption = this.workflowOptions[this.selectedWorkflowIndex];
-      const workflowName = selectedOption.name || selectedOption.label;
-      this.onOpenCallback(this.selectedFile.path, workflowName, this.selectedWorkflowIndex);
+    if (this.onOpenCallback) {
+      this.onOpenCallback(this.selectedFile.path);
     }
 
     // Open the file in Obsidian
@@ -546,13 +493,10 @@ export class WorkflowSelectorModal extends Modal {
   }
 
   private onExecuteClick(): void {
-    if (!this.selectedFile || this.workflowOptions.length === 0) return;
-
-    const selectedOption = this.workflowOptions[this.selectedWorkflowIndex];
-    const workflowName = selectedOption.name || selectedOption.label;
+    if (!this.selectedFile || !this.loadedWorkflow) return;
 
     this.close();
-    this.onExecute(this.selectedFile.path, workflowName);
+    this.onExecute(this.selectedFile.path);
   }
 
   onClose(): void {

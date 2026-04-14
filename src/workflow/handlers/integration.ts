@@ -12,9 +12,6 @@ export async function handleWorkflowNode(
   promptCallbacks?: PromptCallbacks
 ): Promise<void> {
   const path = replaceVariables(node.properties["path"] || "", context);
-  const name = node.properties["name"]
-    ? replaceVariables(node.properties["name"], context)
-    : undefined;
   const inputStr = node.properties["input"] || "";
   const outputStr = node.properties["output"] || "";
 
@@ -62,7 +59,6 @@ export async function handleWorkflowNode(
   // Execute sub-workflow
   const resultVariables = await promptCallbacks.executeSubWorkflow(
     path,
-    name,
     inputVariables
   );
 

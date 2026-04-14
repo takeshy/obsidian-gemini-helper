@@ -249,7 +249,6 @@ export interface PromptCallbacks {
   openFile?: (filePath: string) => Promise<void>;
   executeSubWorkflow?: (
     workflowPath: string,
-    workflowName: string | undefined,
     inputVariables: Map<string, string | number>
   ) => Promise<Map<string, string | number>>;
   promptForPassword?: () => Promise<string | null>;

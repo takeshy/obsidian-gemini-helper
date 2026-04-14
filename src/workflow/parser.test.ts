@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { normalizeYamlText } from "./parser";
+import { normalizeYamlText, parseWorkflowFromMarkdown } from "./parser";
 
 describe("normalizeYamlText", () => {
   describe("list marker conversion", () => {
@@ -346,5 +346,36 @@ nodes:
       expect(result).toContain('  path: "{{fileInfo.name}}-infographic"');
       expect(result).toContain("  title: Done");
     });
+  });
+});
+
+describe("parseWorkflowFromMarkdown (1 file = 1 workflow)", () => {
+  // Full happy-path parsing requires obsidian's parseYaml, which isn't available in
+  // the test stub. The error paths below don't need YAML parsing to succeed.
+
+  const multiBlock = `
+\`\`\`workflow
+name: first
+nodes:
+  - id: a
+    type: command
+    prompt: one
+\`\`\`
+
+\`\`\`workflow
+name: second
+nodes:
+  - id: b
+    type: command
+    prompt: two
+\`\`\`
+`;
+
+  it("throws when the file contains multiple workflow blocks", () => {
+    expect(() => parseWorkflowFromMarkdown(multiBlock)).toThrow(/Multiple workflow blocks/);
+  });
+
+  it("throws when the file contains no workflow block", () => {
+    expect(() => parseWorkflowFromMarkdown("just prose, no code block")).toThrow(/No workflow code block/);
   });
 });

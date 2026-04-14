@@ -989,20 +989,16 @@ export class WorkflowExecutor {
 
           case "workflow": {
             const subWorkflowPath = replaceVariables(node.properties["path"] || "", context);
-            const subWorkflowName = node.properties["name"]
-              ? replaceVariables(node.properties["name"], context)
-              : undefined;
             log(
               node.id,
               node.type,
-              `Executing sub-workflow: ${subWorkflowPath}${subWorkflowName ? ` (${subWorkflowName})` : ""}`,
+              `Executing sub-workflow: ${subWorkflowPath}`,
               "info"
             );
 
             // Create executeSubWorkflow callback for the handler
             const executeSubWorkflow = async (
               workflowPath: string,
-              workflowName: string | undefined,
               inputVariables: Map<string, string | number>
             ): Promise<Map<string, string | number>> => {
               // Read workflow file
@@ -1023,7 +1019,7 @@ export class WorkflowExecutor {
               }
 
               const content = await this.app.vault.read(actualFile);
-              const subWorkflow = parseWorkflowFromMarkdown(content, workflowName);
+              const subWorkflow = parseWorkflowFromMarkdown(content);
 
               // Execute sub-workflow
               const subInput: WorkflowInput = { variables: inputVariables };
@@ -1061,7 +1057,7 @@ export class WorkflowExecutor {
 
             await handleWorkflowNode(node, context, this.app, extendedCallbacks);
 
-            const subWorkflowInput = { path: subWorkflowPath, name: subWorkflowName };
+            const subWorkflowInput = { path: subWorkflowPath };
             log(node.id, node.type, `Sub-workflow completed: ${subWorkflowPath}`, "success", subWorkflowInput, "completed");
             addHistoryStep(
               node.id,

@@ -202,75 +202,17 @@ interface FrontmatterWorkflowNode {
 }
 
 
-export interface WorkflowOption {
-  label: string;
-  name?: string;
-  index: number;
-  startLine: number;  // 0-based line number
-  endLine: number;    // 0-based line number
-  startOffset: number;
-  endOffset: number;
-  parseError?: string; // YAML parse error if present
-}
-
-// Convert character offset to line number (0-based)
-function offsetToLine(content: string, offset: number): number {
-  let line = 0;
-  for (let i = 0; i < offset && i < content.length; i++) {
-    if (content[i] === "\n") {
-      line++;
-    }
-  }
-  return line;
-}
-
-export function listWorkflowOptions(content: string): WorkflowOption[] {
-  return findWorkflowBlocks(content).map((block, index) => {
-    const workflowObj =
-      block.yaml.workflow && typeof block.yaml.workflow === "object"
-        ? (block.yaml.workflow as Record<string, unknown>)
-        : undefined;
-    const name =
-      block.name ||
-      (typeof workflowObj?.name === "string" ? workflowObj.name : undefined);
-    return {
-      label: block.parseError ? `⚠ ${name || `unnamed #${index + 1}`}` : (name || `unnamed #${index + 1}`),
-      name,
-      index,
-      startLine: offsetToLine(content, block.start),
-      endLine: offsetToLine(content, block.end),
-      startOffset: block.start,
-      endOffset: block.end,
-      parseError: block.parseError,
-    };
-  });
-}
-
-export function parseWorkflowFromMarkdown(
-  content: string,
-  name?: string,
-  index?: number
-): Workflow {
+export function parseWorkflowFromMarkdown(content: string): Workflow {
   const blocks = findWorkflowBlocks(content);
   if (blocks.length === 0) {
     throw new Error("No workflow code block found");
   }
-
-  let block = blocks[0];
-  if (name) {
-    const match = blocks.find((b) => b.name === name);
-    if (!match) {
-      throw new Error(`Workflow '${name}' not found`);
-    }
-    block = match;
-  } else if (index !== undefined) {
-    if (index < 0 || index >= blocks.length) {
-      throw new Error("Workflow index out of range");
-    }
-    block = blocks[index];
-  } else if (blocks.length > 1) {
-    throw new Error("Multiple workflows found. Specify a workflow name.");
+  if (blocks.length > 1) {
+    throw new Error(
+      "Multiple workflow blocks found in a single file. Each file may contain only one workflow; split the file manually or use the Migration action."
+    );
   }
+  const block = blocks[0];
 
   const workflowContainer =
     block.yaml.workflow && typeof block.yaml.workflow === "object"

@@ -415,7 +415,6 @@ export class NodeEditorModal extends Modal {
 
       case "workflow":
         this.addTextField(container, "path", t("nodeEditor.workflowPath"), t("nodeEditor.workflowPath.placeholder"));
-        this.addTextField(container, "name", t("nodeEditor.workflowName"), t("nodeEditor.workflowName.placeholder"));
         this.addTextArea(container, "input", t("nodeEditor.inputVariables"), t("nodeEditor.inputVariables.placeholder"));
         this.addTextArea(container, "output", t("nodeEditor.outputVariables"), t("nodeEditor.outputVariables.placeholder"));
         this.addTextField(container, "prefix", t("nodeEditor.prefix"), t("nodeEditor.prefix.placeholder"));

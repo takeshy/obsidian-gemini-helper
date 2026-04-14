@@ -5,7 +5,7 @@ import { tracing } from "src/core/tracingHooks";
 import { getAvailableModels, SKILLS_FOLDER, WORKFLOWS_FOLDER, type ModelType, type Attachment, type StreamChunkUsage } from "src/types";
 import { getWorkflowSpecification, buildWorkflowSpecContext } from "src/workflow/workflowSpec";
 import type { SidebarNode, WorkflowNodeType, ExecutionStep } from "src/workflow/types";
-import { listWorkflowOptions, normalizeYamlText } from "src/workflow/parser";
+import { findWorkflowBlocks, normalizeYamlText } from "src/workflow/parser";
 import { ExecutionHistoryManager } from "src/workflow/history";
 import { renderDiffView, createDiffViewToggle } from "./DiffRenderer";
 import { WorkflowGenerationModal } from "./WorkflowGenerationModal";
@@ -841,7 +841,7 @@ export class AIWorkflowModal extends Modal {
       const isSkill = this.isSkill();
 
       // Create mode: save markdown directly (validate it has workflow blocks)
-      const options = listWorkflowOptions(pastedText);
+      const options = findWorkflowBlocks(pastedText);
       if (options.length === 0) {
         // Fallback: try parsing as raw YAML
         const parsed = parseWorkflowResponse(pastedText);

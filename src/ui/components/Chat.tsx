@@ -2150,7 +2150,7 @@ async function executeSkillWorkflow(
 	// Parse workflow
 	let workflow;
 	try {
-		workflow = parseWorkflowFromMarkdown(content, workflowRef.name);
+		workflow = parseWorkflowFromMarkdown(content);
 	} catch (e) {
 		return { error: `Failed to parse workflow: ${e instanceof Error ? e.message : String(e)}`, workflowId, workflowPath: vaultPath };
 	}

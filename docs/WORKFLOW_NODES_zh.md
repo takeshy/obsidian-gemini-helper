@@ -437,7 +437,6 @@ nodes:
 | 属性 | 描述 |
 |----------|-------------|
 | `path` | 工作流文件路径（必填） |
-| `name` | 工作流名称（用于包含多个工作流的文件） |
 | `input` | 将子工作流变量映射到值的 JSON |
 | `output` | 将父变量映射到子工作流结果的 JSON |
 | `prefix` | 所有输出变量的前缀（当未指定 `output` 时） |
@@ -1350,13 +1349,11 @@ nodes:
   - id: toJapanese
     type: workflow
     path: "workflows/translate.md"
-    name: "Translator"
     input: '{"text": "{{userInput.input}}", "targetLang": "Japanese"}'
     output: '{"japaneseText": "translated"}'
   - id: toSpanish
     type: workflow
     path: "workflows/translate.md"
-    name: "Translator"
     input: '{"text": "{{userInput.input}}", "targetLang": "Spanish"}'
     output: '{"spanishText": "translated"}'
   - id: save

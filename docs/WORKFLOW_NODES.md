@@ -422,13 +422,12 @@ Display a dialog with options, buttons, and/or text input.
 
 ### workflow
 
-Execute another workflow as a sub-workflow.
+Execute another workflow as a sub-workflow. Each target file holds exactly one workflow, so `path` alone identifies it.
 
 ```yaml
 - id: runSub
   type: workflow
   path: "workflows/summarize.md"
-  name: "Summarizer"
   input: '{"text": "{{content}}"}'
   output: '{"result": "summary"}'
   prefix: "sub_"
@@ -437,7 +436,6 @@ Execute another workflow as a sub-workflow.
 | Property | Description |
 |----------|-------------|
 | `path` | Path to workflow file (required) |
-| `name` | Workflow name (for files with multiple workflows) |
 | `input` | JSON mapping sub-workflow variables to values |
 | `output` | JSON mapping parent variables to sub-workflow results |
 | `prefix` | Prefix for all output variables (when `output` not specified) |
@@ -1320,11 +1318,10 @@ nodes:
 ````
 
 **Hotkey setup:**
-1. Add a `name:` field to your workflow
-2. Open the workflow file and select the workflow from dropdown
-3. Click the keyboard icon in the Workflow panel footer
-4. Go to Settings → Hotkeys → search "Workflow: Translate Selection"
-5. Assign a hotkey (e.g., `Ctrl+Shift+T`)
+1. Open the workflow file (the filename is used as the hotkey's display name)
+2. Click the keyboard icon in the Workflow panel footer
+3. Go to Settings → Hotkeys → search "Workflow: [filename]"
+4. Assign a hotkey (e.g., `Ctrl+Shift+T`)
 
 ### 7. Sub-Workflow Composition
 
@@ -1354,13 +1351,11 @@ nodes:
   - id: toJapanese
     type: workflow
     path: "workflows/translate.md"
-    name: "Translator"
     input: '{"text": "{{userInput.input}}", "targetLang": "Japanese"}'
     output: '{"japaneseText": "translated"}'
   - id: toSpanish
     type: workflow
     path: "workflows/translate.md"
-    name: "Translator"
     input: '{"text": "{{userInput.input}}", "targetLang": "Spanish"}'
     output: '{"spanishText": "translated"}'
   - id: save

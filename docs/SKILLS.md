@@ -109,7 +109,7 @@ nodes:
 ```
 ````
 
-When a skill with workflows is active, the AI receives a `run_skill_workflow` tool that it can call to execute these workflows. The workflow ID format is `skillName/workflowName` (e.g., `Code Review/workflows_run-lint`).
+When a skill with workflows is active, the AI receives a `run_skill_workflow` tool that it can call to execute these workflows. The workflow ID is derived from the workflow file's path relative to the skill folder — e.g. a capability with `path: workflows/run-lint.md` inside the "Code Review" skill produces the ID `Code Review/workflows_run-lint`.
 
 ### Interactive Execution
 

@@ -437,7 +437,6 @@ LLM 응답이 코드 펜스로 JSON을 감싸는 경우에 유용합니다.
 | 속성 | 설명 |
 |----------|-------------|
 | `path` | 워크플로우 파일 경로 (필수) |
-| `name` | 워크플로우 이름 (여러 워크플로우가 있는 파일용) |
 | `input` | 서브 워크플로우 변수를 값에 매핑하는 JSON |
 | `output` | 부모 변수를 서브 워크플로우 결과에 매핑하는 JSON |
 | `prefix` | 모든 출력 변수의 접두사 (`output`이 지정되지 않은 경우) |
@@ -1350,13 +1349,11 @@ nodes:
   - id: toJapanese
     type: workflow
     path: "workflows/translate.md"
-    name: "Translator"
     input: '{"text": "{{userInput.input}}", "targetLang": "Japanese"}'
     output: '{"japaneseText": "translated"}'
   - id: toSpanish
     type: workflow
     path: "workflows/translate.md"
-    name: "Translator"
     input: '{"text": "{{userInput.input}}", "targetLang": "Spanish"}'
     output: '{"spanishText": "translated"}'
   - id: save

@@ -437,7 +437,6 @@ Executar outro workflow como sub-workflow.
 | Propriedade | Descricao |
 |-------------|-----------|
 | `path` | Caminho para arquivo de workflow (obrigatorio) |
-| `name` | Nome do workflow (para arquivos com multiplos workflows) |
 | `input` | Mapeamento JSON de variaveis do sub-workflow para valores |
 | `output` | Mapeamento JSON de variaveis pai para resultados do sub-workflow |
 | `prefix` | Prefixo para todas as variaveis de saida (quando `output` nao especificado) |
@@ -1350,13 +1349,11 @@ nodes:
   - id: toJapanese
     type: workflow
     path: "workflows/translate.md"
-    name: "Translator"
     input: '{"text": "{{userInput.input}}", "targetLang": "Japanese"}'
     output: '{"japaneseText": "translated"}'
   - id: toSpanish
     type: workflow
     path: "workflows/translate.md"
-    name: "Translator"
     input: '{"text": "{{userInput.input}}", "targetLang": "Spanish"}'
     output: '{"spanishText": "translated"}'
   - id: save

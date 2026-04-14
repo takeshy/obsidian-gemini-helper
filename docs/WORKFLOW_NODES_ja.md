@@ -437,7 +437,6 @@ JSON 文字列をオブジェクトにパースしてプロパティアクセス
 | プロパティ | 説明 |
 |------------|------|
 | `path` | ワークフローファイルのパス（必須） |
-| `name` | ワークフロー名（ファイルに複数ある場合） |
 | `input` | サブワークフロー変数へのマッピング JSON |
 | `output` | 親変数へのマッピング JSON |
 | `prefix` | 出力変数の接頭辞（`output` 未指定時） |
@@ -1354,13 +1353,11 @@ nodes:
   - id: toJapanese
     type: workflow
     path: "workflows/translate.md"
-    name: "Translator"
     input: '{"text": "{{userInput.input}}", "targetLang": "日本語"}'
     output: '{"japaneseText": "translated"}'
   - id: toSpanish
     type: workflow
     path: "workflows/translate.md"
-    name: "Translator"
     input: '{"text": "{{userInput.input}}", "targetLang": "スペイン語"}'
     output: '{"spanishText": "translated"}'
   - id: save

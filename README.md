@@ -275,10 +275,12 @@ Build automated multi-step workflows directly in Markdown files. **No programmin
 
 **From Sidebar:**
 1. Open **Workflow / skill** tab in sidebar
-2. Open a file with `workflow` code block
-3. Select workflow from dropdown (or choose **Browse all workflows** to search all vault workflows)
+2. Open a file with a `workflow` code block (each file holds exactly one workflow — the filename is its display name)
+3. Choose **Browse all workflows** from the dropdown to switch to another workflow file anywhere in the vault
 4. Click **Run** to execute
 5. Click **History** to view past runs
+
+> **Migrating legacy files:** If you open a file that still contains multiple `workflow` code blocks (from before the 1-file-1-workflow redesign), the panel shows a **Split into individual files** button that writes blocks 2..N to sibling files. Skill capabilities, hotkeys, and event triggers bound to the original path stay attached to the first workflow — rebind them manually if needed.
 
 **From Command Palette (Run Workflow):**
 
@@ -308,7 +310,7 @@ This is useful for quickly running workflows without navigating to the workflow 
 7. After generation, the AI runs a **review** over the result. If issues are found you can **OK** (with a confirmation prompt), **Refine** (regenerate using the review feedback), or **Cancel**. Clean reviews proceed automatically
 8. The workflow is saved once you accept the final preview
 
-> **Tip:** When using **+ New (AI)** from the dropdown on a file that already has workflows, the output path defaults to the current file. The generated workflow will be appended to that file.
+> **Tip:** When using **+ New (AI)** from the dropdown on a file that already has a workflow block, the output path defaults to the current file's path. Because each file can only hold one workflow, the modal asks you to pick a different output path if that target is already taken.
 
 **Create workflow from any file:**
 
@@ -414,11 +416,10 @@ Edit workflows directly in the visual node editor with drag-and-drop interface.
 
 Assign keyboard shortcuts to run workflows instantly:
 
-1. Add a `name:` field to your workflow
-2. Open the workflow file and select the workflow from dropdown
-3. Click the keyboard icon (⌨️) in the Workflow panel footer
-4. Go to Settings → Hotkeys → search "Workflow: [Your Workflow Name]"
-5. Assign a hotkey (e.g., `Ctrl+Shift+T`)
+1. Open the workflow file (the filename becomes the hotkey's display name)
+2. Click the keyboard icon (⌨️) in the Workflow panel footer
+3. Go to Settings → Hotkeys → search "Workflow: [filename]"
+4. Assign a hotkey (e.g., `Ctrl+Shift+T`)
 
 When triggered by hotkey:
 - `prompt-file` uses the active file automatically (no dialog)
@@ -439,11 +440,10 @@ Workflows can be automatically triggered by Obsidian events:
 | File Opened | Triggered when a file is opened |
 
 **Event trigger setup:**
-1. Add a `name:` field to your workflow
-2. Open the workflow file and select the workflow from dropdown
-3. Click the zap icon (⚡) in the Workflow panel footer
-4. Select which events should trigger the workflow
-5. Optionally add a file pattern filter
+1. Open the workflow file (the filename is used as the trigger's display name)
+2. Click the zap icon (⚡) in the Workflow panel footer
+3. Select which events should trigger the workflow
+4. Optionally add a file pattern filter
 
 **File pattern examples:**
 - `**/*.md` - All Markdown files in any folder

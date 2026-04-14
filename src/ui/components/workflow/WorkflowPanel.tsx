@@ -8,7 +8,7 @@ import { WorkflowExecutionModal } from "./WorkflowExecutionModal";
 import type { GeminiHelperPlugin } from "src/plugin";
 import { SidebarNode, WorkflowNodeType, WorkflowInput, PromptCallbacks } from "src/workflow/types";
 import { loadFromCodeBlock, saveToCodeBlock } from "src/workflow/codeblockSync";
-import { parseWorkflowFromMarkdown } from "src/workflow/parser";
+import { findWorkflowBlocks, parseWorkflowFromMarkdown } from "src/workflow/parser";
 import { WorkflowExecutor } from "src/workflow/executor";
 import { NodeEditorModal } from "./NodeEditorModal";
 import { HistoryModal } from "./HistoryModal";
@@ -19,6 +19,7 @@ import { promptForConfirmation } from "./EditConfirmationModal";
 import { promptForDialog } from "./DialogPromptModal";
 import { showMcpApp } from "./McpAppModal";
 import { WorkflowSelectorModal } from "./WorkflowSelectorModal";
+import { ConfirmModal } from "src/ui/components/ConfirmModal";
 import { t } from "src/i18n";
 import { cryptoCache } from "src/core/cryptoCache";
 import { globalEventEmitter } from "src/utils/EventEmitter";
@@ -484,6 +485,7 @@ export default function WorkflowPanel({ plugin }: WorkflowPanelProps) {
   // state with Create buttons) from "file has a block but it's empty/broken"
   // (show the editor with an error banner).
   const [hasWorkflowBlock, setHasWorkflowBlock] = useState(false);
+  const [multiBlockCount, setMultiBlockCount] = useState<number>(0);
   const [nodes, setNodes] = useState<SidebarNode[]>([]);
   const [isRunning, setIsRunning] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -505,6 +507,7 @@ export default function WorkflowPanel({ plugin }: WorkflowPanelProps) {
       setWorkflowFile(null);
       setIsSkillFile(false);
       setHasWorkflowBlock(false);
+      setMultiBlockCount(0);
       setNodes([]);
       setLoadError(null);
       return;
@@ -514,6 +517,8 @@ export default function WorkflowPanel({ plugin }: WorkflowPanelProps) {
     setWorkflowFile(activeFile);
 
     const content = await plugin.app.vault.read(activeFile);
+    const blockCount = findWorkflowBlocks(content).length;
+    setMultiBlockCount(blockCount);
     const result = loadFromCodeBlock(content);
 
     if (!result.data && !result.error) {
@@ -575,6 +580,81 @@ export default function WorkflowPanel({ plugin }: WorkflowPanelProps) {
 
     await syncSkillInputVariables(plugin.app, workflowFile, newNodes);
   }, [plugin.app, workflowFile, workflowName]);
+
+  // Split a multi-block workflow file into individual "1 file = 1 workflow"
+  // files. The original file keeps the first block plus any surrounding prose;
+  // blocks 2..N are written to sibling files whose basename is derived from
+  // each block's YAML `name:` (falling back to an indexed slug).
+  const migrateMultiBlockFile = async () => {
+    if (!workflowFile) return;
+
+    const content = await plugin.app.vault.read(workflowFile);
+    const blocks = findWorkflowBlocks(content);
+    if (blocks.length < 2) {
+      new Notice(t("workflow.migrateNothingToDo"));
+      return;
+    }
+
+    const slugify = (raw: string): string =>
+      raw
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-+|-+$/g, "")
+        .slice(0, 60) || "workflow";
+
+    const parent = workflowFile.parent;
+    const folderPath = parent ? parent.path : "";
+    const existingPaths = new Set(
+      plugin.app.vault.getMarkdownFiles().map(f => f.path)
+    );
+
+    // Plan target paths for blocks[1..N]. We skip blocks[0] — it stays in the
+    // original file. Collision handling: append -2, -3, ... until the path
+    // is unique against both the vault and the in-flight plan.
+    const plan: { block: typeof blocks[number]; path: string }[] = [];
+    for (let i = 1; i < blocks.length; i++) {
+      const base = slugify(blocks[i].name || `workflow-${i + 1}`);
+      let candidate = folderPath ? `${folderPath}/${base}.md` : `${base}.md`;
+      let counter = 2;
+      while (existingPaths.has(candidate) || plan.some(p => p.path === candidate)) {
+        candidate = folderPath ? `${folderPath}/${base}-${counter}.md` : `${base}-${counter}.md`;
+        counter++;
+      }
+      plan.push({ block: blocks[i], path: candidate });
+    }
+
+    const confirmed = await new ConfirmModal(
+      plugin.app,
+      t("workflow.migrateConfirm", {
+        count: String(plan.length),
+        files: plan.map(p => p.path).join("\n"),
+      }),
+      t("workflow.migrate"),
+    ).openAndWait();
+    if (!confirmed) return;
+
+    // Create the split files first. If any write fails, surface the error and
+    // DO NOT touch the original file — partial state is easier to recover from
+    // when the source of truth is still intact.
+    for (const entry of plan) {
+      await plugin.app.vault.create(entry.path, `${entry.block.raw}\n`);
+    }
+
+    // Remove blocks[1..N] from the original content. Walk right-to-left so
+    // earlier block offsets remain valid while we splice.
+    let stripped = content;
+    for (let i = blocks.length - 1; i >= 1; i--) {
+      const b = blocks[i];
+      stripped = stripped.slice(0, b.start) + stripped.slice(b.end);
+    }
+    // Collapse runs of 3+ blank lines that the block removal may have
+    // introduced, and trim any trailing whitespace we added.
+    stripped = stripped.replace(/\n{3,}/g, "\n\n").replace(/\s+$/, "\n");
+    await plugin.app.vault.modify(workflowFile, stripped);
+
+    new Notice(t("workflow.migrateSuccess", { count: String(plan.length) }));
+    await loadWorkflow();
+  };
 
   // Open browse all workflows modal
   const openBrowseAllModal = () => {
@@ -1372,6 +1452,14 @@ export default function WorkflowPanel({ plugin }: WorkflowPanelProps) {
         <div className="workflow-error-banner">
           <span className="workflow-error-icon">⚠</span>
           <span className="workflow-error-message">{loadError}</span>
+          {multiBlockCount > 1 && (
+            <button
+              className="workflow-error-migrate-btn"
+              onClick={() => void migrateMultiBlockFile()}
+            >
+              {t("workflow.migrate")}
+            </button>
+          )}
         </div>
       )}
 

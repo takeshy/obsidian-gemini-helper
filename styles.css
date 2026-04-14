@@ -1797,6 +1797,22 @@
 
 .workflow-error-message {
   word-break: break-word;
+  flex: 1;
+}
+
+.workflow-error-migrate-btn {
+  flex-shrink: 0;
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 12px;
+  cursor: pointer;
+  background: var(--interactive-accent);
+  color: var(--text-on-accent);
+  border: none;
+}
+
+.workflow-error-migrate-btn:hover {
+  background: var(--interactive-accent-hover);
 }
 
 .workflow-sidebar-content {

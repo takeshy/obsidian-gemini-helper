@@ -447,16 +447,20 @@ async function createSkillFromResult(
   return await app.vault.create(skillFilePath, skillContent);
 }
 
-// Create or append workflow file from AI result (non-skill path)
+// Create or append workflow file from AI result (non-skill path).
+// Under "1 file = 1 workflow" we only append to an existing file when that
+// file does not yet contain a workflow block. When the target already holds
+// a workflow, we fall back to a collision-suffixed sibling path so we never
+// produce the multi-block state the parser/editor now rejects.
 async function createWorkflowFile(
   app: App,
   result: AIWorkflowResult,
 ): Promise<{ targetFile: TFile; notice: string }> {
-  const filePath = result.outputPath!.endsWith(".md")
+  const initialPath = result.outputPath!.endsWith(".md")
     ? result.outputPath!
     : `${result.outputPath!}.md`;
 
-  const folderPath = filePath.substring(0, filePath.lastIndexOf("/"));
+  const folderPath = initialPath.substring(0, initialPath.lastIndexOf("/"));
   if (folderPath && !app.vault.getAbstractFileByPath(folderPath)) {
     await app.vault.createFolder(folderPath);
   }
@@ -466,15 +470,31 @@ async function createWorkflowFile(
   const workflowBody = result.rawMarkdown || buildWorkflowCodeBlock(result);
   const workflowContent = historyEntry + workflowBody;
 
-  const existingFile = app.vault.getAbstractFileByPath(filePath);
-  if (existingFile && existingFile instanceof TFile) {
+  const existingFile = app.vault.getAbstractFileByPath(initialPath);
+  if (existingFile instanceof TFile) {
     const existingContent = await app.vault.read(existingFile);
-    const separator = existingContent.endsWith("\n") ? "\n" : "\n\n";
-    await app.vault.modify(existingFile, existingContent + separator + workflowContent);
-    return { targetFile: existingFile, notice: t("workflow.appendedTo", { name: result.name, path: filePath }) };
+    if (findWorkflowBlocks(existingContent).length === 0) {
+      // Safe to append — target is a plain note without any workflow yet.
+      const separator = existingContent.endsWith("\n") ? "\n" : "\n\n";
+      await app.vault.modify(existingFile, existingContent + separator + workflowContent);
+      return { targetFile: existingFile, notice: t("workflow.appendedTo", { name: result.name, path: initialPath }) };
+    }
+    // Existing file already holds a workflow — pick a collision-free sibling
+    // path rather than silently producing a multi-block file.
+    const dotIdx = initialPath.lastIndexOf(".");
+    const stem = dotIdx > 0 ? initialPath.slice(0, dotIdx) : initialPath;
+    const ext = dotIdx > 0 ? initialPath.slice(dotIdx) : ".md";
+    let counter = 2;
+    let candidate = `${stem}-${counter}${ext}`;
+    while (app.vault.getAbstractFileByPath(candidate)) {
+      counter++;
+      candidate = `${stem}-${counter}${ext}`;
+    }
+    const targetFile = await app.vault.create(candidate, workflowContent);
+    return { targetFile, notice: t("workflow.createdAt", { name: result.name, path: candidate }) };
   }
-  const targetFile = await app.vault.create(filePath, workflowContent);
-  return { targetFile, notice: t("workflow.createdAt", { name: result.name, path: filePath }) };
+  const targetFile = await app.vault.create(initialPath, workflowContent);
+  return { targetFile, notice: t("workflow.createdAt", { name: result.name, path: initialPath }) };
 }
 
 export default function WorkflowPanel({ plugin }: WorkflowPanelProps) {

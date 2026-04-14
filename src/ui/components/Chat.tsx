@@ -70,7 +70,7 @@ import { cryptoCache } from "src/core/cryptoCache";
 import { formatError } from "src/utils/error";
 import { discoverSkills, loadSkill, buildSkillSystemPrompt, collectSkillWorkflows, type SkillMetadata, type LoadedSkill, type SkillWorkflowRef } from "src/core/skillsLoader";
 import { GET_WORKFLOW_SPEC_TOOL, GET_WORKFLOW_SPEC_TOOL_NAME, handleGetWorkflowSpec } from "src/workflow/workflowSpec";
-import { DEFAULT_BUILTIN_SKILL_IDS, builtinFolderPath, getBuiltinSkillMetadata } from "src/core/builtinSkills";
+import { DEFAULT_BUILTIN_SKILL_IDS, builtinFolderPath, getBuiltinSkillMetadata, isBuiltinSkillPath } from "src/core/builtinSkills";
 import { parseWorkflowFromMarkdown } from "src/workflow/parser";
 import { WorkflowExecutor } from "src/workflow/executor";
 import { WorkflowExecutionModal } from "./workflow/WorkflowExecutionModal";
@@ -1153,6 +1153,12 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 					"bulk_propose_edit", "bulk_propose_rename", "bulk_propose_delete"
 				];
 				const searchToolNames = ["search_notes", "list_notes"];
+				// Vault skills are loaded lazily — their SKILL.md (workflow IDs,
+				// inputVariables, full instructions) is only reachable via read_note.
+				// If any such skill is active we must keep read_note available even
+				// when vaultToolMode would otherwise strip it, or the model gets
+				// neither inline workflow metadata nor the tool to fetch it.
+				const hasActiveVaultSkill = loadedSkillsList.some(s => !isBuiltinSkillPath(s.folderPath));
 				const tools = allTools.filter(tool => {
 					// MCP tools are always included
 					if (isMcpTool(tool)) {
@@ -1160,6 +1166,7 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 					}
 					// Filter Obsidian tools based on mode
 					if (vaultToolMode === "none") {
+						if (tool.name === "read_note" && hasActiveVaultSkill) return true;
 						return !vaultToolNames.includes(tool.name);
 					}
 					if (vaultToolMode === "noSearch") {

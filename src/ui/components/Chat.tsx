@@ -69,6 +69,7 @@ import {
 import { cryptoCache } from "src/core/cryptoCache";
 import { formatError } from "src/utils/error";
 import { discoverSkills, loadSkill, buildSkillSystemPrompt, collectSkillWorkflows, type SkillMetadata, type LoadedSkill, type SkillWorkflowRef } from "src/core/skillsLoader";
+import { GET_WORKFLOW_SPEC_TOOL, GET_WORKFLOW_SPEC_TOOL_NAME, handleGetWorkflowSpec } from "src/workflow/workflowSpec";
 import { DEFAULT_BUILTIN_SKILL_IDS, builtinFolderPath, getBuiltinSkillMetadata } from "src/core/builtinSkills";
 import { parseWorkflowFromMarkdown } from "src/workflow/parser";
 import { WorkflowExecutor } from "src/workflow/executor";
@@ -1109,14 +1110,14 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 					setActiveSkillPaths(effectiveSkillPaths);
 				}
 
-				// Load active skills (needed for both workflow tools and system prompt)
+				// Load active skills (needed for both workflow tools and system prompt).
+				// Vault skills are returned in lazy form (empty instructions/references);
+				// the chat LLM fetches SKILL.md via the read_note tool when it needs it.
 				let loadedSkillsList: LoadedSkill[] = [];
 				if (effectiveSkillPaths.length > 0) {
 					const activeMetadata = availableSkills.filter(s => effectiveSkillPaths.includes(s.folderPath));
 					if (activeMetadata.length > 0) {
-						loadedSkillsList = await Promise.all(
-							activeMetadata.map(m => loadSkill(plugin.app, m))
-						);
+						loadedSkillsList = activeMetadata.map(m => loadSkill(plugin.app, m));
 					}
 				}
 
@@ -1175,6 +1176,7 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 				// Add execute_javascript tool
 				if (toolsEnabled) {
 					tools.push(EXECUTE_JAVASCRIPT_TOOL);
+					tools.push(GET_WORKFLOW_SPEC_TOOL);
 				}
 
 				// Create context for RAG tools (Obsidian tools only)
@@ -1232,6 +1234,10 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 						// JavaScript sandbox tool
 						if (name === "execute_javascript") {
 							return await handleExecuteJavascriptTool(args);
+						}
+						// Workflow spec lookup tool
+						if (name === GET_WORKFLOW_SPEC_TOOL_NAME) {
+							return handleGetWorkflowSpec(args, plugin);
 						}
 						// Otherwise use Obsidian tool executor
 						if (obsidianToolExecutor) {

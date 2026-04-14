@@ -1,7 +1,8 @@
 // Workflow specification for AI generation
 // This is used as a system prompt when Gemini generates or modifies workflows
 
-import { getAvailableModels, type ApiPlan, type McpServerConfig } from "src/types";
+import { getAvailableModels, type ApiPlan, type McpServerConfig, type ToolDefinition } from "src/types";
+import type { GeminiHelperPlugin } from "src/plugin";
 
 export interface WorkflowSpecContext {
   apiPlan: ApiPlan;
@@ -679,3 +680,109 @@ export const WORKFLOW_SPECIFICATION = getWorkflowSpecification({
   mcpServers: [],
   ragSettingNames: [],
 });
+
+/**
+ * Return workflow spec content. If `nodeTypes` is empty/undefined, returns the
+ * full spec. Otherwise extracts just the `#### nodeType` sections requested.
+ */
+export function getWorkflowNodeSpec(
+  nodeTypes: string[] | undefined,
+  context: WorkflowSpecContext,
+): string {
+  const fullSpec = getWorkflowSpecification(context);
+  if (!nodeTypes || nodeTypes.length === 0) return fullSpec;
+
+  const sectionMap = new Map<string, string>();
+  const headerRe = /^#### (\S+)[^\n]*$/gm;
+  const headers: { name: string; start: number; bodyStart: number }[] = [];
+  let m: RegExpExecArray | null;
+  while ((m = headerRe.exec(fullSpec)) !== null) {
+    headers.push({ name: m[1], start: m.index, bodyStart: m.index + m[0].length });
+  }
+  // A section ends at the next `^## ` / `^### ` / `^#### ` heading or EOF.
+  const boundaryRe = /^#{2,4} /gm;
+  for (const h of headers) {
+    boundaryRe.lastIndex = h.bodyStart;
+    let end = fullSpec.length;
+    let bm: RegExpExecArray | null;
+    while ((bm = boundaryRe.exec(fullSpec)) !== null) {
+      if (bm.index > h.bodyStart) {
+        end = bm.index;
+        break;
+      }
+    }
+    sectionMap.set(h.name, fullSpec.slice(h.start, end).replace(/\s+$/, ""));
+  }
+
+  const sections: string[] = [];
+  for (const raw of nodeTypes) {
+    const nodeType = raw.trim();
+    if (!nodeType) continue;
+    const found = sectionMap.get(nodeType);
+    if (found) {
+      sections.push(found);
+    } else {
+      sections.push(`#### ${nodeType}\n(unknown node type — verify the name in the workflow spec)`);
+    }
+  }
+  return sections.join("\n\n");
+}
+
+/**
+ * Tool definition for looking up workflow spec sections from the chat LLM.
+ * Useful when the user asks what a workflow node does, why one is failing, or
+ * to have the LLM explain a workflow YAML they pasted in.
+ */
+export const GET_WORKFLOW_SPEC_TOOL: ToolDefinition = {
+  name: "get_workflow_spec",
+  description:
+    "Return the Obsidian workflow specification. If nodeTypes is provided, returns only the `#### <nodeType>` sections for those node types (e.g. ['command', 'http']). If nodeTypes is omitted or empty, returns the full workflow spec. Use this to look up authoritative parameter docs before explaining, debugging, or writing workflow YAML.",
+  parameters: {
+    type: "object",
+    properties: {
+      nodeTypes: {
+        type: "array",
+        description: "Optional list of node type names (as appearing after `#### ` in the spec) to restrict the returned content. Omit or pass [] to get the full spec.",
+        items: { type: "string" },
+      },
+    },
+  },
+};
+
+export const GET_WORKFLOW_SPEC_TOOL_NAME = GET_WORKFLOW_SPEC_TOOL.name;
+
+/** Build the spec context from the plugin's current settings & workspace state. */
+export function buildWorkflowSpecContext(plugin: GeminiHelperPlugin): WorkflowSpecContext {
+  return {
+    apiPlan: plugin.settings.apiPlan,
+    mcpServers: plugin.settings.mcpServers || [],
+    ragSettingNames: Object.keys(plugin.workspaceState.ragSettings || {}),
+    hasApiKey: !!plugin.settings.googleApiKey,
+  };
+}
+
+/**
+ * Handler for `get_workflow_spec` tool calls. Accepts `nodeTypes` as either
+ * an array (normal) or a JSON-encoded array string (some LLMs still emit this
+ * despite the schema declaring type: array).
+ */
+export function handleGetWorkflowSpec(
+  args: Record<string, unknown>,
+  plugin: GeminiHelperPlugin,
+): { result: string } {
+  const raw = args.nodeTypes;
+  let nodeTypes: string[] | undefined;
+  if (Array.isArray(raw)) {
+    nodeTypes = raw.filter((v): v is string => typeof v === "string");
+  } else if (typeof raw === "string" && raw.trim().startsWith("[")) {
+    try {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) {
+        nodeTypes = parsed.filter((v): v is string => typeof v === "string");
+      }
+    } catch {
+      // fall through: treat as undefined → return full spec
+    }
+  }
+  return { result: getWorkflowNodeSpec(nodeTypes, buildWorkflowSpecContext(plugin)) };
+}

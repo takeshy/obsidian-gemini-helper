@@ -73,7 +73,6 @@ workflows:
 ```yaml
 workflows:
   - path: workflows/run-lint.md
-    name: lint              # オプションのカスタムID（デフォルトはパスベースのID）
     description: Run linting on the current note
 ```
 

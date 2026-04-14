@@ -73,7 +73,6 @@ You are a code review assistant. When reviewing code:
 ```yaml
 workflows:
   - path: workflows/run-lint.md
-    name: lint              # 선택적 사용자 지정 ID (기본값은 경로 기반 ID)
     description: Run linting on the current note
 ```
 

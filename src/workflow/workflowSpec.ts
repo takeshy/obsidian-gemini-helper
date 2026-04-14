@@ -409,8 +409,7 @@ Prompt user to select text from a file.
 
 #### workflow
 Execute sub-workflow.
-- **path** (required): Workflow file path
-- **name** (optional): Workflow name (if file has multiple)
+- **path** (required): Workflow file path (each file holds exactly one workflow)
 - **input** (optional): JSON mapping, e.g., '{"subVar": "{{parentVar}}"}'
 - **output** (optional): JSON mapping, e.g., '{"parentVar": "subVar"}'
 - **prefix** (optional): Prefix for all imported variables

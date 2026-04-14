@@ -4,7 +4,6 @@ import { getBuiltinSkillMetadata, isBuiltinSkillPath, loadBuiltinSkill } from ".
 
 export interface SkillWorkflowRef {
   path: string;              // relative path from skill folder (e.g. "workflows/lint.md")
-  name?: string;             // workflow name within the file (if multiple)
   description: string;       // description for function calling tool
   inputVariables?: string[]; // declared by skill author in SKILL.md capabilities block
 }
@@ -150,7 +149,6 @@ export async function discoverSkills(app: App): Promise<SkillMetadata[]> {
           }
           workflows.push({
             path: wf.path,
-            name: typeof wf.name === "string" ? wf.name : undefined,
             description: typeof wf.description === "string" ? wf.description : wf.path,
             inputVariables,
           });
@@ -298,10 +296,12 @@ For a **single, explicit workflow request** (slash command, direct user instruct
 }
 
 /**
- * Build a stable workflow tool ID from skill name and workflow ref.
+ * Build a stable workflow tool ID from skill name and workflow path.
+ * Each SKILL.md capability entry now points at exactly one workflow file, so
+ * the path alone is a unique identifier within a skill.
  */
 function buildWorkflowToolId(skillName: string, wf: SkillWorkflowRef): string {
-  const base = wf.name || wf.path.replace(/\.md$/, "").replace(/\//g, "_");
+  const base = wf.path.replace(/\.md$/, "").replace(/\//g, "_");
   return `${skillName}/${base}`;
 }
 

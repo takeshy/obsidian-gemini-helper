@@ -2137,7 +2137,8 @@ async function executeSkillWorkflow(
 		return { error: `Unknown workflow ID: ${workflowId}. Available: ${available}` };
 	}
 
-	const { workflowRef, vaultPath } = entry;
+	const { vaultPath } = entry;
+	const workflowDisplayName = vaultPath.substring(vaultPath.lastIndexOf("/") + 1).replace(/\.md$/, "") || workflowId;
 
 	// Read workflow file
 	const file = plugin.app.vault.getAbstractFileByPath(vaultPath);
@@ -2173,7 +2174,7 @@ async function executeSkillWorkflow(
 	const abortController = new AbortController();
 
 	const modal = new WorkflowExecutionModal(
-		plugin.app, workflow, workflowRef.name || workflowId, abortController, () => {},
+		plugin.app, workflow, workflowDisplayName, abortController, () => {},
 	);
 	modal.open();
 
@@ -2220,7 +2221,7 @@ async function executeSkillWorkflow(
 			(log) => executionModalRef?.updateFromLog(log),
 			{
 				workflowPath: vaultPath,
-				workflowName: workflowRef.name,
+				workflowName: workflowDisplayName,
 				recordHistory: true,
 				abortSignal: abortController.signal,
 			},

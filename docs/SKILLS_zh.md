@@ -73,7 +73,6 @@ You are a code review assistant. When reviewing code:
 ```yaml
 workflows:
   - path: workflows/run-lint.md
-    name: lint              # 可选的自定义 ID（默认基于路径生成）
     description: Run linting on the current note
 ```
 

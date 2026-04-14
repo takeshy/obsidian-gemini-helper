@@ -73,7 +73,6 @@ Workflows declared in frontmatter are registered as function calling tools that 
 ```yaml
 workflows:
   - path: workflows/run-lint.md
-    name: lint              # Optional custom ID (defaults to path-based ID)
     description: Run linting on the current note
 ```
 

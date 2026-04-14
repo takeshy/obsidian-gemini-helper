@@ -73,7 +73,6 @@ Os fluxos de trabalho declarados no frontmatter são registrados como ferramenta
 ```yaml
 workflows:
   - path: workflows/run-lint.md
-    name: lint              # ID personalizado opcional (padrão: ID baseado no caminho)
     description: Run linting on the current note
 ```
 

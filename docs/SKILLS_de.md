@@ -73,7 +73,6 @@ Workflows, die im Frontmatter deklariert werden, werden als Function-Calling-Wer
 ```yaml
 workflows:
   - path: workflows/run-lint.md
-    name: lint              # Optionale benutzerdefinierte ID (Standard: pfadbasierte ID)
     description: Run linting on the current note
 ```
 

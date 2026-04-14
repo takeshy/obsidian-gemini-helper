@@ -73,7 +73,6 @@ I workflow dichiarati nel frontmatter vengono registrati come strumenti di Funct
 ```yaml
 workflows:
   - path: workflows/run-lint.md
-    name: lint              # ID personalizzato opzionale (predefinito: ID basato sul percorso)
     description: Run linting on the current note
 ```
 

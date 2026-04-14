@@ -840,6 +840,23 @@ export class AIWorkflowModal extends Modal {
     if (this.mode === "create") {
       const isSkill = this.isSkill();
 
+      // For non-skill create: refuse when the target already holds a workflow
+      // block. The modal stays open so the user can edit the output path
+      // (same UX as picking a fresh name up front) instead of us silently
+      // clobbering or suffixing the path downstream.
+      const rejectIfTargetHasWorkflow = async (outputPath: string): Promise<boolean> => {
+        if (isSkill) return false;
+        const path = outputPath.endsWith(".md") ? outputPath : `${outputPath}.md`;
+        const existing = this.app.vault.getAbstractFileByPath(path);
+        if (!(existing instanceof TFile)) return false;
+        const existingContent = await this.app.vault.cachedRead(existing);
+        if (findWorkflowBlocks(existingContent).length > 0) {
+          new Notice(t("workflow.generation.outputPathTaken", { path }));
+          return true;
+        }
+        return false;
+      };
+
       // Create mode: save markdown directly (validate it has workflow blocks)
       const options = findWorkflowBlocks(pastedText);
       if (options.length === 0) {
@@ -863,6 +880,7 @@ export class AIWorkflowModal extends Modal {
             parsed.skillInstructions = parsed.explanation.replace(/\n---\s*$/, "").trim();
           }
         }
+        if (await rejectIfTargetHasWorkflow(parsed.outputPath)) return;
         this.resolvePromise(parsed);
         this.close();
         return;
@@ -896,6 +914,7 @@ export class AIWorkflowModal extends Modal {
         rawMarkdown: workflowMarkdown,
         skillInstructions,
       };
+      if (await rejectIfTargetHasWorkflow(result.outputPath!)) return;
       this.resolvePromise(result);
       this.close();
     } else {

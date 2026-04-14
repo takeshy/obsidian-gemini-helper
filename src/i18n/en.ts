@@ -342,6 +342,7 @@ export const en = {
 
   // Workflow Panel - UI Strings
   "workflow.reloaded": "Workflow reloaded from file",
+  "workflow.generation.outputPathTaken": "{{path}} already contains a workflow. Pick a different output path.",
   "workflow.migrate": "Split into individual files",
   "workflow.migrateConfirm": "This file contains multiple workflow blocks. Split {{count}} of them into new sibling files?\n\n{{files}}\n\nThe original file keeps the first workflow. Any skill capabilities, hotkeys, or event triggers that referenced the original file path stay attached to the first workflow — point them at the new files manually if needed.",
   "workflow.migrateNothingToDo": "This file does not contain multiple workflow blocks.",

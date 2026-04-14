@@ -373,6 +373,10 @@ async function syncSkillInputVariables(
     : null;
   if (!rawWorkflows) return;
 
+  // TODO(redesign-1file-1workflow): match by path alone is ambiguous when a
+  // SKILL.md declares multiple named workflows sharing one file. The planned
+  // "1 file = 1 workflow" redesign drops the `name` field entirely, making
+  // path a unique key. Until then, shared-file skills can sync the wrong entry.
   const targetIndex = rawWorkflows.findIndex(w => typeof w.path === "string" && w.path === relPath);
   if (targetIndex < 0) return;
 

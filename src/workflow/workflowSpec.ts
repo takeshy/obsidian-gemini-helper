@@ -762,9 +762,12 @@ export function buildWorkflowSpecContext(plugin: GeminiHelperPlugin): WorkflowSp
 }
 
 /**
- * Handler for `get_workflow_spec` tool calls. Accepts `nodeTypes` as either
- * an array (normal) or a JSON-encoded array string (some LLMs still emit this
- * despite the schema declaring type: array).
+ * Handler for `get_workflow_spec` tool calls. Accepts `nodeTypes` as:
+ * - an array (normal case),
+ * - a JSON-encoded array string ("[\"command\", \"http\"]"),
+ * - a plain single name ("command") or comma/space-separated names
+ *   ("command, http") — some LLMs emit these despite the schema.
+ * Empty/undefined falls through and returns the full spec.
  */
 export function handleGetWorkflowSpec(
   args: Record<string, unknown>,
@@ -774,14 +777,22 @@ export function handleGetWorkflowSpec(
   let nodeTypes: string[] | undefined;
   if (Array.isArray(raw)) {
     nodeTypes = raw.filter((v): v is string => typeof v === "string");
-  } else if (typeof raw === "string" && raw.trim().startsWith("[")) {
-    try {
-      const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed)) {
-        nodeTypes = parsed.filter((v): v is string => typeof v === "string");
+  } else if (typeof raw === "string") {
+    const trimmed = raw.trim();
+    if (trimmed.length > 0) {
+      if (trimmed.startsWith("[")) {
+        try {
+          const parsed = JSON.parse(trimmed);
+          if (Array.isArray(parsed)) {
+            nodeTypes = parsed.filter((v): v is string => typeof v === "string");
+          }
+        } catch {
+          // fall through to bare-name handling below
+        }
       }
-    } catch {
-      // fall through: treat as undefined → return full spec
+      if (!nodeTypes) {
+        nodeTypes = trimmed.split(/[,\s]+/).filter(s => s.length > 0);
+      }
     }
   }
   return { result: getWorkflowNodeSpec(nodeTypes, buildWorkflowSpecContext(plugin)) };

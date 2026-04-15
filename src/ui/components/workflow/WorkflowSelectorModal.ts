@@ -375,14 +375,14 @@ export class WorkflowSelectorModal extends Modal {
       return;
     }
 
-    const result: { data: WorkflowBlockData } = { data: this.loadedWorkflow };
-    const nodes = result.data.nodes;
+    const workflow = this.loadedWorkflow;
+    const nodes = workflow.nodes;
     const nodeTypeLabels = getNodeTypeLabels();
 
     // Render workflow name
-    if (result.data.name) {
+    if (workflow.name) {
       const nameEl = this.previewEl.createDiv({ cls: "workflow-selector-workflow-name" });
-      nameEl.setText(result.data.name);
+      nameEl.setText(workflow.name);
     }
 
     // Render AI workflow history from callout (before visual workflow)

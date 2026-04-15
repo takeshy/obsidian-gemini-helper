@@ -6,6 +6,7 @@ import {
   serializeWorkflowBlock,
 } from "./parser";
 import { getEditHistoryManager } from "../core/editHistory";
+import { t } from "src/i18n";
 
 interface WorkflowBlockNode {
   id?: unknown;
@@ -35,7 +36,7 @@ export function loadFromCodeBlock(content: string): LoadResult {
   if (blocks.length > 1) {
     return {
       data: null,
-      error: "This file contains multiple workflow blocks. Each file may contain only one workflow; split the file manually or use the Migration action.",
+      error: t("workflow.multipleBlocksInFile"),
     };
   }
   const block = blocks[0];

@@ -17,6 +17,7 @@ import { isEncryptedFile } from "src/core/crypto";
 import { cryptoCache } from "src/core/cryptoCache";
 import { formatError } from "src/utils/error";
 import { t } from "src/i18n";
+import { computeLegacyWorkflowIdMigration } from "./workflowMigration";
 import type { GeminiHelperPlugin } from "src/plugin";
 
 export class WorkflowManager {
@@ -52,31 +53,15 @@ export class WorkflowManager {
    */
   private async migrateLegacyWorkflowIds(): Promise<void> {
     const settings = this.plugin.settings;
-    const stripHash = (id: string) => {
-      const hashIndex = id.lastIndexOf("#");
-      return hashIndex === -1 ? id : id.substring(0, hashIndex);
-    };
-
-    const newHotkeys = Array.from(new Set(settings.enabledWorkflowHotkeys.map(stripHash)));
-
-    const seenTriggers = new Set<string>();
-    const newTriggers: WorkflowEventTrigger[] = [];
-    for (const trigger of settings.enabledWorkflowEventTriggers) {
-      const newId = stripHash(trigger.workflowId);
-      const dedupKey = `${newId}|${trigger.events.slice().sort().join(",")}|${trigger.filePattern || ""}`;
-      if (seenTriggers.has(dedupKey)) continue;
-      seenTriggers.add(dedupKey);
-      newTriggers.push({ ...trigger, workflowId: newId });
-    }
-
-    const hotkeysChanged = newHotkeys.length !== settings.enabledWorkflowHotkeys.length
-      || newHotkeys.some((id, i) => id !== settings.enabledWorkflowHotkeys[i]);
-    const triggersChanged = newTriggers.length !== settings.enabledWorkflowEventTriggers.length
-      || newTriggers.some((t, i) => t.workflowId !== settings.enabledWorkflowEventTriggers[i].workflowId);
+    const { hotkeys, triggers, hotkeysChanged, triggersChanged } =
+      computeLegacyWorkflowIdMigration({
+        enabledWorkflowHotkeys: settings.enabledWorkflowHotkeys,
+        enabledWorkflowEventTriggers: settings.enabledWorkflowEventTriggers,
+      });
 
     if (hotkeysChanged || triggersChanged) {
-      settings.enabledWorkflowHotkeys = newHotkeys;
-      settings.enabledWorkflowEventTriggers = newTriggers;
+      settings.enabledWorkflowHotkeys = hotkeys;
+      settings.enabledWorkflowEventTriggers = triggers;
       await this.plugin.saveSettings();
     }
   }
@@ -93,7 +78,14 @@ export class WorkflowManager {
    * duplicate registration errors.
    */
   registerHotkeys(): void {
-    void this.migrateLegacyWorkflowIds().then(() => this.doRegisterHotkeys());
+    // Fire-and-forget, but make sure a migration failure (e.g. saveSettings
+    // rejecting) doesn't silently skip hotkey registration. Log the error
+    // and register hotkeys anyway so the user's existing commands still work.
+    void this.migrateLegacyWorkflowIds()
+      .catch((err) => {
+        console.error("[GeminiHelper] workflow ID migration failed:", err);
+      })
+      .then(() => this.doRegisterHotkeys());
   }
 
   private doRegisterHotkeys(): void {

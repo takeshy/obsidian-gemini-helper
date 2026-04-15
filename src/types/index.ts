@@ -62,7 +62,7 @@ export type ObsidianEventType =
 
 // Event trigger configuration for workflows
 export interface WorkflowEventTrigger {
-  workflowId: string;        // Format: "path#name" (e.g., "folder/file.md#MyWorkflow")
+  workflowId: string;        // Vault path to the workflow file (e.g., "folder/file.md"). Each file holds exactly one workflow.
   events: ObsidianEventType[]; // Which events trigger this workflow
   filePattern?: string;       // Optional glob pattern to filter files (e.g., "*.md", "folder/**")
 }

@@ -1,5 +1,6 @@
 import { parseYaml, stringifyYaml } from "obsidian";
 import { Workflow, WorkflowEdge, WorkflowNode, WorkflowOptions, isWorkflowNodeType, normalizeValue } from "./types";
+import { t } from "src/i18n";
 
 // Workflow code block types
 export interface WorkflowCodeBlock {
@@ -205,12 +206,10 @@ interface FrontmatterWorkflowNode {
 export function parseWorkflowFromMarkdown(content: string): Workflow {
   const blocks = findWorkflowBlocks(content);
   if (blocks.length === 0) {
-    throw new Error("No workflow code block found");
+    throw new Error(t("workflow.noCodeBlockFound"));
   }
   if (blocks.length > 1) {
-    throw new Error(
-      "Multiple workflow blocks found in a single file. Each file may contain only one workflow; split the file manually or use the Migration action."
-    );
+    throw new Error(t("workflow.multipleBlocksInFile"));
   }
   const block = blocks[0];
 

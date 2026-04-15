@@ -9,6 +9,7 @@ import type { GeminiHelperPlugin } from "src/plugin";
 import { SidebarNode, WorkflowNodeType, WorkflowInput, PromptCallbacks } from "src/workflow/types";
 import { loadFromCodeBlock, saveToCodeBlock } from "src/workflow/codeblockSync";
 import { findWorkflowBlocks, parseWorkflowFromMarkdown } from "src/workflow/parser";
+import { planMultiBlockMigration } from "src/workflow/multiBlockMigration";
 import { WorkflowExecutor } from "src/workflow/executor";
 import { NodeEditorModal } from "./NodeEditorModal";
 import { HistoryModal } from "./HistoryModal";
@@ -27,6 +28,7 @@ import { formatError } from "src/utils/error";
 import { promptForPassword } from "src/ui/passwordPrompt";
 import { parseFrontmatter, extractCapabilitiesBlock, upsertCapabilitiesBlock, writeSkillMd } from "src/core/skillsLoader";
 import { extractInputVariables } from "src/workflow/inputVariables";
+import { SKILLS_FOLDER } from "src/types";
 
 interface WorkflowPanelProps {
   plugin: GeminiHelperPlugin;
@@ -356,13 +358,17 @@ async function syncSkillInputVariables(
     relPath = "SKILL.md";
   }
   if (!skillFile) return;
+  // Only treat SKILL.md files that live under the skills/ folder as skills.
+  // A stray SKILL.md elsewhere in the vault (e.g. a user's personal note) must
+  // not trigger capability-block rewrites.
+  if (!skillFile.path.startsWith(`${SKILLS_FOLDER}/`)) return;
 
   const content = await app.vault.read(skillFile);
   const { frontmatter, body } = parseFrontmatter(content);
 
   // Capabilities live in the embedded fenced block; fall back to frontmatter
   // for legacy skills, but migrate the result into the block on write.
-  const fromBlock = extractCapabilitiesBlock(body);
+  const fromBlock = extractCapabilitiesBlock(body, skillFile.path);
   const fromFrontmatter = Array.isArray(frontmatter.workflows)
     ? { workflows: frontmatter.workflows }
     : null;
@@ -596,45 +602,23 @@ export default function WorkflowPanel({ plugin }: WorkflowPanelProps) {
     if (!workflowFile) return;
 
     const content = await plugin.app.vault.read(workflowFile);
-    const blocks = findWorkflowBlocks(content);
-    if (blocks.length < 2) {
-      new Notice(t("workflow.migrateNothingToDo"));
-      return;
-    }
-
-    const slugify = (raw: string): string =>
-      raw
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, "-")
-        .replace(/^-+|-+$/g, "")
-        .slice(0, 60) || "workflow";
-
     const parent = workflowFile.parent;
     const folderPath = parent ? parent.path : "";
     const existingPaths = new Set(
       plugin.app.vault.getMarkdownFiles().map(f => f.path)
     );
 
-    // Plan target paths for blocks[1..N]. We skip blocks[0] — it stays in the
-    // original file. Collision handling: append -2, -3, ... until the path
-    // is unique against both the vault and the in-flight plan.
-    const plan: { block: typeof blocks[number]; path: string }[] = [];
-    for (let i = 1; i < blocks.length; i++) {
-      const base = slugify(blocks[i].name || `workflow-${i + 1}`);
-      let candidate = folderPath ? `${folderPath}/${base}.md` : `${base}.md`;
-      let counter = 2;
-      while (existingPaths.has(candidate) || plan.some(p => p.path === candidate)) {
-        candidate = folderPath ? `${folderPath}/${base}-${counter}.md` : `${base}-${counter}.md`;
-        counter++;
-      }
-      plan.push({ block: blocks[i], path: candidate });
+    const plan = planMultiBlockMigration(content, folderPath, existingPaths);
+    if (!plan) {
+      new Notice(t("workflow.migrateNothingToDo"));
+      return;
     }
 
     const confirmed = await new ConfirmModal(
       plugin.app,
       t("workflow.migrateConfirm", {
-        count: String(plan.length),
-        files: plan.map(p => p.path).join("\n"),
+        count: String(plan.entries.length),
+        files: plan.entries.map(e => e.path).join("\n"),
       }),
       t("workflow.migrate"),
     ).openAndWait();
@@ -643,23 +627,12 @@ export default function WorkflowPanel({ plugin }: WorkflowPanelProps) {
     // Create the split files first. If any write fails, surface the error and
     // DO NOT touch the original file — partial state is easier to recover from
     // when the source of truth is still intact.
-    for (const entry of plan) {
-      await plugin.app.vault.create(entry.path, `${entry.block.raw}\n`);
+    for (const entry of plan.entries) {
+      await plugin.app.vault.create(entry.path, `${entry.raw}\n`);
     }
+    await plugin.app.vault.modify(workflowFile, plan.stripped);
 
-    // Remove blocks[1..N] from the original content. Walk right-to-left so
-    // earlier block offsets remain valid while we splice.
-    let stripped = content;
-    for (let i = blocks.length - 1; i >= 1; i--) {
-      const b = blocks[i];
-      stripped = stripped.slice(0, b.start) + stripped.slice(b.end);
-    }
-    // Collapse runs of 3+ blank lines that the block removal may have
-    // introduced, and trim any trailing whitespace we added.
-    stripped = stripped.replace(/\n{3,}/g, "\n\n").replace(/\s+$/, "\n");
-    await plugin.app.vault.modify(workflowFile, stripped);
-
-    new Notice(t("workflow.migrateSuccess", { count: String(plan.length) }));
+    new Notice(t("workflow.migrateSuccess", { count: String(plan.entries.length) }));
     await loadWorkflow();
   };
 
@@ -836,7 +809,7 @@ export default function WorkflowPanel({ plugin }: WorkflowPanelProps) {
     // Capabilities (workflow list) live in the embedded `skill-capabilities`
     // fenced block; fall back to frontmatter for legacy skills (the write path
     // re-emits them into the block).
-    const capabilitiesBlock = extractCapabilitiesBlock(instructions);
+    const capabilitiesBlock = extractCapabilitiesBlock(instructions, workflowFile.path);
     const folder = workflowFile.parent;
     const declaredWorkflows: Array<Record<string, unknown>> = Array.isArray(capabilitiesBlock?.workflows)
       ? (capabilitiesBlock.workflows as Array<Record<string, unknown>>)

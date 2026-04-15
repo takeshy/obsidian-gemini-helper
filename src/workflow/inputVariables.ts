@@ -1,14 +1,5 @@
 import type { SidebarNode } from "./types";
 
-const SYSTEM_VARS: ReadonlySet<string> = new Set([
-  "_hotkeyContent", "_hotkeySelection", "_hotkeyActiveFile", "_hotkeySelectionInfo",
-  "_eventType", "_eventFilePath", "_eventFile", "_eventOldPath", "_eventFileContent",
-  "_workflowName", "_lastModel", "_date", "_time", "_datetime", "_clipboard",
-  "__hotkeyContent__", "__hotkeySelection__", "__hotkeyActiveFile__", "__hotkeySelectionInfo__",
-  "__eventType__", "__eventFilePath__", "__eventFile__", "__eventOldPath__", "__eventFileContent__",
-  "__workflowName__", "__lastModel__", "__date__", "__time__", "__datetime__",
-]);
-
 const SAVE_PROPERTIES = [
   "saveTo", "saveFileTo", "savePathTo", "saveStatus",
   "saveImageTo", "saveSelectionTo", "saveUiTo",
@@ -19,9 +10,12 @@ const SAVE_PROPERTIES = [
  *
  * A variable counts as "input" when it is read via `{{var}}` in a node
  * property but never initialized by a variable/set node or by a `save*`
- * target. System-provided variables (prefixed with `_`) are excluded. Used
- * when generating / updating a skill so `SKILL.md`'s capabilities block keeps
- * `inputVariables` in sync with the workflow the author actually wrote.
+ * target. Any name starting with `_` is excluded — that namespace is
+ * reserved for runtime-provided system variables (hotkey/event/clock values
+ * etc.), and the AI workflow spec tells authors not to use it for their own
+ * inputs. Used when generating / updating a skill so `SKILL.md`'s
+ * capabilities block keeps `inputVariables` in sync with the workflow the
+ * author actually wrote.
  */
 export function extractInputVariables(nodes: SidebarNode[]): string[] {
   const varPattern = /\{\{(\w[\w.[\]]*?)(?::json)?\}\}/g;
@@ -48,7 +42,8 @@ export function extractInputVariables(nodes: SidebarNode[]): string[] {
 
   const inputs: string[] = [];
   for (const v of used) {
-    if (!initialized.has(v) && !SYSTEM_VARS.has(v)) inputs.push(v);
+    if (v.startsWith("_")) continue;
+    if (!initialized.has(v)) inputs.push(v);
   }
   return inputs.sort();
 }

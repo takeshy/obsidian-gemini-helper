@@ -42,9 +42,15 @@ const CAPABILITIES_FENCE_RE = new RegExp(
  * Extract the embedded `skill-capabilities` YAML fence from SKILL.md's body.
  * The fence is the single source of truth for a skill's workflow definitions;
  * frontmatter holds only user-facing metadata (name, description). Returns
- * null when the block is absent or not valid YAML.
+ * null when the block is absent or not valid YAML. When `warnContext` is
+ * provided (a stable key like the skill file path), YAML parse errors are
+ * logged once per context so a typo in the fenced block is visible to the
+ * author instead of being silently ignored.
  */
-export function extractCapabilitiesBlock(body: string): Record<string, unknown> | null {
+export function extractCapabilitiesBlock(
+  body: string,
+  warnContext?: string,
+): Record<string, unknown> | null {
   const match = body.match(CAPABILITIES_FENCE_RE);
   if (!match) return null;
   try {
@@ -52,8 +58,13 @@ export function extractCapabilitiesBlock(body: string): Record<string, unknown> 
     if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
       return parsed as Record<string, unknown>;
     }
-  } catch {
-    // fall through
+  } catch (e) {
+    if (warnContext) {
+      warnOnce(
+        `capabilities-parse:${warnContext}`,
+        `[skills] ${warnContext}: failed to parse \`skill-capabilities\` YAML block — ${e instanceof Error ? e.message : String(e)}`,
+      );
+    }
   }
   return null;
 }
@@ -123,7 +134,7 @@ export async function discoverSkills(app: App): Promise<SkillMetadata[]> {
       const { frontmatter, body } = parseFrontmatter(content);
       const skillLabel = (frontmatter.name as string) || child.name;
 
-      let capabilities = extractCapabilitiesBlock(body);
+      let capabilities = extractCapabilitiesBlock(body, skillFilePath);
       if (!capabilities && Array.isArray(frontmatter.workflows)) {
         warnOnce(skillFilePath, `[skills] ${skillLabel}: declares workflows in frontmatter — please migrate to a \`\`\`skill-capabilities fenced block in SKILL.md body. Falling back to the frontmatter declaration for now.`);
         capabilities = { workflows: frontmatter.workflows };
@@ -184,39 +195,6 @@ export function loadSkill(_app: App, metadata: SkillMetadata): LoadedSkill {
     if (builtin) return builtin;
   }
   return { ...metadata, instructions: "", references: [] };
-}
-
-/**
- * Read the on-disk body of a vault skill (SKILL.md plus any files under
- * references/) and return a fully-populated LoadedSkill. Built-in skills
- * already ship with their body, so this just returns them via `loadSkill`.
- */
-export async function readSkillBody(app: App, metadata: SkillMetadata): Promise<LoadedSkill> {
-  if (isBuiltinSkillPath(metadata.folderPath)) {
-    return loadSkill(app, metadata);
-  }
-
-  const skillFile = app.vault.getAbstractFileByPath(metadata.skillFilePath);
-  if (!(skillFile instanceof TFile)) {
-    return { ...metadata, instructions: "", references: [] };
-  }
-  const { body } = parseFrontmatter(await app.vault.cachedRead(skillFile));
-
-  const references: string[] = [];
-  const refsFolder = app.vault.getAbstractFileByPath(`${metadata.folderPath}/references`);
-  if (refsFolder instanceof TFolder) {
-    for (const child of refsFolder.children) {
-      if (child instanceof TFile) {
-        try {
-          references.push(`[${child.name}]\n${await app.vault.cachedRead(child)}`);
-        } catch {
-          // skip unreadable reference file
-        }
-      }
-    }
-  }
-
-  return { ...metadata, instructions: body.trim(), references };
 }
 
 /**

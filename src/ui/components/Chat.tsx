@@ -68,6 +68,7 @@ import {
 } from "src/core/crypto";
 import { cryptoCache } from "src/core/cryptoCache";
 import { formatError } from "src/utils/error";
+import { findFileMentionOccurrences } from "src/utils/mentionResolver";
 import { discoverSkills, loadSkill, buildSkillSystemPrompt, collectSkillWorkflows, type SkillMetadata, type LoadedSkill, type SkillWorkflowRef } from "src/core/skillsLoader";
 import { GET_WORKFLOW_SPEC_TOOL, GET_WORKFLOW_SPEC_TOOL_NAME, handleGetWorkflowSpec } from "src/workflow/workflowSpec";
 import { DEFAULT_BUILTIN_SKILL_IDS, builtinFolderPath, getBuiltinSkillMetadata, isBuiltinSkillPath } from "src/core/builtinSkills";
@@ -818,29 +819,50 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 		return result;
 	};
 
-	// Resolve message variables (for regular messages)
+	// Resolve message variables (for regular messages).
+	// Bare file paths that match a vault markdown file get their contents
+	// inlined. The scan iterates the vault list longest-path-first so files
+	// with spaces/unicode/regex-special chars resolve correctly and longer
+	// paths take priority over shorter suffixes. Paths must be surrounded by
+	// whitespace so we don't accidentally replace text inside words.
 	const resolveMessageVariables = async (content: string): Promise<string> => {
-		let result = content;
+		let result = await resolveCommandVariables(content);
 
-		// Resolve {selection} and {content} using the same logic as slash commands
-		result = await resolveCommandVariables(result);
+		const files = plugin.app.vault.getMarkdownFiles();
+		const fileByPath = new Map<string, TFile>(files.map(f => [f.path, f]));
+		const occurrences = findFileMentionOccurrences(
+			result,
+			files.map(f => f.path),
+			{ requireWhitespaceBoundary: true }
+		);
+		if (occurrences.length === 0) return result;
 
-		// Resolve file paths - read file content and insert it
-		const filePathPattern = /(?:^|\s)([\w/-]+\.md)(?:\s|$)/g;
-		const matches = [...result.matchAll(filePathPattern)];
-
-		for (const match of matches) {
-			const filePath = match[1];
-			const file = plugin.app.vault.getAbstractFileByPath(filePath);
-			if (file instanceof TFile) {
-				try {
-					const fileContent = await plugin.app.vault.read(file);
-					const replacement = `\n\n--- Content of "${filePath}" ---\n${fileContent}\n--- End of "${filePath}" ---\n\n`;
-					result = result.replace(filePath, replacement);
-				} catch {
-					// File couldn't be read, leave as-is
+		interface Splice { start: number; end: number; replacement: string; }
+		const splices: Splice[] = [];
+		const hitsByPath = new Map<string, typeof occurrences>();
+		for (const occ of occurrences) {
+			const list = hitsByPath.get(occ.key) ?? [];
+			list.push(occ);
+			hitsByPath.set(occ.key, list);
+		}
+		for (const [path, hits] of hitsByPath) {
+			const file = fileByPath.get(path);
+			if (!file) continue;
+			try {
+				const fileContent = await plugin.app.vault.read(file);
+				const replacement = `\n\n--- Content of "${path}" ---\n${fileContent}\n--- End of "${path}" ---\n\n`;
+				for (const h of hits) {
+					splices.push({ start: h.start, end: h.end, replacement });
 				}
+			} catch {
+				// File couldn't be read — leave the mention as-is.
 			}
+		}
+
+		// Splice in reverse order so earlier offsets stay valid.
+		splices.sort((a, b) => b.start - a.start);
+		for (const s of splices) {
+			result = result.slice(0, s.start) + s.replacement + result.slice(s.end);
 		}
 
 		return result;

@@ -144,6 +144,64 @@ export default function MessageBubble({
     return toolDisplayMap[toolName] || { icon: "🔧", label: toolName };
   };
 
+  // Extract the note path/name referenced by a tool call so that clicking
+  // the tool tag can open that note. Returns null for tools that don't
+  // target a single identifiable note (search, list, bulk operations, etc.).
+  const getToolNoteTarget = (
+    toolCall: ToolCall,
+    toolResults?: ToolResult[]
+  ): string | null => {
+    // MCP tools don't reference vault notes
+    if (toolCall.name.startsWith("mcp_")) return null;
+
+    // Prefer the concrete path returned by the tool result when available,
+    // since the LLM may have passed a name without folder and the executor
+    // resolves it to the actual vault path.
+    const result = toolResults?.find((r) => r.toolCallId === toolCall.id)?.result;
+    if (result && typeof result === "object") {
+      const r = result as Record<string, unknown>;
+      if (r.success !== false) {
+        if (typeof r.path === "string" && r.path) return r.path;
+        if (typeof r.newPath === "string" && r.newPath) return r.newPath;
+      }
+    }
+
+    const args = toolCall.args;
+    switch (toolCall.name) {
+      case "read_note":
+      case "propose_edit":
+      case "propose_delete": {
+        if (typeof args.fileName === "string" && args.fileName) return args.fileName;
+        // activeNote: true falls back to the currently active file
+        if (args.activeNote === true) {
+          const active = app.workspace.getActiveFile();
+          return active ? active.path : null;
+        }
+        return null;
+      }
+      case "create_note": {
+        const name = typeof args.name === "string" ? args.name : undefined;
+        const folder = typeof args.folder === "string" ? args.folder : undefined;
+        if (name) {
+          return folder ? `${folder.replace(/\/$/, "")}/${name}` : name;
+        }
+        if (typeof args.path === "string" && args.path) return args.path;
+        return null;
+      }
+      case "rename_note": {
+        if (typeof args.newPath === "string" && args.newPath) return args.newPath;
+        if (typeof args.oldPath === "string" && args.oldPath) return args.oldPath;
+        return null;
+      }
+      case "get_active_note_info": {
+        const active = app.workspace.getActiveFile();
+        return active ? active.path : null;
+      }
+      default:
+        return null;
+    }
+  };
+
   // Get detail string from tool args for toast
   const getToolDetail = (toolCall: ToolCall): string => {
     const args = toolCall.args;
@@ -446,12 +504,25 @@ export default function MessageBubble({
             {message.toolCalls.map((toolCall, index) => {
               const { icon, label } = getToolDisplayInfo(toolCall.name);
               const failedWorkflowPath = getFailedWorkflowPath(toolCall, message.toolResults);
+              const noteTarget = getToolNoteTarget(toolCall, message.toolResults);
               return (
                 <span key={index} className="gemini-helper-tool-indicator-group">
                   <span
                     className="gemini-helper-tool-indicator gemini-helper-tool-clickable"
-                    onClick={() => new Notice(getToolDetail(toolCall), 3000)}
-                    title={t("message.clickToSeeDetails")}
+                    onClick={() => {
+                      if (noteTarget) {
+                        void app.workspace.openLinkText(noteTarget, "", false).catch(() => {
+                          new Notice(getToolDetail(toolCall), 3000);
+                        });
+                      } else {
+                        new Notice(getToolDetail(toolCall), 3000);
+                      }
+                    }}
+                    title={
+                      noteTarget
+                        ? t("message.clickToOpen", { source: noteTarget })
+                        : t("message.clickToSeeDetails")
+                    }
                   >
                     {icon} {label}
                   </span>

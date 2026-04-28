@@ -5,13 +5,13 @@ export const obsidianTools: ToolDefinition[] = [
   {
     name: "read_note",
     description:
-      "Read the content of a note in Obsidian by name or by detecting the currently active note.",
+      "Read the content of a text-based vault file in Obsidian by name or by detecting the currently active file.",
     parameters: {
       type: "object",
       properties: {
         fileName: {
           type: "string",
-          description: "The name or path of the note to read",
+          description: "The name or path of the vault file to read",
         },
         activeNote: {
           type: "boolean",
@@ -24,17 +24,17 @@ export const obsidianTools: ToolDefinition[] = [
   {
     name: "create_note",
     description:
-      "Create a new note in Obsidian with the specified content and optional location.",
+      "Create a new text-based vault file in Obsidian with the specified content and optional location.",
     parameters: {
       type: "object",
       properties: {
         name: {
           type: "string",
-          description: "The name of the note (with or without .md extension)",
+          description: "The file name or path. If no extension is provided, .md is added automatically.",
         },
         content: {
           type: "string",
-          description: "The markdown content for the note",
+          description: "The text content for the file (for example Markdown, Canvas JSON, Bases YAML, or plain text)",
         },
         folder: {
           type: "string",
@@ -42,7 +42,7 @@ export const obsidianTools: ToolDefinition[] = [
         },
         tags: {
           type: "string",
-          description: "Comma-separated list of tags to add to the note",
+          description: "Comma-separated list of tags to add to Markdown notes",
         },
       },
       required: ["name", "content"],
@@ -51,13 +51,13 @@ export const obsidianTools: ToolDefinition[] = [
   {
     name: "update_note",
     description:
-      "Update or replace the content of an existing note in Obsidian.",
+      "Update or replace the content of an existing text-based vault file in Obsidian.",
     parameters: {
       type: "object",
       properties: {
         fileName: {
           type: "string",
-          description: "The name or path of the note to update",
+          description: "The name or path of the vault file to update",
         },
         activeNote: {
           type: "boolean",
@@ -79,7 +79,7 @@ export const obsidianTools: ToolDefinition[] = [
   {
     name: "search_notes",
     description:
-      "Search for notes in the vault by name or content. Returns matching note names.",
+      "Search text-based vault files by name or content. Returns matching file names.",
     parameters: {
       type: "object",
       properties: {
@@ -89,7 +89,7 @@ export const obsidianTools: ToolDefinition[] = [
         },
         searchContent: {
           type: "boolean",
-          description: "If true, search within note contents; if false, search file names only",
+          description: "If true, search within text file contents; if false, search file names only",
         },
         limit: {
           type: "string",
@@ -102,7 +102,7 @@ export const obsidianTools: ToolDefinition[] = [
   {
     name: "list_notes",
     description:
-      "List all notes in a specific folder or the entire vault. Returns up to 'limit' notes with total count.",
+      "List text-based vault files in a specific folder or the entire vault. Returns up to 'limit' files with total count.",
     parameters: {
       type: "object",
       properties: {
@@ -116,7 +116,7 @@ export const obsidianTools: ToolDefinition[] = [
         },
         limit: {
           type: "string",
-          description: "Maximum number of notes to return (default: 50, configurable)",
+          description: "Maximum number of files to return (default: 50, configurable)",
         },
       },
     },
@@ -151,7 +151,7 @@ export const obsidianTools: ToolDefinition[] = [
   {
     name: "get_active_note_info",
     description:
-      "Get information about the currently active note without reading its full content.",
+      "Get information about the currently active vault file without reading its full content.",
     parameters: {
       type: "object",
       properties: {},
@@ -159,13 +159,13 @@ export const obsidianTools: ToolDefinition[] = [
   },
   {
     name: "delete_note",
-    description: "Delete a note from the vault.",
+    description: "Delete a text-based vault file.",
     parameters: {
       type: "object",
       properties: {
         fileName: {
           type: "string",
-          description: "The name or path of the note to delete",
+          description: "The name or path of the vault file to delete",
         },
       },
       required: ["fileName"],
@@ -173,17 +173,17 @@ export const obsidianTools: ToolDefinition[] = [
   },
   {
     name: "rename_note",
-    description: "Propose renaming or moving a note. Changes are NOT applied immediately - a confirmation dialog is shown first. The user must click Apply to rename, or Discard to cancel.",
+    description: "Propose renaming or moving a text-based vault file. Changes are NOT applied immediately - a confirmation dialog is shown first. The user must click Apply to rename, or Discard to cancel.",
     parameters: {
       type: "object",
       properties: {
         oldPath: {
           type: "string",
-          description: "The current path of the note",
+          description: "The current path of the vault file",
         },
         newPath: {
           type: "string",
-          description: "The new path for the note",
+          description: "The new path for the vault file",
         },
       },
       required: ["oldPath", "newPath"],
@@ -217,13 +217,13 @@ export const obsidianTools: ToolDefinition[] = [
   {
     name: "propose_edit",
     description:
-      "Propose an edit to an existing note. Changes are NOT applied immediately - a confirmation dialog is shown first. The user must click Apply to write changes, or Discard to cancel. Use this instead of update_note for safer editing workflow.",
+      "Propose an edit to an existing text-based vault file. Changes are NOT applied immediately - a confirmation dialog is shown first. The user must click Apply to write changes, or Discard to cancel. Use this instead of update_note for safer editing workflow.",
     parameters: {
       type: "object",
       properties: {
         fileName: {
           type: "string",
-          description: "The name or path of the note to edit",
+          description: "The name or path of the vault file to edit",
         },
         activeNote: {
           type: "boolean",
@@ -263,13 +263,13 @@ export const obsidianTools: ToolDefinition[] = [
   {
     name: "propose_delete",
     description:
-      "Propose deletion of a note. The file is NOT deleted immediately - a confirmation dialog is shown first. The user must click Delete to confirm, or Cancel to keep the file. Use this for safe deletion workflow.",
+      "Propose deletion of a text-based vault file. The file is NOT deleted immediately - a confirmation dialog is shown first. The user must click Delete to confirm, or Cancel to keep the file. Use this for safe deletion workflow.",
     parameters: {
       type: "object",
       properties: {
         fileName: {
           type: "string",
-          description: "The name or path of the note to delete",
+          description: "The name or path of the vault file to delete",
         },
       },
       required: ["fileName"],
@@ -278,7 +278,7 @@ export const obsidianTools: ToolDefinition[] = [
   {
     name: "bulk_propose_edit",
     description:
-      "Propose edits to multiple notes at once. A confirmation dialog shows all files with checkboxes for selective application. Use this when editing many files to avoid multiple individual confirmations.",
+      "Propose edits to multiple text-based vault files at once. A confirmation dialog shows all files with checkboxes for selective application. Use this when editing many files to avoid multiple individual confirmations.",
     parameters: {
       type: "object",
       properties: {
@@ -290,11 +290,11 @@ export const obsidianTools: ToolDefinition[] = [
             properties: {
               fileName: {
                 type: "string",
-                description: "The name or path of the note to edit",
+                description: "The name or path of the vault file to edit",
               },
               newContent: {
                 type: "string",
-                description: "The new content for the note",
+                description: "The new content for the vault file",
               },
               mode: {
                 type: "string",
@@ -312,7 +312,7 @@ export const obsidianTools: ToolDefinition[] = [
   {
     name: "bulk_propose_rename",
     description:
-      "Propose renaming/moving multiple notes at once. A confirmation dialog shows all renames with checkboxes for selective application. Use this when renaming many files to avoid multiple individual confirmations.",
+      "Propose renaming/moving multiple text-based vault files at once. A confirmation dialog shows all renames with checkboxes for selective application. Use this when renaming many files to avoid multiple individual confirmations.",
     parameters: {
       type: "object",
       properties: {
@@ -324,11 +324,11 @@ export const obsidianTools: ToolDefinition[] = [
             properties: {
               oldPath: {
                 type: "string",
-                description: "The current path of the note",
+                description: "The current path of the vault file",
               },
               newPath: {
                 type: "string",
-                description: "The new path for the note",
+                description: "The new path for the vault file",
               },
             },
             required: ["oldPath", "newPath"],
@@ -341,7 +341,7 @@ export const obsidianTools: ToolDefinition[] = [
   {
     name: "bulk_propose_delete",
     description:
-      "Propose deletion of multiple notes at once. A confirmation dialog shows all files with checkboxes for selective deletion. Use this when deleting many files to avoid multiple individual confirmations.",
+      "Propose deletion of multiple text-based vault files at once. A confirmation dialog shows all files with checkboxes for selective deletion. Use this when deleting many files to avoid multiple individual confirmations.",
     parameters: {
       type: "object",
       properties: {

@@ -185,7 +185,7 @@ async function executeToolCallInternal(
         totalCount,
         hasMore,
         message: hasMore
-          ? `Showing ${results.length} of ${totalCount} notes. Use 'limit' parameter to see more.`
+          ? `Showing ${results.length} of ${totalCount} files. Use 'limit' parameter to see more.`
           : undefined,
       };
     }
@@ -215,7 +215,7 @@ async function executeToolCallInternal(
       }
       return {
         success: false,
-        error: "No active note found. Please open a note first.",
+        error: "No active vault file found. Please open a file first.",
       };
     }
 

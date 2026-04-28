@@ -1523,12 +1523,12 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 					systemPrompt += `
 
 Available tools allow you to:
-- Read notes from the vault
-- Create new notes
-- Update existing notes
-- Search for notes by name or content
-- List notes and folders
-- Get information about the active note`;
+- Read text-based vault files
+- Create new text-based vault files
+- Update existing text-based vault files
+- Search for text-based vault files by name or content
+- List text-based vault files and folders
+- Get information about the active vault file`;
 				}
 
 				// Add RAG sync status info if server RAG is enabled (uses FileSearchManager)
@@ -1542,7 +1542,7 @@ Available tools allow you to:
 
 				systemPrompt += `
 
-Always be helpful and provide clear, concise responses. When working with notes, confirm actions and provide relevant feedback.`;
+Always be helpful and provide clear, concise responses. When working with vault files, confirm actions and provide relevant feedback.`;
 
 				if (settings.systemPrompt) {
 					systemPrompt += `\n\nAdditional instructions: ${settings.systemPrompt}`;

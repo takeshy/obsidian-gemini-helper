@@ -7,6 +7,7 @@ import {
   applyEdit,
   clearPendingBulkEdit,
   discardEdit,
+  findFileByName,
   proposeBulkEdit,
   proposeEdit,
 } from "./notes";
@@ -15,20 +16,29 @@ class MockVault {
   private files = new Map<string, TFile>();
   private contents = new Map<string, string>();
 
-  addMarkdownFile(path: string, content: string): TFile {
+  addFile(path: string, content: string): TFile {
     const file = new TFile();
     file.path = path;
     file.name = path.split("/").pop() ?? path;
-    file.extension = "md";
-    file.basename = file.name.replace(/\.md$/, "");
+    const lastDot = file.name.lastIndexOf(".");
+    file.extension = lastDot > 0 ? file.name.slice(lastDot + 1) : "";
+    file.basename = lastDot > 0 ? file.name.slice(0, lastDot) : file.name;
 
     this.files.set(path, file);
     this.contents.set(path, content);
     return file;
   }
 
-  getMarkdownFiles(): TFile[] {
+  addMarkdownFile(path: string, content: string): TFile {
+    return this.addFile(path, content);
+  }
+
+  getFiles(): TFile[] {
     return [...this.files.values()];
+  }
+
+  getMarkdownFiles(): TFile[] {
+    return [...this.files.values()].filter((file) => file.extension === "md");
   }
 
   getAbstractFileByPath(path: string): TFile | null {
@@ -63,6 +73,26 @@ function createMockApp(vault: MockVault, activeFile?: TFile): App {
     },
   } as unknown as App;
 }
+
+describe("findFileByName", () => {
+  it("prefers markdown when the lookup omits an extension", () => {
+    const vault = new MockVault();
+    vault.addFile("Plan.canvas", "{}");
+    vault.addFile("Plan.md", "# Plan");
+    const app = createMockApp(vault);
+
+    expect(findFileByName(app, "Plan")?.path).toBe("Plan.md");
+  });
+
+  it("resolves explicit non-markdown extensions", () => {
+    const vault = new MockVault();
+    vault.addFile("Plan.md", "# Plan");
+    vault.addFile("Plan.canvas", "{}");
+    const app = createMockApp(vault);
+
+    expect(findFileByName(app, "Plan.canvas")?.path).toBe("Plan.canvas");
+  });
+});
 
 describe("notes edit history integration", () => {
   beforeEach(() => {

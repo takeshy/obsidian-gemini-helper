@@ -1,5 +1,5 @@
 import { GoogleGenAI } from "@google/genai";
-import type { TFile, App } from "obsidian";
+import { requestUrl, type TFile, type App } from "obsidian";
 import type {
   SyncStatus,
   RagSyncState,
@@ -7,13 +7,25 @@ import type {
 import { formatError } from "src/utils/error";
 import { tracing } from "src/core/tracingHooks";
 
+export const FILE_SEARCH_MULTIMODAL_EMBEDDING_MODEL = "models/gemini-embedding-2";
+const FILE_SEARCH_STORE_PREFIX = "fileSearchStores/";
+
+export function normalizeFileSearchStoreName(storeName: string | null | undefined): string | null {
+  const trimmed = storeName?.trim();
+  if (!trimmed) return null;
+  return trimmed.startsWith(FILE_SEARCH_STORE_PREFIX)
+    ? trimmed
+    : `${FILE_SEARCH_STORE_PREFIX}${trimmed}`;
+}
+
 // Supported file extensions for RAG upload
-// Note: Gemini File Search API only supports text and application types (not images)
 const SUPPORTED_EXTENSIONS = [
   // Text
   "md",
   // PDF
   "pdf",
+  // Images supported by Gemini File Search multimodal embeddings
+  "png", "jpg", "jpeg",
   // Microsoft Office
   "doc", "docx", "xls", "xlsx", "pptx",
 ];
@@ -23,6 +35,9 @@ function getMimeType(extension: string): string {
   const mimeTypes: Record<string, string> = {
     md: "text/markdown",
     pdf: "application/pdf",
+    png: "image/png",
+    jpg: "image/jpeg",
+    jpeg: "image/jpeg",
     doc: "application/msword",
     docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
     xls: "application/vnd.ms-excel",
@@ -127,8 +142,17 @@ export interface FilterConfig {
   excludePatterns: string[]; // 正規表現パターンで除外
 }
 
+type FileSearchCustomMetadata = Array<{
+  key: string;
+  stringValue?: string;
+  numericValue?: number;
+}>;
+
+type UploadOperation = Awaited<ReturnType<GoogleGenAI["fileSearchStores"]["uploadToFileSearchStore"]>>;
+
 export class FileSearchManager {
   private ai: GoogleGenAI;
+  private apiKey: string;
   private app: App;
   private storeName: string | null = null;
   private syncStatus: SyncStatus = {
@@ -140,6 +164,7 @@ export class FileSearchManager {
 
   constructor(apiKey: string, app: App) {
     this.ai = new GoogleGenAI({ apiKey });
+    this.apiKey = apiKey;
     this.app = app;
   }
 
@@ -159,7 +184,7 @@ export class FileSearchManager {
 
   // Check if file is binary (non-text)
   private isBinaryFile(file: TFile): boolean {
-    const binaryExtensions = ["pdf", "doc", "docx", "xls", "xlsx", "pptx"];
+    const binaryExtensions = ["pdf", "png", "jpg", "jpeg", "doc", "docx", "xls", "xlsx", "pptx"];
     return binaryExtensions.includes(file.extension.toLowerCase());
   }
 
@@ -183,16 +208,56 @@ export class FileSearchManager {
 
   // Create a new File Search Store
   async createStore(displayName: string): Promise<string> {
-    const store = await this.ai.fileSearchStores.create({
-      config: { displayName },
+    const response = await requestUrl({
+      url: `https://generativelanguage.googleapis.com/v1beta/fileSearchStores?key=${encodeURIComponent(this.apiKey)}`,
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        display_name: displayName,
+        embedding_model: FILE_SEARCH_MULTIMODAL_EMBEDDING_MODEL,
+      }),
+      throw: false,
     });
 
+    if (response.status < 200 || response.status >= 300) {
+      throw new Error(`Failed to create store: ${response.status} ${response.text}`);
+    }
+
+    const store = response.json as { name?: string };
     if (!store.name) {
       throw new Error("Failed to create store: no name returned");
     }
 
-    this.storeName = store.name;
-    return store.name;
+    this.storeName = normalizeFileSearchStoreName(store.name);
+    if (!this.storeName) {
+      throw new Error("Failed to create store: invalid name returned");
+    }
+    return this.storeName;
+  }
+
+  private buildCustomMetadata(file: TFile): FileSearchCustomMetadata {
+    return [
+      { key: "path", stringValue: file.path },
+      { key: "extension", stringValue: file.extension.toLowerCase() },
+      { key: "basename", stringValue: file.basename },
+      { key: "folder", stringValue: file.parent?.path ?? "/" },
+      { key: "modified", numericValue: file.stat.mtime },
+      { key: "size", numericValue: file.stat.size },
+    ];
+  }
+
+  private async waitForUploadOperation(operation: UploadOperation): Promise<string | null> {
+    let current = operation;
+    while (!current.done) {
+      await new Promise((resolve) => setTimeout(resolve, 5000));
+      current = await this.ai.operations.get({ operation: current }) as UploadOperation;
+    }
+
+    if (current.error) {
+      throw new Error(`File indexing failed: ${JSON.stringify(current.error)}`);
+    }
+
+    return current.response?.documentName ?? current.name ?? null;
   }
 
   // Get existing store or create new one
@@ -206,8 +271,11 @@ export class FileSearchManager {
       const pager = await this.ai.fileSearchStores.list();
       for await (const store of pager) {
         if (store.displayName === displayName && store.name) {
-          this.storeName = store.name;
-          return store.name;
+          this.storeName = normalizeFileSearchStoreName(store.name);
+          if (!this.storeName) {
+            throw new Error("Failed to get store: invalid name returned");
+          }
+          return this.storeName;
         }
       }
     } catch {
@@ -220,7 +288,7 @@ export class FileSearchManager {
 
   // Set store name (for loading from settings)
   setStoreName(storeName: string | null): void {
-    this.storeName = storeName;
+    this.storeName = normalizeFileSearchStoreName(storeName);
   }
 
   // Get current store name
@@ -244,10 +312,11 @@ export class FileSearchManager {
       fileSearchStoreName: this.storeName,
       config: {
         displayName: file.path,
+        customMetadata: this.buildCustomMetadata(file),
       },
     });
 
-    return operation?.name ?? null;
+    return this.waitForUploadOperation(operation);
   }
 
   // Delete a file from the store by displayName (file path)
@@ -297,26 +366,35 @@ export class FileSearchManager {
 
   // Upload a single file to a specified store (without changing this.storeName)
   async uploadFileToStore(file: TFile, storeId: string): Promise<string | null> {
+    const fileSearchStoreName = normalizeFileSearchStoreName(storeId);
+    if (!fileSearchStoreName) {
+      throw new Error("No File Search Store configured");
+    }
+
     const content = await this.readFileContent(file);
     const mimeType = getMimeType(file.extension);
     const blob = new Blob([content], { type: mimeType });
 
     const operation = await this.ai.fileSearchStores.uploadToFileSearchStore({
       file: blob,
-      fileSearchStoreName: storeId,
+      fileSearchStoreName,
       config: {
         displayName: file.path,
+        customMetadata: this.buildCustomMetadata(file),
       },
     });
 
-    return operation?.name ?? null;
+    return this.waitForUploadOperation(operation);
   }
 
   // Delete a file from a specified store by displayName (without changing this.storeName)
   async deleteFileFromStoreById(displayName: string, storeId: string): Promise<void> {
+    const parent = normalizeFileSearchStoreName(storeId);
+    if (!parent) return;
+
     try {
       const pager = await this.ai.fileSearchStores.documents.list({
-        parent: storeId,
+        parent,
         config: { pageSize: 20 }
       });
 
@@ -581,7 +659,7 @@ export class FileSearchManager {
 
   // Delete store
   async deleteStore(storeNameOverride?: string): Promise<void> {
-    const targetStore = storeNameOverride || this.storeName;
+    const targetStore = normalizeFileSearchStoreName(storeNameOverride || this.storeName);
     if (!targetStore) {
       return;
     }

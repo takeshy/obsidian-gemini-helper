@@ -124,6 +124,9 @@ export const en = {
   "settings.excludedPatterns": "Excluded patterns (regex)",
   "settings.excludedPatterns.desc": "Regular expression patterns to exclude files (one per line). E.g., ^daily/, \\.excalidraw\\.md$",
   "settings.excludedPatterns.placeholder": "^daily/\n\\.excalidraw\\.md$\n^templates/",
+  "settings.metadataFilter": "Metadata filter",
+  "settings.metadataFilter.desc": "Optional metadata filter applied at query time, with internal sync metadata such as path, extension, basename, folder, modified, and size",
+  "settings.metadataFilter.placeholder": "Filter by extension or folder",
 
   // Settings - Sync
   "settings.syncVault": "Sync vault",

@@ -72,6 +72,7 @@ Please revise the output based on the user's feedback above.`;
   // undefined/"" = use current, "__none__" = no RAG, "__websearch__" = web search, other = setting name
   const ragSettingName = node.properties["ragSetting"];
   let storeIds: string[] = [];
+  let metadataFilter: string | undefined;
   let useWebSearch = false;
 
   if (ragSettingName === "__websearch__") {
@@ -83,6 +84,7 @@ Please revise the output based on the user's feedback above.`;
     // Specific RAG setting
     const ragSetting = plugin.workspaceState.ragSettings[ragSettingName];
     if (ragSetting) {
+      metadataFilter = ragSetting.metadataFilter || undefined;
       if (ragSetting.isExternal && ragSetting.storeIds.length > 0) {
         storeIds = ragSetting.storeIds;
       } else if (ragSetting.storeId) {
@@ -93,6 +95,7 @@ Please revise the output based on the user's feedback above.`;
     // Use current RAG setting
     const currentSetting = plugin.getSelectedRagSetting();
     if (currentSetting) {
+      metadataFilter = currentSetting.metadataFilter || undefined;
       if (currentSetting.isExternal && currentSetting.storeIds.length > 0) {
         storeIds = currentSetting.storeIds;
       } else if (currentSetting.storeId) {
@@ -106,6 +109,7 @@ Please revise the output based on the user's feedback above.`;
   // Image models: Web Search only
   if (isImageGenerationModel(model)) {
     storeIds = []; // Disable RAG
+    metadataFilter = undefined;
   }
 
   // Get GeminiClient
@@ -321,7 +325,7 @@ Please revise the output based on the user's feedback above.`;
         toolExecutor,
         storeIds.length > 0 ? storeIds : undefined, // RAG store IDs
         useWebSearch, // Web search mode
-        { enableThinking: node.properties["enableThinking"] !== "false", traceId }
+        { enableThinking: node.properties["enableThinking"] !== "false", ragMetadataFilter: metadataFilter, traceId }
       );
 
   let thinkingContent = "";

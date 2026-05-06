@@ -194,9 +194,11 @@ export interface RagSetting {
   storeId: string | null;       // File Search Store ID (Internal用)
   storeIds: string[];           // File Search Store IDs (External用、複数可)
   storeName: string | null;     // 内部ストア名
+  embeddingModel: string | null; // Internal store embedding model
   isExternal: boolean;          // 外部ストアかどうか
   targetFolders: string[];      // 対象フォルダ（空の場合は全体）
   excludePatterns: string[];    // 正規表現パターンでファイルを除外
+  metadataFilter: string;       // File Search query-time metadata filter
   files: Record<string, RagFileInfo>;  // path -> file info
   lastFullSync: number | null;
 }
@@ -219,9 +221,11 @@ export const DEFAULT_RAG_SETTING: RagSetting = {
   storeId: null,
   storeIds: [],
   storeName: null,
+  embeddingModel: null,
   isExternal: false,
   targetFolders: [],
   excludePatterns: [],
+  metadataFilter: "",
   files: {},
   lastFullSync: null,
 };
@@ -424,6 +428,7 @@ export interface Message {
   toolResults?: ToolResult[];
   ragUsed?: boolean;  // RAG（File Search）が使用されたか
   ragSources?: string[];  // RAG検索で見つかったソースファイル
+  ragContexts?: RagContext[];  // RAG検索で取得された抜粋
   webSearchUsed?: boolean;  // Web Searchが使用されたか
   imageGenerationUsed?: boolean;  // Image Generationが使用されたか
   generatedImages?: GeneratedImage[];  // 生成された画像
@@ -433,6 +438,11 @@ export interface Message {
   usage?: StreamChunkUsage;  // Token usage and cost
   elapsedMs?: number;        // Response time in milliseconds
   interactionId?: string;    // Interactions API interaction ID for conversation chaining
+}
+
+export interface RagContext {
+  source: string;
+  text: string;
 }
 
 // 保留中の編集情報
@@ -533,6 +543,7 @@ export interface StreamChunk {
   toolResult?: ToolResult;
   error?: string;
   ragSources?: string[];  // RAG検索で見つかったソースファイル
+  ragContexts?: RagContext[];  // RAG検索で取得された抜粋
   generatedImage?: GeneratedImage;  // 生成された画像
   usage?: StreamChunkUsage;  // Token usage and cost (populated on "done" chunks)
   interactionId?: string;  // Interactions API interaction ID (populated on "done" chunks)

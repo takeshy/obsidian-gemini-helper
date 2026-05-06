@@ -1514,8 +1514,11 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 
 				// Pass RAG store IDs if RAG is enabled and a setting is selected (not web search)
 				const ragStoreIds = allowRag && toolsEnabled && selectedRagSetting && !isWebSearch
-					? plugin.getSelectedStoreIds()
+					? plugin.getStoreIdsForRagSetting(plugin.getRagSetting(selectedRagSetting))
 					: [];
+				const ragMetadataFilter = allowRag && toolsEnabled && selectedRagSetting && !isWebSearch
+					? (plugin.getRagSetting(selectedRagSetting)?.metadataFilter || undefined)
+					: undefined;
 
 				let systemPrompt = "You are a helpful AI assistant integrated with Obsidian.";
 
@@ -1533,12 +1536,17 @@ Available tools allow you to:
 
 				// Add RAG sync status info if server RAG is enabled (uses FileSearchManager)
 				if (allowRag && toolsEnabled) {
-						systemPrompt += `
+							systemPrompt += `
 - Check RAG sync status: When users ask about imported files, use the get_rag_sync_status tool to:
   - Check a specific file's sync status (when it was imported, if it has changes)
   - List unsynced files in a directory
   - Get a summary of the vault's overall sync status`;
-					}
+						}
+
+				if (ragStoreIds.length > 0) {
+					systemPrompt += `
+- A semantic search file store is selected. Use semantic search for questions that may rely on vault knowledge, synced documents, PDFs, or images. Prefer retrieved evidence over guessing.`;
+				}
 
 				systemPrompt += `
 
@@ -1568,6 +1576,7 @@ Always be helpful and provide clear, concise responses. When working with vault 
 				const toolsUsed: string[] = [];
 				let ragUsed = false;
 				let ragSources: string[] = [];
+				let ragContexts: Message["ragContexts"] = [];
 				let webSearchUsed = false;
 				let imageGenerationUsed = false;
 				const generatedImages: GeneratedImage[] = [];
@@ -1611,6 +1620,7 @@ Always be helpful and provide clear, concise responses. When working with vault 
 							},
 							disableTools: !toolsEnabled,
 							enableThinking: getThinkingToggle(allowedModel),
+							ragMetadataFilter,
 							traceId,
 							previousInteractionId,
 						}
@@ -1654,6 +1664,9 @@ Always be helpful and provide clear, concise responses. When working with vault 
 						ragUsed = true;
 						if (chunk.ragSources) {
 							ragSources = chunk.ragSources;
+						}
+						if (chunk.ragContexts) {
+							ragContexts = chunk.ragContexts;
 						}
 						break;
 
@@ -1711,6 +1724,7 @@ Always be helpful and provide clear, concise responses. When working with vault 
 					toolResults: toolResults.length > 0 ? toolResults : undefined,
 					ragUsed: ragUsed || undefined,
 					ragSources: ragSources.length > 0 ? ragSources : undefined,
+					ragContexts: ragContexts.length > 0 ? ragContexts : undefined,
 					webSearchUsed: webSearchUsed || undefined,
 					imageGenerationUsed: imageGenerationUsed || undefined,
 					generatedImages: generatedImages.length > 0 ? generatedImages : undefined,
@@ -1730,6 +1744,7 @@ Always be helpful and provide clear, concise responses. When working with vault 
 						toolsUsed: toolsUsed.length > 0 ? toolsUsed : undefined,
 						ragUsed,
 						ragSources: ragSources.length > 0 ? ragSources : undefined,
+						ragContexts: ragContexts.length > 0 ? ragContexts : undefined,
 						webSearchUsed,
 						imageGenerationUsed,
 						stopped,

@@ -124,6 +124,9 @@ export const ja: Record<string, string> = {
   "settings.excludedPatterns": "除外パターン（正規表現）",
   "settings.excludedPatterns.desc": "ファイルを除外する正規表現パターン（1行に1つ）。例：^daily/, \\.excalidraw\\.md$",
   "settings.excludedPatterns.placeholder": "^daily/\n\\.excalidraw\\.md$\n^templates/",
+  "settings.metadataFilter": "メタデータフィルタ",
+  "settings.metadataFilter.desc": "検索時に適用する Gemini File Search のメタデータフィルタ。内部同期では path、extension、basename、folder、modified、size を付与します。",
+  "settings.metadataFilter.placeholder": "例：extension = \"pdf\" OR folder = \"notes\"",
 
   // Settings - Sync
   "settings.syncVault": "Vaultを同期",

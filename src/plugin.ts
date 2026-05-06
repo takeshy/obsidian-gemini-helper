@@ -27,6 +27,8 @@ import {
   initFileSearchManager,
   resetFileSearchManager,
   getFileSearchManager,
+  FILE_SEARCH_MULTIMODAL_EMBEDDING_MODEL,
+  normalizeFileSearchStoreName,
   type SyncResult,
 } from "src/core/fileSearch";
 import {
@@ -35,6 +37,7 @@ import {
   getEditHistoryManager,
 } from "src/core/editHistory";
 import { EditHistoryModal } from "src/ui/components/EditHistoryModal";
+import { ConfirmModal } from "src/ui/components/ConfirmModal";
 import { formatError } from "src/utils/error";
 import { DEFAULT_EDIT_HISTORY_SETTINGS, DEFAULT_LANGFUSE_SETTINGS, DEFAULT_WORKSPACE_FOLDER } from "src/types";
 import { initLocale, t } from "src/i18n";
@@ -782,11 +785,50 @@ export class GeminiHelperPlugin extends Plugin {
     try {
       // Get or create store with setting-specific name
       const storeName = ragSetting.storeName || `${this.getVaultStoreName()}-${settingName}`;
-      const storeId = await fileSearchManager.getOrCreateStore(storeName);
+      let currentRagSetting = ragSetting;
+      let currentSyncState = { files: currentRagSetting.files, lastFullSync: currentRagSetting.lastFullSync };
+
+      if (currentRagSetting.storeId && currentRagSetting.embeddingModel !== FILE_SEARCH_MULTIMODAL_EMBEDDING_MODEL) {
+        const recreate = await new ConfirmModal(
+          this.app,
+          "This semantic search store was created before multimodal File Search support, or its embedding model is unknown. Recreate it with gemini-embedding-2 to enable image RAG? Choose cancel to keep using the existing store for this sync.",
+          "Recreate store",
+          "Use existing store"
+        ).openAndWait();
+
+        if (recreate) {
+          try {
+            await fileSearchManager.deleteStore(currentRagSetting.storeId);
+          } catch (error) {
+            console.warn("Gemini Helper: Failed to delete old File Search store during recreation:", formatError(error));
+            new Notice("Could not delete the old semantic search store. Creating a new store instead.");
+          }
+          fileSearchManager.setStoreName(null);
+          currentRagSetting = {
+            ...currentRagSetting,
+            storeId: null,
+            storeName: null,
+            embeddingModel: null,
+            files: {},
+            lastFullSync: null,
+          };
+          currentSyncState = { files: {}, lastFullSync: null };
+          new Notice("Recreating semantic search store with multimodal embeddings...");
+        } else {
+          fileSearchManager.setStoreName(currentRagSetting.storeId);
+        }
+      }
+
+      const storeId = currentRagSetting.storeId
+        ? normalizeFileSearchStoreName(currentRagSetting.storeId)
+        : await fileSearchManager.createStore(storeName);
+      if (!storeId) {
+        throw new Error("Invalid File Search Store ID");
+      }
+      fileSearchManager.setStoreName(storeId);
 
       // If store ID changed, clear files to force re-upload
-      let currentSyncState = { files: ragSetting.files, lastFullSync: ragSetting.lastFullSync };
-      if (ragSetting.storeId && ragSetting.storeId !== storeId) {
+      if (currentRagSetting.storeId && currentRagSetting.storeId !== storeId) {
         // Store changed, need to re-upload all files
         currentSyncState = { files: {}, lastFullSync: null };
         new Notice("Store changed. Re-uploading all files...");
@@ -807,9 +849,12 @@ export class GeminiHelperPlugin extends Plugin {
       // Save store ID and sync state
       const finalStoreId = fileSearchManager.getStoreName();
       this.workspaceState.ragSettings[settingName] = {
-        ...ragSetting,
+        ...currentRagSetting,
         storeId: finalStoreId,
         storeName: storeName,
+        embeddingModel: currentRagSetting.embeddingModel === FILE_SEARCH_MULTIMODAL_EMBEDDING_MODEL
+          ? currentRagSetting.embeddingModel
+          : (finalStoreId !== currentRagSetting.storeId ? FILE_SEARCH_MULTIMODAL_EMBEDDING_MODEL : currentRagSetting.embeddingModel),
         files: result.newSyncState.files,
         lastFullSync: result.newSyncState.lastFullSync,
       };
@@ -886,11 +931,19 @@ export class GeminiHelperPlugin extends Plugin {
   // Get all store IDs for the selected RAG setting (for external stores with multiple IDs)
   getSelectedStoreIds(): string[] {
     const selected = this.getSelectedRagSetting();
+    return this.getStoreIdsForRagSetting(selected);
+  }
+
+  getStoreIdsForRagSetting(ragSetting: RagSetting | null | undefined): string[] {
+    const selected = ragSetting;
     if (!selected) return [];
     if (selected.isExternal) {
-      return selected.storeIds;
+      return selected.storeIds
+        .map((id) => normalizeFileSearchStoreName(id))
+        .filter((id): id is string => !!id);
     }
-    return selected.storeId ? [selected.storeId] : [];
+    const storeId = normalizeFileSearchStoreName(selected.storeId);
+    return storeId ? [storeId] : [];
   }
 
   // Get slash commands for workflow

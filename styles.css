@@ -799,6 +799,31 @@
   border-radius: 12px;
 }
 
+.gemini-helper-rag-contexts {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.gemini-helper-rag-context {
+  font-size: 11px;
+  color: var(--text-muted);
+  background: var(--background-primary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 6px;
+  padding: 4px 6px;
+}
+
+.gemini-helper-rag-context summary {
+  cursor: pointer;
+  color: var(--text-normal);
+}
+
+.gemini-helper-rag-context div {
+  margin-top: 4px;
+  line-height: 1.4;
+}
+
 /* Thinking Content (Collapsible) */
 .gemini-helper-thinking {
   display: block;

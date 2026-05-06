@@ -13,7 +13,7 @@ import {
   isModelAllowedForPlan,
   getDefaultModelForPlan,
 } from "../types";
-import { getFileSearchManager } from "./fileSearch";
+import { getFileSearchManager, normalizeFileSearchStoreName } from "./fileSearch";
 import { formatError } from "../utils/error";
 
 const WORKSPACE_STATE_FILENAME = "gemini-workspace.json";
@@ -130,9 +130,11 @@ export class WorkspaceStateManager {
         storeId: isExternal ? null : (oldState.storeId || null),
         storeIds: isExternal && oldState.storeId ? [oldState.storeId] : [],
         storeName: oldState.storeName || null,
+        embeddingModel: null,
         isExternal,
         targetFolders: oldState.includeFolders || [],
         excludePatterns: oldState.excludePatterns || [],
+        metadataFilter: "",
         files: oldState.files || {},
         lastFullSync: oldState.lastFullSync || null,
       };
@@ -364,9 +366,12 @@ export class WorkspaceStateManager {
     const selected = this.getSelectedRagSetting();
     if (!selected) return [];
     if (selected.isExternal) {
-      return selected.storeIds;
+      return selected.storeIds
+        .map((id) => normalizeFileSearchStoreName(id))
+        .filter((id): id is string => !!id);
     }
-    return selected.storeId ? [selected.storeId] : [];
+    const storeId = normalizeFileSearchStoreName(selected.storeId);
+    return storeId ? [storeId] : [];
   }
 
   // Migrate from old settings format
@@ -398,9 +403,11 @@ export class WorkspaceStateManager {
         storeId: oldStoreId || null,
         storeIds: [],
         storeName: null,
+        embeddingModel: null,
         isExternal: false,
         targetFolders: oldIncludeFolders || [],
         excludePatterns: oldExcludePatterns || [],
+        metadataFilter: "",
         files: (oldSyncState?.files || {}) as RagSetting["files"],
         lastFullSync: oldSyncState?.lastFullSync || null,
       };

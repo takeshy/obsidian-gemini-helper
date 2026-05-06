@@ -202,6 +202,23 @@ function displaySelectedRagSetting(
         })
     );
 
+  const metadataFilterSetting = new Setting(containerEl)
+    .setName(t("settings.metadataFilter"))
+    .setDesc(t("settings.metadataFilter.desc"));
+
+  metadataFilterSetting.settingEl.addClass("gemini-helper-settings-textarea-container");
+
+  metadataFilterSetting.addTextArea((text) => {
+    text
+      .setPlaceholder(t("settings.metadataFilter.placeholder"))
+      .setValue(ragSetting.metadataFilter || "")
+      .onChange((value) => {
+        void plugin.updateRagSetting(name, { metadataFilter: value.trim() });
+      });
+    text.inputEl.rows = 2;
+    text.inputEl.addClass("gemini-helper-settings-textarea");
+  });
+
   if (ragSetting.isExternal) {
     displayExternalStoreSettings(containerEl, plugin, name, ragSetting);
   } else {
@@ -487,4 +504,3 @@ function displayInternalStoreSettings(
       );
   }
 }
-

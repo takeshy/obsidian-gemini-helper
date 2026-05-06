@@ -480,9 +480,10 @@ export default function MessageBubble({
                   className="gemini-helper-rag-source gemini-helper-tool-clickable"
                   onClick={() => {
                     // Try to open the file if it's a vault file
-                    const file = app.vault.getAbstractFileByPath(source);
+                    const sourcePath = source.split(" # ")[0];
+                    const file = app.vault.getAbstractFileByPath(sourcePath);
                     if (file) {
-                      void app.workspace.openLinkText(source, "", false);
+                      void app.workspace.openLinkText(sourcePath, "", false);
                     } else {
                       new Notice(`Source: ${source}`, 3000);
                     }
@@ -491,6 +492,16 @@ export default function MessageBubble({
                 >
                   📄 {source.split("/").pop() || source}
                 </span>
+              ))}
+            </div>
+          )}
+          {message.ragContexts && message.ragContexts.length > 0 && (
+            <div className="gemini-helper-rag-contexts">
+              {message.ragContexts.slice(0, 5).map((context, index) => (
+                <details key={`${context.source}-${index}`} className="gemini-helper-rag-context">
+                  <summary>{context.source.split("/").pop() || context.source}</summary>
+                  <div>{context.text}</div>
+                </details>
               ))}
             </div>
           )}

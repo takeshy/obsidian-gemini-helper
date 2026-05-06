@@ -23,6 +23,7 @@ import {
   type ToolCall,
   type ModelType,
   type GeneratedImage,
+  type RagContext,
 } from "src/types";
 import { tracing, type TracingUsage } from "src/core/tracingHooks";
 import { formatError } from "src/utils/error";
@@ -308,6 +309,7 @@ export interface FunctionCallLimitOptions {
 
 export interface ChatWithToolsOptions {
   ragTopK?: number;
+  ragMetadataFilter?: string;
   functionCallLimits?: FunctionCallLimitOptions;
   disableTools?: boolean;
   enableThinking?: boolean;
@@ -356,6 +358,68 @@ function extractInteractionsUsage(usage: Interactions.Usage | undefined, model?:
     outputCost,
     totalCost,
   };
+}
+
+type FileSearchDeltaResult = {
+  title?: string;
+  text?: string;
+  file_search_store?: string;
+};
+
+type FileSearchResultContentLike = {
+  type?: string;
+  result?: unknown[];
+  text?: string;
+  annotations?: Array<{ source?: string }>;
+};
+
+function formatFileSearchSource(raw: unknown): string | null {
+  const result = raw as FileSearchDeltaResult;
+  const title = String(result.title ?? "").trim();
+  return title || null;
+}
+
+function addFileSearchContext(sources: string[], contexts: RagContext[], raw: unknown): void {
+  const result = raw as FileSearchDeltaResult;
+  const source = formatFileSearchSource(raw);
+  if (source && !sources.includes(source)) {
+    sources.push(source);
+  }
+
+  const text = String(result.text ?? "").replace(/\s+/g, " ").trim();
+  if (!source || !text) return;
+  const excerpt = text.length > 500 ? text.slice(0, 500) + "..." : text;
+  if (!contexts.some((ctx) => ctx.source === source && ctx.text === excerpt)) {
+    contexts.push({ source, text: excerpt });
+  }
+}
+
+function addAnnotationSources(sources: string[], annotations: unknown): void {
+  if (!Array.isArray(annotations)) return;
+  for (const annotation of annotations as Array<{ source?: string }>) {
+    const source = String(annotation.source ?? "").trim();
+    if (source && !sources.includes(source)) {
+      sources.push(source);
+    }
+  }
+}
+
+function collectFileSearchSourcesFromContents(contents: unknown, sources: string[], contexts: RagContext[]): void {
+  if (!Array.isArray(contents)) return;
+  for (const content of contents as FileSearchResultContentLike[]) {
+    if (content?.type === "file_search_result" && Array.isArray(content.result)) {
+      for (const result of content.result) {
+        addFileSearchContext(sources, contexts, result);
+      }
+    }
+    if (content?.type === "text") {
+      addAnnotationSources(sources, content.annotations);
+    }
+  }
+}
+
+function collectFileSearchSourcesFromContent(content: unknown, sources: string[], contexts: RagContext[]): void {
+  collectFileSearchSourcesFromContents(content ? [content] : [], sources, contexts);
 }
 
 export class GeminiClient {
@@ -477,6 +541,7 @@ export class GeminiClient {
     tools: ToolDefinition[],
     ragStoreIds?: string[],
     ragTopK?: number,
+    ragMetadataFilter?: string,
     webSearchEnabled?: boolean,
   ): Interactions.Tool[] {
     const result: Interactions.Tool[] = [];
@@ -497,6 +562,7 @@ export class GeminiClient {
         type: "file_search" as const,
         file_search_store_names: ragStoreIds,
         top_k: ragTopK,
+        metadata_filter: ragMetadataFilter || undefined,
       } as Interactions.Tool);
     }
 
@@ -825,6 +891,7 @@ export class GeminiClient {
         functionTools,
         effectiveRagEnabled ? ragStoreIds : undefined,
         effectiveRagEnabled ? clampedTopK : undefined,
+        effectiveRagEnabled ? options?.ragMetadataFilter : undefined,
         effectiveWebSearch,
       );
       if (interactionTools.length === 0) interactionTools = undefined;
@@ -917,6 +984,8 @@ export class GeminiClient {
 
         const functionCallsToProcess: Array<{ id: string; name: string; args: Record<string, unknown> }> = [];
         const accumulatedSources: string[] = [];
+        const accumulatedContexts: RagContext[] = [];
+        let fileSearchCalled = false;
         let groundingEmitted = false;
         let webSearchUsedInRound = false;
         let roundUsage: TracingUsage | undefined;
@@ -932,6 +1001,15 @@ export class GeminiClient {
               break;
             }
 
+            case "content.start": {
+              const content = (event as { content?: unknown }).content;
+              if ((content as { type?: string } | undefined)?.type === "file_search_result") {
+                fileSearchCalled = true;
+              }
+              collectFileSearchSourcesFromContent(content, accumulatedSources, accumulatedContexts);
+              break;
+            }
+
             case "content.delta": {
               const delta = event.delta;
               if (!delta) break;
@@ -940,6 +1018,9 @@ export class GeminiClient {
                 case "text":
                   if ("text" in delta && delta.text) {
                     accumulatedOutput += delta.text;
+                    if ("annotations" in delta && delta.annotations) {
+                      addAnnotationSources(accumulatedSources, delta.annotations);
+                    }
                     yield { type: "text", content: delta.text };
                   }
                   break;
@@ -964,14 +1045,16 @@ export class GeminiClient {
                   }
                   break;
 
+                case "file_search_call":
+                  fileSearchCalled = true;
+                  break;
+
                 case "file_search_result":
+                  fileSearchCalled = true;
                   // RAG results come through file_search_result deltas
                   if ("result" in delta && Array.isArray(delta.result)) {
                     for (const r of delta.result) {
-                      const title = (r as { title?: string }).title;
-                      if (title && !accumulatedSources.includes(title)) {
-                        accumulatedSources.push(title);
-                      }
+                      addFileSearchContext(accumulatedSources, accumulatedContexts, r);
                     }
                   }
                   break;
@@ -995,6 +1078,7 @@ export class GeminiClient {
               if (interaction?.usage) {
                 roundUsage = extractInteractionsUsage(interaction.usage, this.model);
               }
+              collectFileSearchSourcesFromContents(interaction?.outputs, accumulatedSources, accumulatedContexts);
               // Check for blocked/failed/incomplete status
               const status = interaction?.status;
               if (status && status !== "completed" && status !== "requires_action") {
@@ -1030,8 +1114,8 @@ export class GeminiClient {
         }
 
         // Emit RAG sources
-        if (accumulatedSources.length > 0 && !groundingEmitted) {
-          yield { type: "rag_used", ragSources: accumulatedSources };
+        if ((fileSearchCalled || accumulatedSources.length > 0) && !groundingEmitted) {
+          yield { type: "rag_used", ragSources: accumulatedSources, ragContexts: accumulatedContexts };
           groundingEmitted = true;
 
           // Retriever tracing span

@@ -43,6 +43,11 @@ import { DEFAULT_EDIT_HISTORY_SETTINGS, DEFAULT_LANGFUSE_SETTINGS, DEFAULT_WORKS
 import { initLocale, t } from "src/i18n";
 import { registerWorkflowCodeBlockProcessor } from "src/ui/workflowCodeBlock";
 
+function normalizeDeprecatedModelName(model: unknown): ModelType | null | undefined {
+  if (model === null || model === undefined) return model;
+  if (model === "gemini-3.1-flash-lite-preview") return "gemini-3.1-flash-lite";
+  return model as ModelType;
+}
 
 export class GeminiHelperPlugin extends Plugin {
   settings: GeminiHelperSettings = { ...DEFAULT_SETTINGS };
@@ -459,7 +464,10 @@ export class GeminiHelperPlugin extends Plugin {
       // Deep copy arrays to avoid mutating DEFAULT_SETTINGS
       // Use loaded commands if present, otherwise use default commands
       slashCommands: loaded.slashCommands
-        ? [...loaded.slashCommands]
+        ? loaded.slashCommands.map((command: SlashCommand) => ({
+          ...command,
+          model: normalizeDeprecatedModelName(command.model),
+        }))
         : [...DEFAULT_SETTINGS.slashCommands],
       // Deep copy MCP servers
       mcpServers: loaded.mcpServers
@@ -487,6 +495,9 @@ export class GeminiHelperPlugin extends Plugin {
         ...(loaded.langfuse ?? {}),
       },
     };
+    this.settings.lastAIWorkflowModel = normalizeDeprecatedModelName(
+      loaded.lastAIWorkflowModel
+    ) ?? undefined;
   }
 
   async saveSettings() {

@@ -126,15 +126,18 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 		plugin.workspaceState.selectedRagSetting
 	);
 	// Vault tool mode: "all" = use all tools, "noSearch" = exclude search_notes/list_notes, "none" = no vault tools
-	// Gemma 4 + Web Search: must disable function calling tools
-	const initialGemma4WebSearch = plugin.getSelectedModel().toLowerCase().includes("gemma-4")
+	const mustUseWebSearchOnly = (model: string) => {
+		return model.toLowerCase() === "gemini-3.1-flash-lite";
+	};
+	const supportsWebSearch = (model: string) => !model.toLowerCase().includes("gemma-4");
+	const initialWebSearchOnly = mustUseWebSearchOnly(plugin.getSelectedModel())
 		&& plugin.workspaceState.selectedRagSetting === "__websearch__";
-	const [vaultToolMode, setVaultToolMode] = useState<"all" | "noSearch" | "none">(initialGemma4WebSearch ? "none" : "all");
+	const [vaultToolMode, setVaultToolMode] = useState<"all" | "noSearch" | "none">(initialWebSearchOnly ? "none" : "all");
 	// Reason why vault tools are "none" - determines whether MCP should also be disabled
-	const [, setVaultToolNoneReason] = useState<VaultToolNoneReason | null>(initialGemma4WebSearch ? "manual" : null);
+	const [, setVaultToolNoneReason] = useState<VaultToolNoneReason | null>(initialWebSearchOnly ? "manual" : null);
 	// MCP servers state: local copy with per-server enabled state (for chat session)
 	const [mcpServers, setMcpServers] = useState(() =>
-		initialGemma4WebSearch
+		initialWebSearchOnly
 			? plugin.settings.mcpServers.map(s => ({ ...s, enabled: false }))
 			: [...plugin.settings.mcpServers]
 	);
@@ -175,7 +178,7 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 	// Check if configuration is ready (API key set)
 	const isConfigReady = hasApiKey;
 
-	const allowWebSearch = true;
+	const allowWebSearch = supportsWebSearch(currentModel);
 	const allowRag = ragEnabledState;
 
 	// Resolve thinking toggle for a given model name
@@ -681,11 +684,14 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 	const isGemma4 = (model: string) => model.toLowerCase().includes("gemma-4");
 
 	// Handle RAG setting change from UI
-	const handleRagSettingChange = (name: string | null) => {
+	const handleRagSettingChange = (name: string | null, modelForSupport = currentModel) => {
+		if (name === "__websearch__" && !supportsWebSearch(modelForSupport)) {
+			name = null;
+		}
 		setSelectedRagSetting(name);
 		void plugin.selectRagSetting(name);
-		// Gemma 4: Web Search selected → disable function calling tools
-		if (isGemma4(currentModel) && name === "__websearch__") {
+		// Some models cannot combine Web Search with function calling tools.
+		if (mustUseWebSearchOnly(currentModel) && name === "__websearch__") {
 			setVaultToolMode("none");
 			setVaultToolNoneReason("manual");
 			setMcpServers(servers => servers.map(s => ({ ...s, enabled: false })));
@@ -696,8 +702,8 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 	const handleVaultToolModeChange = (mode: "all" | "noSearch" | "none") => {
 		setVaultToolMode(mode);
 		setVaultToolNoneReason(mode === "none" ? "manual" : null);
-		// Gemma 4: vault tools enabled → clear Web Search
-		if (isGemma4(currentModel) && mode !== "none" && selectedRagSetting === "__websearch__") {
+		// Some models cannot combine Web Search with function calling tools.
+		if (mustUseWebSearchOnly(currentModel) && mode !== "none" && selectedRagSetting === "__websearch__") {
 			setSelectedRagSetting(null);
 			void plugin.selectRagSetting(null);
 		}
@@ -709,8 +715,8 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 			const updated = servers.map(s => s.name === serverName ? { ...s, enabled } : s);
 			plugin.settings.mcpServers = updated;
 			void plugin.saveSettings();
-			// Gemma 4: MCP server enabled → clear Web Search
-			if (isGemma4(currentModel) && enabled && selectedRagSetting === "__websearch__") {
+			// Some models cannot combine Web Search with function calling tools.
+			if (mustUseWebSearchOnly(currentModel) && enabled && selectedRagSetting === "__websearch__") {
 				setSelectedRagSetting(null);
 				void plugin.selectRagSetting(null);
 			}
@@ -732,16 +738,15 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 			setVaultToolMode("all");
 			setVaultToolNoneReason(null);
 		} else if (isGemma4(model)) {
-			// Gemma 4: file_search not supported, google_search cannot combine with function calling
-			if (selectedRagSetting && selectedRagSetting !== "__websearch__") {
-				// Clear RAG (file_search not supported)
+			// Gemma 4: file_search and Web Search are not supported here
+			if (selectedRagSetting) {
 				handleRagSettingChange(null);
-			} else if (selectedRagSetting === "__websearch__") {
-				// Web Search active → disable vault tools
-				setVaultToolMode("none");
-				setVaultToolNoneReason("manual");
-				setMcpServers(servers => servers.map(s => ({ ...s, enabled: false })));
 			}
+		} else if (mustUseWebSearchOnly(model) && selectedRagSetting === "__websearch__") {
+			// Web Search active → disable vault tools
+			setVaultToolMode("none");
+			setVaultToolNoneReason("manual");
+			setMcpServers(servers => servers.map(s => ({ ...s, enabled: false })));
 		} else {
 			// Normal models: restore vault tools
 			setVaultToolMode("all");
@@ -882,9 +887,9 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 		}
 
 		// Optionally change search setting (null = keep current, "" = None, "__websearch__" = Web Search, other = RAG setting name)
-		if (allowWebSearch && command.searchSetting !== null && command.searchSetting !== undefined) {
+		if (command.searchSetting !== null && command.searchSetting !== undefined) {
 			const newSetting = command.searchSetting === "" ? null : command.searchSetting;
-			handleRagSettingChange(newSetting);
+			handleRagSettingChange(newSetting, nextModel);
 		}
 
 		// Optionally change vault tool mode (null = keep current)
@@ -1508,7 +1513,7 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 					: undefined;
 
 					// Check if Web Search or Image Generation model is selected
-				const isWebSearch = allowWebSearch && selectedRagSetting === "__websearch__"
+				const isWebSearch = supportsWebSearch(allowedModel) && selectedRagSetting === "__websearch__"
 					&& (toolsEnabled || isImageGenerationModel(allowedModel));
 				const isImageGeneration = isImageGenerationModel(allowedModel);
 
@@ -1599,8 +1604,8 @@ Always be helpful and provide clear, concise responses. When working with vault 
 					return undefined;
 				})();
 
-				// Gemma 4: cannot combine google_search with function calling
-				const effectiveTools = isGemma4(allowedModel) && isWebSearch ? [] : tools;
+				// Some models cannot combine google_search with function calling.
+				const effectiveTools = mustUseWebSearchOnly(allowedModel) && isWebSearch ? [] : tools;
 
 				// Use image generation stream or regular chat stream
 				const chunkStream = isImageGeneration
@@ -2118,7 +2123,7 @@ Always be helpful and provide clear, concise responses. When working with vault 
 						onRagSettingChange={handleRagSettingChange}
 						vaultToolMode={vaultToolMode}
 						onVaultToolModeChange={handleVaultToolModeChange}
-						vaultToolModeOnlyNone={false}
+						vaultToolModeOnlyNone={mustUseWebSearchOnly(currentModel) && selectedRagSetting === "__websearch__"}
 						thinkFlash={thinkFlash}
 						thinkFlashLite={thinkFlashLite}
 						onThinkFlashChange={setThinkFlash}

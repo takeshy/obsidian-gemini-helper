@@ -33,7 +33,7 @@ export function shouldUseImageModel(message: string): boolean {
 
 export const PAID_RATE_LIMIT_RETRY_DELAYS_MS = [10000, 30000, 60000];
 
-export const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+export const sleep = (ms: number) => new Promise((resolve) => window.setTimeout(resolve, ms));
 
 export function isRateLimitError(error: unknown): boolean {
 	if (error && typeof error === "object" && "code" in error) {

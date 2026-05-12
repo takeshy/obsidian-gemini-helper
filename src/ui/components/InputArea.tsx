@@ -141,8 +141,8 @@ const InputArea = forwardRef<InputAreaHandle, InputAreaProps>(function InputArea
         setShowVaultToolMenu(false);
       }
     };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    activeDocument.addEventListener("mousedown", handleClickOutside);
+    return () => activeDocument.removeEventListener("mousedown", handleClickOutside);
   }, [showVaultToolMenu]);
 
   // Expose methods via ref
@@ -311,7 +311,7 @@ const InputArea = forwardRef<InputAreaHandle, InputAreaProps>(function InputArea
     setInput(newInput);
     setShowMentionAutocomplete(false);
     // Set cursor position after the inserted mention
-    setTimeout(() => {
+    window.setTimeout(() => {
       const newPos = mentionStartPos + mention.value.length + 1;
       textareaRef.current?.setSelectionRange(newPos, newPos);
       textareaRef.current?.focus();
@@ -365,7 +365,7 @@ const InputArea = forwardRef<InputAreaHandle, InputAreaProps>(function InputArea
         if (mention && !mention.isVariable) {
           void app.workspace.openLinkText(mention.value, "", true);
           // Return focus to textarea after opening
-          setTimeout(() => textareaRef.current?.focus(), 100);
+          window.setTimeout(() => textareaRef.current?.focus(), 100);
         }
         return;
       }
@@ -546,7 +546,7 @@ const InputArea = forwardRef<InputAreaHandle, InputAreaProps>(function InputArea
                     onClick={(e) => {
                       e.stopPropagation();
                       void app.workspace.openLinkText(mention.value, "", true);
-                      setTimeout(() => textareaRef.current?.focus(), 100);
+                      window.setTimeout(() => textareaRef.current?.focus(), 100);
                     }}
                     title={t("input.openFile")}
                   >

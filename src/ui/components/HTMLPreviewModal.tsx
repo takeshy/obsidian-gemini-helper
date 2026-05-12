@@ -94,7 +94,7 @@ export class HTMLPreviewModal extends Modal {
   private addResizeHandles(modalEl: HTMLElement) {
     const directions = ["n", "e", "s", "w", "ne", "nw", "se", "sw"];
     for (const dir of directions) {
-      const handle = document.createElement("div");
+      const handle = activeDocument.createElement("div");
       handle.className = `gemini-helper-resize-handle gemini-helper-resize-${dir}`;
       handle.dataset.direction = dir;
       modalEl.appendChild(handle);
@@ -124,8 +124,8 @@ export class HTMLPreviewModal extends Modal {
         top: `${rect.top}px`,
       });
 
-      document.addEventListener("mousemove", onMouseMove);
-      document.addEventListener("mouseup", onMouseUp);
+      activeDocument.addEventListener("mousemove", onMouseMove);
+      activeDocument.addEventListener("mouseup", onMouseUp);
       e.preventDefault();
     };
 
@@ -143,8 +143,8 @@ export class HTMLPreviewModal extends Modal {
 
     const onMouseUp = () => {
       this.isDragging = false;
-      document.removeEventListener("mousemove", onMouseMove);
-      document.removeEventListener("mouseup", onMouseUp);
+      activeDocument.removeEventListener("mousemove", onMouseMove);
+      activeDocument.removeEventListener("mouseup", onMouseUp);
     };
 
     header.addEventListener("mousedown", onMouseDown);
@@ -174,8 +174,8 @@ export class HTMLPreviewModal extends Modal {
         height: `${rect.height}px`,
       });
 
-      document.addEventListener("mousemove", onMouseMove);
-      document.addEventListener("mouseup", onMouseUp);
+      activeDocument.addEventListener("mousemove", onMouseMove);
+      activeDocument.addEventListener("mouseup", onMouseUp);
       e.preventDefault();
       e.stopPropagation();
     };
@@ -220,8 +220,8 @@ export class HTMLPreviewModal extends Modal {
 
     const onMouseUp = () => {
       this.isResizing = false;
-      document.removeEventListener("mousemove", onMouseMove);
-      document.removeEventListener("mouseup", onMouseUp);
+      activeDocument.removeEventListener("mousemove", onMouseMove);
+      activeDocument.removeEventListener("mouseup", onMouseUp);
     };
 
     handle.addEventListener("mousedown", onMouseDown);
@@ -251,7 +251,7 @@ export class HTMLPreviewModal extends Modal {
       // Desktop: Download file
       const blob = new Blob([this.htmlContent], { type: "text/html" });
       const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
+      const link = activeDocument.createElement("a");
       link.href = url;
       link.download = `infographic-${this.baseName}-${Date.now()}.html`;
       link.click();

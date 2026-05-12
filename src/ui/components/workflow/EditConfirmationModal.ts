@@ -28,9 +28,7 @@ export function computeLineDiff(oldText: string, newText: string): DiffLine[] {
   // Build LCS table
   const m = oldLines.length;
   const n = newLines.length;
-  const lcs: number[][] = Array(m + 1)
-    .fill(null)
-    .map(() => Array(n + 1).fill(0));
+  const lcs: number[][] = Array.from({ length: m + 1 }, () => Array<number>(n + 1).fill(0));
 
   for (let i = 1; i <= m; i++) {
     for (let j = 1; j <= n; j++) {
@@ -132,8 +130,7 @@ export class EditConfirmationModal extends Modal {
     const { contentEl, modalEl, containerEl } = this;
 
     // Prevent closing on outside click
-    containerEl.setCssProps({ 'pointer-events': 'none' });
-    modalEl.setCssProps({ 'pointer-events': 'auto' });
+    containerEl.addClass("gemini-helper-modal-no-outside-click");
 
     // Add modal classes for styling
     modalEl.addClass("gemini-helper-edit-confirm-modal");
@@ -266,25 +263,25 @@ export class EditConfirmationModal extends Modal {
       const hasText = (this.additionalRequestEl?.value || "").trim().length > 0;
       if (hasComments || hasText) {
         // Warn when there are unsubmitted line comments
-        const overlay = document.createElement("div");
+        const overlay = activeDocument.createElement("div");
         overlay.className = "gemini-helper-diff-confirm-overlay";
 
-        const dialog = document.createElement("div");
+        const dialog = activeDocument.createElement("div");
         dialog.className = "gemini-helper-diff-confirm-dialog";
 
-        const msg = document.createElement("p");
+        const msg = activeDocument.createElement("p");
         msg.textContent = t("diff.applyWithCommentsConfirm");
         dialog.appendChild(msg);
 
-        const btns = document.createElement("div");
+        const btns = activeDocument.createElement("div");
         btns.className = "gemini-helper-diff-confirm-dialog-actions";
 
-        const dialogCancelBtn = document.createElement("button");
+        const dialogCancelBtn = activeDocument.createElement("button");
         dialogCancelBtn.textContent = t("workflowModal.cancel");
         dialogCancelBtn.addEventListener("click", () => overlay.remove());
         btns.appendChild(dialogCancelBtn);
 
-        const applyBtn = document.createElement("button");
+        const applyBtn = activeDocument.createElement("button");
         applyBtn.textContent = t("message.apply");
         applyBtn.className = "mod-cta";
         applyBtn.addEventListener("click", () => {
@@ -326,7 +323,7 @@ export class EditConfirmationModal extends Modal {
   private addResizeHandles(modalEl: HTMLElement) {
     const directions = ["n", "e", "s", "w", "ne", "nw", "se", "sw"];
     for (const dir of directions) {
-      const handle = document.createElement("div");
+      const handle = activeDocument.createElement("div");
       handle.className = `gemini-helper-resize-handle gemini-helper-resize-${dir}`;
       handle.dataset.direction = dir;
       modalEl.appendChild(handle);
@@ -354,8 +351,8 @@ export class EditConfirmationModal extends Modal {
         top: `${rect.top}px`,
       });
 
-      document.addEventListener("mousemove", onMouseMove);
-      document.addEventListener("mouseup", onMouseUp);
+      activeDocument.addEventListener("mousemove", onMouseMove);
+      activeDocument.addEventListener("mouseup", onMouseUp);
       e.preventDefault();
     };
 
@@ -373,8 +370,8 @@ export class EditConfirmationModal extends Modal {
 
     const onMouseUp = () => {
       this.isDragging = false;
-      document.removeEventListener("mousemove", onMouseMove);
-      document.removeEventListener("mouseup", onMouseUp);
+      activeDocument.removeEventListener("mousemove", onMouseMove);
+      activeDocument.removeEventListener("mouseup", onMouseUp);
     };
 
     header.addEventListener("mousedown", onMouseDown);
@@ -403,8 +400,8 @@ export class EditConfirmationModal extends Modal {
         height: `${rect.height}px`,
       });
 
-      document.addEventListener("mousemove", onMouseMove);
-      document.addEventListener("mouseup", onMouseUp);
+      activeDocument.addEventListener("mousemove", onMouseMove);
+      activeDocument.addEventListener("mouseup", onMouseUp);
       e.preventDefault();
       e.stopPropagation();
     };
@@ -446,8 +443,8 @@ export class EditConfirmationModal extends Modal {
 
     const onMouseUp = () => {
       this.isResizing = false;
-      document.removeEventListener("mousemove", onMouseMove);
-      document.removeEventListener("mouseup", onMouseUp);
+      activeDocument.removeEventListener("mousemove", onMouseMove);
+      activeDocument.removeEventListener("mouseup", onMouseUp);
     };
 
     handle.addEventListener("mousedown", onMouseDown);
@@ -529,8 +526,7 @@ export class DeleteConfirmationModal extends Modal {
     const { contentEl, modalEl, containerEl } = this;
 
     // Prevent closing on outside click
-    containerEl.setCssProps({ 'pointer-events': 'none' });
-    modalEl.setCssProps({ 'pointer-events': 'auto' });
+    containerEl.addClass("gemini-helper-modal-no-outside-click");
 
     // Add modal classes for styling
     modalEl.addClass("gemini-helper-delete-confirm-modal");
@@ -610,7 +606,7 @@ export class DeleteConfirmationModal extends Modal {
   private addResizeHandles(modalEl: HTMLElement) {
     const directions = ["n", "e", "s", "w", "ne", "nw", "se", "sw"];
     for (const dir of directions) {
-      const handle = document.createElement("div");
+      const handle = activeDocument.createElement("div");
       handle.className = `gemini-helper-resize-handle gemini-helper-resize-${dir}`;
       handle.dataset.direction = dir;
       modalEl.appendChild(handle);
@@ -638,8 +634,8 @@ export class DeleteConfirmationModal extends Modal {
         top: `${rect.top}px`,
       });
 
-      document.addEventListener("mousemove", onMouseMove);
-      document.addEventListener("mouseup", onMouseUp);
+      activeDocument.addEventListener("mousemove", onMouseMove);
+      activeDocument.addEventListener("mouseup", onMouseUp);
       e.preventDefault();
     };
 
@@ -657,8 +653,8 @@ export class DeleteConfirmationModal extends Modal {
 
     const onMouseUp = () => {
       this.isDragging = false;
-      document.removeEventListener("mousemove", onMouseMove);
-      document.removeEventListener("mouseup", onMouseUp);
+      activeDocument.removeEventListener("mousemove", onMouseMove);
+      activeDocument.removeEventListener("mouseup", onMouseUp);
     };
 
     header.addEventListener("mousedown", onMouseDown);
@@ -687,8 +683,8 @@ export class DeleteConfirmationModal extends Modal {
         height: `${rect.height}px`,
       });
 
-      document.addEventListener("mousemove", onMouseMove);
-      document.addEventListener("mouseup", onMouseUp);
+      activeDocument.addEventListener("mousemove", onMouseMove);
+      activeDocument.addEventListener("mouseup", onMouseUp);
       e.preventDefault();
       e.stopPropagation();
     };
@@ -730,8 +726,8 @@ export class DeleteConfirmationModal extends Modal {
 
     const onMouseUp = () => {
       this.isResizing = false;
-      document.removeEventListener("mousemove", onMouseMove);
-      document.removeEventListener("mouseup", onMouseUp);
+      activeDocument.removeEventListener("mousemove", onMouseMove);
+      activeDocument.removeEventListener("mouseup", onMouseUp);
     };
 
     handle.addEventListener("mousedown", onMouseDown);
@@ -817,8 +813,7 @@ export class BulkEditConfirmationModal extends Modal {
     const { contentEl, modalEl, containerEl } = this;
 
     // Prevent closing on outside click
-    containerEl.setCssProps({ 'pointer-events': 'none' });
-    modalEl.setCssProps({ 'pointer-events': 'auto' });
+    containerEl.addClass("gemini-helper-modal-no-outside-click");
 
     modalEl.addClass("gemini-helper-bulk-confirm-modal");
     modalEl.addClass("gemini-helper-resizable-modal");
@@ -980,7 +975,7 @@ export class BulkEditConfirmationModal extends Modal {
   private addResizeHandles(modalEl: HTMLElement) {
     const directions = ["n", "e", "s", "w", "ne", "nw", "se", "sw"];
     for (const dir of directions) {
-      const handle = document.createElement("div");
+      const handle = activeDocument.createElement("div");
       handle.className = `gemini-helper-resize-handle gemini-helper-resize-${dir}`;
       handle.dataset.direction = dir;
       modalEl.appendChild(handle);
@@ -1008,8 +1003,8 @@ export class BulkEditConfirmationModal extends Modal {
         top: `${rect.top}px`,
       });
 
-      document.addEventListener("mousemove", onMouseMove);
-      document.addEventListener("mouseup", onMouseUp);
+      activeDocument.addEventListener("mousemove", onMouseMove);
+      activeDocument.addEventListener("mouseup", onMouseUp);
       e.preventDefault();
     };
 
@@ -1027,8 +1022,8 @@ export class BulkEditConfirmationModal extends Modal {
 
     const onMouseUp = () => {
       this.isDragging = false;
-      document.removeEventListener("mousemove", onMouseMove);
-      document.removeEventListener("mouseup", onMouseUp);
+      activeDocument.removeEventListener("mousemove", onMouseMove);
+      activeDocument.removeEventListener("mouseup", onMouseUp);
     };
 
     header.addEventListener("mousedown", onMouseDown);
@@ -1057,8 +1052,8 @@ export class BulkEditConfirmationModal extends Modal {
         height: `${rect.height}px`,
       });
 
-      document.addEventListener("mousemove", onMouseMove);
-      document.addEventListener("mouseup", onMouseUp);
+      activeDocument.addEventListener("mousemove", onMouseMove);
+      activeDocument.addEventListener("mouseup", onMouseUp);
       e.preventDefault();
       e.stopPropagation();
     };
@@ -1100,8 +1095,8 @@ export class BulkEditConfirmationModal extends Modal {
 
     const onMouseUp = () => {
       this.isResizing = false;
-      document.removeEventListener("mousemove", onMouseMove);
-      document.removeEventListener("mouseup", onMouseUp);
+      activeDocument.removeEventListener("mousemove", onMouseMove);
+      activeDocument.removeEventListener("mouseup", onMouseUp);
     };
 
     handle.addEventListener("mousedown", onMouseDown);
@@ -1177,8 +1172,7 @@ export class BulkDeleteConfirmationModal extends Modal {
     const { contentEl, modalEl, containerEl } = this;
 
     // Prevent closing on outside click
-    containerEl.setCssProps({ 'pointer-events': 'none' });
-    modalEl.setCssProps({ 'pointer-events': 'auto' });
+    containerEl.addClass("gemini-helper-modal-no-outside-click");
 
     modalEl.addClass("gemini-helper-bulk-confirm-modal");
     modalEl.addClass("gemini-helper-bulk-delete-modal");
@@ -1341,7 +1335,7 @@ export class BulkDeleteConfirmationModal extends Modal {
   private addResizeHandles(modalEl: HTMLElement) {
     const directions = ["n", "e", "s", "w", "ne", "nw", "se", "sw"];
     for (const dir of directions) {
-      const handle = document.createElement("div");
+      const handle = activeDocument.createElement("div");
       handle.className = `gemini-helper-resize-handle gemini-helper-resize-${dir}`;
       handle.dataset.direction = dir;
       modalEl.appendChild(handle);
@@ -1369,8 +1363,8 @@ export class BulkDeleteConfirmationModal extends Modal {
         top: `${rect.top}px`,
       });
 
-      document.addEventListener("mousemove", onMouseMove);
-      document.addEventListener("mouseup", onMouseUp);
+      activeDocument.addEventListener("mousemove", onMouseMove);
+      activeDocument.addEventListener("mouseup", onMouseUp);
       e.preventDefault();
     };
 
@@ -1388,8 +1382,8 @@ export class BulkDeleteConfirmationModal extends Modal {
 
     const onMouseUp = () => {
       this.isDragging = false;
-      document.removeEventListener("mousemove", onMouseMove);
-      document.removeEventListener("mouseup", onMouseUp);
+      activeDocument.removeEventListener("mousemove", onMouseMove);
+      activeDocument.removeEventListener("mouseup", onMouseUp);
     };
 
     header.addEventListener("mousedown", onMouseDown);
@@ -1418,8 +1412,8 @@ export class BulkDeleteConfirmationModal extends Modal {
         height: `${rect.height}px`,
       });
 
-      document.addEventListener("mousemove", onMouseMove);
-      document.addEventListener("mouseup", onMouseUp);
+      activeDocument.addEventListener("mousemove", onMouseMove);
+      activeDocument.addEventListener("mouseup", onMouseUp);
       e.preventDefault();
       e.stopPropagation();
     };
@@ -1461,8 +1455,8 @@ export class BulkDeleteConfirmationModal extends Modal {
 
     const onMouseUp = () => {
       this.isResizing = false;
-      document.removeEventListener("mousemove", onMouseMove);
-      document.removeEventListener("mouseup", onMouseUp);
+      activeDocument.removeEventListener("mousemove", onMouseMove);
+      activeDocument.removeEventListener("mouseup", onMouseUp);
     };
 
     handle.addEventListener("mousedown", onMouseDown);
@@ -1512,8 +1506,7 @@ export class RenameConfirmationModal extends Modal {
     const { contentEl, modalEl, containerEl } = this;
 
     // Prevent closing on outside click
-    containerEl.setCssProps({ 'pointer-events': 'none' });
-    modalEl.setCssProps({ 'pointer-events': 'auto' });
+    containerEl.addClass("gemini-helper-modal-no-outside-click");
 
     modalEl.addClass("gemini-helper-delete-confirm-modal");
 
@@ -1627,8 +1620,7 @@ export class BulkRenameConfirmationModal extends Modal {
     const { contentEl, modalEl, containerEl } = this;
 
     // Prevent closing on outside click
-    containerEl.setCssProps({ 'pointer-events': 'none' });
-    modalEl.setCssProps({ 'pointer-events': 'auto' });
+    containerEl.addClass("gemini-helper-modal-no-outside-click");
 
     modalEl.addClass("gemini-helper-bulk-confirm-modal");
     modalEl.addClass("gemini-helper-resizable-modal");
@@ -1750,7 +1742,7 @@ export class BulkRenameConfirmationModal extends Modal {
   private addResizeHandles(modalEl: HTMLElement) {
     const directions = ["n", "e", "s", "w", "ne", "nw", "se", "sw"];
     for (const dir of directions) {
-      const handle = document.createElement("div");
+      const handle = activeDocument.createElement("div");
       handle.className = `gemini-helper-resize-handle gemini-helper-resize-${dir}`;
       handle.dataset.direction = dir;
       modalEl.appendChild(handle);
@@ -1778,8 +1770,8 @@ export class BulkRenameConfirmationModal extends Modal {
         top: `${rect.top}px`,
       });
 
-      document.addEventListener("mousemove", onMouseMove);
-      document.addEventListener("mouseup", onMouseUp);
+      activeDocument.addEventListener("mousemove", onMouseMove);
+      activeDocument.addEventListener("mouseup", onMouseUp);
       e.preventDefault();
     };
 
@@ -1797,8 +1789,8 @@ export class BulkRenameConfirmationModal extends Modal {
 
     const onMouseUp = () => {
       this.isDragging = false;
-      document.removeEventListener("mousemove", onMouseMove);
-      document.removeEventListener("mouseup", onMouseUp);
+      activeDocument.removeEventListener("mousemove", onMouseMove);
+      activeDocument.removeEventListener("mouseup", onMouseUp);
     };
 
     header.addEventListener("mousedown", onMouseDown);
@@ -1827,8 +1819,8 @@ export class BulkRenameConfirmationModal extends Modal {
         height: `${rect.height}px`,
       });
 
-      document.addEventListener("mousemove", onMouseMove);
-      document.addEventListener("mouseup", onMouseUp);
+      activeDocument.addEventListener("mousemove", onMouseMove);
+      activeDocument.addEventListener("mouseup", onMouseUp);
       e.preventDefault();
       e.stopPropagation();
     };
@@ -1870,8 +1862,8 @@ export class BulkRenameConfirmationModal extends Modal {
 
     const onMouseUp = () => {
       this.isResizing = false;
-      document.removeEventListener("mousemove", onMouseMove);
-      document.removeEventListener("mouseup", onMouseUp);
+      activeDocument.removeEventListener("mousemove", onMouseMove);
+      activeDocument.removeEventListener("mouseup", onMouseUp);
     };
 
     handle.addEventListener("mousedown", onMouseDown);

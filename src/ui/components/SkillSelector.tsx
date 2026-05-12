@@ -47,11 +47,11 @@ export default function SkillSelector({
         setShowDropdown(false);
       }
     };
-    document.addEventListener("mousedown", handleClick);
-    requestAnimationFrame(updatePosition);
+    activeDocument.addEventListener("mousedown", handleClick);
+    window.requestAnimationFrame(updatePosition);
     window.addEventListener("resize", updatePosition);
     return () => {
-      document.removeEventListener("mousedown", handleClick);
+      activeDocument.removeEventListener("mousedown", handleClick);
       window.removeEventListener("resize", updatePosition);
     };
   }, [showDropdown, updatePosition]);
@@ -122,7 +122,7 @@ export default function SkillSelector({
             </label>
           ))}
         </div>,
-        document.body,
+        activeDocument.body,
       )}
     </div>
   );

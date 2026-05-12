@@ -295,7 +295,7 @@ export class WorkflowPreviewModal extends Modal {
         void navigator.clipboard.writeText(section.content).then(() => {
           const original = copyBtn.textContent;
           copyBtn.textContent = "✓";
-          setTimeout(() => { copyBtn.textContent = original; }, 1200);
+          window.setTimeout(() => { copyBtn.textContent = original; }, 1200);
         });
       });
       if (section.kind === "markdown") {
@@ -331,8 +331,8 @@ export class WorkflowPreviewModal extends Modal {
         margin: "0",
       });
 
-      document.addEventListener("mousemove", onMouseMove);
-      document.addEventListener("mouseup", onMouseUp);
+      activeDocument.addEventListener("mousemove", onMouseMove);
+      activeDocument.addEventListener("mouseup", onMouseUp);
       e.preventDefault();
     };
 
@@ -348,8 +348,8 @@ export class WorkflowPreviewModal extends Modal {
 
     const onMouseUp = () => {
       isDragging = false;
-      document.removeEventListener("mousemove", onMouseMove);
-      document.removeEventListener("mouseup", onMouseUp);
+      activeDocument.removeEventListener("mousemove", onMouseMove);
+      activeDocument.removeEventListener("mouseup", onMouseUp);
     };
 
     dragHandle.addEventListener("mousedown", onMouseDown);

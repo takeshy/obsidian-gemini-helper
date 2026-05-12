@@ -440,7 +440,7 @@ function displayInternalStoreSettings(
               btn.setButtonText(t("settings.syncVault"));
               if (cancelBtn) cancelBtn.addClass("gemini-helper-hidden");
               syncCancelRef.value = false;
-              setTimeout(() => {
+              window.setTimeout(() => {
                 progressContainer.addClass("gemini-helper-hidden");
                 display();
               }, 2000);

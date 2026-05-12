@@ -86,7 +86,7 @@ class CopyInputModal extends Modal {
     });
 
     // Focus input after modal opens
-    setTimeout(() => {
+    window.setTimeout(() => {
       this.inputEl?.focus();
     }, 50);
   }
@@ -162,8 +162,8 @@ function setupDragHandle(dragHandle: HTMLElement, modalEl: HTMLElement): void {
       margin: "0",
     });
 
-    document.addEventListener("mousemove", onMouseMove);
-    document.addEventListener("mouseup", onMouseUp);
+    activeDocument.addEventListener("mousemove", onMouseMove);
+    activeDocument.addEventListener("mouseup", onMouseUp);
     e.preventDefault();
   };
 
@@ -179,8 +179,8 @@ function setupDragHandle(dragHandle: HTMLElement, modalEl: HTMLElement): void {
 
   const onMouseUp = () => {
     isDragging = false;
-    document.removeEventListener("mousemove", onMouseMove);
-    document.removeEventListener("mouseup", onMouseUp);
+    activeDocument.removeEventListener("mousemove", onMouseMove);
+    activeDocument.removeEventListener("mouseup", onMouseUp);
   };
 
   dragHandle.addEventListener("mousedown", onMouseDown);

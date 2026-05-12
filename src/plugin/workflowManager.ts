@@ -27,7 +27,7 @@ export class WorkflowManager {
   // Event loop prevention: tracks files being modified by workflows
   private workflowModifiedFiles = new Set<string>();
   // Debounce timers for modify events (per file)
-  private modifyDebounceTimers = new Map<string, ReturnType<typeof setTimeout>>();
+  private modifyDebounceTimers = new Map<string, number>();
   private static readonly MODIFY_DEBOUNCE_MS = 5000; // 5 seconds debounce for modify events
 
   constructor(plugin: GeminiHelperPlugin) {
@@ -36,7 +36,7 @@ export class WorkflowManager {
 
   cleanup(): void {
     for (const timer of this.modifyDebounceTimers.values()) {
-      clearTimeout(timer);
+      window.clearTimeout(timer);
     }
     this.modifyDebounceTimers.clear();
     this.workflowModifiedFiles.clear();
@@ -375,11 +375,11 @@ export class WorkflowManager {
       // Clear existing timer for this file
       const existingTimer = this.modifyDebounceTimers.get(filePath);
       if (existingTimer) {
-        clearTimeout(existingTimer);
+        window.clearTimeout(existingTimer);
       }
 
       // Set new debounced handler
-      const timer = setTimeout(() => {
+      const timer = window.setTimeout(() => {
         this.modifyDebounceTimers.delete(filePath);
         void this.executeMatchingWorkflows(eventType, filePath, eventData, triggers);
       }, WorkflowManager.MODIFY_DEBOUNCE_MS);
@@ -471,7 +471,7 @@ export class WorkflowManager {
 
     // Set up cleanup timer to remove the file from the blocked set
     // Use a longer timeout to account for async file operations
-    const cleanupTimeout = setTimeout(() => {
+    const cleanupTimeout = window.setTimeout(() => {
       this.workflowModifiedFiles.delete(filePath);
       this.workflowModifiedFiles.delete(workflowFilePath);
     }, 2000); // 2 seconds should be enough for most workflows
@@ -522,7 +522,7 @@ export class WorkflowManager {
         promptForConfirmation: (confirmPath: string, confirmContent: string, mode: string, originalContent?: string) => {
           // Track the file being confirmed for modification
           this.workflowModifiedFiles.add(confirmPath);
-          setTimeout(() => this.workflowModifiedFiles.delete(confirmPath), 2000);
+          window.setTimeout(() => this.workflowModifiedFiles.delete(confirmPath), 2000);
           return promptForConfirmation(this.app, confirmPath, confirmContent, mode, originalContent);
         },
         promptForDialog: (title: string, message: string, options: string[], multiSelect: boolean, button1: string, button2?: string, markdown?: boolean, inputTitle?: string, defaults?: { input?: string; selected?: string[] }, multiline?: boolean) =>
@@ -553,7 +553,7 @@ export class WorkflowManager {
       // Silent success for event-triggered workflows to avoid notification spam
     } finally {
       // Clean up the timer if workflow completed before timeout
-      clearTimeout(cleanupTimeout);
+      window.clearTimeout(cleanupTimeout);
       // Note: We don't immediately remove from workflowModifiedFiles here
       // because the file system events might still be propagating
     }

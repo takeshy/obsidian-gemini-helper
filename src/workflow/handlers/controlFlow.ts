@@ -135,6 +135,6 @@ export async function handleSleepNode(
   const durationStr = replaceVariables(node.properties["duration"] || "0", context);
   const duration = parseInt(durationStr, 10);
   if (duration > 0) {
-    await new Promise(resolve => setTimeout(resolve, duration));
+    await new Promise(resolve => window.setTimeout(resolve, duration));
   }
 }

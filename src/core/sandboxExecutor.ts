@@ -64,6 +64,30 @@ window.addEventListener('message', async function(event) {
 parent.postMessage({ type: 'ready' }, '*');
 </` + `script></head><body></body></html>`;
 
+type SandboxMessage =
+  | { type: "ready" }
+  | { type: "result"; value?: unknown }
+  | { type: "error"; message?: unknown };
+
+function isSandboxMessage(data: unknown): data is SandboxMessage {
+  if (!data || typeof data !== "object") return false;
+  const type = (data as { type?: unknown }).type;
+  return type === "ready" || type === "result" || type === "error";
+}
+
+function stringifySandboxValue(value: unknown): string {
+  if (value === undefined || value === null) return "";
+  if (typeof value === "string") return value;
+  if (typeof value === "number" || typeof value === "boolean" || typeof value === "bigint") {
+    return String(value);
+  }
+  try {
+    return JSON.stringify(value);
+  } catch {
+    return Object.prototype.toString.call(value);
+  }
+}
+
 /** Tool executor helper for execute_javascript function calls. */
 export async function handleExecuteJavascriptTool(
   args: Record<string, unknown>,
@@ -84,14 +108,14 @@ export function executeSandboxedJS(
   timeoutMs = DEFAULT_TIMEOUT_MS,
 ): Promise<string> {
   return new Promise<string>((resolve, reject) => {
-    const iframe = document.createElement("iframe");
+    const iframe = activeDocument.createElement("iframe");
     iframe.sandbox.add("allow-scripts");
     iframe.setCssStyles({ display: "none" });
 
     let settled = false;
 
-    const cleanup = (timer: ReturnType<typeof setTimeout>) => {
-      clearTimeout(timer);
+    const cleanup = (timer: number) => {
+      window.clearTimeout(timer);
       window.removeEventListener("message", handler);
       if (iframe.parentNode) {
         iframe.parentNode.removeChild(iframe);
@@ -100,8 +124,8 @@ export function executeSandboxedJS(
 
     const handler = (event: MessageEvent) => {
       if (event.source !== iframe.contentWindow) return;
-      const data = event.data;
-      if (!data || typeof data !== "object") return;
+      const data: unknown = event.data;
+      if (!isSandboxMessage(data)) return;
 
       if (data.type === "ready" && !settled) {
         iframe.contentWindow!.postMessage({ code, input }, "*");
@@ -111,20 +135,20 @@ export function executeSandboxedJS(
       if (data.type === "result" && !settled) {
         settled = true;
         cleanup(timer);
-        resolve(typeof data.value === "string" ? data.value : String(data.value ?? ""));
+        resolve(stringifySandboxValue(data.value));
         return;
       }
 
       if (data.type === "error" && !settled) {
         settled = true;
         cleanup(timer);
-        reject(new Error(data.message || "Script execution error"));
+        reject(new Error(typeof data.message === "string" ? data.message : "Script execution error"));
       }
     };
 
     window.addEventListener("message", handler);
 
-    const timer = setTimeout(() => {
+    const timer = window.setTimeout(() => {
       if (!settled) {
         settled = true;
         cleanup(timer);
@@ -133,6 +157,6 @@ export function executeSandboxedJS(
     }, timeoutMs);
 
     iframe.srcdoc = SANDBOX_HTML;
-    document.body.appendChild(iframe);
+    activeDocument.body.appendChild(iframe);
   });
 }

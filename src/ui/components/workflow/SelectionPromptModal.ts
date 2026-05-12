@@ -53,13 +53,12 @@ export class SelectionPromptModal extends Modal {
   }
 
   onOpen(): void {
-    const { contentEl, containerEl, modalEl } = this;
+    const { contentEl, containerEl } = this;
     contentEl.empty();
     contentEl.addClass("workflow-selection-prompt-modal");
 
     // Prevent closing on outside click
-    containerEl.setCssProps({ 'pointer-events': 'none' });
-    modalEl.setCssProps({ 'pointer-events': 'auto' });
+    containerEl.addClass("gemini-helper-modal-no-outside-click");
 
     // Title
     contentEl.createEl("h2", { text: this.title || t("workflowModal.selectText") });

@@ -37,7 +37,6 @@
     "@types/node": "^20.0.0",
     "@types/react": "^19.2.2",
     "@types/react-dom": "^19.2.2",
-    "builtin-modules": "3.3.0",
     "esbuild": "^0.25.2",
     "eslint-plugin-obsidianmd": "^0.1.9",
     "langfuse": "^3.38.6",

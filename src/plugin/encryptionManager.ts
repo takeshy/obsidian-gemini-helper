@@ -71,7 +71,7 @@ export class EncryptionManager {
       const content = await this.app.vault.read(file);
       if (isEncryptedFile(content)) {
         // Small delay to let the markdown view finish opening
-        setTimeout(() => {
+        window.setTimeout(() => {
           void this.openCryptView(file);
         }, 50);
       }

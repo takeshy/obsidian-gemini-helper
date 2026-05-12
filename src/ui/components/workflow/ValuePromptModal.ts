@@ -23,13 +23,12 @@ export class ValuePromptModal extends Modal {
   }
 
   onOpen(): void {
-    const { contentEl, containerEl, modalEl } = this;
+    const { contentEl, containerEl } = this;
     contentEl.empty();
     contentEl.addClass("workflow-value-prompt-modal");
 
     // Prevent closing on outside click
-    containerEl.setCssProps({ 'pointer-events': 'none' });
-    modalEl.setCssProps({ 'pointer-events': 'auto' });
+    containerEl.addClass("gemini-helper-modal-no-outside-click");
 
     // Title
     contentEl.createEl("h2", { text: this.title || t("workflowModal.enterValue") });
@@ -85,7 +84,7 @@ export class ValuePromptModal extends Modal {
     });
 
     // Focus input
-    setTimeout(() => this.inputEl?.focus(), 50);
+    window.setTimeout(() => this.inputEl?.focus(), 50);
   }
 
   private confirmValue(): void {

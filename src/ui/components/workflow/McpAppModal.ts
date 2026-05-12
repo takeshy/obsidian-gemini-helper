@@ -95,8 +95,8 @@ export class McpAppModal extends Modal {
         margin: "0",
       });
 
-      document.addEventListener("mousemove", onMouseMove);
-      document.addEventListener("mouseup", onMouseUp);
+      activeDocument.addEventListener("mousemove", onMouseMove);
+      activeDocument.addEventListener("mouseup", onMouseUp);
       e.preventDefault();
     };
 
@@ -112,8 +112,8 @@ export class McpAppModal extends Modal {
 
     const onMouseUp = () => {
       isDragging = false;
-      document.removeEventListener("mousemove", onMouseMove);
-      document.removeEventListener("mouseup", onMouseUp);
+      activeDocument.removeEventListener("mousemove", onMouseMove);
+      activeDocument.removeEventListener("mouseup", onMouseUp);
     };
 
     dragHandle.addEventListener("mousedown", onMouseDown);

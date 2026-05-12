@@ -249,7 +249,7 @@ export class FileSearchManager {
   private async waitForUploadOperation(operation: UploadOperation): Promise<string | null> {
     let current = operation;
     while (!current.done) {
-      await new Promise((resolve) => setTimeout(resolve, 5000));
+      await new Promise((resolve) => window.setTimeout(resolve, 5000));
       current = await this.ai.operations.get({ operation: current }) as UploadOperation;
     }
 

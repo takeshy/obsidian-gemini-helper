@@ -457,7 +457,7 @@ export class GeminiHelperPlugin extends Plugin {
   }
 
   async loadSettings() {
-    const loaded = await this.loadData() ?? {};
+    const loaded = (await this.loadData() ?? {}) as Partial<GeminiHelperSettings>;
     this.settings = {
       ...DEFAULT_SETTINGS,
       ...loaded,
@@ -564,7 +564,7 @@ export class GeminiHelperPlugin extends Plugin {
     const wsFolder = this.settings.workspaceFolder || DEFAULT_WORKSPACE_FOLDER;
     const hide = this.settings.hideWorkspaceFolder;
     // Find and toggle visibility on the exact matching nav-folder element
-    document.querySelectorAll(`.nav-folder[data-path="${CSS.escape(wsFolder)}"]`).forEach((el) => {
+    activeDocument.querySelectorAll(`.nav-folder[data-path="${CSS.escape(wsFolder)}"]`).forEach((el) => {
       (el as HTMLElement).style.display = hide ? "none" : "";
     });
   }

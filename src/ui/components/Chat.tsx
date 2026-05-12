@@ -223,7 +223,7 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 			await plugin.app.vault.create(fileName, markdown);
 			new Notice(t("chat.savedAsNote", { path: fileName }));
 			setSaveNoteState("saved");
-			setTimeout(() => setSaveNoteState("idle"), 3000);
+			window.setTimeout(() => setSaveNoteState("idle"), 3000);
 		} catch (error) {
 			new Notice(t("common.error") + ": " + formatError(error));
 			setSaveNoteState("idle");
@@ -535,7 +535,7 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 	useEffect(() => {
 		const handleLeafChange = () => {
 			// Small delay to let selection capture complete
-			setTimeout(() => {
+			window.setTimeout(() => {
 				const selection = plugin.getLastSelection();
 				setHasSelection(!!selection);
 				// Skip auto-focus on mobile - iOS doesn't allow programmatic focus without user interaction
@@ -554,13 +554,13 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 	// Auto-scroll to bottom when messages change
 	useEffect(() => {
 		// Delay scroll to ensure MarkdownRenderer has finished rendering
-		const timer = setTimeout(() => {
+		const timer = window.setTimeout(() => {
 			const container = messagesContainerRef.current;
 			if (container) {
 				container.scrollTop = container.scrollHeight;
 			}
 		}, 150);
-		return () => clearTimeout(timer);
+		return () => window.clearTimeout(timer);
 	}, [messages, streamingContent]);
 
 	// Handle iOS keyboard visibility using focus events
@@ -588,8 +588,8 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 			// Track focusout from textarea within our chat input area
 			if (target.tagName === "TEXTAREA" && target.closest(".gemini-helper-input-container")) {
 				// Small delay to avoid flickering
-				setTimeout(() => {
-					const active = document.activeElement as HTMLElement | null;
+				window.setTimeout(() => {
+					const active = activeDocument.activeElement as HTMLElement | null;
 					const isStillInInput = active?.tagName === "TEXTAREA" && active?.closest(".gemini-helper-input-container");
 					const isInDecryptForm = active?.tagName === "INPUT" && active?.closest(".gemini-helper-decrypt-form");
 					if (!isStillInInput && !isInDecryptForm) {
@@ -599,8 +599,8 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 			}
 			// Track focusout from decrypt form password input
 			if (target.tagName === "INPUT" && target.closest(".gemini-helper-decrypt-form")) {
-				setTimeout(() => {
-					const active = document.activeElement as HTMLElement | null;
+				window.setTimeout(() => {
+					const active = activeDocument.activeElement as HTMLElement | null;
 					const isStillInDecrypt = active?.tagName === "INPUT" && active?.closest(".gemini-helper-decrypt-form");
 					const isInChatInput = active?.tagName === "TEXTAREA" && active?.closest(".gemini-helper-input-container");
 					if (!isStillInDecrypt && !isInChatInput) {
@@ -613,12 +613,12 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 			}
 		};
 
-		document.addEventListener("focusin", handleFocusIn);
-		document.addEventListener("focusout", handleFocusOut);
+		activeDocument.addEventListener("focusin", handleFocusIn);
+		activeDocument.addEventListener("focusout", handleFocusOut);
 
 		return () => {
-			document.removeEventListener("focusin", handleFocusIn);
-			document.removeEventListener("focusout", handleFocusOut);
+			activeDocument.removeEventListener("focusin", handleFocusIn);
+			activeDocument.removeEventListener("focusout", handleFocusOut);
 		};
 	}, []);
 
@@ -1238,7 +1238,7 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 				// Build skill workflow map for tool execution
 				const skillWorkflowMap = loadedSkillsList.length > 0
 					? collectSkillWorkflows(loadedSkillsList)
-					: new Map();
+					: new Map<string, { skill: LoadedSkill; workflowRef: SkillWorkflowRef; vaultPath: string }>();
 
 				// Combined tool executor that routes to Obsidian, MCP, or Skill Workflow based on tool name
 				const baseToolExecutor = (obsidianToolExecutor || mcpToolExecutor || skillWorkflowMap.size > 0)

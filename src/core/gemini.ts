@@ -35,11 +35,11 @@ import { Platform, requestUrl } from "obsidian";
 // ---------------------------------------------------------------------------
 
 // Desktop (Electron / Node.js): streaming via https module
-// globalThis.require loads Node.js builtins without triggering the ESM loader (which
+// window.require loads Node.js builtins without triggering the ESM loader (which
 // cannot resolve Node builtins in Electron's renderer process).
 async function nodeFetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
-  const https = (globalThis as unknown as { require: (id: string) => typeof import("https") }).require("https");
-  const url = typeof input === "string" ? new globalThis.URL(input) : input instanceof globalThis.URL ? input : new globalThis.URL(input.url);
+  const https = (window as unknown as { require: (id: string) => typeof import("https") }).require("https");
+  const url = typeof input === "string" ? new URL(input) : input instanceof URL ? input : new URL(input.url);
   const method = init?.method ?? "GET";
   const headers: Record<string, string> = {};
   if (init?.headers) {
@@ -108,7 +108,7 @@ async function nodeFetch(input: RequestInfo | URL, init?: RequestInit): Promise<
 
 // Mobile: buffered fetch via Obsidian's requestUrl (bypasses CORS, no streaming)
 async function mobileFetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
-  const url = typeof input === "string" ? input : input instanceof globalThis.URL ? input.toString() : input.url;
+  const url = typeof input === "string" ? input : input instanceof URL ? input.toString() : input.url;
   const method = init?.method ?? "GET";
   const headers: Record<string, string> = {};
   if (init?.headers) {
@@ -1476,7 +1476,7 @@ export class GeminiClient {
       // Poll for completion
       const maxPolls = 180;  // 30 min max (10s intervals)
       for (let i = 0; i < maxPolls; i++) {
-        await new Promise(resolve => setTimeout(resolve, 10000));
+        await new Promise(resolve => window.setTimeout(resolve, 10000));
 
         const result = await this.ai.interactions.get(interactionId);
 

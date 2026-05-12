@@ -282,7 +282,7 @@ export async function handleObsidianCommandNode(
       app.workspace.setActiveLeaf(newLeaf, { focus: true });
     }
     // Wait for the workspace to settle before executing command
-    await new Promise(resolve => setTimeout(resolve, 100));
+    await new Promise(resolve => window.setTimeout(resolve, 100));
   }
 
   // Execute the command

@@ -23,6 +23,14 @@
   display: none !important;
 }
 
+.gemini-helper-modal-no-outside-click {
+  pointer-events: none;
+}
+
+.gemini-helper-modal-no-outside-click > .modal {
+  pointer-events: auto;
+}
+
 /* Hide workspace folder in file explorer — handled dynamically in plugin.ts */
 
 /* Folder icons in file explorer */

@@ -21,7 +21,7 @@ function parseAndConvert(yamlSource: string): string | null {
 }
 
 function isDarkMode(): boolean {
-  return document.body.classList.contains("theme-dark");
+  return activeDocument.body.classList.contains("theme-dark");
 }
 
 export function registerWorkflowCodeBlockProcessor(plugin: Plugin): void {
@@ -46,7 +46,7 @@ export function registerWorkflowCodeBlockProcessor(plugin: Plugin): void {
           observer.disconnect();
         }
       });
-      observer.observe(el.parentElement || document.body, { childList: true, subtree: true });
+      observer.observe(el.parentElement || activeDocument.body, { childList: true, subtree: true });
 
       void enqueueMermaidRender(
         { chart, isDark: isDarkMode() },

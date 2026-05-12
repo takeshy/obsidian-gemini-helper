@@ -342,11 +342,11 @@ function createCommentEditor(
   const line = diffLines[lineIndex];
   const existingComment = lineComments.get(lineIndex);
 
-  const editor = document.createElement("div");
+  const editor = activeDocument.createElement("div");
   editor.className = "gemini-helper-diff-comment-editor";
   afterEl.insertAdjacentElement("afterend", editor);
 
-  const textarea = document.createElement("textarea");
+  const textarea = activeDocument.createElement("textarea");
   textarea.className = "gemini-helper-diff-comment-input";
   textarea.placeholder = t("diff.commentPlaceholder");
   textarea.rows = 2;
@@ -357,11 +357,11 @@ function createCommentEditor(
   editor.addEventListener("click", (e) => e.stopPropagation());
   editor.appendChild(textarea);
 
-  const actions = document.createElement("div");
+  const actions = activeDocument.createElement("div");
   actions.className = "gemini-helper-diff-comment-actions";
   editor.appendChild(actions);
 
-  const saveBtn = document.createElement("button");
+  const saveBtn = activeDocument.createElement("button");
   saveBtn.textContent = t("diff.saveComment");
   saveBtn.className = "mod-cta";
   saveBtn.addEventListener("click", (e) => {
@@ -384,7 +384,7 @@ function createCommentEditor(
   });
   actions.appendChild(saveBtn);
 
-  const cancelBtn = document.createElement("button");
+  const cancelBtn = activeDocument.createElement("button");
   cancelBtn.textContent = t("diff.cancelComment");
   cancelBtn.addEventListener("click", (e) => {
     e.stopPropagation();
@@ -393,7 +393,7 @@ function createCommentEditor(
   actions.appendChild(cancelBtn);
 
   if (existingComment) {
-    const removeBtn = document.createElement("button");
+    const removeBtn = activeDocument.createElement("button");
     removeBtn.textContent = t("diff.removeComment");
     removeBtn.className = "mod-warning";
     removeBtn.addEventListener("click", (e) => {

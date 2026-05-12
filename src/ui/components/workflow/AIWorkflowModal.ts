@@ -147,7 +147,7 @@ class WorkflowConfirmModal extends Modal {
         void navigator.clipboard.writeText(explanation).then(() => {
           const original = copyBtn.textContent;
           copyBtn.textContent = "✓";
-          setTimeout(() => { copyBtn.textContent = original; }, 1200);
+          window.setTimeout(() => { copyBtn.textContent = original; }, 1200);
         });
       });
       explanationContainer.createEl("p", { text: this.explanation });
@@ -271,8 +271,8 @@ class WorkflowConfirmModal extends Modal {
         margin: "0",
       });
 
-      document.addEventListener("mousemove", onMouseMove);
-      document.addEventListener("mouseup", onMouseUp);
+      activeDocument.addEventListener("mousemove", onMouseMove);
+      activeDocument.addEventListener("mouseup", onMouseUp);
       e.preventDefault();
     };
 
@@ -288,8 +288,8 @@ class WorkflowConfirmModal extends Modal {
 
     const onMouseUp = () => {
       isDragging = false;
-      document.removeEventListener("mousemove", onMouseMove);
-      document.removeEventListener("mouseup", onMouseUp);
+      activeDocument.removeEventListener("mousemove", onMouseMove);
+      activeDocument.removeEventListener("mouseup", onMouseUp);
     };
 
     dragHandle.addEventListener("mousedown", onMouseDown);
@@ -694,9 +694,9 @@ export class AIWorkflowModal extends Modal {
 
     // Focus appropriate field
     if (this.mode === "create") {
-      setTimeout(() => this.nameInputEl?.focus(), 50);
+      window.setTimeout(() => this.nameInputEl?.focus(), 50);
     } else {
-      setTimeout(() => this.descriptionEl?.focus(), 50);
+      window.setTimeout(() => this.descriptionEl?.focus(), 50);
     }
   }
 
@@ -806,7 +806,7 @@ export class AIWorkflowModal extends Modal {
     // Show paste response section, scroll it into view, and focus the textarea
     this.pasteSectionEl?.removeClass("is-hidden");
     this.pasteSectionEl?.scrollIntoView({ behavior: "smooth", block: "end" });
-    setTimeout(() => this.pasteTextareaEl?.focus(), 100);
+    window.setTimeout(() => this.pasteTextareaEl?.focus(), 100);
 
     new Notice(t("aiWorkflow.promptCopied"));
   }
@@ -2077,8 +2077,8 @@ ${formattedSteps}
         top: `${rect.top}px`,
       });
 
-      document.addEventListener("mousemove", onMouseMove);
-      document.addEventListener("mouseup", onMouseUp);
+      activeDocument.addEventListener("mousemove", onMouseMove);
+      activeDocument.addEventListener("mouseup", onMouseUp);
       e.preventDefault();
     };
 
@@ -2096,8 +2096,8 @@ ${formattedSteps}
 
     const onMouseUp = () => {
       this.isDragging = false;
-      document.removeEventListener("mousemove", onMouseMove);
-      document.removeEventListener("mouseup", onMouseUp);
+      activeDocument.removeEventListener("mousemove", onMouseMove);
+      activeDocument.removeEventListener("mouseup", onMouseUp);
     };
 
     header.addEventListener("mousedown", onMouseDown);
@@ -2106,7 +2106,7 @@ ${formattedSteps}
   private addResizeHandles(modalEl: HTMLElement): void {
     const directions = ["n", "e", "s", "w", "ne", "nw", "se", "sw"];
     for (const dir of directions) {
-      const handle = document.createElement("div");
+      const handle = activeDocument.createElement("div");
       handle.className = `gemini-helper-resize-handle gemini-helper-resize-${dir}`;
       handle.dataset.direction = dir;
       modalEl.appendChild(handle);
@@ -2137,8 +2137,8 @@ ${formattedSteps}
         height: `${rect.height}px`,
       });
 
-      document.addEventListener("mousemove", onMouseMove);
-      document.addEventListener("mouseup", onMouseUp);
+      activeDocument.addEventListener("mousemove", onMouseMove);
+      activeDocument.addEventListener("mouseup", onMouseUp);
       e.preventDefault();
       e.stopPropagation();
     };
@@ -2180,8 +2180,8 @@ ${formattedSteps}
 
     const onMouseUp = () => {
       this.isResizing = false;
-      document.removeEventListener("mousemove", onMouseMove);
-      document.removeEventListener("mouseup", onMouseUp);
+      activeDocument.removeEventListener("mousemove", onMouseMove);
+      activeDocument.removeEventListener("mouseup", onMouseUp);
     };
 
     handle.addEventListener("mousedown", onMouseDown);
@@ -2336,7 +2336,7 @@ ${formattedSteps}
         this.hideMentionAutocomplete();
       }
     };
-    document.addEventListener("click", this.clickOutsideHandler);
+    activeDocument.addEventListener("click", this.clickOutsideHandler);
   }
 
   private buildMentionCandidates(query: string): MentionItem[] {
@@ -2428,7 +2428,7 @@ ${formattedSteps}
   onClose(): void {
     // Clean up event listener
     if (this.clickOutsideHandler) {
-      document.removeEventListener("click", this.clickOutsideHandler);
+      activeDocument.removeEventListener("click", this.clickOutsideHandler);
       this.clickOutsideHandler = null;
     }
     const { contentEl } = this;
@@ -2535,7 +2535,7 @@ export function parseWorkflowResponseWithError(
       }>;
     };
     try {
-      parsed = parseYaml(yaml);
+      parsed = parseYaml(yaml) as typeof parsed;
     } catch (yamlErr) {
       return { result: null, error: `YAML syntax error: ${formatError(yamlErr)}` };
     }
@@ -2633,7 +2633,7 @@ export function renderGenerationContext(
       void navigator.clipboard.writeText(section.content).then(() => {
         const original = copyBtn.textContent;
         copyBtn.textContent = "✓";
-        setTimeout(() => { copyBtn.textContent = original; }, 1200);
+        window.setTimeout(() => { copyBtn.textContent = original; }, 1200);
       });
     });
     if (section.kind === "markdown") {

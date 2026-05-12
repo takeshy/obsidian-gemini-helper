@@ -185,7 +185,7 @@ export async function sendTestTrace(settings: LangfuseSettings): Promise<void> {
     await testClient.flushAsync();
 
     // Wait briefly for async error events to propagate
-    await new Promise(resolve => setTimeout(resolve, 500));
+    await new Promise(resolve => window.setTimeout(resolve, 500));
 
     if (errors.length > 0) {
       const msg = errors.map(e => e instanceof Error ? e.message : String(e)).join("; ");

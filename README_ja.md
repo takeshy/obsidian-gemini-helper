@@ -522,7 +522,16 @@ Obsidian のイベントでワークフローを自動実行：
 
 ## インストール
 
-### BRAT（推奨）
+### コミュニティプラグイン（推奨）
+
+1. Obsidian の **設定 → コミュニティプラグイン** を開く
+2. **閲覧** を選択
+3. `Gemini Helper` で検索
+4. プラグインをインストールして有効化
+
+### BRAT
+
+このリポジトリからベータ版を直接試したい場合は BRAT を使用してください。
 
 1. [BRAT](https://github.com/TfTHacker/obsidian42-brat) プラグインをインストール
 2. BRAT 設定 → 「Add Beta plugin」を開く

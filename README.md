@@ -506,7 +506,15 @@ When a toggle is ON, thinking is always active for that model family regardless 
 
 ## Installation
 
-### BRAT (Recommended)
+### Community Plugins (Recommended)
+1. Open **Settings → Community plugins** in Obsidian
+2. Select **Browse**
+3. Search for `Gemini Helper`
+4. Install and enable the plugin
+
+### BRAT
+Use BRAT if you want to test beta versions directly from this repository.
+
 1. Install [BRAT](https://github.com/TfTHacker/obsidian42-brat) plugin
 2. Open BRAT settings → "Add Beta plugin"
 3. Enter: `https://github.com/takeshy/obsidian-gemini-helper`

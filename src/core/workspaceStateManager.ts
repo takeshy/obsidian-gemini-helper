@@ -102,6 +102,9 @@ export class WorkspaceStateManager {
     if ((this.workspaceState.selectedModel as string) === "gemini-3.1-flash-lite-preview") {
       this.workspaceState.selectedModel = "gemini-3.1-flash-lite";
     }
+    if ((this.workspaceState.selectedModel as string) === "gemini-3-flash-preview") {
+      this.workspaceState.selectedModel = "gemini-3.5-flash";
+    }
     if ((this.workspaceState.selectedModel as string) === "gemini-2.5-flash-image") {
       this.workspaceState.selectedModel = "gemini-3.1-flash-image-preview";
     }

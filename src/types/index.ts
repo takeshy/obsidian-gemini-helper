@@ -264,7 +264,7 @@ export type ApiPlan = "paid" | "free";
 export type ModelType =
   | "gemini-2.5-flash"
   | "gemini-2.5-pro"
-  | "gemini-3-flash-preview"
+  | "gemini-3.5-flash"
   | "gemini-3.1-pro-preview"
   | "gemini-3.1-pro-preview-customtools"
   | "gemini-3.1-flash-lite"
@@ -293,8 +293,8 @@ export const PAID_MODELS: ModelInfo[] = [
     description: "Optimized for agentic workflows with custom tools and bash",
   },
   {
-    name: "gemini-3-flash-preview",
-    displayName: "Gemini 3 Flash Preview",
+    name: "gemini-3.5-flash",
+    displayName: "Gemini 3.5 Flash",
     description: "Fast model with 1M context, best cost-performance",
   },
   {
@@ -348,9 +348,9 @@ export const FREE_MODELS: ModelInfo[] = [
     description: "Free tier lightweight model",
   },
   {
-    name: "gemini-3-flash-preview",
-    displayName: "Gemini 3 Flash Preview",
-    description: "Free tier preview model",
+    name: "gemini-3.5-flash",
+    displayName: "Gemini 3.5 Flash",
+    description: "Free tier fast model",
   },
   {
     name: "gemini-3.1-flash-lite",

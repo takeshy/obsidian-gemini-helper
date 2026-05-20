@@ -1791,9 +1791,6 @@
   border-radius: 4px;
   cursor: pointer;
   white-space: nowrap;
-}
-
-.workflow-sidebar-add-btn {
   background: var(--background-secondary);
   border: 1px solid var(--background-modifier-border);
   color: var(--text-normal);
@@ -2961,11 +2958,6 @@
   cursor: pointer;
 }
 
-/* Utility classes */
-.gemini-helper-hidden {
-  display: none;
-}
-
 /* Edit Confirmation Additional Request */
 .gemini-helper-edit-additional-container {
   padding: 0 16px 16px;
@@ -3341,7 +3333,6 @@
 /* AI Workflow modal drag handle */
 .ai-workflow-modal .modal-drag-handle {
   cursor: move;
-  padding: 8px 0;
   margin: -16px -16px 16px -16px;
   padding: 16px;
   border-bottom: 1px solid var(--background-modifier-border);
@@ -5865,7 +5856,6 @@
 
 .workflow-generation-modal-content .modal-drag-handle {
   cursor: move;
-  padding: 8px 0;
   margin: -16px -16px 16px -16px;
   padding: 16px;
   border-bottom: 1px solid var(--background-modifier-border);
@@ -6296,7 +6286,6 @@
 
 .workflow-preview-modal-content .modal-drag-handle {
   cursor: move;
-  padding: 8px 0;
   margin: -16px -16px 16px -16px;
   padding: 16px;
   border-bottom: 1px solid var(--background-modifier-border);
@@ -6403,10 +6392,6 @@
 }
 
 /* Generation context (plan/thinking/review) in preview & confirm modals */
-.workflow-generation-context {
-  margin-bottom: 16px;
-}
-
 .workflow-generation-context {
   display: flex;
   flex-direction: column;
@@ -6728,7 +6713,6 @@
 
 .execution-history-select-modal .modal-drag-handle {
   cursor: move;
-  padding: 8px 0;
   margin: -16px -16px 16px -16px;
   padding: 12px 16px;
   border-bottom: 1px solid var(--background-modifier-border);
@@ -7693,8 +7677,7 @@
 
 .gemini-helper-skill-chip-name.gemini-helper-tool-clickable {
   cursor: pointer;
-  text-decoration: underline dotted;
-  text-underline-offset: 2px;
+  border-bottom: 1px dotted currentColor;
 }
 
 .gemini-helper-skill-chip-name.gemini-helper-tool-clickable:hover {
@@ -7814,7 +7797,6 @@
   font-size: 0.75em;
   color: var(--text-muted);
   padding: 2px 0;
-  flex-wrap: wrap;
 }
 
 .gemini-helper-skills-indicator {

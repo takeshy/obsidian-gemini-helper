@@ -163,7 +163,7 @@ const MODEL_PRICING: Record<string, { input: number; output: number }> = {
   "gemini-2.5-flash":       { input: 0.30 / 1e6, output: 2.50 / 1e6 },
   "gemini-2.5-flash-lite":  { input: 0.10 / 1e6, output: 0.40 / 1e6 },
   "gemini-2.5-pro":         { input: 1.25 / 1e6, output: 10.00 / 1e6 },
-  "gemini-3-flash-preview": { input: 0.50 / 1e6, output: 3.00 / 1e6 },
+  "gemini-3.5-flash": { input: 0.50 / 1e6, output: 3.00 / 1e6 },
   "gemini-3.1-flash-lite": { input: 0.25 / 1e6, output: 1.50 / 1e6 },
   "gemini-3.1-pro-preview": { input: 2.00 / 1e6, output: 12.00 / 1e6 },
   "gemini-3.1-pro-preview-customtools": { input: 2.00 / 1e6, output: 12.00 / 1e6 },
@@ -175,7 +175,7 @@ const MODEL_PRICING: Record<string, { input: number; output: number }> = {
 // Gemini 3 models: $14/1K queries, Gemini 2.x: $35/1K prompts
 // Approximated as per-prompt since exact query count is not exposed by the API
 const SEARCH_GROUNDING_COST: Record<string, number> = {
-  "gemini-3-flash-preview": 14 / 1000,
+  "gemini-3.5-flash": 14 / 1000,
   "gemini-3.1-pro-preview": 14 / 1000,
   "gemini-3.1-pro-preview-customtools": 14 / 1000,
   "gemini-3-pro-image-preview": 14 / 1000,
@@ -426,7 +426,7 @@ export class GeminiClient {
   private ai: GoogleGenAI;
   private model: ModelType;
 
-  constructor(apiKey: string, model: ModelType = "gemini-3-flash-preview") {
+  constructor(apiKey: string, model: ModelType = "gemini-3.5-flash") {
     this.ai = new GoogleGenAI({ apiKey });
     this.model = model;
 

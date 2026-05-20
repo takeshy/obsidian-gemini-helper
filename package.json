@@ -35,8 +35,8 @@
     "@eslint/json": "^0.14.0",
     "@types/diff": "^7.0.2",
     "@types/node": "^20.0.0",
-    "@types/react": "^19.2.2",
-    "@types/react-dom": "^19.2.2",
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
     "esbuild": "^0.25.2",
     "eslint-plugin-obsidianmd": "^0.1.9",
     "langfuse": "^3.38.6",
@@ -50,7 +50,7 @@
     "@google/genai": "^1.46.0",
     "diff": "^8.0.2",
     "lucide-react": "^0.503.0",
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
   }
 }

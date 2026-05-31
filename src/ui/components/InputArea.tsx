@@ -649,7 +649,11 @@ const InputArea = forwardRef<InputAreaHandle, InputAreaProps>(function InputArea
                           ? t("input.mcpToolHint", { count: String(toolCount), tools: server.toolHints?.slice(0, 3).join(", ") + (toolCount > 3 ? ", ..." : "") })
                           : "";
                         return (
-                          <label key={server.name} className="gemini-helper-mcp-server-item" title={server.toolHints?.join(", ") || ""}>
+                          <label
+                            key={server.name}
+                            className={`gemini-helper-mcp-server-item ${vaultToolModeOnlyNone ? "is-disabled" : ""}`}
+                            title={server.toolHints?.join(", ") || ""}
+                          >
                             <input
                               type="checkbox"
                               checked={!vaultToolModeOnlyNone && server.enabled}

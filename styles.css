@@ -7,20 +7,20 @@
 }
 
 .gemini-helper-workflow-mermaid svg {
-  max-width: none !important;
+  max-width: none;
 }
 
 /* Wrap long text inside node labels instead of clipping */
 .gemini-helper-workflow-mermaid .nodeLabel {
-  white-space: normal !important;
-  word-break: break-word !important;
+  white-space: normal;
+  word-break: break-word;
   max-width: 300px;
-  text-align: left !important;
+  text-align: left;
 }
 
 /* Utility: hide element */
 .gemini-helper-hidden {
-  display: none !important;
+  display: none;
 }
 
 .gemini-helper-modal-no-outside-click {
@@ -35,11 +35,11 @@
 
 /* Folder icons in file explorer */
 .nav-folder[data-path="skills"] > .nav-folder-title > .nav-folder-title-content::before,
-.nav-folder:has(> [data-path="skills"]) > .nav-folder-title > .nav-folder-title-content::before {
+.nav-folder-title[data-path="skills"] > .nav-folder-title-content::before {
   content: "🧩 ";
 }
 .nav-folder[data-path="workflows"] > .nav-folder-title > .nav-folder-title-content::before,
-.nav-folder:has(> [data-path="workflows"]) > .nav-folder-title > .nav-folder-title-content::before {
+.nav-folder-title[data-path="workflows"] > .nav-folder-title-content::before {
   content: "⚡ ";
 }
 
@@ -63,13 +63,13 @@
 }
 
 /* Mobile: remove extra bottom padding */
-.is-mobile .workspace-leaf-content:has(.gemini-helper-chat-container) {
-  padding-bottom: 0 !important;
+.is-mobile .workspace-leaf-content.gemini-helper-chat-leaf {
+  padding-bottom: 0;
 }
 
 /* Mobile: keyboard visible adjustments */
 .is-mobile .gemini-helper-chat.keyboard-visible {
-  padding-bottom: 0 !important;
+  padding-bottom: 0;
 }
 
 .is-mobile .gemini-helper-chat.keyboard-visible .gemini-helper-input-container {
@@ -83,11 +83,11 @@
 
 /* Mobile: hide input container when decrypt form password input is focused */
 .is-mobile .gemini-helper-chat.decrypt-input-focused .gemini-helper-input-container {
-  display: none !important;
+  display: none;
 }
 
 .is-mobile .gemini-helper-chat.decrypt-input-focused .gemini-helper-messages {
-  display: none !important;
+  display: none;
 }
 
 .gemini-helper-chat {
@@ -295,8 +295,8 @@
   border-radius: 12px;
   max-width: 85%;
   word-wrap: break-word;
-  user-select: text !important;
-  -webkit-user-select: text !important;
+  user-select: text;
+  -webkit-user-select: text;
   cursor: text;
 }
 
@@ -475,14 +475,14 @@
 .gemini-helper-message-content {
   font-size: var(--font-text-size);
   line-height: 1.5;
-  user-select: text !important;
-  -webkit-user-select: text !important;
+  user-select: text;
+  -webkit-user-select: text;
   cursor: text;
 }
 
 .gemini-helper-message-content * {
-  user-select: text !important;
-  -webkit-user-select: text !important;
+  user-select: text;
+  -webkit-user-select: text;
 }
 
 .gemini-helper-message-content p {
@@ -1209,7 +1209,7 @@
 }
 
 .gemini-helper-settings-wide-input {
-  width: 100% !important;
+  width: 100%;
   min-width: 300px;
 }
 
@@ -4697,7 +4697,7 @@
   color: var(--text-muted);
 }
 
-.gemini-helper-tool-settings-row > label:has(input[type="checkbox"]) {
+.gemini-helper-tool-settings-row > .gemini-helper-checkbox-label {
   display: flex;
   align-items: center;
   gap: 6px;
@@ -4705,7 +4705,7 @@
   cursor: pointer;
 }
 
-.gemini-helper-tool-settings-row > label:has(input[type="checkbox"]:disabled) {
+.gemini-helper-tool-settings-row > .gemini-helper-checkbox-label.is-disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
@@ -4759,7 +4759,7 @@
   cursor: pointer;
 }
 
-.gemini-helper-mcp-server-item:has(input:disabled) {
+.gemini-helper-mcp-server-item.is-disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
@@ -4856,15 +4856,15 @@
 .is-mobile .workflow-node-editor-modal .setting-item-control input[type="text"],
 .is-mobile .workflow-node-editor-modal .setting-item-control textarea,
 .is-mobile .workflow-node-editor-modal .setting-item-control select {
-  width: 100% !important;
-  min-width: 0 !important;
-  max-width: 100% !important;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
   box-sizing: border-box;
 }
 
 .is-mobile .workflow-node-editor-modal .workflow-node-editor-textarea {
-  width: 100% !important;
-  max-width: 100% !important;
+  width: 100%;
+  max-width: 100%;
 }
 
 .is-mobile .workflow-node-editor-modal .workflow-modal-buttons {
@@ -4948,9 +4948,9 @@
 }
 
 .gemini-helper-decrypt-cancel {
-  padding: 6px 10px !important;
-  min-width: auto !important;
-  font-size: 16px !important;
+  padding: 6px 10px;
+  min-width: auto;
+  font-size: 16px;
   line-height: 1;
 }
 
@@ -5827,16 +5827,15 @@
 
 /* Thinking content in the generation modal — bounded height so the buttons
    below stay visible, and overflow-y:auto so users can scroll through the
-   streamed text. Using explicit px max-height + !important because flex-based
-   sizing failed to produce a scrollbar in practice. */
+   streamed text. */
 .workflow-generation-modal-content .workflow-generation-thinking-details[open] .gemini-helper-thinking-content {
-  max-height: 50vh !important;
-  overflow-y: auto !important;
+  max-height: 50vh;
+  overflow-y: auto;
 }
 
 /* Outside the generating phase, tighten the cap so plan/review stays visible. */
 .workflow-generation-modal-content:not([data-phase="generating"]) .workflow-generation-thinking-details[open] .gemini-helper-thinking-content {
-  max-height: 25vh !important;
+  max-height: 25vh;
 }
 
 /* Review section grows when visible */
@@ -6520,18 +6519,18 @@
 /* Mobile: Full screen modals */
 .is-mobile .workflow-generation-modal,
 .is-mobile .workflow-preview-modal {
-  position: fixed !important;
-  top: 0 !important;
-  left: 0 !important;
-  right: 0 !important;
-  bottom: 0 !important;
-  width: 100vw !important;
-  max-width: 100vw !important;
-  height: 100vh !important;
-  max-height: 100vh !important;
-  margin: 0 !important;
-  border-radius: 0 !important;
-  transform: none !important;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100vw;
+  max-width: 100vw;
+  height: 100vh;
+  max-height: 100vh;
+  margin: 0;
+  border-radius: 0;
+  transform: none;
 }
 
 .is-mobile .workflow-generation-modal-content,
@@ -6616,7 +6615,7 @@
 
 /* Reduce content height when textarea is focused on mobile */
 .is-mobile .workflow-preview-modal-content.textarea-focused .modal-drag-handle {
-  display: none !important;
+  display: none;
 }
 
 .is-mobile .workflow-preview-modal-content.textarea-focused .workflow-preview-name {
@@ -6632,7 +6631,7 @@
 }
 
 .is-mobile .workflow-preview-modal-content.textarea-focused .workflow-preview-yaml-section {
-  display: none !important;
+  display: none;
 }
 
 .is-mobile .workflow-preview-modal-content.textarea-focused {
@@ -6946,19 +6945,19 @@
 
 /* Mobile styles for execution history select modal */
 .is-mobile .execution-history-select-modal {
-  position: fixed !important;
-  top: 0 !important;
-  left: 0 !important;
-  right: 0 !important;
-  bottom: 0 !important;
-  width: 100% !important;
-  height: 100% !important;
-  max-width: none !important;
-  max-height: none !important;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  max-height: none;
   min-width: auto;
-  margin: 0 !important;
-  border-radius: 0 !important;
-  transform: none !important;
+  margin: 0;
+  border-radius: 0;
+  transform: none;
 }
 
 .is-mobile .execution-history-select-modal .modal-content {
@@ -7282,18 +7281,18 @@
 
 /* Mobile styles */
 .is-mobile .workflow-execution-modal {
-  position: fixed !important;
-  top: 0 !important;
-  left: 0 !important;
-  right: 0 !important;
-  bottom: 0 !important;
-  width: 100vw !important;
-  max-width: 100vw !important;
-  height: 100vh !important;
-  max-height: 100vh !important;
-  margin: 0 !important;
-  border-radius: 0 !important;
-  transform: none !important;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100vw;
+  max-width: 100vw;
+  height: 100vh;
+  max-height: 100vh;
+  margin: 0;
+  border-radius: 0;
+  transform: none;
 }
 
 .is-mobile .workflow-execution-modal-content {

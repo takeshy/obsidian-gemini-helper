@@ -31,6 +31,7 @@ export class ChatView extends ItemView {
     await Promise.resolve();
     const container = this.containerEl.children[1];
     container.empty();
+    this.containerEl.addClass("gemini-helper-chat-leaf");
     container.addClass("gemini-helper-chat-container");
 
     const root = createRoot(container);

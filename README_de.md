@@ -4,30 +4,18 @@
 
 **Kostenloser und quelloffener** KI-Assistent für Obsidian mit **Chat**, **Workflow-Automatisierung** und **RAG**, unterstützt von Google Gemini.
 
-> **Seit v1.11.0 konzentriert sich dieses Plugin ausschließlich auf Gemini-bezogene Funktionen.**
-> Die CLI-Unterstützung wurde entfernt. Ein neues Plugin [obsidian-llm-hub](https://github.com/takeshy/obsidian-llm-hub) wurde mit CLI- und Multi-LLM-Anbieter-Unterstützung (OpenAI, Claude, OpenRouter, Local LLM) erstellt.
-
-### Verwandte Plugins
-
-| Plugin | Beschreibung |
-|--------|-------------|
-| obsidian-gemini-helper | Gemini-fokussiert (RAG über File Search API) |
-| obsidian-llm-hub | Multi-LLM-Unterstützung, nur Desktop (RAG über Embedding, unterstützt gemini-embedding-2-preview) |
-| obsidian-local-llm-hub | Nur lokale LLMs (RAG nur über lokale Embeddings) |
-
----
-
 > **Dieses Plugin ist vollständig kostenlos.** Sie benötigen nur einen Google Gemini API-Schlüssel (kostenlos oder kostenpflichtig) von [ai.google.dev](https://ai.google.dev).
 
 ## Highlights
 
 - **KI-Chat** - Streaming-Antworten, Dateianhänge, Vault-Operationen, Slash-Befehle
+- **Nutzungsverfolgung** - Zeigt ungefähre API-Token und Kosten pro Chat- und Workflow-Ausführung
+- **Agent-Skills** - Wiederverwendbare Skills erweitern den Chat; der Obsidian-Markdown-Skill basierend auf [kepano/obsidian-skills](https://github.com/kepano/obsidian-skills) ist standardmäßig aktiviert
 - **Workflow Builder** - Automatisieren Sie mehrstufige Aufgaben mit visuellem Node-Editor und 24 Node-Typen
-- **Bearbeitungsverlauf** - Verfolgen und Wiederherstellen von KI-Änderungen mit Diff-Ansicht
+- **MCP-Unterstützung** - Nutzen Sie MCP-Tools in Workflows und rendern Sie MCP-UI-Ressourcen direkt in Obsidian
 - **RAG** - Retrieval-Augmented Generation für intelligente Suche in Ihrem Vault
-- **Websuche** - Zugriff auf aktuelle Informationen über Google Search
-- **Bilderzeugung** - Erstellen Sie Bilder mit Gemini-Bildmodellen
 - **Verschlüsselung** - Passwortschutz für Chat-Verlauf und Workflow-Ausführungsprotokolle
+- **Bearbeitungsverlauf** - Verfolgen und Wiederherstellen von KI-Änderungen mit Diff-Ansicht
 
 ![Bilderzeugung im Chat](docs/images/chat_image.png)
 
@@ -734,6 +722,17 @@ MIT
 
 - [Gemini API-Dokumentation](https://ai.google.dev/docs)
 - [Obsidian Plugin-Dokumentation](https://docs.obsidian.md/Plugins/Getting+started/Build+a+plugin)
+
+## Verwandte Plugins
+
+> **Seit v1.11.0 konzentriert sich dieses Plugin ausschließlich auf Gemini-bezogene Funktionen.**
+> Die CLI-Unterstützung wurde entfernt. Ein neues Plugin [obsidian-llm-hub](https://github.com/takeshy/obsidian-llm-hub) wurde mit CLI- und Multi-LLM-Anbieter-Unterstützung (OpenAI, Claude, OpenRouter, Local LLM) erstellt.
+
+| Plugin | Beschreibung |
+|--------|-------------|
+| obsidian-gemini-helper | Gemini-fokussiert (RAG über File Search API) |
+| obsidian-llm-hub | Multi-LLM-Unterstützung, nur Desktop (RAG über Embedding, unterstützt gemini-embedding-2-preview) |
+| obsidian-local-llm-hub | Nur lokale LLMs (RAG nur über lokale Embeddings) |
 
 ## Unterstützung
 

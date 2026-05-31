@@ -4,30 +4,18 @@
 
 **Free and open-source** AI assistant for Obsidian with **Chat**, **Workflow Automation**, and **RAG** powered by Google Gemini.
 
-> **Since v1.11.0, this plugin focuses exclusively on Gemini-related features.**
-> CLI support has been removed. A new plugin [obsidian-llm-hub](https://github.com/takeshy/obsidian-llm-hub) has been created with CLI and multiple LLM provider support (OpenAI, Claude, OpenRouter, Local LLM).
-
-### Related Plugins
-
-| Plugin | Description |
-|--------|-------------|
-| obsidian-gemini-helper | Gemini-focused (RAG via File Search API) |
-| obsidian-llm-hub | Multi-LLM support, Desktop Only (RAG via Embedding, supports gemini-embedding-2-preview) |
-| obsidian-local-llm-hub | Local LLM only (RAG via local embeddings only) |
-
----
-
 > **This plugin is completely free.** You only need a Google Gemini API key (free or paid) from [ai.google.dev](https://ai.google.dev).
 
 ## Highlights
 
 - **AI Chat** - Streaming responses, file attachments, vault operations, slash commands
+- **Usage Tracking** - Shows approximate API tokens and cost for each chat and workflow run
+- **Agent Skills** - Reusable skills extend the chat; the Obsidian Markdown skill based on [kepano/obsidian-skills](https://github.com/kepano/obsidian-skills) is enabled by default
 - **Workflow Builder** - Automate multi-step tasks with visual node editor and 24 node types
-- **Edit History** - Track and restore AI-made changes with diff view
+- **MCP Support** - Use MCP tools in workflows and render MCP UI resources inside Obsidian
 - **RAG** - Retrieval-Augmented Generation for intelligent search across your vault
-- **Web Search** - Access up-to-date information via Google Search
-- **Image Generation** - Create images with Gemini image models
 - **Encryption** - Password-protect chat history and workflow execution logs
+- **Edit History** - Track and restore AI-made changes with diff view
 
 ![Image Generation in Chat](docs/images/chat_image.png)
 
@@ -715,6 +703,17 @@ MIT
 
 - [Gemini API Docs](https://ai.google.dev/docs)
 - [Obsidian Plugin Docs](https://docs.obsidian.md/Plugins/Getting+started/Build+a+plugin)
+
+## Related Plugins
+
+> **Since v1.11.0, this plugin focuses exclusively on Gemini-related features.**
+> CLI support has been removed. A new plugin [obsidian-llm-hub](https://github.com/takeshy/obsidian-llm-hub) has been created with CLI and multiple LLM provider support (OpenAI, Claude, OpenRouter, Local LLM).
+
+| Plugin | Description |
+|--------|-------------|
+| obsidian-gemini-helper | Gemini-focused (RAG via File Search API) |
+| obsidian-llm-hub | Multi-LLM support, Desktop Only (RAG via Embedding, supports gemini-embedding-2-preview) |
+| obsidian-local-llm-hub | Local LLM only (RAG via local embeddings only) |
 
 ## Support
 

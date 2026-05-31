@@ -4,30 +4,18 @@
 
 Assistant IA **gratuit et open-source** pour Obsidian avec **Chat**, **Automatisation de Workflows** et **RAG** propulse par Google Gemini.
 
-> **Depuis la v1.11.0, ce plugin se concentre exclusivement sur les fonctionnalites liees a Gemini.**
-> Le support CLI a ete supprime. Un nouveau plugin [obsidian-llm-hub](https://github.com/takeshy/obsidian-llm-hub) a ete cree avec le support CLI et multi-fournisseurs LLM (OpenAI, Claude, OpenRouter, Local LLM).
-
-### Plugins Associes
-
-| Plugin | Description |
-|--------|-------------|
-| obsidian-gemini-helper | Centre sur Gemini (RAG via File Search API) |
-| obsidian-llm-hub | Support multi-LLM, Desktop uniquement (RAG via Embedding, supporte gemini-embedding-2-preview) |
-| obsidian-local-llm-hub | LLM local uniquement (RAG via embeddings locaux uniquement) |
-
----
-
 > **Ce plugin est entierement gratuit.** Vous avez uniquement besoin d'une cle API Google Gemini (gratuite ou payante) depuis [ai.google.dev](https://ai.google.dev).
 
 ## Points Forts
 
 - **Chat IA** - Reponses en streaming, pieces jointes, operations sur le coffre, commandes slash
+- **Suivi d'utilisation** - Affiche les tokens API et le cout approximatif de chaque chat et execution de workflow
+- **Skills d'agent** - Des skills reutilisables etendent le chat ; le skill Markdown Obsidian base sur [kepano/obsidian-skills](https://github.com/kepano/obsidian-skills) est active par defaut
 - **Constructeur de Workflows** - Automatisez des taches multi-etapes avec l'editeur visuel de noeuds et 24 types de noeuds
-- **Historique d'Edition** - Suivez et restaurez les modifications faites par l'IA avec vue des differences
+- **Support MCP** - Utilisez des outils MCP dans les workflows et affichez les ressources MCP UI dans Obsidian
 - **RAG** - Generation Augmentee par Recuperation pour une recherche intelligente dans votre coffre
-- **Recherche Web** - Accedez a des informations actualisees via Google Search
-- **Generation d'Images** - Creez des images avec les modeles d'images Gemini
 - **Chiffrement** - Protection par mot de passe de l'historique de chat et des journaux d'execution des workflows
+- **Historique d'Edition** - Suivez et restaurez les modifications faites par l'IA avec vue des differences
 
 ![Generation d'images dans le chat](docs/images/chat_image.png)
 
@@ -734,6 +722,17 @@ MIT
 
 - [Documentation API Gemini](https://ai.google.dev/docs)
 - [Documentation des Plugins Obsidian](https://docs.obsidian.md/Plugins/Getting+started/Build+a+plugin)
+
+## Plugins Associes
+
+> **Depuis la v1.11.0, ce plugin se concentre exclusivement sur les fonctionnalites liees a Gemini.**
+> Le support CLI a ete supprime. Un nouveau plugin [obsidian-llm-hub](https://github.com/takeshy/obsidian-llm-hub) a ete cree avec le support CLI et multi-fournisseurs LLM (OpenAI, Claude, OpenRouter, Local LLM).
+
+| Plugin | Description |
+|--------|-------------|
+| obsidian-gemini-helper | Centre sur Gemini (RAG via File Search API) |
+| obsidian-llm-hub | Support multi-LLM, Desktop uniquement (RAG via Embedding, supporte gemini-embedding-2-preview) |
+| obsidian-local-llm-hub | LLM local uniquement (RAG via embeddings locaux uniquement) |
 
 ## Support
 

@@ -4,30 +4,18 @@
 
 **免费开源的** Obsidian AI 助手，提供由 Google Gemini 驱动的 **聊天**、**工作流自动化** 和 **RAG** 功能。
 
-> **从 v1.11.0 起，本插件专注于 Gemini 相关功能。**
-> CLI 支持已被移除。已创建新插件 [obsidian-llm-hub](https://github.com/takeshy/obsidian-llm-hub)，支持 CLI 和多种 LLM 提供商（OpenAI、Claude、OpenRouter、Local LLM）。
-
-### 相关插件
-
-| 插件 | 说明 |
-|------|------|
-| obsidian-gemini-helper | 专注于 Gemini（RAG 通过 File Search API） |
-| obsidian-llm-hub | 多 LLM 支持，仅限桌面端（RAG 通过 Embedding，支持 gemini-embedding-2-preview） |
-| obsidian-local-llm-hub | 仅限本地 LLM（RAG 仅通过本地 Embedding） |
-
----
-
 > **本插件完全免费。** 您只需要从 [ai.google.dev](https://ai.google.dev) 获取 Google Gemini API 密钥（免费或付费）。
 
 ## 主要特性
 
 - **AI 聊天** - 流式响应、文件附件、仓库操作、斜杠命令
+- **用量追踪** - 显示每次聊天和工作流运行的 API token 数与预估费用
+- **Agent Skills** - 可用技能扩展聊天；基于 [kepano/obsidian-skills](https://github.com/kepano/obsidian-skills) 的 Obsidian Markdown 技能默认启用
 - **工作流构建器** - 使用可视化节点编辑器和 24 种节点类型自动化多步骤任务
-- **编辑历史** - 使用差异视图追踪和恢复 AI 所做的更改
+- **MCP 支持** - 在工作流中使用 MCP 工具，并在 Obsidian 内渲染 MCP UI 资源
 - **RAG** - 检索增强生成，在您的仓库中进行智能搜索
-- **网页搜索** - 通过 Google 搜索获取最新信息
-- **图像生成** - 使用 Gemini 图像模型创建图像
 - **加密** - 使用密码保护聊天历史和工作流执行日志
+- **编辑历史** - 使用差异视图追踪和恢复 AI 所做的更改
 
 ![聊天中的图像生成](docs/images/chat_image.png)
 
@@ -734,6 +722,17 @@ MIT
 
 - [Gemini API 文档](https://ai.google.dev/docs)
 - [Obsidian 插件文档](https://docs.obsidian.md/Plugins/Getting+started/Build+a+plugin)
+
+## 相关插件
+
+> **从 v1.11.0 起，本插件专注于 Gemini 相关功能。**
+> CLI 支持已被移除。已创建新插件 [obsidian-llm-hub](https://github.com/takeshy/obsidian-llm-hub)，支持 CLI 和多种 LLM 提供商（OpenAI、Claude、OpenRouter、Local LLM）。
+
+| 插件 | 说明 |
+|------|------|
+| obsidian-gemini-helper | 专注于 Gemini（RAG 通过 File Search API） |
+| obsidian-llm-hub | 多 LLM 支持，仅限桌面端（RAG 通过 Embedding，支持 gemini-embedding-2-preview） |
+| obsidian-local-llm-hub | 仅限本地 LLM（RAG 仅通过本地 Embedding） |
 
 ## 支持
 

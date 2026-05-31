@@ -4,30 +4,18 @@
 
 Google Gemini 기반의 **Chat**, **Workflow 자동화**, **RAG** 기능을 제공하는 **무료 오픈소스** Obsidian AI 어시스턴트입니다.
 
-> **v1.11.0부터 이 플러그인은 Gemini 관련 기능에만 집중합니다.**
-> CLI 지원이 제거되었습니다. CLI 및 다중 LLM 제공자 지원(OpenAI, Claude, OpenRouter, Local LLM)을 갖춘 새로운 플러그인 [obsidian-llm-hub](https://github.com/takeshy/obsidian-llm-hub)이 생성되었습니다.
-
-### 관련 플러그인
-
-| 플러그인 | 설명 |
-|---------|------|
-| obsidian-gemini-helper | Gemini 전용 (RAG: File Search API) |
-| obsidian-llm-hub | 다중 LLM 지원, Desktop 전용 (RAG: Embedding, gemini-embedding-2-preview 지원) |
-| obsidian-local-llm-hub | 로컬 LLM 전용 (RAG: 로컬 Embedding만) |
-
----
-
 > **이 플러그인은 완전히 무료입니다.** [ai.google.dev](https://ai.google.dev)에서 Google Gemini API 키(무료 또는 유료)만 있으면 됩니다.
 
 ## 주요 기능
 
 - **AI Chat** - 스트리밍 응답, 파일 첨부, vault 작업, 슬래시 명령어
+- **사용량 추적** - 각 채팅과 워크플로우 실행의 API 토큰 수와 예상 비용 표시
+- **에이전트 스킬** - 스킬로 채팅을 확장할 수 있으며, [kepano/obsidian-skills](https://github.com/kepano/obsidian-skills) 기반 Obsidian Markdown 스킬이 기본 활성화됩니다
 - **Workflow Builder** - 비주얼 노드 편집기와 24개 노드 유형으로 다단계 작업 자동화
-- **Edit History** - AI가 만든 변경 사항을 diff 뷰로 추적하고 복원
+- **MCP 지원** - 워크플로우에서 MCP 도구를 사용하고 MCP UI 리소스를 Obsidian 안에서 렌더링
 - **RAG** - vault 전체에서 지능적 검색을 위한 검색 증강 생성
-- **Web Search** - Google Search를 통한 최신 정보 접근
-- **Image Generation** - Gemini 이미지 모델로 이미지 생성
 - **암호화** - 채팅 기록 및 워크플로우 실행 로그를 비밀번호로 보호
+- **Edit History** - AI가 만든 변경 사항을 diff 뷰로 추적하고 복원
 
 ![채팅에서 이미지 생성](docs/images/chat_image.png)
 
@@ -734,6 +722,17 @@ MIT
 
 - [Gemini API Docs](https://ai.google.dev/docs)
 - [Obsidian Plugin Docs](https://docs.obsidian.md/Plugins/Getting+started/Build+a+plugin)
+
+## 관련 플러그인
+
+> **v1.11.0부터 이 플러그인은 Gemini 관련 기능에만 집중합니다.**
+> CLI 지원이 제거되었습니다. CLI 및 다중 LLM 제공자 지원(OpenAI, Claude, OpenRouter, Local LLM)을 갖춘 새로운 플러그인 [obsidian-llm-hub](https://github.com/takeshy/obsidian-llm-hub)이 생성되었습니다.
+
+| 플러그인 | 설명 |
+|---------|------|
+| obsidian-gemini-helper | Gemini 전용 (RAG: File Search API) |
+| obsidian-llm-hub | 다중 LLM 지원, Desktop 전용 (RAG: Embedding, gemini-embedding-2-preview 지원) |
+| obsidian-local-llm-hub | 로컬 LLM 전용 (RAG: 로컬 Embedding만) |
 
 ## 지원
 

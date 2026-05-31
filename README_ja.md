@@ -4,32 +4,18 @@
 
 **無料・オープンソース**の Obsidian 向け AI アシスタント。Google Gemini を活用した**チャット**、**ワークフロー自動化**、**RAG**を搭載。
 
-> **v1.11.0以降、このプラグインはGemini関連の機能に特化しました。**
-> CLI サポートは削除されました。CLI および複数の LLM プロバイダー（OpenAI、Claude、OpenRouter、Local LLM）をサポートする新しいプラグイン [obsidian-llm-hub](https://github.com/takeshy/obsidian-llm-hub) を作成しました。
-> また、GemiHub（Google Drive）との連携は [obsidian-gemihub](https://github.com/takeshy/obsidian-gemihub) に分離しました。
-
-### 関連プラグイン
-
-| プラグイン | 説明 |
-|-----------|------|
-| obsidian-gemini-helper | Gemini に特化（RAG は File Search API） |
-| obsidian-llm-hub | LLM 全般に対応、Desktop Only（RAG は Embedding、gemini-embedding-2-preview にも対応） |
-| obsidian-local-llm-hub | Local LLM 専門（RAG はローカル Embedding のみ） |
-| obsidian-gemihub | Web 版 gemini-helper である GemiHub と Google Drive 経由でファイル連携 |
-
----
-
 > **このプラグインは完全に無料です。** [ai.google.dev](https://ai.google.dev) から Google Gemini API キー（無料または有料）が必要です。
 
 ## 主な機能
 
 - **AI チャット** - ストリーミング応答、ファイル添付、Vault 操作、スラッシュコマンド
+- **使用量の可視化** - チャットやワークフロー実行ごとの API トークン数と概算コストを表示
+- **エージェントスキル** - チャットをスキルで拡張可能。Obsidian 用 Markdown スキル（[kepano/obsidian-skills](https://github.com/kepano/obsidian-skills) ベース）がデフォルト有効
 - **ワークフロービルダー** - ビジュアルノードエディタと 24 種類のノードでマルチステップタスクを自動化
-- **編集履歴** - AI による変更を差分表示で追跡・復元
+- **MCP 対応** - ワークフローで MCP ツールを利用し、MCP UI リソースを Obsidian 内で表示
 - **RAG** - Vault 全体の知的検索（Retrieval-Augmented Generation）
-- **Web 検索** - Google 検索で最新情報を取得
-- **画像生成** - Gemini 画像モデルで画像を作成
 - **暗号化** - チャット履歴とワークフロー実行ログをパスワード保護
+- **編集履歴** - AI による変更を差分表示で追跡・復元
 
 ![チャットでの画像生成](docs/images/chat_image.png)
 
@@ -745,6 +731,19 @@ MIT
 
 - [Gemini API ドキュメント](https://ai.google.dev/docs)
 - [Obsidian プラグインドキュメント](https://docs.obsidian.md/Plugins/Getting+started/Build+a+plugin)
+
+## 関連プラグイン
+
+> **v1.11.0以降、このプラグインはGemini関連の機能に特化しました。**
+> CLI サポートは削除されました。CLI および複数の LLM プロバイダー（OpenAI、Claude、OpenRouter、Local LLM）をサポートする新しいプラグイン [obsidian-llm-hub](https://github.com/takeshy/obsidian-llm-hub) を作成しました。
+> また、GemiHub（Google Drive）との連携は [obsidian-gemihub](https://github.com/takeshy/obsidian-gemihub) に分離しました。
+
+| プラグイン | 説明 |
+|-----------|------|
+| obsidian-gemini-helper | Gemini に特化（RAG は File Search API） |
+| obsidian-llm-hub | LLM 全般に対応、Desktop Only（RAG は Embedding、gemini-embedding-2-preview にも対応） |
+| obsidian-local-llm-hub | Local LLM 専門（RAG はローカル Embedding のみ） |
+| obsidian-gemihub | Web 版 gemini-helper である GemiHub と Google Drive 経由でファイル連携 |
 
 ## サポート
 

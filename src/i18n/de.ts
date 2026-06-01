@@ -37,6 +37,10 @@ export const de: Record<string, string> = {
   "settings.systemPrompt": "System-Prompt",
   "settings.systemPrompt.desc": "Zusätzliche Anweisungen für den KI-Assistenten",
   "settings.systemPrompt.placeholder": "Antworten Sie in der gleichen Sprache wie die Frage.",
+  "settings.aiVaultToolAllowedFolders": "Ordner, auf die KI automatisch zugreifen kann",
+  "settings.aiVaultToolAllowedFolders.desc": "Optional: Wenn es Verzeichnisse gibt, die die KI nicht automatisch lesen soll, geben Sie nur die Ordner an, auf die die KI zugreifen darf.",
+  "settings.aiVaultToolAllowedFolders.invalidPath": "Ordner müssen vault-relative Pfade sein und dürfen keine Segmente . oder .. enthalten.",
+  "settings.aiVaultToolAllowedFolders.placeholder": "Z. B.: public, shared/docs",
 
   // Settings - Tool limits
   "settings.maxToolCalls": "Max. Werkzeugaufrufe pro Anfrage",

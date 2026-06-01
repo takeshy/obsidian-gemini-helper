@@ -2,6 +2,7 @@ import { Setting, Notice } from "obsidian";
 import { t } from "src/i18n";
 import { DEFAULT_SETTINGS, DEFAULT_WORKSPACE_FOLDER } from "src/types";
 import { ConfirmModal } from "src/ui/components/ConfirmModal";
+import { normalizeVaultScopePath } from "src/vault/aiVaultScope";
 import type { SettingsContext } from "./settingsContext";
 
 export function displayWorkspaceSettings(containerEl: HTMLElement, ctx: SettingsContext): void {
@@ -134,6 +135,50 @@ export function displayWorkspaceSettings(containerEl: HTMLElement, ctx: Settings
         })();
       });
     text.inputEl.rows = 4;
+    text.inputEl.addClass("gemini-helper-settings-textarea");
+  });
+
+  // AI vault tool allowed folders
+  const allowedFoldersSetting = new Setting(containerEl)
+    .setName(t("settings.aiVaultToolAllowedFolders"))
+    .setDesc(t("settings.aiVaultToolAllowedFolders.desc"));
+
+  allowedFoldersSetting.settingEl.addClass("gemini-helper-settings-textarea-container");
+  allowedFoldersSetting.settingEl.addClass("gemini-helper-settings-full-width-control");
+
+  allowedFoldersSetting.addTextArea((text) => {
+    text
+      .setPlaceholder(t("settings.aiVaultToolAllowedFolders.placeholder"))
+      .setValue((plugin.settings.aiVaultToolAllowedFolders || []).join(", "))
+      .onChange((value) => {
+        void (async () => {
+          const normalizedFolders: string[] = [];
+          const invalidFolders: string[] = [];
+          const rawFolders = value
+            .split(",")
+            .map((folder) => folder.trim())
+            .filter(Boolean);
+
+          for (const folder of rawFolders) {
+            const normalized = normalizeVaultScopePath(folder.replace(/^\/+|\/+$/g, ""));
+            if (normalized) {
+              normalizedFolders.push(normalized);
+            } else {
+              invalidFolders.push(folder);
+            }
+          }
+
+          if (invalidFolders.length > 0) {
+            new Notice(t("settings.aiVaultToolAllowedFolders.invalidPath"));
+            text.setValue((plugin.settings.aiVaultToolAllowedFolders || []).join(", "));
+            return;
+          }
+
+          plugin.settings.aiVaultToolAllowedFolders = normalizedFolders;
+          await plugin.saveSettings();
+        })();
+      });
+    text.inputEl.rows = 2;
     text.inputEl.addClass("gemini-helper-settings-textarea");
   });
 

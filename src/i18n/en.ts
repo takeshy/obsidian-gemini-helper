@@ -38,6 +38,10 @@ export const en = {
   "settings.systemPrompt": "System prompt",
   "settings.systemPrompt.desc": "Additional instructions for the AI assistant",
   "settings.systemPrompt.placeholder": "Respond in the same language as the question.",
+  "settings.aiVaultToolAllowedFolders": "Folders AI can access automatically",
+  "settings.aiVaultToolAllowedFolders.desc": "Optional: if there are directories you do not want the AI to read automatically, specify only the folders the AI may access.",
+  "settings.aiVaultToolAllowedFolders.invalidPath": "Folders AI can access automatically must be vault-relative folders and cannot contain '.' or '..' segments.",
+  "settings.aiVaultToolAllowedFolders.placeholder": "E.g., public, shared/docs",
 
   // Settings - Tool limits
   "settings.maxToolCalls": "Max tool calls per request",

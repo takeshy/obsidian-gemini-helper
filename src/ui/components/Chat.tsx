@@ -1223,6 +1223,8 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 						},
 						listNotesLimit: settings.listNotesLimit,
 						maxNoteChars: settings.maxNoteChars,
+						limitAiVaultToolScope: true,
+						aiVaultToolAllowedFolders: settings.aiVaultToolAllowedFolders,
 					})
 					: undefined;
 

@@ -38,6 +38,10 @@ export const zh: Record<string, string> = {
   "settings.systemPrompt": "系统提示",
   "settings.systemPrompt.desc": "AI 助手的额外指令",
   "settings.systemPrompt.placeholder": "用与问题相同的语言回答。",
+  "settings.aiVaultToolAllowedFolders": "AI 可自动访问的文件夹",
+  "settings.aiVaultToolAllowedFolders.desc": "可选：如果有不想让 AI 自动读取的目录，请只指定 AI 可以访问的文件夹。",
+  "settings.aiVaultToolAllowedFolders.invalidPath": "文件夹必须是相对于仓库的路径，且不能包含 . 或 .. 路径段。",
+  "settings.aiVaultToolAllowedFolders.placeholder": "例如：public, shared/docs",
 
   // Settings - Tool limits
   "settings.maxToolCalls": "每次请求的最大工具调用次数",

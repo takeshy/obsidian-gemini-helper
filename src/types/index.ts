@@ -119,6 +119,7 @@ export interface GeminiHelperSettings {
   functionCallWarningThreshold: number; // 残りこの回数で警告
   listNotesLimit: number;             // listNotesのデフォルト件数制限
   maxNoteChars: number;               // ノート読み込み時の最大文字数
+  aiVaultToolAllowedFolders: string[]; // Empty = AI vault tools can access the whole vault
 
   // Edit history settings
   editHistory: EditHistorySettings;
@@ -599,6 +600,7 @@ export const DEFAULT_SETTINGS: GeminiHelperSettings = {
   functionCallWarningThreshold: 5,
   listNotesLimit: 50,
   maxNoteChars: 20000,
+  aiVaultToolAllowedFolders: [],
   // Edit history
   editHistory: DEFAULT_EDIT_HISTORY_SETTINGS,
   // Encryption

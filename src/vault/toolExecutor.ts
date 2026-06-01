@@ -1,9 +1,10 @@
-import type { App } from "obsidian";
+import type { App, TFile } from "obsidian";
 import {
   readNote,
   createNote,
   updateNote,
   deleteNote,
+  findFileByName,
   getActiveNoteInfo,
   proposeEdit,
   applyEdit,
@@ -29,6 +30,13 @@ import {
 } from "src/core/fileSearch";
 import { DEFAULT_SETTINGS, type RagSyncState } from "src/types";
 import { formatError } from "src/utils/error";
+import {
+  AI_VAULT_SCOPE_DENIED_MSG,
+  isFileAllowedForAiVaultTools,
+  isPathInAllowedVaultFolders,
+  normalizeAllowedVaultFolders,
+  normalizeVaultScopePath,
+} from "./aiVaultScope";
 
 export type ToolResult = Record<string, unknown>;
 
@@ -38,6 +46,54 @@ export interface ToolExecutionContext {
   ragFilterConfig?: FilterConfig;
   listNotesLimit?: number;
   maxNoteChars?: number;
+  limitAiVaultToolScope?: boolean;
+  aiVaultToolAllowedFolders?: string[];
+}
+
+function hasAiVaultToolScope(context: ToolExecutionContext | undefined): boolean {
+  return !!(context?.limitAiVaultToolScope && context.aiVaultToolAllowedFolders && context.aiVaultToolAllowedFolders.length > 0);
+}
+
+function aiVaultToolFileFilter(context: ToolExecutionContext | undefined): ((file: TFile) => boolean) | undefined {
+  if (!hasAiVaultToolScope(context)) return undefined;
+  return (file) => isFileAllowedForAiVaultTools(file, context?.aiVaultToolAllowedFolders);
+}
+
+function aiVaultToolFolderFilter(context: ToolExecutionContext | undefined): ((path: string) => boolean) | undefined {
+  if (!hasAiVaultToolScope(context)) return undefined;
+  const allowedFolders = normalizeAllowedVaultFolders(context?.aiVaultToolAllowedFolders);
+  return (path) => {
+    const normalizedPath = normalizeVaultScopePath(path)?.toLowerCase();
+    if (!normalizedPath) return false;
+    return allowedFolders.some((folder) =>
+      normalizedPath === folder ||
+      normalizedPath.startsWith(`${folder}/`) ||
+      folder.startsWith(`${normalizedPath}/`)
+    );
+  };
+}
+
+function denyAiVaultToolScope(): ToolResult {
+  return { success: false, error: AI_VAULT_SCOPE_DENIED_MSG };
+}
+
+function denyAiVaultToolScopeForBulk(rejectedPaths: string[]): ToolResult {
+  return {
+    success: false,
+    error: AI_VAULT_SCOPE_DENIED_MSG,
+    rejectedPaths,
+  };
+}
+
+function isFileInAiVaultToolScope(app: App, fileName: string | undefined, activeNote: boolean | undefined, context: ToolExecutionContext | undefined): boolean {
+  if (!hasAiVaultToolScope(context)) return true;
+  const file = activeNote ? app.workspace.getActiveFile() : fileName ? findFileByName(app, fileName) : null;
+  return !!(file && isFileAllowedForAiVaultTools(file, context?.aiVaultToolAllowedFolders));
+}
+
+function isPathInAiVaultToolScope(path: string | undefined, context: ToolExecutionContext | undefined): boolean {
+  if (!hasAiVaultToolScope(context)) return true;
+  return !!(path && isPathInAllowedVaultFolders(path, context?.aiVaultToolAllowedFolders));
 }
 
 // Execute a tool call and return the result
@@ -76,6 +132,9 @@ async function executeToolCallInternal(
 ): Promise<ToolResult> {
   switch (toolName) {
     case "read_note":
+      if (!isFileInAiVaultToolScope(app, asString(args.fileName), args.activeNote as boolean | undefined, context)) {
+        return denyAiVaultToolScope();
+      }
       return readNote(
         app,
         asString(args.fileName),
@@ -103,6 +162,10 @@ async function executeToolCallInternal(
       if (args.content == null) {
         return { success: false, error: "Required parameter 'content' is missing" };
       }
+      const requestedPath = folder ? `${folder}/${name}` : name;
+      if (!isPathInAiVaultToolScope(requestedPath, context)) {
+        return denyAiVaultToolScope();
+      }
       return createNote(
         app,
         name,
@@ -113,6 +176,9 @@ async function executeToolCallInternal(
     }
 
     case "update_note":
+      if (!isFileInAiVaultToolScope(app, asString(args.fileName), args.activeNote as boolean | undefined, context)) {
+        return denyAiVaultToolScope();
+      }
       return updateNote(
         app,
         asString(args.fileName),
@@ -126,6 +192,9 @@ async function executeToolCallInternal(
       if (!fileName) {
         return { success: false, error: "Required parameter 'fileName' is missing" };
       }
+      if (!isFileInAiVaultToolScope(app, fileName, false, context)) {
+        return denyAiVaultToolScope();
+      }
       return deleteNote(app, fileName);
     }
 
@@ -137,6 +206,9 @@ async function executeToolCallInternal(
       }
       if (!newPath) {
         return { success: false, error: "Required parameter 'newPath' is missing" };
+      }
+      if (!isFileInAiVaultToolScope(app, oldPath, false, context) || !isPathInAiVaultToolScope(newPath, context)) {
+        return denyAiVaultToolScope();
       }
       return proposeRename(app, oldPath, newPath);
     }
@@ -151,7 +223,7 @@ async function executeToolCallInternal(
       const limit = Number.isNaN(parsedLimit) || parsedLimit <= 0 ? 10 : parsedLimit;
 
       if (searchContent) {
-        const results = await searchByContent(app, query, limit);
+        const results = await searchByContent(app, query, limit, aiVaultToolFileFilter(context));
         return {
           success: true,
           results: results.map((r) => ({
@@ -162,7 +234,7 @@ async function executeToolCallInternal(
           count: results.length,
         };
       } else {
-        const results = searchByName(app, query, limit);
+        const results = searchByName(app, query, limit, aiVaultToolFileFilter(context));
         return {
           success: true,
           results: results.map((r) => ({ name: r.name, path: r.path })),
@@ -177,7 +249,10 @@ async function executeToolCallInternal(
       const defaultLimit = context?.listNotesLimit ?? DEFAULT_SETTINGS.listNotesLimit;
       const parsedLimit = args.limit ? parseInt(asString(args.limit) || String(defaultLimit), 10) : defaultLimit;
       const limit = Number.isNaN(parsedLimit) || parsedLimit <= 0 ? defaultLimit : parsedLimit;
-      const { results, totalCount, hasMore } = listNotes(app, folder, recursive, limit);
+      if (folder && !isPathInAiVaultToolScope(folder, context)) {
+        return denyAiVaultToolScope();
+      }
+      const { results, totalCount, hasMore } = listNotes(app, folder, recursive, limit, aiVaultToolFileFilter(context));
       return {
         success: true,
         notes: results.map((r) => ({ name: r.name, path: r.path })),
@@ -192,7 +267,10 @@ async function executeToolCallInternal(
 
     case "list_folders": {
       const parentFolder = asString(args.parentFolder);
-      const folders = listFolders(app, parentFolder);
+      if (parentFolder && !aiVaultToolFolderFilter(context)?.(parentFolder) && hasAiVaultToolScope(context)) {
+        return denyAiVaultToolScope();
+      }
+      const folders = listFolders(app, parentFolder, aiVaultToolFolderFilter(context));
       return {
         success: true,
         folders,
@@ -205,10 +283,19 @@ async function executeToolCallInternal(
       if (!path) {
         return { success: false, error: "Required parameter 'path' is missing" };
       }
+      if (!isPathInAiVaultToolScope(path, context)) {
+        return denyAiVaultToolScope();
+      }
       return createFolder(app, path);
     }
 
     case "get_active_note_info": {
+      if (hasAiVaultToolScope(context)) {
+        const file = app.workspace.getActiveFile();
+        if (!file || !isFileAllowedForAiVaultTools(file, context?.aiVaultToolAllowedFolders)) {
+          return denyAiVaultToolScope();
+        }
+      }
       const info = getActiveNoteInfo(app);
       if (info) {
         return { success: true, ...info };
@@ -241,6 +328,9 @@ async function executeToolCallInternal(
 
       // Query specific file
       if (filePath) {
+        if (!isPathInAiVaultToolScope(filePath, context)) {
+          return denyAiVaultToolScope();
+        }
         const status = await fileSearchManager.getFileSyncStatus(
           filePath,
           context.ragSyncState
@@ -267,6 +357,9 @@ async function executeToolCallInternal(
 
       // List unsynced files in directory
       if (directory !== undefined) {
+        if (!isPathInAiVaultToolScope(directory, context)) {
+          return denyAiVaultToolScope();
+        }
         const result = await fileSearchManager.getUnsyncedFilesInDirectory(
           directory,
           context.ragSyncState,
@@ -292,6 +385,12 @@ async function executeToolCallInternal(
 
       // Get vault-wide summary
       if (listAll) {
+        if (hasAiVaultToolScope(context)) {
+          return {
+            success: false,
+            error: "Vault-wide semantic search sync status is unavailable while AI vault tools are limited to allowed folders. Specify an allowed directory instead.",
+          };
+        }
         const summary = await fileSearchManager.getVaultSyncSummary(
           context.ragSyncState,
           context.ragFilterConfig
@@ -321,6 +420,9 @@ async function executeToolCallInternal(
     }
 
     case "propose_edit":
+      if (!isFileInAiVaultToolScope(app, asString(args.fileName), args.activeNote as boolean | undefined, context)) {
+        return denyAiVaultToolScope();
+      }
       return proposeEdit(
         app,
         asString(args.fileName),
@@ -341,6 +443,9 @@ async function executeToolCallInternal(
       const fileName = asString(args.fileName);
       if (!fileName) {
         return { success: false, error: "Required parameter 'fileName' is missing" };
+      }
+      if (!isFileInAiVaultToolScope(app, fileName, false, context)) {
+        return denyAiVaultToolScope();
       }
       return proposeDelete(app, fileName);
     }
@@ -363,7 +468,15 @@ async function executeToolCallInternal(
           error: "No edits provided. The 'edits' array is required.",
         };
       }
-      return proposeBulkEdit(app, edits);
+      const scopedEdits = hasAiVaultToolScope(context)
+        ? edits.filter((edit) => isFileInAiVaultToolScope(app, edit.fileName, false, context))
+        : edits;
+      if (scopedEdits.length !== edits.length) {
+        const scopedPaths = new Set(scopedEdits.map((edit) => edit.fileName));
+        return denyAiVaultToolScopeForBulk(edits.map((edit) => edit.fileName).filter((path) => !scopedPaths.has(path)));
+      }
+      if (scopedEdits.length === 0) return denyAiVaultToolScope();
+      return proposeBulkEdit(app, scopedEdits);
     }
 
     case "bulk_propose_rename": {
@@ -374,7 +487,17 @@ async function executeToolCallInternal(
           error: "No renames provided. The 'renames' array is required.",
         };
       }
-      return proposeBulkRename(app, renames);
+      const scopedRenames = hasAiVaultToolScope(context)
+        ? renames.filter((rename) => isFileInAiVaultToolScope(app, rename.oldPath, false, context) && isPathInAiVaultToolScope(rename.newPath, context))
+        : renames;
+      if (scopedRenames.length !== renames.length) {
+        const scopedKeys = new Set(scopedRenames.map((rename) => `${rename.oldPath}\u0000${rename.newPath}`));
+        return denyAiVaultToolScopeForBulk(renames
+          .filter((rename) => !scopedKeys.has(`${rename.oldPath}\u0000${rename.newPath}`))
+          .flatMap((rename) => [rename.oldPath, rename.newPath]));
+      }
+      if (scopedRenames.length === 0) return denyAiVaultToolScope();
+      return proposeBulkRename(app, scopedRenames);
     }
 
     case "bulk_propose_delete": {
@@ -385,7 +508,15 @@ async function executeToolCallInternal(
           error: "No files provided. The 'fileNames' array is required.",
         };
       }
-      return proposeBulkDelete(app, fileNames);
+      const scopedFileNames = hasAiVaultToolScope(context)
+        ? fileNames.filter((fileName) => isFileInAiVaultToolScope(app, fileName, false, context))
+        : fileNames;
+      if (scopedFileNames.length !== fileNames.length) {
+        const scopedPaths = new Set(scopedFileNames);
+        return denyAiVaultToolScopeForBulk(fileNames.filter((path) => !scopedPaths.has(path)));
+      }
+      if (scopedFileNames.length === 0) return denyAiVaultToolScope();
+      return proposeBulkDelete(app, scopedFileNames);
     }
 
     default:

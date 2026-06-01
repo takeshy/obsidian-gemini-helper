@@ -1202,6 +1202,20 @@
   align-items: stretch;
 }
 
+.gemini-helper-settings-full-width-control {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.gemini-helper-settings-full-width-control .setting-item-info,
+.gemini-helper-settings-full-width-control .setting-item-control {
+  width: 100%;
+}
+
+.gemini-helper-settings-full-width-control .setting-item-control {
+  margin-top: 8px;
+}
+
 .gemini-helper-settings-textarea {
   width: 100%;
   min-height: 80px;

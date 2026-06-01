@@ -38,6 +38,10 @@ export const ja: Record<string, string> = {
   "settings.systemPrompt": "システムプロンプト",
   "settings.systemPrompt.desc": "AIアシスタントへの追加指示",
   "settings.systemPrompt.placeholder": "質問と同じ言語で回答してください。",
+  "settings.aiVaultToolAllowedFolders": "AIが自動アクセスできるフォルダ",
+  "settings.aiVaultToolAllowedFolders.desc": "任意設定: AIに自動的に読ませたくないディレクトリがある場合、AIがアクセスしてよいフォルダだけを指定します。",
+  "settings.aiVaultToolAllowedFolders.invalidPath": "AIが自動アクセスできるフォルダはVault相対パスで指定し、'.' や '..' を含めないでください。",
+  "settings.aiVaultToolAllowedFolders.placeholder": "例: Public, Shared/Docs",
 
   // Settings - Tool limits
   "settings.maxToolCalls": "リクエストあたりの最大ツール呼び出し回数",

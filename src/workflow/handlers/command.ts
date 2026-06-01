@@ -207,6 +207,8 @@ Please revise the output based on the user's feedback above.`;
     const obsidianToolExecutor = createToolExecutor(app, {
       listNotesLimit: plugin.settings.listNotesLimit,
       maxNoteChars: plugin.settings.maxNoteChars,
+      limitAiVaultToolScope: true,
+      aiVaultToolAllowedFolders: plugin.settings.aiVaultToolAllowedFolders,
     });
 
     // Fetch MCP tools from specified servers

@@ -14,10 +14,11 @@
 - **Workflow Builder** - Automate multi-step tasks with visual node editor and 24 node types
 - **MCP Support** - Use MCP tools in workflows and render MCP UI resources inside Obsidian
 - **RAG** - Retrieval-Augmented Generation for intelligent search across your vault
+- **AI Folder Access** - Limit which folders AI can read automatically when you do not want whole-vault access
 - **Encryption** - Password-protect chat history and workflow execution logs
 - **Edit History** - Track and restore AI-made changes with diff view
 
-![Image Generation in Chat](docs/images/chat_image.png)
+![Chat Interface](docs/images/chat.png)
 
 ## API Key
 
@@ -45,7 +46,7 @@ This plugin requires a Google Gemini API key. You can choose between:
 
 The AI Chat feature provides an interactive conversation interface with Google Gemini, integrated with your Obsidian vault.
 
-![Chat Interface](docs/images/chat.png)
+![Image Generation in Chat](docs/images/chat_image.png)
 
 ## Opening Chat
 - Click Gemini icon in ribbon
@@ -129,6 +130,17 @@ When the AI handles notes in Chat, it uses Vault tools. Control which vault tool
 - **Vault: Off** - Use when you don't need vault access at all.
 
 > **Note:** RAG, Web Search, Vault tools, and MCP can all be used simultaneously via the Interactions API.
+
+### AI Folder Access
+
+In **Settings → Workspace → Folders AI can access automatically**, you can optionally choose which folders the AI may read automatically. Use this when there are directories you do not want the AI to read unless you explicitly attach or reference files.
+
+- Leave empty to allow the AI to access the whole vault through automatic vault operations
+- Enter vault-relative folders such as `Public` or `Shared/Docs`, separated by commas
+- Root folder access is not specified with `/`, `.`, or an empty path. Empty means no folder restriction, which allows the whole vault
+- `.` and `..` path segments are rejected
+- This setting limits automatic vault operations in Chat and AI command workflows. It does not limit RAG retrieval, manual file attachments, MCP tools, scripts, or direct workflow note nodes
+- For files the AI should never read, use Encryption instead of relying only on folder scope
 
 ## Safe Editing
 
@@ -532,6 +544,7 @@ npm run build
 
 ### Workspace Settings
 - **System Prompt** - Additional AI instructions
+- **Folders AI can access automatically** - Optional folder allowlist for automatic AI vault access. Leave empty to allow the whole vault; use Encryption for files the AI should never read
 - **Tool Limits** - Control function call limits
 
 ![Tool Limits](docs/images/setting_tool_history.png)

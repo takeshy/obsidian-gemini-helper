@@ -1,4 +1,4 @@
-import { TFolder, type App } from "obsidian";
+import { TFile, TFolder, type App } from "obsidian";
 import { formatError } from "src/utils/error";
 import { DEFAULT_SETTINGS } from "src/types";
 import { getVaultTextFiles } from "./fileTypes";
@@ -14,9 +14,10 @@ export interface SearchResult {
 export function searchByName(
   app: App,
   query: string,
-  limit = 10
+  limit = 10,
+  fileFilter?: (file: TFile) => boolean
 ): SearchResult[] {
-  const files = getVaultTextFiles(app);
+  const files = fileFilter ? getVaultTextFiles(app).filter(fileFilter) : getVaultTextFiles(app);
   const searchTerm = query.toLowerCase().trim();
 
   const results: SearchResult[] = [];
@@ -58,9 +59,10 @@ export function searchByName(
 export async function searchByContent(
   app: App,
   query: string,
-  limit = 10
+  limit = 10,
+  fileFilter?: (file: TFile) => boolean
 ): Promise<SearchResult[]> {
-  const files = getVaultTextFiles(app);
+  const files = fileFilter ? getVaultTextFiles(app).filter(fileFilter) : getVaultTextFiles(app);
   const searchTerm = query.toLowerCase().trim();
 
   const results: SearchResult[] = [];
@@ -101,9 +103,10 @@ export function listNotes(
   app: App,
   folder?: string,
   recursive = false,
-  limit = DEFAULT_SETTINGS.listNotesLimit
+  limit = DEFAULT_SETTINGS.listNotesLimit,
+  fileFilter?: (file: TFile) => boolean
 ): { results: SearchResult[]; totalCount: number; hasMore: boolean } {
-  let files = getVaultTextFiles(app);
+  let files = fileFilter ? getVaultTextFiles(app).filter(fileFilter) : getVaultTextFiles(app);
 
   if (folder) {
     const normalizedFolder = folder.toLowerCase().replace(/\/$/, "");
@@ -136,7 +139,7 @@ export function listNotes(
 }
 
 // List all folders
-export function listFolders(app: App, parentFolder?: string): string[] {
+export function listFolders(app: App, parentFolder?: string, folderFilter?: (path: string) => boolean): string[] {
   const allFiles = app.vault.getAllLoadedFiles();
   const folders = allFiles.filter((f): f is TFolder => f instanceof TFolder);
 
@@ -153,7 +156,7 @@ export function listFolders(app: App, parentFolder?: string): string[] {
     });
   }
 
-  return filteredFolders.map((f) => f.path).filter((p) => p !== "/");
+  return filteredFolders.map((f) => f.path).filter((p) => p !== "/" && (!folderFilter || folderFilter(p)));
 }
 
 // Create a folder

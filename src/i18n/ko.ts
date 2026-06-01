@@ -39,6 +39,10 @@ export const ko: Record<string, string> = {
   "settings.systemPrompt": "시스템 프롬프트",
   "settings.systemPrompt.desc": "AI 어시스턴트를 위한 추가 지침",
   "settings.systemPrompt.placeholder": "질문과 같은 언어로 응답하세요.",
+  "settings.aiVaultToolAllowedFolders": "AI가 자동으로 접근할 수 있는 폴더",
+  "settings.aiVaultToolAllowedFolders.desc": "선택 사항: AI가 자동으로 읽지 않았으면 하는 디렉터리가 있다면 AI가 접근해도 되는 폴더만 지정하세요.",
+  "settings.aiVaultToolAllowedFolders.invalidPath": "폴더는 볼트 기준 상대 경로여야 하며 . 또는 .. 세그먼트를 포함할 수 없습니다.",
+  "settings.aiVaultToolAllowedFolders.placeholder": "예: public, shared/docs",
 
   // Settings - Tool limits
   "settings.maxToolCalls": "요청당 최대 도구 호출 횟수",

@@ -39,6 +39,10 @@ export const it: Record<string, string> = {
   "settings.systemPrompt": "Prompt di sistema",
   "settings.systemPrompt.desc": "Istruzioni aggiuntive per l'assistente IA",
   "settings.systemPrompt.placeholder": "Rispondi nella stessa lingua della domanda.",
+  "settings.aiVaultToolAllowedFolders": "Cartelle a cui l'IA può accedere automaticamente",
+  "settings.aiVaultToolAllowedFolders.desc": "Facoltativo: se ci sono directory che non vuoi far leggere automaticamente all'IA, specifica solo le cartelle a cui l'IA può accedere.",
+  "settings.aiVaultToolAllowedFolders.invalidPath": "Le cartelle devono essere percorsi relativi al vault e non possono contenere segmenti '.' o '..'.",
+  "settings.aiVaultToolAllowedFolders.placeholder": "Es.: public, shared/docs",
 
   // Settings - Tool limits
   "settings.maxToolCalls": "Chiamate strumenti max per richiesta",

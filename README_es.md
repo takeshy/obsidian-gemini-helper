@@ -14,10 +14,11 @@ Asistente de IA **gratuito y de codigo abierto** para Obsidian con **Chat**, **A
 - **Constructor de Flujos de Trabajo** - Automatiza tareas de multiples pasos con editor visual de nodos y 24 tipos de nodos
 - **Soporte MCP** - Usa herramientas MCP en workflows y renderiza recursos MCP UI dentro de Obsidian
 - **RAG** - Generacion Aumentada por Recuperacion para busqueda inteligente en tu vault
+- **Acceso a carpetas por IA** - Limita que carpetas puede leer automaticamente la IA cuando no quieras acceso a todo el vault
 - **Cifrado** - Protege con contrasena el historial de chat y los registros de ejecucion de workflows
 - **Historial de Edicion** - Rastrea y restaura cambios hechos por IA con vista de diferencias
 
-![Generacion de imagenes en el chat](docs/images/chat_image.png)
+![Interfaz de Chat](docs/images/chat.png)
 
 ## Clave API
 
@@ -45,7 +46,7 @@ Este plugin requiere una clave API de Google Gemini. Puedes elegir entre:
 
 La funcion de Chat con IA proporciona una interfaz de conversacion interactiva con Google Gemini, integrada con tu vault de Obsidian.
 
-![Interfaz de Chat](docs/images/chat.png)
+![Generacion de imagenes en el chat](docs/images/chat_image.png)
 
 ## Abrir el Chat
 - Haz clic en el icono de Gemini en la barra lateral
@@ -129,6 +130,17 @@ Cuando la IA maneja notas en el Chat, usa herramientas del Vault. Controla que h
 - **Vault: Desactivado** - Usalo cuando no necesitas acceso al vault en absoluto.
 
 > **Nota:** RAG, Web Search, herramientas del Vault y MCP pueden usarse todos simultaneamente a traves de la API de Interactions.
+
+### Acceso a carpetas por IA
+
+En **Configuracion -> Espacio de trabajo -> Carpetas a las que la IA puede acceder automaticamente**, puedes elegir opcionalmente que carpetas puede leer automaticamente la IA. Usalo cuando haya directorios que no quieres que la IA lea salvo que adjuntes o referencies archivos explicitamente.
+
+- Dejalo vacio para permitir que la IA acceda a todo el vault mediante operaciones automaticas de Vault
+- Ingresa carpetas relativas al vault como `Public` o `Shared/Docs`, separadas por comas
+- El acceso a la carpeta raiz no se especifica con `/`, `.` ni una ruta vacia. Vacio significa sin restriccion de carpetas, lo que permite todo el vault
+- Los segmentos de ruta `.` y `..` se rechazan
+- Esta configuracion limita operaciones automaticas de Vault en Chat y workflows de comandos de IA. No limita recuperacion RAG, adjuntos manuales, herramientas MCP, scripts ni nodos workflow note directos
+- Para archivos que la IA nunca debe leer, usa cifrado en lugar de confiar solo en el alcance de carpetas
 
 ## Edicion Segura
 
@@ -527,7 +539,15 @@ Cuando un toggle esta ACTIVADO, el thinking siempre esta activo para esa familia
 
 ## Instalacion
 
-### BRAT (Recomendado)
+### Community Plugins (Recomendado)
+1. Abre **Configuracion -> Community plugins** en Obsidian
+2. Selecciona **Browse**
+3. Busca `Gemini Helper`
+4. Instala y habilita el plugin
+
+### BRAT
+Usa BRAT si quieres probar versiones beta directamente desde este repositorio.
+
 1. Instala el plugin [BRAT](https://github.com/TfTHacker/obsidian42-brat)
 2. Abre configuracion de BRAT -> "Add Beta plugin"
 3. Ingresa: `https://github.com/takeshy/obsidian-gemini-helper`
@@ -558,6 +578,7 @@ npm run build
 ### Configuracion del Espacio de Trabajo
 - **System Prompt** - Instrucciones adicionales para la IA
 - **Tool Limits** - Controla los limites de llamadas a funciones
+- **Carpetas a las que la IA puede acceder automaticamente** - Lista opcional de carpetas permitidas para acceso automatico de la IA al vault. Dejalo vacio para permitir todo el vault; usa cifrado para archivos que la IA nunca debe leer
 
 ![Limites de Herramientas](docs/images/setting_tool_history.png)
 

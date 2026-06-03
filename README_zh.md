@@ -14,10 +14,11 @@
 - **工作流构建器** - 使用可视化节点编辑器和 24 种节点类型自动化多步骤任务
 - **MCP 支持** - 在工作流中使用 MCP 工具，并在 Obsidian 内渲染 MCP UI 资源
 - **RAG** - 检索增强生成，在您的仓库中进行智能搜索
+- **AI 文件夹访问** - 当您不希望 AI 访问整个仓库时，限制 AI 可自动读取的文件夹
 - **加密** - 使用密码保护聊天历史和工作流执行日志
 - **编辑历史** - 使用差异视图追踪和恢复 AI 所做的更改
 
-![聊天中的图像生成](docs/images/chat_image.png)
+![聊天界面](docs/images/chat.png)
 
 ## API 密钥
 
@@ -45,7 +46,7 @@
 
 AI 聊天功能提供与 Google Gemini 的交互式对话界面，与您的 Obsidian 仓库深度集成。
 
-![聊天界面](docs/images/chat.png)
+![聊天中的图像生成](docs/images/chat_image.png)
 
 ## 打开聊天
 - 点击功能区中的 Gemini 图标
@@ -129,6 +130,17 @@ AI 可以使用以下工具与您的仓库交互：
 - **Vault: 关闭** - 当您完全不需要访问 vault 时使用。
 
 > **注意：** RAG、Web Search、Vault 工具和 MCP 都可以通过 Interactions API 同时使用。
+
+### AI 文件夹访问
+
+在 **设置 → 工作区 → AI 可自动访问的文件夹** 中，您可以选择 AI 可自动读取哪些文件夹。当您不希望 AI 读取某些目录，除非您明确附加或引用文件时，请使用此设置。
+
+- 留空表示允许 AI 通过自动 Vault 操作访问整个仓库
+- 输入相对于 Vault 的文件夹，例如 `Public` 或 `Shared/Docs`，用逗号分隔
+- 根文件夹访问不使用 `/`、`.` 或空路径指定。空值表示不限制文件夹，允许访问整个仓库
+- `.` 和 `..` 路径片段会被拒绝
+- 此设置限制 Chat 和 AI 命令工作流中的自动 Vault 操作。它不限制 RAG 检索、手动文件附件、MCP 工具、脚本或直接的工作流 note 节点
+- 对于 AI 永远不应读取的文件，请使用加密，而不要只依赖文件夹范围
 
 ## 安全编辑
 
@@ -527,7 +539,15 @@ nodes:
 
 ## 安装
 
-### BRAT（推荐）
+### 社区插件（推荐）
+1. 打开 Obsidian 的 **设置 → 社区插件**
+2. 选择 **浏览**
+3. 搜索 `Gemini Helper`
+4. 安装并启用插件
+
+### BRAT
+如果您想直接从此仓库测试 beta 版本，请使用 BRAT。
+
 1. 安装 [BRAT](https://github.com/TfTHacker/obsidian42-brat) 插件
 2. 打开 BRAT 设置 → "Add Beta plugin"
 3. 输入：`https://github.com/takeshy/obsidian-gemini-helper`
@@ -558,6 +578,7 @@ npm run build
 ### 工作区设置
 - **系统提示词** - 额外的 AI 指令
 - **工具限制** - 控制函数调用限制
+- **AI 可自动访问的文件夹** - 自动 AI Vault 访问的可选文件夹白名单。留空表示允许整个仓库；对于 AI 永远不应读取的文件，请使用加密
 
 ![工具限制](docs/images/setting_tool_history.png)
 

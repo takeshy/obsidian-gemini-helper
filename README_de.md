@@ -14,10 +14,11 @@
 - **Workflow Builder** - Automatisieren Sie mehrstufige Aufgaben mit visuellem Node-Editor und 24 Node-Typen
 - **MCP-Unterstützung** - Nutzen Sie MCP-Tools in Workflows und rendern Sie MCP-UI-Ressourcen direkt in Obsidian
 - **RAG** - Retrieval-Augmented Generation für intelligente Suche in Ihrem Vault
+- **KI-Ordnerzugriff** - Begrenzen Sie, welche Ordner die KI automatisch lesen darf, wenn kein Zugriff auf den gesamten Vault gewünscht ist
 - **Verschlüsselung** - Passwortschutz für Chat-Verlauf und Workflow-Ausführungsprotokolle
 - **Bearbeitungsverlauf** - Verfolgen und Wiederherstellen von KI-Änderungen mit Diff-Ansicht
 
-![Bilderzeugung im Chat](docs/images/chat_image.png)
+![Chat-Oberfläche](docs/images/chat.png)
 
 ## API-Schlüssel
 
@@ -45,7 +46,7 @@ Dieses Plugin benötigt einen Google Gemini API-Schlüssel. Sie können wählen 
 
 Die KI-Chat-Funktion bietet eine interaktive Konversationsschnittstelle mit Google Gemini, integriert in Ihren Obsidian-Vault.
 
-![Chat-Oberfläche](docs/images/chat.png)
+![Bilderzeugung im Chat](docs/images/chat_image.png)
 
 ## Chat öffnen
 - Klicken Sie auf das Gemini-Symbol im Ribbon
@@ -129,6 +130,17 @@ Wenn die KI Notizen im Chat verarbeitet, verwendet sie Vault-Tools. Steuern Sie,
 - **Vault: Aus** - Verwenden Sie diesen Modus, wenn Sie überhaupt keinen Vault-Zugriff benötigen.
 
 > **Hinweis:** RAG, Web Search, Vault-Tools und MCP können über die Interactions API alle gleichzeitig verwendet werden.
+
+### KI-Ordnerzugriff
+
+Unter **Einstellungen → Workspace → Ordner, auf die KI automatisch zugreifen darf** können Sie optional auswählen, welche Ordner die KI automatisch lesen darf. Verwenden Sie dies, wenn es Verzeichnisse gibt, die die KI nur lesen soll, wenn Sie Dateien ausdrücklich anhängen oder referenzieren.
+
+- Leer lassen, um der KI über automatische Vault-Operationen Zugriff auf den gesamten Vault zu erlauben
+- Vault-relative Ordner wie `Public` oder `Shared/Docs` kommagetrennt eingeben
+- Root-Zugriff wird nicht mit `/`, `.` oder einem leeren Pfad angegeben. Leer bedeutet keine Ordnerbeschränkung und erlaubt den gesamten Vault
+- Pfadsegmente `.` und `..` werden abgelehnt
+- Diese Einstellung begrenzt automatische Vault-Operationen in Chat und KI-Befehls-Workflows. Sie begrenzt nicht RAG-Abruf, manuelle Dateianhänge, MCP-Tools, Skripte oder direkte Workflow-Note-Nodes
+- Für Dateien, die die KI niemals lesen soll, verwenden Sie Verschlüsselung, statt sich nur auf den Ordnerbereich zu verlassen
 
 ## Sicheres Bearbeiten
 
@@ -527,7 +539,15 @@ Wenn ein Umschalter EIN ist, ist Thinking für diese Modellfamilie immer aktiv, 
 
 ## Installation
 
-### BRAT (Empfohlen)
+### Community-Plugins (Empfohlen)
+1. Öffnen Sie in Obsidian **Einstellungen → Community-Plugins**
+2. Wählen Sie **Durchsuchen**
+3. Suchen Sie nach `Gemini Helper`
+4. Installieren und aktivieren Sie das Plugin
+
+### BRAT
+Verwenden Sie BRAT, wenn Sie Beta-Versionen direkt aus diesem Repository testen möchten.
+
 1. Installieren Sie das [BRAT](https://github.com/TfTHacker/obsidian42-brat)-Plugin
 2. Öffnen Sie BRAT-Einstellungen → "Add Beta plugin"
 3. Geben Sie ein: `https://github.com/takeshy/obsidian-gemini-helper`
@@ -558,6 +578,7 @@ npm run build
 ### Workspace-Einstellungen
 - **System Prompt** - Zusätzliche KI-Anweisungen
 - **Tool Limits** - Steuerung der Function-Call-Limits
+- **Ordner, auf die KI automatisch zugreifen darf** - Optionale Ordner-Allowlist für automatischen KI-Vault-Zugriff. Leer lassen, um den gesamten Vault zu erlauben; verwenden Sie Verschlüsselung für Dateien, die die KI niemals lesen soll
 
 ![Tool-Limits](docs/images/setting_tool_history.png)
 

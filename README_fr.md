@@ -14,10 +14,11 @@ Assistant IA **gratuit et open-source** pour Obsidian avec **Chat**, **Automatis
 - **Constructeur de Workflows** - Automatisez des taches multi-etapes avec l'editeur visuel de noeuds et 24 types de noeuds
 - **Support MCP** - Utilisez des outils MCP dans les workflows et affichez les ressources MCP UI dans Obsidian
 - **RAG** - Generation Augmentee par Recuperation pour une recherche intelligente dans votre coffre
+- **Acces aux dossiers par l'IA** - Limitez les dossiers que l'IA peut lire automatiquement quand vous ne voulez pas d'acces a tout le coffre
 - **Chiffrement** - Protection par mot de passe de l'historique de chat et des journaux d'execution des workflows
 - **Historique d'Edition** - Suivez et restaurez les modifications faites par l'IA avec vue des differences
 
-![Generation d'images dans le chat](docs/images/chat_image.png)
+![Interface de Chat](docs/images/chat.png)
 
 ## Cle API
 
@@ -45,7 +46,7 @@ Ce plugin necessite une cle API Google Gemini. Vous pouvez choisir entre :
 
 La fonctionnalite Chat IA fournit une interface de conversation interactive avec Google Gemini, integree a votre coffre Obsidian.
 
-![Interface de Chat](docs/images/chat.png)
+![Generation d'images dans le chat](docs/images/chat_image.png)
 
 ## Ouvrir le Chat
 - Cliquez sur l'icone Gemini dans le ruban
@@ -129,6 +130,17 @@ Lorsque l'IA gere des notes dans le Chat, elle utilise les outils du Vault. Cont
 - **Vault: Desactive** - Utilisez-le lorsque vous n'avez pas besoin d'acces au vault du tout.
 
 > **Note :** RAG, Web Search, outils Vault et MCP peuvent tous etre utilises simultanement via l'API Interactions.
+
+### Acces aux dossiers par l'IA
+
+Dans **Parametres -> Espace de travail -> Dossiers auxquels l'IA peut acceder automatiquement**, vous pouvez choisir les dossiers que l'IA peut lire automatiquement. Utilisez cette option lorsqu'il existe des repertoires que vous ne voulez pas que l'IA lise sauf si vous joignez ou referencez explicitement des fichiers.
+
+- Laissez vide pour autoriser l'IA a acceder a tout le coffre via les operations Vault automatiques
+- Entrez des dossiers relatifs au coffre comme `Public` ou `Shared/Docs`, separes par des virgules
+- L'acces au dossier racine ne se specifie pas avec `/`, `.` ou un chemin vide. Vide signifie aucune restriction de dossier, donc tout le coffre est autorise
+- Les segments de chemin `.` et `..` sont rejetes
+- Ce parametre limite les operations Vault automatiques dans Chat et les workflows de commande IA. Il ne limite pas la recuperation RAG, les pieces jointes manuelles, les outils MCP, les scripts ni les noeuds workflow note directs
+- Pour les fichiers que l'IA ne doit jamais lire, utilisez le chiffrement au lieu de vous fier uniquement au perimetre de dossiers
 
 ## Edition Securisee
 
@@ -527,7 +539,15 @@ Quand une bascule est ON, le thinking est toujours actif pour cette famille de m
 
 ## Installation
 
-### BRAT (Recommande)
+### Plugins communautaires (Recommande)
+1. Ouvrez **Parametres -> Plugins communautaires** dans Obsidian
+2. Selectionnez **Parcourir**
+3. Recherchez `Gemini Helper`
+4. Installez et activez le plugin
+
+### BRAT
+Utilisez BRAT si vous souhaitez tester des versions beta directement depuis ce depot.
+
 1. Installez le plugin [BRAT](https://github.com/TfTHacker/obsidian42-brat)
 2. Ouvrez les parametres BRAT -> "Add Beta plugin"
 3. Entrez : `https://github.com/takeshy/obsidian-gemini-helper`
@@ -558,6 +578,7 @@ npm run build
 ### Parametres de l'Espace de Travail
 - **Prompt Systeme** - Instructions additionnelles pour l'IA
 - **Limites d'Outils** - Controler les limites d'appels de fonctions
+- **Dossiers auxquels l'IA peut acceder automatiquement** - Liste optionnelle de dossiers autorises pour l'acces automatique de l'IA au coffre. Laissez vide pour autoriser tout le coffre ; utilisez le chiffrement pour les fichiers que l'IA ne doit jamais lire
 
 ![Limites d'Outils](docs/images/setting_tool_history.png)
 

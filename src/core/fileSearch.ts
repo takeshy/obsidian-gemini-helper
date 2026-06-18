@@ -1,5 +1,5 @@
 import { GoogleGenAI } from "@google/genai";
-import { requestUrl, type TFile, type App } from "obsidian";
+import { type TFile, type App } from "obsidian";
 import type {
   SyncStatus,
   RagSyncState,
@@ -152,7 +152,6 @@ type UploadOperation = Awaited<ReturnType<GoogleGenAI["fileSearchStores"]["uploa
 
 export class FileSearchManager {
   private ai: GoogleGenAI;
-  private apiKey: string;
   private app: App;
   private storeName: string | null = null;
   private syncStatus: SyncStatus = {
@@ -164,7 +163,6 @@ export class FileSearchManager {
 
   constructor(apiKey: string, app: App) {
     this.ai = new GoogleGenAI({ apiKey });
-    this.apiKey = apiKey;
     this.app = app;
   }
 
@@ -208,22 +206,13 @@ export class FileSearchManager {
 
   // Create a new File Search Store
   async createStore(displayName: string): Promise<string> {
-    const response = await requestUrl({
-      url: `https://generativelanguage.googleapis.com/v1beta/fileSearchStores?key=${encodeURIComponent(this.apiKey)}`,
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        display_name: displayName,
-        embedding_model: FILE_SEARCH_MULTIMODAL_EMBEDDING_MODEL,
-      }),
-      throw: false,
+    const store = await this.ai.fileSearchStores.create({
+      config: {
+        displayName,
+        embeddingModel: FILE_SEARCH_MULTIMODAL_EMBEDDING_MODEL,
+      },
     });
 
-    if (response.status < 200 || response.status >= 300) {
-      throw new Error(`Failed to create store: ${response.status} ${response.text}`);
-    }
-
-    const store = response.json as { name?: string };
     if (!store.name) {
       throw new Error("Failed to create store: no name returned");
     }

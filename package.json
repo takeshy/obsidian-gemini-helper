@@ -47,7 +47,7 @@
     "vitest": "^4.0.18"
   },
   "dependencies": {
-    "@google/genai": "^1.46.0",
+    "@google/genai": "^2.8.0",
     "diff": "^8.0.2",
     "lucide-react": "^0.503.0",
     "react": "^18.3.1",

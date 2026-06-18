@@ -394,10 +394,27 @@ function addFileSearchContext(sources: string[], contexts: RagContext[], raw: un
   }
 }
 
+// Extract a displayable source string from a v2 Annotation
+// (URLCitation.url / FileCitation.file_name / PlaceCitation.name, etc.)
 function addAnnotationSources(sources: string[], annotations: unknown): void {
   if (!Array.isArray(annotations)) return;
-  for (const annotation of annotations as Array<{ source?: string }>) {
-    const source = String(annotation.source ?? "").trim();
+  for (const annotation of annotations as Array<{
+    source?: string;
+    url?: string;
+    file_name?: string;
+    document_uri?: string;
+    name?: string;
+    place_id?: string;
+  }>) {
+    const source = String(
+      annotation.url ??
+      annotation.file_name ??
+      annotation.document_uri ??
+      annotation.name ??
+      annotation.place_id ??
+      annotation.source ??
+      ""
+    ).trim();
     if (source && !sources.includes(source)) {
       sources.push(source);
     }
@@ -407,6 +424,8 @@ function addAnnotationSources(sources: string[], annotations: unknown): void {
 function collectFileSearchSourcesFromContents(contents: unknown, sources: string[], contexts: RagContext[]): void {
   if (!Array.isArray(contents)) return;
   for (const content of contents as FileSearchResultContentLike[]) {
+    // v2: file_search_result is a Step type, not a Content type, so this branch
+    // only fires for legacy-shaped payloads. Kept for robustness.
     if (content?.type === "file_search_result" && Array.isArray(content.result)) {
       for (const result of content.result) {
         addFileSearchContext(sources, contexts, result);
@@ -418,8 +437,20 @@ function collectFileSearchSourcesFromContents(contents: unknown, sources: string
   }
 }
 
-function collectFileSearchSourcesFromContent(content: unknown, sources: string[], contexts: RagContext[]): void {
-  collectFileSearchSourcesFromContents(content ? [content] : [], sources, contexts);
+// v2 steps schema: collect sources from a Step[] timeline.
+// FileSearchResultStep itself carries no result data (only call_id/signature);
+// the actual snippets arrive via step.delta events. Here we extract annotation
+// sources from model_output text content as a fallback.
+function collectFileSearchSourcesFromSteps(steps: unknown, sources: string[], contexts: RagContext[]): void {
+  if (!Array.isArray(steps)) return;
+  for (const step of steps as Array<{ type?: string; content?: unknown[]; result?: unknown[] }>) {
+    if (step?.type === "file_search_result" && Array.isArray(step.result)) {
+      for (const r of step.result) addFileSearchContext(sources, contexts, r);
+    }
+    if (step?.type === "model_output" && Array.isArray(step.content)) {
+      collectFileSearchSourcesFromContents(step.content, sources, contexts);
+    }
+  }
 }
 
 export class GeminiClient {
@@ -963,7 +994,10 @@ export class GeminiClient {
 
     try {
       let continueLoop = true;
-      let nextInput: string | Interactions.Content[] = input;
+      // v2 input accepts string | Content[] | Step[] (the Interactions API input
+      // field is polymorphic). Content[] is used for the initial user turn; Step[]
+      // is used when sending function_result + user_input steps back to the model.
+      let nextInput: string | Interactions.Content[] | Interactions.Step[] = input;
 
       while (continueLoop) {
         roundNumber++;
@@ -993,26 +1027,48 @@ export class GeminiClient {
         let roundUsage: TracingUsage | undefined;
         let hasReceivedEvent = false;
 
-        // Process SSE events
+        // v2 steps schema: function call arguments stream as partial JSON via
+        // `arguments_delta` events. We accumulate per-step and finalize on step.stop.
+        const pendingFunctionCalls = new Map<
+          number,
+          { id: string; name: string; argsBuffer: string; startArgs: Record<string, unknown> }
+        >();
+
+        // Process SSE events (v2 "steps" schema event types)
         for await (const event of stream) {
           hasReceivedEvent = true;
 
           switch (event.event_type) {
-            case "interaction.start": {
+            case "interaction.created": {
               currentInteractionId = event.interaction?.id;
               break;
             }
 
-            case "content.start": {
-              const content = (event as { content?: unknown }).content;
-              if ((content as { type?: string } | undefined)?.type === "file_search_result") {
-                fileSearchCalled = true;
+            case "step.start": {
+              const step = event.step;
+              if (!step) break;
+              switch (step.type) {
+                case "file_search_call":
+                case "file_search_result":
+                  fileSearchCalled = true;
+                  break;
+                case "function_call":
+                  // step.start provides id + name (arguments is {} in streaming;
+                  // actual args arrive via arguments_delta deltas).
+                  pendingFunctionCalls.set(event.index, {
+                    id: step.id,
+                    name: step.name,
+                    argsBuffer: "",
+                    startArgs: step.arguments ?? {},
+                  });
+                  break;
+                default:
+                  break;
               }
-              collectFileSearchSourcesFromContent(content, accumulatedSources, accumulatedContexts);
               break;
             }
 
-            case "content.delta": {
+            case "step.delta": {
               const delta = event.delta;
               if (!delta) break;
 
@@ -1020,32 +1076,35 @@ export class GeminiClient {
                 case "text":
                   if ("text" in delta && delta.text) {
                     accumulatedOutput += delta.text;
-                    if ("annotations" in delta && delta.annotations) {
-                      addAnnotationSources(accumulatedSources, delta.annotations);
-                    }
                     yield { type: "text", content: delta.text };
+                  }
+                  break;
+
+                case "text_annotation_delta":
+                  // v2: annotations are delivered in a dedicated delta type
+                  if ("annotations" in delta && delta.annotations) {
+                    addAnnotationSources(accumulatedSources, delta.annotations);
                   }
                   break;
 
                 case "thought_summary":
                   // Thinking content via summary
                   if ("content" in delta && delta.content) {
-                    const thought = delta.content;
-                    if ("text" in thought && thought.text) {
+                    const thought = delta.content as { text?: string };
+                    if (thought.text) {
                       yield { type: "thinking", content: thought.text };
                     }
                   }
                   break;
 
-                case "function_call":
-                  if ("name" in delta && "arguments" in delta && "id" in delta) {
-                    functionCallsToProcess.push({
-                      id: delta.id,
-                      name: delta.name,
-                      args: delta.arguments ?? {},
-                    });
+                case "arguments_delta": {
+                  // Accumulate partial JSON for the pending function call
+                  const pending = pendingFunctionCalls.get(event.index);
+                  if (pending && "arguments" in delta && typeof delta.arguments === "string") {
+                    pending.argsBuffer += delta.arguments;
                   }
                   break;
+                }
 
                 case "file_search_call":
                   fileSearchCalled = true;
@@ -1075,12 +1134,45 @@ export class GeminiClient {
               break;
             }
 
-            case "interaction.complete": {
+            case "step.stop": {
+              // Finalize pending function call: parse accumulated arguments_delta JSON
+              const pending = pendingFunctionCalls.get(event.index);
+              if (pending) {
+                let args = pending.startArgs;
+                if (pending.argsBuffer) {
+                  try {
+                    args = JSON.parse(pending.argsBuffer) as Record<string, unknown>;
+                  } catch {
+                    args = pending.startArgs;
+                  }
+                }
+                functionCallsToProcess.push({
+                  id: pending.id,
+                  name: pending.name,
+                  args,
+                });
+                pendingFunctionCalls.delete(event.index);
+              }
+              break;
+            }
+
+            case "interaction.status_update": {
+              // Optional progress/status events; usage may appear in metadata.
+              if (event.metadata?.usage) {
+                roundUsage = extractInteractionsUsage(event.metadata.usage, this.model);
+              }
+              break;
+            }
+
+            case "interaction.completed": {
               const interaction = event.interaction;
               if (interaction?.usage) {
                 roundUsage = extractInteractionsUsage(interaction.usage, this.model);
               }
-              collectFileSearchSourcesFromContents(interaction?.outputs, accumulatedSources, accumulatedContexts);
+              // v2: interaction.steps in the completed event is empty to reduce payload;
+              // sources were collected from step deltas above. Also collect from any
+              // steps the server does return (e.g. non-streaming-style responses).
+              collectFileSearchSourcesFromSteps(interaction?.steps, accumulatedSources, accumulatedContexts);
               // Check for blocked/failed/incomplete status
               const status = interaction?.status;
               if (status && status !== "completed" && status !== "requires_action") {
@@ -1166,15 +1258,15 @@ export class GeminiClient {
             });
             let finalUsage: TracingUsage | undefined;
             for await (const event of finalStream) {
-              if (event.event_type === "content.delta" && event.delta?.type === "text" && "text" in event.delta) {
+              if (event.event_type === "step.delta" && event.delta?.type === "text" && "text" in event.delta) {
                 const text = event.delta.text;
                 accumulatedOutput += text;
                 yield { type: "text", content: text };
               }
-              if (event.event_type === "interaction.start" && event.interaction?.id) {
+              if (event.event_type === "interaction.created" && event.interaction?.id) {
                 currentInteractionId = event.interaction.id;
               }
-              if (event.event_type === "interaction.complete" && event.interaction?.usage) {
+              if (event.event_type === "interaction.completed" && event.interaction?.usage) {
                 finalUsage = extractInteractionsUsage(event.interaction.usage, this.model);
               }
             }
@@ -1195,8 +1287,8 @@ export class GeminiClient {
             };
           }
 
-          // Execute function calls and build FunctionResultContent inputs
-          const functionResults: Interactions.Content[] = [];
+          // Execute function calls and build FunctionResultStep inputs (v2 steps schema)
+          const functionResults: Interactions.Step[] = [];
 
           for (const fc of callsToExecute) {
             const toolCall: ToolCall = {
@@ -1228,7 +1320,7 @@ export class GeminiClient {
               toolResult: { toolCallId: toolCall.id, result },
             };
 
-            // Build FunctionResultContent for Interactions API
+            // Build FunctionResultStep for the v2 Interactions API input
             // Preserve original result structure (object/array) so the model can consume fields directly
             // Sanitize to avoid API rejection of empty values (empty arrays, empty strings)
             functionResults.push({
@@ -1236,7 +1328,7 @@ export class GeminiClient {
               call_id: fc.id,
               name: fc.name,
               result: sanitizeFunctionResult(result),
-            } as Interactions.Content);
+            } as Interactions.Step);
           }
 
           functionCallCount += callsToExecute.length;
@@ -1250,11 +1342,11 @@ export class GeminiClient {
               content: `\n\n[Function call limit reached${skippedMsg}. Summarizing with available information...]`,
             };
 
-            // Send results + limit message
+            // Send results + limit message (v2: append a user_input step for the system text)
             functionResults.push({
-              type: "text",
-              text: "[System: Function call limit reached. Please provide a final answer based on the information gathered so far.]",
-            } as Interactions.Content);
+              type: "user_input",
+              content: [{ type: "text", text: "[System: Function call limit reached. Please provide a final answer based on the information gathered so far.]" }],
+            } as Interactions.Step);
             nextInput = functionResults;
             tracing.spanEnd(roundSpanId, { metadata: { reason: "function_call_limit_with_skipped", usage: roundUsage } });
 
@@ -1272,15 +1364,15 @@ export class GeminiClient {
             });
             let finalUsage: TracingUsage | undefined;
             for await (const event of finalStream) {
-              if (event.event_type === "content.delta" && event.delta?.type === "text" && "text" in event.delta) {
+              if (event.event_type === "step.delta" && event.delta?.type === "text" && "text" in event.delta) {
                 const text = event.delta.text;
                 accumulatedOutput += text;
                 yield { type: "text", content: text };
               }
-              if (event.event_type === "interaction.start" && event.interaction?.id) {
+              if (event.event_type === "interaction.created" && event.interaction?.id) {
                 currentInteractionId = event.interaction.id;
               }
-              if (event.event_type === "interaction.complete" && event.interaction?.usage) {
+              if (event.event_type === "interaction.completed" && event.interaction?.usage) {
                 finalUsage = extractInteractionsUsage(event.interaction.usage, this.model);
               }
             }
@@ -1289,12 +1381,12 @@ export class GeminiClient {
             continue;
           }
 
-          // Add warning if approaching limit
+          // Add warning if approaching limit (v2: as a user_input step)
           if (warningEmitted && remainingAfter <= warningThreshold) {
             functionResults.push({
-              type: "text",
-              text: `[System: You have ${remainingAfter} function calls remaining. Please complete your task efficiently or provide a summary.]`,
-            } as Interactions.Content);
+              type: "user_input",
+              content: [{ type: "text", text: `[System: You have ${remainingAfter} function calls remaining. Please complete your task efficiently or provide a summary.]` }],
+            } as Interactions.Step);
           }
 
           // Send function results back — next iteration creates a new interaction chained via previous_interaction_id
@@ -1481,12 +1573,18 @@ export class GeminiClient {
         const result = await this.ai.interactions.get(interactionId);
 
         if (result.status === "completed") {
-          // Extract text from outputs
-          const outputs = result.outputs ?? [];
-          let fullText = "";
-          for (const output of outputs) {
-            if ("text" in output && output.text) {
-              fullText += output.text;
+          // v2 steps schema: prefer the SDK convenience property, then fall back to
+          // extracting text from model_output steps' content.
+          let fullText = result.output_text ?? "";
+          if (!fullText && Array.isArray(result.steps)) {
+            for (const step of result.steps) {
+              if (step?.type === "model_output" && Array.isArray(step.content)) {
+                for (const content of step.content as Array<{ type?: string; text?: string }>) {
+                  if (content?.type === "text" && content.text) {
+                    fullText += content.text;
+                  }
+                }
+              }
             }
           }
 

@@ -124,7 +124,7 @@ export function replaceVariables(
 
     // Match {{varName}} or {{varName.path.to.value}} or {{varName.items[0].name}}
     // Also supports {{varName:json}} modifier for JSON-escaping the value
-    result = result.replace(/\{\{([\w.[\]]+)(:json)?\}\}/g, (match, fullPath, jsonModifier) => {
+    result = result.replace(/\{\{([\w.[\]]+)(:json)?\}\}/g, (match: string, fullPath: string, jsonModifier?: string) => {
     const shouldJsonEscape = jsonModifier === ":json";
     // Check if it's a simple variable or a path
     const dotIndex = fullPath.indexOf(".");
@@ -310,7 +310,7 @@ export function evaluateCondition(
     case "contains":
       // Check if left is a JSON array and right is in it
       try {
-        const leftParsed = JSON.parse(left);
+        const leftParsed: unknown = JSON.parse(left);
         if (Array.isArray(leftParsed)) {
           return leftParsed.includes(right);
         }

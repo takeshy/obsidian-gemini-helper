@@ -312,9 +312,12 @@ function getFileTags(app: App, filePath: string): string[] {
 
   // Get tags from frontmatter
   if (cache.frontmatter?.tags) {
-    const fmTags = cache.frontmatter.tags;
+    const fmTags: unknown = cache.frontmatter.tags;
     if (Array.isArray(fmTags)) {
-      tags.push(...fmTags.map((t) => (t.startsWith("#") ? t : `#${t}`)));
+      for (const t of fmTags as unknown[]) {
+        const tag = typeof t === "string" ? t : String(t);
+        tags.push(tag.startsWith("#") ? tag : `#${tag}`);
+      }
     } else if (typeof fmTags === "string") {
       tags.push(fmTags.startsWith("#") ? fmTags : `#${fmTags}`);
     }

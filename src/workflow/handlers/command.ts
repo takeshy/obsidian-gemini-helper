@@ -129,7 +129,7 @@ Please revise the output based on the user's feedback above.`;
       const varValue = context.variables.get(varName);
       if (varValue && typeof varValue === "string") {
         try {
-          const fileData: FileExplorerData = JSON.parse(varValue);
+          const fileData = JSON.parse(varValue) as FileExplorerData;
           if (fileData.contentType === "binary" && fileData.data) {
             // Determine attachment type from MIME type
             let attachmentType: "image" | "pdf" | "text" | "audio" | "video" = "text";

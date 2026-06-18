@@ -57,9 +57,9 @@ export async function handlePromptFileNode(
   } else if (hotkeyActiveFile) {
     // Hotkey mode: use active file without showing dialog
     try {
-      const fileInfo = JSON.parse(String(hotkeyActiveFile));
+      const fileInfo = JSON.parse(String(hotkeyActiveFile)) as { path?: string };
       if (fileInfo.path) {
-        filePath = fileInfo.path as string;
+        filePath = fileInfo.path;
       }
     } catch {
       // Invalid JSON, fall through to dialog
@@ -67,9 +67,9 @@ export async function handlePromptFileNode(
   } else if (eventFile) {
     // Event mode: use event file without showing dialog
     try {
-      const fileInfo = JSON.parse(String(eventFile));
+      const fileInfo = JSON.parse(String(eventFile)) as { path?: string };
       if (fileInfo.path) {
-        filePath = fileInfo.path as string;
+        filePath = fileInfo.path;
       }
     } catch {
       // Invalid JSON, fall through to dialog
@@ -173,7 +173,7 @@ export async function handlePromptSelectionNode(
     // Create selection info for full file
     if (saveSelectionTo && hotkeyActiveFile) {
       try {
-        const fileInfo = JSON.parse(String(hotkeyActiveFile));
+        const fileInfo = JSON.parse(String(hotkeyActiveFile)) as { path?: string };
         const lines = fullContent.split("\n");
         context.variables.set(saveSelectionTo, JSON.stringify({
           filePath: fileInfo.path,
@@ -217,7 +217,7 @@ export async function handlePromptSelectionNode(
   // Event mode without content (e.g., delete event) - try to read from event file
   if (eventFile) {
     try {
-      const fileInfo = JSON.parse(String(eventFile));
+      const fileInfo = JSON.parse(String(eventFile)) as { path?: string };
       if (fileInfo.path) {
         const file = app.vault.getAbstractFileByPath(fileInfo.path);
         if (file && file instanceof TFile) {
@@ -315,7 +315,7 @@ export async function handleDialogNode(
   let defaults: { input?: string; selected?: string[] } | undefined;
   if (defaultsProp) {
     try {
-      const parsed = JSON.parse(replaceVariables(defaultsProp, context));
+      const parsed = JSON.parse(replaceVariables(defaultsProp, context)) as { input?: string; selected?: string[] };
       defaults = {
         input: parsed.input,
         selected: Array.isArray(parsed.selected) ? parsed.selected : undefined,

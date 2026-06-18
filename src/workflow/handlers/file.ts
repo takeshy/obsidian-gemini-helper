@@ -270,7 +270,7 @@ export async function handleFileSaveNode(
   // Parse FileExplorerData
   let fileData: FileExplorerData;
   try {
-    fileData = JSON.parse(sourceValue);
+    fileData = JSON.parse(sourceValue) as FileExplorerData;
     if (!fileData.data || !fileData.contentType) {
       throw new Error("Invalid FileExplorerData structure");
     }
@@ -298,7 +298,8 @@ export async function handleFileSaveNode(
   if (fileData.contentType === "binary") {
     // Decode base64 to binary
     const binaryData = base64ToUint8Array(fileData.data);
-    const arrayBuffer = binaryData.buffer.slice(binaryData.byteOffset, binaryData.byteOffset + binaryData.byteLength) as ArrayBuffer;
+    const arrayBuffer = new ArrayBuffer(binaryData.byteLength);
+    new Uint8Array(arrayBuffer).set(binaryData);
 
     if (existingFile && existingFile instanceof TFile) {
       await app.vault.modifyBinary(existingFile, arrayBuffer);

@@ -781,7 +781,7 @@ export function handleGetWorkflowSpec(
     if (trimmed.length > 0) {
       if (trimmed.startsWith("[")) {
         try {
-          const parsed = JSON.parse(trimmed);
+          const parsed: unknown = JSON.parse(trimmed);
           if (Array.isArray(parsed)) {
             nodeTypes = parsed.filter((v): v is string => typeof v === "string");
           }

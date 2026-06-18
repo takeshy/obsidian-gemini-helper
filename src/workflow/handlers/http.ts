@@ -18,9 +18,9 @@ function base64ToUint8Array(base64: string): Uint8Array {
 // Try to parse FileExplorerData from string
 function tryParseFileExplorerData(value: string): FileExplorerData | null {
   try {
-    const parsed = JSON.parse(value);
+    const parsed: unknown = JSON.parse(value);
     if (parsed && typeof parsed === "object" && "contentType" in parsed && "data" in parsed && "mimeType" in parsed) {
-      return parsed as FileExplorerData;
+      return parsed as unknown as FileExplorerData;
     }
   } catch {
     // Not JSON or not FileExplorerData
@@ -217,7 +217,7 @@ export async function handleHttpNode(
     const replacedHeaders = replaceVariables(headersStr, context);
     try {
       // Try parsing as JSON first
-      const parsedHeaders = JSON.parse(replacedHeaders);
+      const parsedHeaders = JSON.parse(replacedHeaders) as Record<string, string>;
       Object.assign(headers, parsedHeaders);
     } catch {
       // Parse as "Key: Value" format
@@ -245,7 +245,7 @@ export async function handleHttpNode(
       // For form-data, parse JSON first, then replace variables in each field
       // This prevents variable content (like HTML) from breaking JSON parsing
       try {
-        const rawFields = JSON.parse(bodyStr);
+        const rawFields = JSON.parse(bodyStr) as Record<string, unknown>;
         const fields: Record<string, string> = {};
         for (const [key, value] of Object.entries(rawFields)) {
           // Replace variables in key and value separately
@@ -269,7 +269,7 @@ export async function handleHttpNode(
       // Send FileExplorerData (JSON with base64 data) as raw binary
       const replacedBody = replaceVariables(bodyStr, context);
       try {
-        const fileData = JSON.parse(replacedBody);
+        const fileData = JSON.parse(replacedBody) as FileExplorerData;
         if (fileData.data && fileData.contentType === "binary") {
           // Decode base64 (using Uint8Array for mobile compatibility)
           const binaryStr = atob(fileData.data);
@@ -396,7 +396,7 @@ export async function handleHttpNode(
     // Try to parse as JSON for better handling
     let responseData: string;
     try {
-      const jsonData = JSON.parse(responseText);
+      const jsonData: unknown = JSON.parse(responseText);
       responseData = JSON.stringify(jsonData);
     } catch {
       responseData = responseText;
@@ -436,7 +436,7 @@ export async function handleMcpNode(
   if (headersStr) {
     const replacedHeaders = replaceVariables(headersStr, context);
     try {
-      headers = JSON.parse(replacedHeaders);
+      headers = JSON.parse(replacedHeaders) as Record<string, string>;
     } catch {
       throw new Error(`Invalid JSON in MCP headers: ${replacedHeaders}`);
     }
@@ -447,7 +447,7 @@ export async function handleMcpNode(
   if (argsStr) {
     const replacedArgs = replaceVariables(argsStr, context);
     try {
-      args = JSON.parse(replacedArgs);
+      args = JSON.parse(replacedArgs) as Record<string, unknown>;
     } catch {
       throw new Error(`Invalid JSON in MCP args: ${replacedArgs}`);
     }

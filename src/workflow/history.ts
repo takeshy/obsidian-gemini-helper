@@ -192,7 +192,7 @@ export class ExecutionHistoryManager {
             if (password) {
               try {
                 const decryptedContent = await decryptFileContent(content, password);
-                const record: ExecutionRecord = JSON.parse(decryptedContent);
+                const record = JSON.parse(decryptedContent) as ExecutionRecord;
                 if (record.id === recordId) {
                   return true;
                 }
@@ -201,7 +201,7 @@ export class ExecutionHistoryManager {
               }
             }
           } else {
-            const record: ExecutionRecord = JSON.parse(content);
+            const record = JSON.parse(content) as ExecutionRecord;
             if (record.id === recordId) {
               return false;
             }
@@ -410,7 +410,7 @@ export class ExecutionHistoryManager {
           // Skip encrypted files - cannot modify without full decrypt/re-encrypt cycle
           if (isEncryptedFile(content)) continue;
 
-          const record: ExecutionRecord = JSON.parse(content);
+          const record = JSON.parse(content) as ExecutionRecord;
           if (record.workflowPath !== workflowPath || record.id === excludeId) continue;
 
           // Check if any step has a variablesSnapshot

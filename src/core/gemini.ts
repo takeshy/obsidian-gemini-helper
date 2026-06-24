@@ -1367,20 +1367,22 @@ export class GeminiClient {
           metadata: { roundNumber },
         });
         const roundPreviousInteractionId = roundNumber === 1 ? previousInteractionId : currentInteractionId;
-        const isFollowUpInteraction = !!roundPreviousInteractionId;
 
-        // Create streaming interaction
+        // Create streaming interaction.
+        // Tools, system_instruction, and generation_config are passed on every
+        // round (including follow-up interactions chained via
+        // previous_interaction_id) because the Interactions API does not
+        // reliably retain tool declarations across interactions for non-Pro
+        // models.  Pro models use the generateContent path instead.
         const stream = await this.ai.interactions.create({
           model: interactionModel,
           input: nextInput,
           stream: true,
           previous_interaction_id: roundPreviousInteractionId,
           store: true,
-          ...(!isFollowUpInteraction ? {
-            tools: interactionTools,
-            system_instruction: ragSystemPrompt,
-            generation_config: generationConfig,
-          } : {}),
+          tools: interactionTools,
+          system_instruction: ragSystemPrompt,
+          generation_config: generationConfig,
         });
 
         const functionCallsToProcess: Array<{ id: string; name: string; args: Record<string, unknown> }> = [];

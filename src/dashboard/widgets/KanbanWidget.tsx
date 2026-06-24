@@ -35,6 +35,12 @@ interface Card {
   fields: { name: string; value: string }[];
 }
 
+type FrontmatterRecord = Record<string, unknown>;
+
+function asFrontmatterRecord(value: unknown): FrontmatterRecord {
+  return typeof value === "object" && value !== null && !Array.isArray(value) ? value as FrontmatterRecord : {};
+}
+
 /** Format a single scalar frontmatter value; objects and nullish return "". */
 function formatScalar(v: unknown): string {
   if (v == null) return "";
@@ -72,8 +78,9 @@ function getFileTags(app: App, file: TFile): string[] {
   const cache = app.metadataCache.getFileCache(file);
   if (!cache) return [];
   const tags: string[] = [];
-  if (cache.frontmatter?.tags) {
-    const fmTags = cache.frontmatter.tags;
+  const frontmatter = asFrontmatterRecord(cache.frontmatter as unknown);
+  const fmTags = frontmatter.tags;
+  if (fmTags) {
     if (Array.isArray(fmTags)) {
       tags.push(...fmTags.map((t) => (typeof t === "string" && t.startsWith("#") ? t : `#${t}`)));
     } else if (typeof fmTags === "string") {
@@ -126,7 +133,7 @@ export default function KanbanWidget({
         last = now;
         rerender();
       } else if (timer == null) {
-        timer = window.setTimeout(() => {
+        timer = activeWindow.setTimeout(() => {
           timer = null;
           last = Date.now();
           rerender();
@@ -146,7 +153,7 @@ export default function KanbanWidget({
       app.vault.on("rename", schedule),
     ];
     return () => {
-      if (timer != null) window.clearTimeout(timer);
+      if (timer != null) activeWindow.clearTimeout(timer);
       refs.forEach((r) => {
         app.metadataCache.offref(r);
         app.vault.offref(r);
@@ -167,12 +174,12 @@ export default function KanbanWidget({
         }
         return files.map((file) => {
           const cache = app.metadataCache.getFileCache(file);
-          const fm = cache?.frontmatter;
+          const fm = asFrontmatterRecord(cache?.frontmatter as unknown);
           const rawStatus = fm?.[statusProp];
-          const status = rawStatus == null ? "" : String(rawStatus).trim();
+          const status = formatScalar(rawStatus);
           let title = file.basename;
-          if (titleProp && fm?.[titleProp] != null) {
-            title = String(fm[titleProp]);
+          if (titleProp) {
+            title = formatScalar(fm[titleProp]) || title;
           }
           const fields = displayFields
             .map((name) => ({ name, value: formatFieldValue(fm?.[name]) }))
@@ -219,14 +226,14 @@ export default function KanbanWidget({
 
   useEffect(() => {
     return () => {
-      if (landedTimer.current != null) window.clearTimeout(landedTimer.current);
+      if (landedTimer.current != null) activeWindow.clearTimeout(landedTimer.current);
     };
   }, []);
 
   const flashLanded = useCallback((path: string) => {
-    if (landedTimer.current != null) window.clearTimeout(landedTimer.current);
+    if (landedTimer.current != null) activeWindow.clearTimeout(landedTimer.current);
     setLanded(path);
-    landedTimer.current = window.setTimeout(() => {
+    landedTimer.current = activeWindow.setTimeout(() => {
       setLanded(null);
       landedTimer.current = null;
     }, 700);
@@ -273,18 +280,19 @@ export default function KanbanWidget({
       };
 
       const onUp = (ev: PointerEvent) => {
-        window.removeEventListener("pointermove", onMove);
-        window.removeEventListener("pointerup", onUp);
+        activeWindow.removeEventListener("pointermove", onMove);
+        activeWindow.removeEventListener("pointerup", onUp);
         if (isDragging) {
           const found = hitTestColumn(ev.clientX, ev.clientY);
           const currentCol = columnValues.has(card.status) ? card.status : UNSPECIFIED;
           if (found != null && found !== currentCol) {
             void ctx.app.fileManager
               .processFrontMatter(card.file, (fm) => {
+                const frontmatter = fm as FrontmatterRecord;
                 if (found === UNSPECIFIED) {
-                  delete fm[statusProp];
+                  delete frontmatter[statusProp];
                 } else {
-                  fm[statusProp] = found;
+                  frontmatter[statusProp] = found;
                 }
               })
               .then(() => flashLanded(card.path));
@@ -304,8 +312,8 @@ export default function KanbanWidget({
         }
       };
 
-      window.addEventListener("pointermove", onMove);
-      window.addEventListener("pointerup", onUp);
+      activeWindow.addEventListener("pointermove", onMove);
+      activeWindow.addEventListener("pointerup", onUp);
     },
     [ctx, statusProp, columnValues, flashLanded],
   );
@@ -331,13 +339,15 @@ export default function KanbanWidget({
         }
         const file = await app.vault.create(`${dir}${name}.md`, "");
         await app.fileManager.processFrontMatter(file, (fm) => {
+          const frontmatter = fm as FrontmatterRecord;
           if (tagFilter) {
-            const cur: unknown[] = Array.isArray(fm.tags) ? fm.tags.slice() : fm.tags != null ? [fm.tags] : [];
+            const tags = frontmatter.tags;
+            const cur: unknown[] = Array.isArray(tags) ? tags.slice() : tags != null ? [tags] : [];
             if (!cur.some((tg) => normTag(String(tg)) === tagFilter)) cur.push(tagFilter);
-            fm.tags = cur;
+            frontmatter.tags = cur;
           }
-          if (status) fm[statusProp] = status;
-          if (titleProp && title) fm[titleProp] = title;
+          if (status) frontmatter[statusProp] = status;
+          if (titleProp && title) frontmatter[titleProp] = title;
         });
         // Stay on the dashboard — the new card appears in its column via the
         // metadata listener; the user can click it to open when ready.

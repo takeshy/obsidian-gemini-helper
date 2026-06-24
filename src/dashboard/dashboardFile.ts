@@ -12,6 +12,10 @@ import {
   DASHBOARD_EXT,
 } from "./types";
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
 /**
  * Build the storage path for a dashboard name:
  * `dashboards/{name}.dashboard`.
@@ -41,8 +45,8 @@ export function dashboardDisplayName(fileName: string): string {
 export function parseDashboard(content: string): DashboardData | null {
   if (!content || !content.trim()) return null;
   try {
-    const parsed = parseYaml(content);
-    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return null;
+    const parsed = parseYaml(content) as unknown;
+    if (!isRecord(parsed)) return null;
     const data = parsed as DashboardData;
     // Defensive defaults so a hand-edited / partial file still renders.
     if (typeof data.version !== "number") data.version = 1;

@@ -60,8 +60,8 @@ export function FilePicker({
         setOpen(false);
       }
     };
-    document.addEventListener("mousedown", onDown);
-    return () => document.removeEventListener("mousedown", onDown);
+    activeDocument.addEventListener("mousedown", onDown);
+    return () => activeDocument.removeEventListener("mousedown", onDown);
   }, [open]);
 
   const select = useCallback(

@@ -77,5 +77,5 @@ export function WidgetSettingsPanel({
     </div>
   );
 
-  return createPortal(panel, document.body);
+  return createPortal(panel, activeDocument.body);
 }

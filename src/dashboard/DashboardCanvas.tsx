@@ -3,6 +3,7 @@ import { Plus, Pencil, Check, Undo2, Redo2 } from "lucide-react";
 import type { App } from "obsidian";
 import { t } from "src/i18n";
 import type { GeminiHelperPlugin } from "src/plugin";
+import { ConfirmModal } from "src/ui/components/ConfirmModal";
 import { useBreakpoint } from "./useBreakpoint";
 import { useGridLayout } from "./useGridLayout";
 import GridCell from "./GridCell";
@@ -212,12 +213,15 @@ export function DashboardCanvas({
 
   const handleDeleteWidget = useCallback(
     (widgetId: string) => {
-      if (!confirm(t("dashboard.deleteWidgetConfirm"))) return;
-      commit({ ...data, widgets: data.widgets.filter((w) => w.id !== widgetId) });
-      setEditingWidgetId(null);
-      setPendingNewWidgetId(null);
+      void (async () => {
+        const confirmed = await new ConfirmModal(app, t("dashboard.deleteWidgetConfirm")).openAndWait();
+        if (!confirmed) return;
+        commit({ ...data, widgets: data.widgets.filter((w) => w.id !== widgetId) });
+        setEditingWidgetId(null);
+        setPendingNewWidgetId(null);
+      })();
     },
-    [data, commit],
+    [app, data, commit],
   );
 
   const editingWidget = useMemo(

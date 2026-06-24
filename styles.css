@@ -7892,7 +7892,7 @@
 
 /* ============ Dashboard feature (ported from obsidian-llm-hub) ============ */
 .nav-folder[data-path="Dashboards"] > .nav-folder-title > .nav-folder-title-content::before,
-.nav-folder:has(> [data-path="Dashboards"]) > .nav-folder-title > .nav-folder-title-content::before {
+.nav-folder-title[data-path="Dashboards"] > .nav-folder-title-content::before {
   content: "📊 ";
 }
 

@@ -41,5 +41,5 @@ export function WidgetPalette({ onSelect, onClose }: WidgetPaletteProps) {
     </div>
   );
 
-  return createPortal(modal, document.body);
+  return createPortal(modal, activeDocument.body);
 }

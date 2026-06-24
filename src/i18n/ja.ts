@@ -1071,7 +1071,7 @@ export const ja: Record<string, string> = {
   "dashboard.workflowExists": "そのファイルには既にワークフローがあります。",
   "dashboard.kanbanLabel": "カンバン",
   "dashboard.kanbanBoardTitle": "ボードのタイトル",
-  "dashboard.kanbanBoardTitleHint": "ボードのヘッダーに表示されます。1つのダッシュボードに複数のボードを置く場合に便利です。",
+  "dashboard.kanbanBoardTitleHint": "ボードのヘッダーに表示されます。必須項目で、タイトルを入れずに閉じると新しいカンバンウィジェットは作成されません。",
   "dashboard.kanbanBoardTitlePlaceholder": "タスク",
   "dashboard.kanbanNewCard": "新規",
   "dashboard.kanbanNewCardTitle": "新しいカード",

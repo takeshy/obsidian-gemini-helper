@@ -1078,7 +1078,7 @@ export const en = {
   "dashboard.workflowExists": "That file already contains a workflow.",
   "dashboard.kanbanLabel": "Kanban",
   "dashboard.kanbanBoardTitle": "Board title",
-  "dashboard.kanbanBoardTitleHint": "Shown in the board header. Useful when several boards share a dashboard.",
+  "dashboard.kanbanBoardTitleHint": "Shown in the board header, and required — a new kanban widget is discarded if you close it without a title.",
   "dashboard.kanbanBoardTitlePlaceholder": "Tasks",
   "dashboard.kanbanNewCard": "New",
   "dashboard.kanbanNewCardTitle": "New card",

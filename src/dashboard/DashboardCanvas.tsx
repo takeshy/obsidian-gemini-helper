@@ -25,6 +25,33 @@ interface DashboardCanvasProps {
 }
 
 /**
+ * Whether a widget has its primary selection set. Used to discard a just-added
+ * widget that the user closed without choosing anything. Kanban requires a board
+ * title; unknown types are treated as configured so they are kept.
+ */
+function isWidgetConfigured(widget: Widget): boolean {
+  const c = widget.config ?? {};
+  const str = (k: string): string => {
+    const v = c[k];
+    return typeof v === "string" ? v.trim() : "";
+  };
+  switch (widget.type) {
+    case "base":
+      return str("base").length > 0;
+    case "markdown":
+      return str("path").length > 0;
+    case "web":
+      return str("url").length > 0;
+    case "workflow":
+      return str("workflow").length > 0;
+    case "kanban":
+      return str("title").length > 0;
+    default:
+      return true;
+  }
+}
+
+/**
  * Controlled dashboard grid editor: toolbar (add widget + edit toggle), the
  * widget grid with drag/resize, the widget palette, and the settings panel.
  *
@@ -44,6 +71,10 @@ export function DashboardCanvas({
   const containerRef = useRef<HTMLDivElement>(null);
   const [showPalette, setShowPalette] = useState(false);
   const [editingWidgetId, setEditingWidgetId] = useState<string | null>(null);
+  // Id of a widget that was just added from the palette and hasn't been
+  // configured yet. If its settings panel is closed without a selection, the
+  // widget is discarded rather than left empty on the grid.
+  const [pendingNewWidgetId, setPendingNewWidgetId] = useState<string | null>(null);
 
   // --- Undo/redo history ---
   // The canvas is controlled, so it tracks its own stack of data snapshots.
@@ -144,9 +175,25 @@ export function DashboardCanvas({
       setShowPalette(false);
       onEditModeChange(true);
       setEditingWidgetId(newWidget.id);
+      setPendingNewWidgetId(newWidget.id);
     },
     [data, commit, onEditModeChange],
   );
+
+  // Close the settings panel. If the widget was just added and still has no
+  // selection (e.g. a base widget with no `.base` chosen), discard it instead of
+  // leaving an empty widget on the grid.
+  const handleCloseSettings = useCallback(() => {
+    const id = editingWidgetId;
+    setEditingWidgetId(null);
+    if (id && id === pendingNewWidgetId) {
+      const w = data.widgets.find((x) => x.id === id);
+      if (w && !isWidgetConfigured(w)) {
+        commit({ ...data, widgets: data.widgets.filter((x) => x.id !== id) });
+      }
+    }
+    setPendingNewWidgetId(null);
+  }, [editingWidgetId, pendingNewWidgetId, data, commit]);
 
   const handleUpdateWidgetConfig = useCallback(
     (widgetId: string, config: unknown) => {
@@ -168,6 +215,7 @@ export function DashboardCanvas({
       if (!confirm(t("dashboard.deleteWidgetConfirm"))) return;
       commit({ ...data, widgets: data.widgets.filter((w) => w.id !== widgetId) });
       setEditingWidgetId(null);
+      setPendingNewWidgetId(null);
     },
     [data, commit],
   );
@@ -298,7 +346,7 @@ export function DashboardCanvas({
           plugin={plugin}
           sourcePath={sourcePath}
           onChange={(config) => handleUpdateWidgetConfig(editingWidget.id, config)}
-          onClose={() => setEditingWidgetId(null)}
+          onClose={handleCloseSettings}
           onDelete={() => handleDeleteWidget(editingWidget.id)}
         />
       )}

@@ -23,6 +23,8 @@ interface KanbanConfig {
   titleProperty?: string;
   columns?: KanbanColumn[];
   showUnspecified?: boolean;
+  /** Frontmatter property names shown on each card below the title. */
+  displayFields?: string[];
 }
 
 interface Card {
@@ -30,6 +32,23 @@ interface Card {
   title: string;
   status: string;
   path: string;
+  fields: { name: string; value: string }[];
+}
+
+/** Format a single scalar frontmatter value; objects and nullish return "". */
+function formatScalar(v: unknown): string {
+  if (v == null) return "";
+  if (typeof v === "string") return v.trim();
+  if (typeof v === "number" || typeof v === "boolean" || typeof v === "bigint") return String(v);
+  return "";
+}
+
+/** Format a frontmatter value for display on a card. Returns "" to skip. */
+function formatFieldValue(value: unknown): string {
+  if (Array.isArray(value)) {
+    return value.map((v) => formatScalar(v)).filter((s) => s.length > 0).join(", ");
+  }
+  return formatScalar(value);
 }
 
 const DRAG_THRESHOLD = 4;
@@ -80,6 +99,9 @@ export default function KanbanWidget({
   const folderFilter = (cfg.folder ?? "").trim();
   const statusProp = (cfg.statusProperty ?? "status").trim() || "status";
   const titleProp = (cfg.titleProperty ?? "").trim();
+  const displayFields = Array.isArray(cfg.displayFields)
+    ? cfg.displayFields.map((f) => (typeof f === "string" ? f.trim() : "")).filter((f) => f.length > 0)
+    : [];
   const columns = Array.isArray(cfg.columns) ? cfg.columns.filter((c) => c && typeof c.value === "string") : [];
   const showUnspecified = cfg.showUnspecified !== false;
 
@@ -152,7 +174,10 @@ export default function KanbanWidget({
           if (titleProp && fm?.[titleProp] != null) {
             title = String(fm[titleProp]);
           }
-          return { file, title, status, path: file.path };
+          const fields = displayFields
+            .map((name) => ({ name, value: formatFieldValue(fm?.[name]) }))
+            .filter((f) => f.value.length > 0);
+          return { file, title, status, path: file.path, fields };
         });
       })()
     : [];
@@ -357,6 +382,12 @@ export default function KanbanWidget({
             title={t("dashboard.kanbanDragToMove")}
           >
             <div className="llm-hub-db-kanban-card-title">{card.title}</div>
+            {card.fields.map((f) => (
+              <div className="llm-hub-db-kanban-card-field" key={f.name}>
+                <span className="llm-hub-db-kanban-card-field-name">{f.name}</span>
+                <span className="llm-hub-db-kanban-card-field-value">{f.value}</span>
+              </div>
+            ))}
             {card.path !== card.title && (
               <div className="llm-hub-db-kanban-card-meta">{card.path}</div>
             )}

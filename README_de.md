@@ -524,9 +524,9 @@ Klicken Sie im Bearbeitungsmodus auf **+ Widget hinzufügen**, um einen Typ ausz
 | **Markdown** | Eine bestehende Notiz, inline gerendert | `path` zur Notiz |
 | **Web Embed** | Eine Webseite in einem iframe | `url` |
 | **Workflow** | Die Ausgabe eines Workflows, headless ausgeführt und als Markdown oder HTML gerendert | `workflow`-Pfad, `output`, `refreshInterval` |
-| **Kanban** | Notizen als ziehbare Karten, gruppiert in Status-Spalten | `tag`/`folder`-Filter, `statusProperty`, `columns` |
+| **Kanban** | Notizen als ziehbare Karten, gruppiert in Status-Spalten | `tag`/`folder`-Filter, `statusProperty`, `columns`, `displayFields` |
 
-**Base**- und **Workflow**-Widgets enthalten eine Schaltfläche **Mit KI erstellen**, um die zugrunde liegende `.base`-Datei oder den Workflow zu erstellen, ohne das Einstellungsfenster zu verlassen.
+**Base**- und **Workflow**-Widgets enthalten eine Schaltfläche **Mit KI erstellen**, um die zugrunde liegende `.base`-Datei oder den Workflow zu erstellen, ohne das Einstellungsfenster zu verlassen. Bei einer Base kann die KI Ihre Notizen vor dem Erstellen mit schreibgeschützten Tools prüfen, und **Mit KI bearbeiten** zeigt vor dem Anwenden ein Diff mit einem Feld für zusätzliche Anweisungen zur Verfeinerung.
 
 ## Kanban-Board
 
@@ -537,6 +537,7 @@ Verwandeln Sie Notizen in ein Drag-and-Drop-Board. Karten sind Notizen, die eine
 - **Titel & Neu** — die Kopfzeile zeigt einen optionalen Board-Titel (praktisch, wenn ein Dashboard mehrere Boards enthält) und eine Schaltfläche **Neu**, die ein Dialogfenster öffnet, in dem Sie einen Titel eingeben und eine Spalte auswählen, und dann eine Notiz erstellt, die bereits den Filtern des Boards entspricht (Ordner, Tag, Status).
 - **Vorschau & Öffnen** — klicken Sie auf eine Karte, um ihre Notiz in einem Dialogfenster anzuzeigen; das Öffnen-Symbol des Dialogs springt in einem neuen Tab zur Notiz.
 - **Spalten** — farbcodiert und vollständig konfigurierbar; eine optionale Spalte „Nicht angegeben" sammelt Karten, deren Status zu keiner Spalte passt.
+- **Anzeigefelder** — zusätzliche Frontmatter-Eigenschaften (z. B. `priority`, `due`) auflisten, die unter dem Titel jeder Karte angezeigt werden.
 
 Konfigurieren Sie alles über die Widget-Einstellungen im Bearbeitungsmodus:
 

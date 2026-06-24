@@ -131,6 +131,7 @@ Konfigurieren Sie das Board über die Widget-Einstellungen im Bearbeitungsmodus:
 | **Status-Eigenschaft** | Frontmatter-Eigenschaft, die den Status der Karte enthält (Standard `status`). |
 | **Titel-Eigenschaft** | Frontmatter-Eigenschaft, die als Kartentitel angezeigt wird. Leer = Dateiname. |
 | **Spalten** | Geordnete Liste von Statuswerten. Jede Spalte hat einen **Wert** (gegen die Eigenschaft abgeglichen) und eine **Bezeichnung** (als Kopfzeile angezeigt). |
+| **Anzeigefelder** | Geordnete Liste von Frontmatter-Eigenschaften, die auf jeder Karte unter dem Titel angezeigt werden (z. B. `priority`, `due`). Jede wird als `name: value` angezeigt; leere Werte werden übersprungen, Listenwerte mit Kommas verbunden. |
 | **Spalte für nicht zugeordnete Karten anzeigen** | Wenn aktiviert, erscheinen Karten, deren Status zu keiner Spalte passt, in einer zusätzlichen Spalte „Nicht angegeben" (Standard ein). |
 
 Unbekannte Widget-Typen (z. B. aus einer neueren Plugin-Version) werden **beim Speichern beibehalten** und als Platzhalter gerendert, sodass das Bearbeiten eines unbekannten Dashboards niemals Daten verliert.
@@ -154,7 +155,7 @@ Standardmäßig wird das `sm`-Layout **automatisch** aus dem breiten Layout abge
 
 Sowohl das **Base**- als auch das **Workflow**-Widget haben im Einstellungs-Panel eine Schaltfläche **Mit KI erstellen**:
 
-- Für ein **Base**-Widget öffnet sie den KI-Erstellungsdialog für eine `.base`-Datei. Wenn bereits eine Base ausgewählt ist, wird die Schaltfläche zu **Mit KI bearbeiten** und ändert diese stattdessen.
+- Für ein **Base**-Widget öffnet sie den KI-Erstellungsdialog für eine `.base`-Datei. Die KI kann Ihre Notizen mit schreibgeschützten Tools (Lesen, Suchen, Auflisten) prüfen, um vor dem Erstellen die passenden Frontmatter-Eigenschaften zu finden — so funktioniert z. B. eine Kartenansicht mit Titelbildern, ohne dass Sie die Eigenschaft nennen müssen. Wenn bereits eine Base ausgewählt ist, wird die Schaltfläche zu **Mit KI bearbeiten**: Sie zeigt ein **Diff** des vorgeschlagenen `.base`-Inhalts gegenüber dem aktuellen sowie ein Feld für **zusätzliche Anweisungen**, um ihn vor dem **Anwenden** zu verfeinern.
 - Für ein **Workflow**-Widget generiert (oder bearbeitet) sie einen auf das Widget zugeschnittenen Workflow — der KI wird mitgeteilt, eine einzelne Markdown-/HTML-Zeichenfolge in der Ausgabevariable zu erzeugen und interaktive Nodes zu vermeiden, sodass das Ergebnis headless gerendert wird. Nach der Generierung wird das Widget **automatisch ausgeführt und aktualisiert**.
 
 Sie können auch ein ganzes Dashboard aus dem Chat mit dem integrierten Agent-Skill **`dashboard`** erstellen, der das `.dashboard`-Schema und die Bases-Erstellungsreferenz kennt.
@@ -213,6 +214,7 @@ config:
   folder: ""                           # optional folder path prefix
   statusProperty: status               # frontmatter property holding the status
   titleProperty: ""                    # frontmatter property for card title (empty = file name)
+  displayFields: [priority, due]       # frontmatter properties shown on each card
   columns:                             # ordered list of status values
     - value: todo
       label: To Do

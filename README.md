@@ -491,9 +491,9 @@ Click **+ Add widget** in edit mode to choose a type:
 | **Markdown** | An existing note, rendered inline | `path` to the note |
 | **Web Embed** | A web page in an iframe | `url` |
 | **Workflow** | The output of a workflow, run headlessly and rendered as Markdown or HTML | `workflow` path, `output`, `refreshInterval` |
-| **Kanban** | Notes as draggable cards grouped into status columns | `tag`/`folder` filter, `statusProperty`, `columns` |
+| **Kanban** | Notes as draggable cards grouped into status columns | `tag`/`folder` filter, `statusProperty`, `columns`, `displayFields` |
 
-**Base** and **Workflow** widgets include a **Create with AI** button to author the backing `.base` file or workflow without leaving the settings panel.
+**Base** and **Workflow** widgets include a **Create with AI** button to author the backing `.base` file or workflow without leaving the settings panel. For a base, the AI can inspect your notes with read-only tools before authoring, and **Edit with AI** shows a diff with an additional-instruction box to refine before applying.
 
 ## Kanban Board
 
@@ -504,6 +504,7 @@ Turn notes into a drag-and-drop board. Cards are notes that match a **tag** and/
 - **Title & New** — the header shows an optional board title (handy when one dashboard holds several boards) and a **New** button that opens a modal to enter a title and pick a column, then creates a note already matching the board's filters (folder, tag, status).
 - **Preview & open** — click a card to preview its note in a modal; the modal's open icon jumps to the note in a new tab.
 - **Columns** — color-coded and fully configurable; an optional "Unspecified" column collects cards whose status matches none of the columns.
+- **Display fields** — list extra frontmatter properties (e.g. `priority`, `due`) to show on each card below the title.
 
 Configure everything from the widget settings in edit mode:
 

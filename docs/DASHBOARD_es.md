@@ -131,6 +131,7 @@ Configura el tablero desde los ajustes del widget en modo de edición:
 | **Propiedad de estado** | Propiedad del frontmatter que contiene el estado de la tarjeta (predeterminado `status`). |
 | **Propiedad de título** | Propiedad del frontmatter que se muestra como título de la tarjeta. Vacío = nombre del archivo. |
 | **Columnas** | Lista ordenada de valores de estado. Cada columna tiene un **valor** (comparado con la propiedad) y una **etiqueta** (mostrada como encabezado). |
+| **Campos visibles** | Lista ordenada de nombres de propiedades del frontmatter que se muestran en cada tarjeta debajo del título (p. ej. `priority`, `due`). Cada una se muestra como `name: value`; los valores vacíos se omiten y las listas se unen con comas. |
 | **Mostrar columna de tarjetas sin coincidencia** | Cuando está activado, las tarjetas cuyo estado no coincide con ninguna columna aparecen en una columna adicional «Sin especificar» (predeterminado activado). |
 
 Los tipos de widget desconocidos (p. ej., de una versión más reciente del plugin) se **conservan al guardar** y se renderizan como un marcador de posición, de modo que editar un panel desconocido nunca pierde datos.
@@ -154,7 +155,7 @@ De forma predeterminada, el diseño `sm` se **deriva automáticamente** del dise
 
 Tanto el widget **Base** como el **Workflow** tienen un botón **Crear con IA** en su panel de ajustes:
 
-- Para un widget **Base**, abre el diálogo de creación con IA para un archivo `.base`. Si ya hay una base seleccionada, el botón se convierte en **Editar con IA** y la modifica en su lugar.
+- Para un widget **Base**, abre el diálogo de creación con IA para un archivo `.base`. La IA puede inspeccionar tus notas con herramientas de solo lectura (leer, buscar, listar) para descubrir las propiedades de frontmatter adecuadas antes de crearla; por ejemplo, pedir una vista de tarjetas con imágenes de portada funciona sin que tengas que nombrar la propiedad. Si ya hay una base seleccionada, el botón se convierte en **Editar con IA**: muestra un **diff** de la `.base` propuesta frente a la actual, con un cuadro de **instrucciones adicionales** para refinarla antes de **Aplicar**.
 - Para un widget **Workflow**, genera (o edita) un workflow adaptado al widget — se le indica a la IA que produzca una única cadena Markdown/HTML en la variable de salida y que evite los nodos interactivos, de modo que el resultado se renderice de forma headless. Después de generar, el widget se **ejecuta y actualiza automáticamente**.
 
 También puedes crear un panel completo desde el chat usando la skill de agente integrada **`dashboard`**, que conoce el esquema `.dashboard` y la referencia de creación de Bases.
@@ -213,6 +214,7 @@ config:
   folder: ""                           # optional folder path prefix
   statusProperty: status               # frontmatter property holding the status
   titleProperty: ""                    # frontmatter property for card title (empty = file name)
+  displayFields: [priority, due]       # frontmatter properties shown on each card
   columns:                             # ordered list of status values
     - value: todo
       label: To Do

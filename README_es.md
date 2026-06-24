@@ -524,9 +524,9 @@ Haz clic en **+ Agregar widget** en el modo de edición para elegir un tipo:
 | **Markdown** | Una nota existente, renderizada en línea | `path` a la nota |
 | **Web Embed** | Una página web en un iframe | `url` |
 | **Workflow** | La salida de un workflow, ejecutado headless y renderizado como Markdown o HTML | ruta `workflow`, `output`, `refreshInterval` |
-| **Kanban** | Notas como tarjetas arrastrables agrupadas en columnas de estado | filtro `tag`/`folder`, `statusProperty`, `columns` |
+| **Kanban** | Notas como tarjetas arrastrables agrupadas en columnas de estado | filtro `tag`/`folder`, `statusProperty`, `columns`, `displayFields` |
 
-Los widgets **Base** y **Workflow** incluyen un botón **Crear con IA** para crear el archivo `.base` o el workflow subyacente sin salir del panel de ajustes.
+Los widgets **Base** y **Workflow** incluyen un botón **Crear con IA** para crear el archivo `.base` o el workflow subyacente sin salir del panel de ajustes. Para una base, la IA puede inspeccionar tus notas con herramientas de solo lectura antes de crearla, y **Editar con IA** muestra un diff con un cuadro de instrucciones adicionales para refinarla antes de aplicar.
 
 ## Tablero Kanban
 
@@ -537,6 +537,7 @@ Convierte notas en un tablero de arrastrar y soltar. Las tarjetas son notas que 
 - **Título y Nueva** — el encabezado muestra un título de tablero opcional (útil cuando un panel contiene varios tableros) y un botón **Nueva** que abre un diálogo para introducir un título y elegir una columna, y luego crea una nota que ya coincide con los filtros del tablero (carpeta, etiqueta, estado).
 - **Previsualizar y abrir** — haz clic en una tarjeta para previsualizar su nota en un diálogo; el icono de apertura del diálogo salta a la nota en una pestaña nueva.
 - **Columnas** — codificadas por color y totalmente configurables; una columna opcional «Sin especificar» recoge las tarjetas cuyo estado no coincide con ninguna columna.
+- **Campos visibles** — lista propiedades adicionales del frontmatter (p. ej. `priority`, `due`) para mostrarlas en cada tarjeta debajo del título.
 
 Configura todo desde los ajustes del widget en modo de edición:
 

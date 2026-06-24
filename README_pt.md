@@ -525,9 +525,9 @@ Clique em **+ Adicionar widget** no modo de edicao para escolher um tipo:
 | **Markdown** | Uma nota existente, renderizada inline | `path` para a nota |
 | **Web Embed** | Uma pagina web em um iframe | `url` |
 | **Workflow** | A saida de um workflow, executado headless e renderizado como Markdown ou HTML | caminho `workflow`, `output`, `refreshInterval` |
-| **Kanban** | Notas como cartoes arrastaveis agrupados em colunas de status | filtro `tag`/`folder`, `statusProperty`, `columns` |
+| **Kanban** | Notas como cartoes arrastaveis agrupados em colunas de status | filtro `tag`/`folder`, `statusProperty`, `columns`, `displayFields` |
 
-Os widgets **Base** e **Workflow** incluem um botao **Criar com IA** para criar o arquivo `.base` ou o workflow subjacente sem sair do painel de configuracoes.
+Os widgets **Base** e **Workflow** incluem um botao **Criar com IA** para criar o arquivo `.base` ou o workflow subjacente sem sair do painel de configuracoes. Para uma base, a IA pode inspecionar suas notas com ferramentas somente leitura antes de criar, e **Editar com IA** mostra um diff com uma caixa de instrucoes adicionais para refinar antes de aplicar.
 
 ## Quadro Kanban
 
@@ -538,6 +538,7 @@ Transforme notas em um quadro de arrastar e soltar. Os cartoes sao notas que cor
 - **Titulo e Novo** — o cabecalho mostra um titulo de quadro opcional (util quando um painel contem varios quadros) e um botao **Novo** que abre uma caixa de dialogo para inserir um titulo e escolher uma coluna, e entao cria uma nota que ja corresponde aos filtros do quadro (pasta, tag, status).
 - **Previsualizar e abrir** — clique em um cartao para previsualizar sua nota em uma caixa de dialogo; o icone de abertura da caixa de dialogo salta para a nota em uma nova aba.
 - **Colunas** — codificadas por cor e totalmente configuraveis; uma coluna opcional "Nao especificado" reune os cartoes cujo status nao corresponde a nenhuma coluna.
+- **Campos exibidos** — liste propriedades extras do frontmatter (por exemplo, `priority`, `due`) para mostrar em cada cartao abaixo do titulo.
 
 Configure tudo nas configuracoes do widget no modo de edicao:
 

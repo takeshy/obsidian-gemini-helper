@@ -131,6 +131,7 @@ Configurez le tableau depuis les paramètres du widget en mode édition :
 | **Propriété de statut** | Propriété du frontmatter contenant le statut de la carte (par défaut `status`). |
 | **Propriété de titre** | Propriété du frontmatter affichée comme titre de la carte. Vide = nom du fichier. |
 | **Colonnes** | Liste ordonnée de valeurs de statut. Chaque colonne a une **valeur** (comparée à la propriété) et un **libellé** (affiché en en-tête). |
+| **Champs affichés** | Liste ordonnée de noms de propriétés frontmatter affichées sur chaque carte sous le titre (par ex. `priority`, `due`). Chacune s'affiche sous la forme `name: value` ; les valeurs vides sont ignorées et les listes sont jointes par des virgules. |
 | **Afficher la colonne des cartes non classées** | Lorsque activé, les cartes dont le statut ne correspond à aucune colonne apparaissent dans une colonne supplémentaire « Non spécifié » (activé par défaut). |
 
 Les types de widget inconnus (par exemple, d'une version plus récente du plugin) sont **conservés à l'enregistrement** et affichés comme un espace réservé, de sorte que la modification d'un tableau de bord inconnu ne perd jamais de données.
@@ -154,7 +155,7 @@ Par défaut, la disposition `sm` est **dérivée automatiquement** de la disposi
 
 Les widgets **Base** et **Workflow** disposent tous deux d'un bouton **Créer avec l'IA** dans leur panneau de paramètres :
 
-- Pour un widget **Base**, il ouvre la boîte de dialogue de création par IA pour un fichier `.base`. Si une base est déjà sélectionnée, le bouton devient **Modifier avec l'IA** et la modifie à la place.
+- Pour un widget **Base**, il ouvre la boîte de dialogue de création par IA pour un fichier `.base`. L'IA peut inspecter vos notes avec des outils en lecture seule (lire, rechercher, lister) afin de découvrir les bonnes propriétés frontmatter avant la création ; par exemple, demander une vue en cartes avec images de couverture fonctionne sans nommer la propriété. Si une base est déjà sélectionnée, le bouton devient **Modifier avec l'IA** : il affiche un **diff** de la `.base` proposée par rapport à l'actuelle, avec un champ d'**instructions supplémentaires** pour l'affiner avant d'**Appliquer**.
 - Pour un widget **Workflow**, il génère (ou modifie) un workflow adapté au widget — il est demandé à l'IA de produire une seule chaîne Markdown/HTML dans la variable de sortie et d'éviter les nœuds interactifs, de sorte que le résultat s'affiche en headless. Après la génération, le widget est **exécuté et actualisé automatiquement**.
 
 Vous pouvez aussi créer un tableau de bord entier depuis le chat en utilisant le skill d'agent intégré **`dashboard`**, qui connaît le schéma `.dashboard` et la référence de création de Bases.
@@ -213,6 +214,7 @@ config:
   folder: ""                           # optional folder path prefix
   statusProperty: status               # frontmatter property holding the status
   titleProperty: ""                    # frontmatter property for card title (empty = file name)
+  displayFields: [priority, due]       # frontmatter properties shown on each card
   columns:                             # ordered list of status values
     - value: todo
       label: To Do

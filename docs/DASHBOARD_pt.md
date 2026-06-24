@@ -131,6 +131,7 @@ Configure o quadro nas configurações do widget no modo de edição:
 | **Propriedade de status** | Propriedade do frontmatter que contém o status do cartão (padrão `status`). |
 | **Propriedade de título** | Propriedade do frontmatter exibida como título do cartão. Vazio = nome do arquivo. |
 | **Colunas** | Lista ordenada de valores de status. Cada coluna tem um **valor** (comparado com a propriedade) e um **rótulo** (exibido como cabeçalho). |
+| **Campos exibidos** | Lista ordenada de nomes de propriedades do frontmatter exibidas em cada cartão abaixo do título (por exemplo, `priority`, `due`). Cada uma aparece como `name: value`; valores vazios são ignorados e listas são unidas por vírgulas. |
 | **Mostrar coluna de cartões sem correspondência** | Quando ativado, os cartões cujo status não corresponde a nenhuma coluna aparecem em uma coluna adicional "Não especificado" (padrão ativado). |
 
 Tipos de widget desconhecidos (por exemplo, de uma versão mais recente do plugin) são **preservados ao salvar** e renderizados como um espaço reservado, de modo que editar um painel desconhecido nunca perde dados.
@@ -154,7 +155,7 @@ Por padrão, o layout `sm` é **derivado automaticamente** do layout largo (orde
 
 Tanto o widget **Base** quanto o **Workflow** têm um botão **Criar com IA** em seu painel de configurações:
 
-- Para um widget **Base**, ele abre a caixa de diálogo de criação por IA para um arquivo `.base`. Se uma base já estiver selecionada, o botão se torna **Editar com IA** e a modifica.
+- Para um widget **Base**, ele abre a caixa de diálogo de criação por IA para um arquivo `.base`. A IA pode inspecionar suas notas com ferramentas somente leitura (ler, pesquisar, listar) para descobrir as propriedades de frontmatter corretas antes de criar; por exemplo, pedir uma visualização de cartões com imagens de capa funciona sem você nomear a propriedade. Se uma base já estiver selecionada, o botão se torna **Editar com IA**: ele mostra um **diff** da `.base` proposta em relação à atual, com uma caixa de **instruções adicionais** para refinar antes de **Aplicar**.
 - Para um widget **Workflow**, ele gera (ou edita) um workflow adaptado ao widget — a IA é instruída a produzir uma única string Markdown/HTML na variável de saída e a evitar nós interativos, de modo que o resultado seja renderizado de forma headless. Após a geração, o widget é **executado e atualizado automaticamente**.
 
 Você também pode criar um painel inteiro a partir do chat usando a skill de agente integrada **`dashboard`**, que conhece o esquema `.dashboard` e a referência de criação de Bases.
@@ -213,6 +214,7 @@ config:
   folder: ""                           # optional folder path prefix
   statusProperty: status               # frontmatter property holding the status
   titleProperty: ""                    # frontmatter property for card title (empty = file name)
+  displayFields: [priority, due]       # frontmatter properties shown on each card
   columns:                             # ordered list of status values
     - value: todo
       label: To Do

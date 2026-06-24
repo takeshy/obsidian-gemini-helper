@@ -524,9 +524,9 @@ Cliquez sur **+ Ajouter un widget** en mode édition pour choisir un type :
 | **Markdown** | Une note existante, rendue en ligne | `path` vers la note |
 | **Web Embed** | Une page web dans un iframe | `url` |
 | **Workflow** | La sortie d'un workflow, exécuté en headless et rendu en Markdown ou HTML | chemin `workflow`, `output`, `refreshInterval` |
-| **Kanban** | Des notes sous forme de cartes déplaçables, groupées en colonnes par statut | filtre `tag`/`folder`, `statusProperty`, `columns` |
+| **Kanban** | Des notes sous forme de cartes déplaçables, groupées en colonnes par statut | filtre `tag`/`folder`, `statusProperty`, `columns`, `displayFields` |
 
-Les widgets **Base** et **Workflow** incluent un bouton **Créer avec l'IA** pour créer le fichier `.base` ou le workflow sous-jacent sans quitter le panneau de paramètres.
+Les widgets **Base** et **Workflow** incluent un bouton **Créer avec l'IA** pour créer le fichier `.base` ou le workflow sous-jacent sans quitter le panneau de paramètres. Pour une base, l'IA peut inspecter vos notes avec des outils en lecture seule avant la création, et **Modifier avec l'IA** affiche un diff avec un champ d'instructions supplémentaires pour affiner avant d'appliquer.
 
 ## Tableau Kanban
 
@@ -537,6 +537,7 @@ Transformez des notes en un tableau par glisser-déposer. Les cartes sont des no
 - **Titre & Nouveau** — l'en-tête affiche un titre de tableau optionnel (pratique lorsqu'un tableau de bord contient plusieurs tableaux) et un bouton **Nouveau** qui ouvre une boîte de dialogue pour saisir un titre et choisir une colonne, puis crée une note correspondant déjà aux filtres du tableau (dossier, tag, statut).
 - **Aperçu & ouverture** — cliquez sur une carte pour prévisualiser sa note dans une boîte de dialogue ; l'icône d'ouverture de la boîte de dialogue ouvre la note dans un nouvel onglet.
 - **Colonnes** — codées par couleur et entièrement configurables ; une colonne optionnelle « Non spécifié » regroupe les cartes dont le statut ne correspond à aucune colonne.
+- **Champs affichés** — listez des propriétés frontmatter supplémentaires (par ex. `priority`, `due`) à afficher sur chaque carte sous le titre.
 
 Configurez tout depuis les paramètres du widget en mode édition :
 

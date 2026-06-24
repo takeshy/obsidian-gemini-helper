@@ -8861,6 +8861,21 @@
   margin-top: 3px;
   word-break: break-all;
 }
+.llm-hub-db-kanban-card-field {
+  display: flex;
+  gap: 6px;
+  font-size: var(--font-ui-smaller);
+  margin-top: 3px;
+  line-height: 1.3;
+  word-break: break-word;
+}
+.llm-hub-db-kanban-card-field-name {
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+.llm-hub-db-kanban-card-field-value {
+  color: var(--text-normal);
+}
 .llm-hub-db-kanban-column-empty {
   min-height: 24px;
 }

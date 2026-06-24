@@ -117,6 +117,7 @@ export function registerCoreWidgets(): void {
         { value: "done", label: "Done" },
       ],
       showUnspecified: true,
+      displayFields: [],
     },
     render: (config, ctx) => React.createElement(KanbanWidget, { config, ctx }),
     defaultSize: { w: 12, h: 6 },

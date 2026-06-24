@@ -180,6 +180,7 @@ Configure the board from the widget settings in edit mode:
 | **Status property** | Frontmatter property that holds the card's status (default `status`). |
 | **Title property** | Frontmatter property shown as the card title. Empty = file name. |
 | **Columns** | Ordered list of status values. Each column has a **value** (matched against the property) and a **label** (shown as the header). |
+| **Display fields** | Ordered list of frontmatter property names shown on each card below the title (e.g. `priority`, `due`). Each is shown as `name: value`; empty values are skipped, and list values are joined with commas. |
 | **Show unmatched cards column** | When on, cards whose status doesn't match any column appear in an extra "Unspecified" column (default on). |
 
 Unknown widget types (e.g. from a newer plugin version) are **preserved on
@@ -209,9 +210,13 @@ around them.
 Both the **Base** and **Workflow** widgets have a **Create with AI** button in
 their settings panel:
 
-- For a **Base** widget, it opens the AI authoring dialog for a `.base` file. If
-  a base is already selected, the button becomes **Edit with AI** and modifies
-  it instead.
+- For a **Base** widget, it opens the AI authoring dialog for a `.base` file. The
+  AI can inspect your notes with read-only tools (read, search, list) to discover
+  the right frontmatter properties before authoring — so, for example, asking for
+  a card view with cover images works without you naming the property. If a base
+  is already selected, the button becomes **Edit with AI**: it shows a **diff** of
+  the proposed `.base` against the current one, with an **additional instruction**
+  box to refine it before you **Apply**.
 - For a **Workflow** widget, it generates (or edits) a workflow tailored to the
   widget — the AI is told to produce a single Markdown/HTML string in the output
   variable and to avoid interactive nodes, so the result renders headlessly.
@@ -279,6 +284,7 @@ config:
   folder: ""                           # optional folder path prefix
   statusProperty: status               # frontmatter property holding the status
   titleProperty: ""                    # frontmatter property for card title (empty = file name)
+  displayFields: [priority, due]       # frontmatter properties shown on each card
   columns:                             # ordered list of status values
     - value: todo
       label: To Do

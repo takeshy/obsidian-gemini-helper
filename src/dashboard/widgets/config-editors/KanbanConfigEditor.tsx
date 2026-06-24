@@ -15,14 +15,29 @@ interface KanbanConfig {
   titleProperty?: string;
   columns?: KanbanColumn[];
   showUnspecified?: boolean;
+  displayFields?: string[];
 }
 
 export function KanbanConfigEditor({ config, onChange }: ConfigEditorProps) {
   const cfg = (config ?? {}) as KanbanConfig;
   const columns = Array.isArray(cfg.columns) ? cfg.columns : [];
+  const displayFields = Array.isArray(cfg.displayFields) ? cfg.displayFields : [];
   const showUnspecified = cfg.showUnspecified !== false;
 
   const update = (patch: Partial<KanbanConfig>) => onChange({ ...cfg, ...patch });
+
+  const updateField = (index: number, value: string) => {
+    update({ displayFields: displayFields.map((f, i) => (i === index ? value : f)) });
+  };
+  const addField = () => update({ displayFields: [...displayFields, ""] });
+  const removeField = (index: number) => update({ displayFields: displayFields.filter((_, i) => i !== index) });
+  const moveField = (index: number, dir: -1 | 1) => {
+    const target = index + dir;
+    if (target < 0 || target >= displayFields.length) return;
+    const next = [...displayFields];
+    [next[index], next[target]] = [next[target], next[index]];
+    update({ displayFields: next });
+  };
 
   const updateColumn = (index: number, patch: Partial<KanbanColumn>) => {
     const next = columns.map((c, i) => (i === index ? { ...c, ...patch } : c));
@@ -133,6 +148,34 @@ export function KanbanConfigEditor({ config, onChange }: ConfigEditorProps) {
           <Plus size={13} />
           {t("dashboard.kanbanAddColumn")}
         </button>
+      </div>
+
+      <div className="llm-hub-db-field">
+        <label>{t("dashboard.kanbanDisplayFields")}</label>
+        {displayFields.map((field, i) => (
+          <div className="llm-hub-db-kanban-config-col" key={i}>
+            <input
+              type="text"
+              value={field}
+              onChange={(e) => updateField(i, e.target.value)}
+              placeholder={t("dashboard.kanbanDisplayFieldPlaceholder")}
+            />
+            <button type="button" className="llm-hub-db-iconbtn" onClick={() => moveField(i, -1)} disabled={i === 0} title={t("dashboard.moveUp")}>
+              <ChevronUp size={12} />
+            </button>
+            <button type="button" className="llm-hub-db-iconbtn" onClick={() => moveField(i, 1)} disabled={i === displayFields.length - 1} title={t("dashboard.moveDown")}>
+              <ChevronDown size={12} />
+            </button>
+            <button type="button" className="llm-hub-db-iconbtn is-danger" onClick={() => removeField(i)} title={t("dashboard.deleteWidget")}>
+              <Trash2 size={12} />
+            </button>
+          </div>
+        ))}
+        <button type="button" className="llm-hub-db-ai-btn" onClick={addField}>
+          <Plus size={13} />
+          {t("dashboard.kanbanAddDisplayField")}
+        </button>
+        <p className="llm-hub-db-hint">{t("dashboard.kanbanDisplayFieldsHint")}</p>
       </div>
 
       <div className="llm-hub-db-field">

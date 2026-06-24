@@ -335,6 +335,18 @@ function sanitizeFunctionResult(value: unknown): unknown {
   return value;
 }
 
+function serializeFunctionResult(value: unknown): string {
+  const sanitized = sanitizeFunctionResult(value);
+  if (typeof sanitized === "string") return sanitized || "null";
+  try {
+    return JSON.stringify(sanitized) || "null";
+  } catch {
+    // Value could not be serialized (e.g. circular reference) — fall back to a
+    // safe constant rather than Object's "[object Object]" stringification.
+    return "null";
+  }
+}
+
 // Interactions API usage → TracingUsage converter
 function extractInteractionsUsage(usage: Interactions.Usage | undefined, model?: string): TracingUsage | undefined {
   if (!usage) return undefined;
@@ -477,6 +489,13 @@ export class GeminiClient {
 
   setModel(model: ModelType): void {
     this.model = model;
+  }
+
+  private getInteractionsModel(hasFunctionTools: boolean): ModelType {
+    if (this.model === "gemini-3.1-pro-preview" && hasFunctionTools) {
+      return "gemini-3.1-pro-preview-customtools";
+    }
+    return this.model;
   }
 
   // Build thinking config based on model capabilities (shared across streaming methods)
@@ -856,6 +875,198 @@ export class GeminiClient {
     return [{ functionDeclarations }];
   }
 
+  private shouldUseGenerateContentToolsApi(tools: ToolDefinition[]): boolean {
+    const modelLower = this.model.toLowerCase();
+    if (!(modelLower.includes("gemini-3.1-pro") || modelLower.includes("gemini-3-pro"))) {
+      return false;
+    }
+    return tools.length > 0;
+  }
+
+  private buildGenerateContentTools(tools: ToolDefinition[], webSearchEnabled?: boolean): Tool[] | undefined {
+    const geminiTools = tools.length > 0 ? this.toolsToGeminiFormat(tools) : [];
+    if (webSearchEnabled) {
+      geminiTools.push({ googleSearch: {} });
+    }
+    return geminiTools.length > 0 ? geminiTools : undefined;
+  }
+
+  private async *chatWithToolsStreamGenerateContent(
+    messages: Message[],
+    tools: ToolDefinition[],
+    systemPrompt?: string,
+    executeToolCall?: (name: string, args: Record<string, unknown>) => Promise<unknown>,
+    webSearchEnabled?: boolean,
+    options?: ChatWithToolsOptions,
+  ): AsyncGenerator<StreamChunk> {
+    const maxFunctionCalls = options?.functionCallLimits?.maxFunctionCalls ?? DEFAULT_SETTINGS.maxFunctionCalls;
+    const warningThreshold = Math.min(
+      options?.functionCallLimits?.functionCallWarningThreshold ?? DEFAULT_SETTINGS.functionCallWarningThreshold,
+      maxFunctionCalls,
+    );
+    let functionCallCount = 0;
+    let warningEmitted = false;
+    const traceId = options?.traceId ?? null;
+    const lastMsg = messages[messages.length - 1];
+    const generationId = tracing.generationStart(traceId, "chatWithToolsStreamGenerateContent", {
+      model: this.model,
+      input: lastMsg?.content,
+      metadata: { useGenerateContentApi: true, toolCount: tools.length, webSearchEnabled: !!webSearchEnabled },
+    });
+    const totalUsage: TracingUsage = { input: 0, output: 0, total: 0 };
+    let accumulatedOutput = "";
+    let roundNumber = 0;
+    let toolCallTraceCount = 0;
+
+    let contents = this.messagesToContents(messages);
+    const generationTools = this.buildGenerateContentTools(tools, webSearchEnabled);
+    const thinkingConfig = this.buildThinkingConfig(options?.enableThinking ?? true);
+
+    try {
+      while (true) {
+        roundNumber++;
+        const response = await this.ai.models.generateContentStream({
+          model: this.model,
+          contents,
+          config: {
+            systemInstruction: systemPrompt,
+            tools: options?.disableTools ? undefined : generationTools,
+            safetySettings: DEFAULT_SAFETY_SETTINGS,
+            thinkingConfig,
+          },
+        });
+
+        const modelParts: Part[] = [];
+        const functionCalls: Array<{ id?: string; name: string; args: Record<string, unknown> }> = [];
+        let roundUsage: TracingUsage | undefined;
+        let hasReceivedChunk = false;
+
+        for await (const chunk of response) {
+          hasReceivedChunk = true;
+          if (chunk.usageMetadata) {
+            roundUsage = extractUsage(chunk.usageMetadata, { model: this.model, webSearchUsed: !!webSearchEnabled });
+          }
+
+          const blockReason = checkFinishReason(chunk.candidates);
+          if (blockReason) {
+            tracing.generationEnd(generationId, { error: blockReason, usage: roundUsage });
+            yield { type: "error", error: blockReason };
+            return;
+          }
+
+          const parts = chunk.candidates?.[0]?.content?.parts ?? [];
+          for (const part of parts) {
+            modelParts.push(part);
+            if (part.text) {
+              if (part.thought) {
+                yield { type: "thinking", content: part.text };
+              } else {
+                accumulatedOutput += part.text;
+                yield { type: "text", content: part.text };
+              }
+            }
+            if (part.functionCall?.name) {
+              functionCalls.push({
+                id: part.functionCall.id,
+                name: part.functionCall.name,
+                args: part.functionCall.args ?? {},
+              });
+            }
+          }
+        }
+
+        if (roundUsage) accumulateUsage(totalUsage, roundUsage);
+
+        if (!hasReceivedChunk) {
+          tracing.generationEnd(generationId, { error: "No response received from API" });
+          yield { type: "error", error: "No response received from API (possible server error)" };
+          return;
+        }
+
+        if (modelParts.length > 0) {
+          // Preserve the model's parts exactly, including Gemini 3 thoughtSignature
+          // fields required for follow-up function-response turns.
+          contents = [...contents, { role: "model", parts: modelParts }];
+        }
+
+        if (functionCalls.length === 0 || !executeToolCall) {
+          tracing.generationEnd(generationId, {
+            output: accumulatedOutput,
+            usage: totalUsage.total ? totalUsage : undefined,
+            metadata: { toolCallCount: toolCallTraceCount, roundCount: roundNumber, useGenerateContentApi: true },
+          });
+          yield {
+            type: "done",
+            usage: toStreamChunkUsage(totalUsage.total ? totalUsage : undefined),
+          };
+          return;
+        }
+
+        const remainingBefore = maxFunctionCalls - functionCallCount;
+        if (remainingBefore <= 0) {
+          contents = [...contents, {
+            role: "user",
+            parts: [{ text: "Function call limit reached. Please provide a final answer based on the information gathered so far." }],
+          }];
+          continue;
+        }
+
+        const callsToExecute = functionCalls.slice(0, remainingBefore);
+        const remainingAfter = remainingBefore - callsToExecute.length;
+        if (!warningEmitted && remainingAfter <= warningThreshold) {
+          warningEmitted = true;
+          yield { type: "text", content: `\n\n[Note: ${remainingAfter} function calls remaining. Please work efficiently.]` };
+        }
+
+        const functionResponseParts: Part[] = [];
+        for (const fc of callsToExecute) {
+          const toolCall: ToolCall = { id: fc.id ?? fc.name, name: fc.name, args: fc.args };
+          yield { type: "tool_call", toolCall };
+
+          toolCallTraceCount++;
+          const toolSpanId = tracing.spanStart(traceId, `tool:${fc.name}`, {
+            parentId: generationId ?? undefined,
+            input: fc.args,
+            metadata: { toolName: fc.name },
+          });
+
+          const result = await executeToolCall(fc.name, fc.args);
+          tracing.spanEnd(toolSpanId, { output: result });
+
+          const serializedResult = serializeFunctionResult(result);
+          accumulatedOutput += `\n[tool_call: ${fc.name}(${JSON.stringify(fc.args)})]\n`;
+          accumulatedOutput += `[tool_result: ${serializedResult.length > 500 ? serializedResult.slice(0, 500) + "..." : serializedResult}]\n`;
+
+          yield { type: "tool_result", toolResult: { toolCallId: toolCall.id, result } };
+
+          functionResponseParts.push({
+            functionResponse: {
+              id: fc.id,
+              name: fc.name,
+              response: { output: serializedResult },
+            },
+          });
+        }
+        functionCallCount += callsToExecute.length;
+
+        if (functionCalls.length > callsToExecute.length || functionCallCount >= maxFunctionCalls) {
+          functionResponseParts.push({
+            text: "Function call limit reached. Please provide a final answer based on the information gathered so far.",
+          });
+        }
+
+        contents = [...contents, { role: "user", parts: functionResponseParts }];
+      }
+    } catch (error) {
+      tracing.generationEnd(generationId, {
+        error: formatError(error),
+        usage: totalUsage.total ? totalUsage : undefined,
+        metadata: { toolCallCount: toolCallTraceCount, roundCount: roundNumber, useGenerateContentApi: true },
+      });
+      yield { type: "error", error: formatError(error) };
+    }
+  }
+
   // Simple chat without streaming
   async chat(
     messages: Message[],
@@ -977,6 +1188,18 @@ export class GeminiClient {
     webSearchEnabled?: boolean,
     options?: ChatWithToolsOptions
   ): AsyncGenerator<StreamChunk> {
+    if (!options?.disableTools && this.shouldUseGenerateContentToolsApi(tools)) {
+      yield* this.chatWithToolsStreamGenerateContent(
+        messages,
+        tools,
+        systemPrompt,
+        executeToolCall,
+        webSearchEnabled,
+        options,
+      );
+      return;
+    }
+
     // Function call limit settings
     const maxFunctionCalls = options?.functionCallLimits?.maxFunctionCalls ?? DEFAULT_SETTINGS.maxFunctionCalls;
     const warningThreshold = Math.min(
@@ -1003,6 +1226,8 @@ export class GeminiClient {
     const mustUseWebSearchOnly = modelLower === "gemini-3.1-flash-lite";
     const effectiveRagEnabled = ragEnabled && !isGemma4Model;
     const effectiveWebSearch = webSearchEnabled ?? false;
+    const hasFunctionTools = !options?.disableTools && !(mustUseWebSearchOnly && effectiveWebSearch) && tools.length > 0;
+    const interactionModel = this.getInteractionsModel(hasFunctionTools);
     let interactionTools: Interactions.Tool[] | undefined;
     if (!options?.disableTools) {
       // Interactions API rejects google_search + function tools for these models.
@@ -1057,6 +1282,7 @@ export class GeminiClient {
       model: this.model,
       input: lastMessage.content,
       metadata: {
+        interactionModel,
         ragEnabled: !!ragEnabled,
         webSearchEnabled: !!webSearchEnabled,
         toolCount: tools.length,
@@ -1140,17 +1366,21 @@ export class GeminiClient {
           parentId: generationId ?? undefined,
           metadata: { roundNumber },
         });
+        const roundPreviousInteractionId = roundNumber === 1 ? previousInteractionId : currentInteractionId;
+        const isFollowUpInteraction = !!roundPreviousInteractionId;
 
         // Create streaming interaction
         const stream = await this.ai.interactions.create({
-          model: this.model,
+          model: interactionModel,
           input: nextInput,
           stream: true,
-          tools: interactionTools,
-          system_instruction: ragSystemPrompt,
-          previous_interaction_id: roundNumber === 1 ? previousInteractionId : currentInteractionId,
+          previous_interaction_id: roundPreviousInteractionId,
           store: true,
-          generation_config: generationConfig,
+          ...(!isFollowUpInteraction ? {
+            tools: interactionTools,
+            system_instruction: ragSystemPrompt,
+            generation_config: generationConfig,
+          } : {}),
         });
 
         const functionCallsToProcess: Array<{ id: string; name: string; args: Record<string, unknown> }> = [];
@@ -1368,7 +1598,7 @@ export class GeminiClient {
             // One more round to get the final answer, then stop
             roundNumber++;
             const finalStream = await this.ai.interactions.create({
-              model: this.model,
+              model: interactionModel,
               input: nextInput,
               stream: true,
               system_instruction: ragSystemPrompt,
@@ -1440,14 +1670,16 @@ export class GeminiClient {
               toolResult: { toolCallId: toolCall.id, result },
             };
 
-            // Build FunctionResultStep for the v2 Interactions API input
-            // Preserve original result structure (object/array) so the model can consume fields directly
-            // Sanitize to avoid API rejection of empty values (empty arrays, empty strings)
+            const serializedResult = serializeFunctionResult(result);
+
+            // Build FunctionResultStep for the v2 Interactions API input.
+            // Use a JSON string result, matching the SDK README examples and
+            // avoiding stricter model-side validation of arbitrary objects.
             functionResults.push({
               type: "function_result",
               call_id: fc.id,
               name: fc.name,
-              result: sanitizeFunctionResult(result),
+              result: serializedResult,
             } as Interactions.Step);
           }
 
@@ -1473,7 +1705,7 @@ export class GeminiClient {
             // Final round
             roundNumber++;
             const finalStream = await this.ai.interactions.create({
-              model: this.model,
+              model: interactionModel,
               input: nextInput,
               stream: true,
               tools: interactionTools,

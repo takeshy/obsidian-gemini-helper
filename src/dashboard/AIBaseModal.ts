@@ -1,6 +1,9 @@
 // AI dialog for creating or editing a `.base` file (gemihub's ✨ AI config-editor
-// pattern). Collects a description + target model, generates the YAML headlessly
-// via generateBaseYaml, writes it straight to the vault, and reports the path.
+// pattern). Collects a description + target model, generates the YAML via
+// generateBaseYaml (which can inspect notes with read-only tools). Create mode
+// writes straight to the vault; modify mode shows a diff of the generated YAML
+// vs the current `.base` and lets the user apply it or refine with an extra
+// instruction before writing.
 
 import { App, Modal, Notice, TFile, setIcon } from "obsidian";
 import type { GeminiHelperPlugin } from "src/plugin";
@@ -9,6 +12,7 @@ import {
   type ModelType,
 } from "src/types";
 import { t } from "src/i18n";
+import { renderDiffView, createDiffViewToggle, type DiffRendererState } from "src/ui/components/workflow/DiffRenderer";
 import { generateBaseYaml } from "./aiBaseGenerate";
 import { BASES_FOLDER } from "./types";
 
@@ -31,6 +35,7 @@ export class AIBaseModal extends Modal {
   private generateBtn: HTMLButtonElement | null = null;
   private statusEl: HTMLElement | null = null;
   private busy = false;
+  private diffState: DiffRendererState | null = null;
 
   constructor(app: App, plugin: GeminiHelperPlugin, opts: AIBaseModalOptions) {
     super(app);
@@ -154,16 +159,121 @@ export class AIBaseModal extends Modal {
 
     try {
       const yaml = await generateBaseYaml(this.plugin, model, desc, currentYaml);
-      await this.writeBase(targetPath, yaml);
-      new Notice(t("dashboard.aiBaseDone"));
-      this.opts.onComplete(targetPath);
-      this.close();
+      if (this.opts.mode === "modify") {
+        // Don't write yet — show a diff and let the user apply or refine.
+        this.showDiffConfirm(targetPath, currentYaml ?? "", yaml, model);
+      } else {
+        await this.writeBase(targetPath, yaml);
+        new Notice(t("dashboard.aiBaseDone"));
+        this.opts.onComplete(targetPath);
+        this.close();
+      }
     } catch (err) {
       this.setStatus(`${t("dashboard.aiBaseFailed")}: ${err instanceof Error ? err.message : String(err)}`, true);
     } finally {
       this.busy = false;
       if (this.generateBtn) this.generateBtn.disabled = false;
     }
+  }
+
+  /**
+   * Modify-mode confirmation: show the diff of the generated YAML against the
+   * current `.base`, with an "additional instruction" box to refine (re-generate
+   * in place) and an Apply button to write. The diff baseline stays the original
+   * `.base` content across refinement iterations.
+   */
+  private showDiffConfirm(
+    targetPath: string,
+    originalYaml: string,
+    generatedYaml: string,
+    model: ModelType,
+  ): void {
+    let latest = generatedYaml;
+    const { contentEl } = this;
+    this.diffState?.destroy();
+    this.diffState = null;
+    contentEl.empty();
+    contentEl.addClass("llm-hub-db-ai-modal");
+
+    contentEl.createEl("h3", { text: t("dashboard.aiBaseEdit") });
+    contentEl.createEl("p", { cls: "llm-hub-db-ai-target", text: targetPath });
+
+    const diffLabel = contentEl.createDiv({ cls: "llm-hub-db-ai-difflabel" });
+    const diffContainer = contentEl.createDiv({ cls: "llm-hub-db-ai-diff" });
+
+    const renderDiff = (newYaml: string): void => {
+      this.diffState?.destroy();
+      diffContainer.empty();
+      diffLabel.empty();
+      diffLabel.createSpan({ text: t("dashboard.aiBaseDiffTitle") });
+      this.diffState = renderDiffView(diffContainer, originalYaml, newYaml, { viewMode: "split" });
+      createDiffViewToggle(diffLabel, this.diffState);
+    };
+    renderDiff(latest);
+
+    const addRow = contentEl.createDiv({ cls: "llm-hub-db-ai-row" });
+    addRow.createEl("label", { text: t("dashboard.aiBaseAdditional") });
+    const addInput = addRow.createEl("textarea", {
+      attr: { rows: "3", placeholder: t("dashboard.aiBaseAdditionalPlaceholder") },
+    });
+
+    const status = contentEl.createDiv({ cls: "llm-hub-db-ai-status" });
+    const setDiffStatus = (text: string, isError = false): void => {
+      status.setText(text);
+      status.toggleClass("is-error", isError);
+    };
+
+    const footer = contentEl.createDiv({ cls: "llm-hub-db-ai-footer" });
+    const cancelBtn = footer.createEl("button", { text: t("dashboard.cancel") });
+    cancelBtn.addEventListener("click", () => this.close());
+
+    const regenBtn = footer.createEl("button");
+    const regenIcon = regenBtn.createSpan();
+    setIcon(regenIcon, "refresh-cw");
+    regenBtn.createSpan({ text: t("dashboard.aiBaseRegenerate") });
+
+    const applyBtn = footer.createEl("button", { cls: "mod-cta", text: t("dashboard.aiBaseApply") });
+
+    const setBusy = (busy: boolean): void => {
+      this.busy = busy;
+      regenBtn.disabled = busy;
+      applyBtn.disabled = busy;
+    };
+
+    regenBtn.addEventListener("click", () => {
+      void (async () => {
+        const add = addInput.value.trim();
+        if (!add || this.busy) return;
+        setBusy(true);
+        setDiffStatus(t("dashboard.aiBaseGenerating"));
+        try {
+          latest = await generateBaseYaml(this.plugin, model, add, latest);
+          addInput.value = "";
+          renderDiff(latest);
+          setDiffStatus("");
+        } catch (err) {
+          setDiffStatus(`${t("dashboard.aiBaseFailed")}: ${err instanceof Error ? err.message : String(err)}`, true);
+        } finally {
+          setBusy(false);
+        }
+      })();
+    });
+
+    applyBtn.addEventListener("click", () => {
+      void (async () => {
+        if (this.busy) return;
+        setBusy(true);
+        try {
+          await this.writeBase(targetPath, latest);
+          new Notice(t("dashboard.aiBaseDone"));
+          this.opts.onComplete(targetPath);
+          this.close();
+        } catch (err) {
+          setDiffStatus(`${t("dashboard.aiBaseFailed")}: ${err instanceof Error ? err.message : String(err)}`, true);
+          setBusy(false);
+        }
+      })();
+    });
   }
 
   private async writeBase(path: string, yaml: string): Promise<void> {
@@ -185,6 +295,8 @@ export class AIBaseModal extends Modal {
   }
 
   onClose(): void {
+    this.diffState?.destroy();
+    this.diffState = null;
     this.contentEl.empty();
   }
 }

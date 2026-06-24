@@ -8552,6 +8552,23 @@
   gap: 5px;
 }
 
+/* AI base modal: diff confirmation (modify mode) */
+.llm-hub-db-ai-difflabel {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 8px 0 4px;
+  font-size: 0.85em;
+  color: var(--text-muted);
+}
+.llm-hub-db-ai-diff {
+  max-height: 50vh;
+  overflow: auto;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 6px;
+}
+
 /* Segmented toggle (output format) */
 .llm-hub-db-toggle {
   display: inline-flex;

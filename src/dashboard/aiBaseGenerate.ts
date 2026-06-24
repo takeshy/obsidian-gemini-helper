@@ -1,9 +1,13 @@
-// Headless `.base` generation: builds a system prompt from the built-in `base`
-// skill and streams a single completion from the user's selected Gemini model,
-// then returns the cleaned YAML.
+// `.base` generation: builds a system prompt from the built-in `base` skill and
+// streams a completion from the user's selected Gemini model. Read-only vault
+// tools are made available so the model can inspect existing notes (e.g. to find
+// an image/cover property) before authoring — matching what chat can do. Returns
+// the cleaned YAML.
 
 import type { GeminiHelperPlugin } from "src/plugin";
 import { GeminiClient } from "src/core/gemini";
+import { getEnabledTools } from "src/core/tools";
+import { createToolExecutor } from "src/vault/toolExecutor";
 import { loadBuiltinSkill, builtinFolderPath } from "src/core/builtinSkills";
 import {
   type ModelType,
@@ -20,7 +24,13 @@ export function buildBaseSystemPrompt(): string {
   return [
     "You are an expert at authoring Obsidian Bases (`.base`) files.",
     "Produce a single valid `.base` YAML document that satisfies the user's request.",
-    "Output ONLY the YAML — no prose, no explanation, and no Markdown code fences.",
+    "You may use the read-only vault tools (read_note, search_notes, list_notes,",
+    "list_folders, get_active_note_info) to inspect existing notes and their",
+    "properties — for example to find which frontmatter property holds an image,",
+    "cover, or status — before authoring the base. Do not assume property names;",
+    "verify them against real notes when relevant.",
+    "Your FINAL message must contain ONLY the `.base` YAML — no prose, no",
+    "explanation, and no Markdown code fences.",
     "",
     reference,
   ].join("\n");
@@ -37,6 +47,10 @@ async function collectText(stream: AsyncGenerator<StreamChunk>): Promise<string>
   let out = "";
   for await (const chunk of stream) {
     if (chunk.type === "text" && chunk.content) out += chunk.content;
+    // When the model calls a read-only tool, any text emitted before it was a
+    // narration of intent ("let me check the notes…"), not the final YAML. Reset
+    // so only the text after the last tool call — the authored base — remains.
+    else if (chunk.type === "tool_call") out = "";
     else if (chunk.type === "error") throw new Error(chunk.error || "Generation failed");
   }
   return out;
@@ -76,5 +90,24 @@ function streamFor(
   const apiKey = plugin.settings.googleApiKey;
   if (!apiKey) throw new Error("Gemini API key is not configured.");
   const client = new GeminiClient(apiKey, selectedModel);
-  return client.generateWorkflowStream(userMessages, systemPrompt, null);
+
+  // Read-only vault tools only — the model inspects notes to author the base,
+  // but never writes (the modal writes the resulting `.base` itself).
+  const tools = getEnabledTools({ allowWrite: false, allowDelete: false, ragEnabled: false });
+  const executeToolCall = createToolExecutor(plugin.app, {
+    listNotesLimit: plugin.settings.listNotesLimit,
+    maxNoteChars: plugin.settings.maxNoteChars,
+    limitAiVaultToolScope: true,
+    aiVaultToolAllowedFolders: plugin.settings.aiVaultToolAllowedFolders,
+  });
+
+  return client.chatWithToolsStream(
+    userMessages,
+    tools,
+    systemPrompt,
+    executeToolCall,
+    undefined, // ragStoreIds
+    false, // webSearchEnabled
+    { functionCallLimits: { maxFunctionCalls: 12 }, enableThinking: true, traceId: null },
+  );
 }

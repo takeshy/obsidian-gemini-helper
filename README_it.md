@@ -17,6 +17,7 @@ Assistente AI **gratuito e open-source** per Obsidian con **Chat**, **Automazion
 - **Accesso AI alle cartelle** - Limita quali cartelle l'AI puo leggere automaticamente quando non vuoi accesso all'intero vault
 - **Crittografia** - Proteggi con password la cronologia chat e i log di esecuzione dei workflow
 - **Cronologia Modifiche** - Traccia e ripristina le modifiche fatte dall'AI con vista diff
+- **Dashboard** - Disponi viste Bases, note, pagine web e output dei workflow in una griglia di widget responsiva
 
 ![Interfaccia Chat](docs/images/chat.png)
 
@@ -496,6 +497,55 @@ I workflow possono essere attivati automaticamente dagli eventi di Obsidian:
 | `_eventOldPath` | Percorso precedente (solo per eventi rename) |
 
 > **Nota:** I nodi `prompt-file` e `prompt-selection` usano automaticamente il file dell'evento quando attivati da eventi. `prompt-selection` usa l'intero contenuto del file come selezione.
+
+---
+
+# Dashboard
+
+Crea una **home page / pagina di panoramica** personale da una griglia responsiva di widget. Una dashboard è un file `.dashboard` che dispone **viste Bases**, **note**, **pagine web**, **output di workflow** e **board kanban** in una griglia in cui si trascina e si ridimensiona — aprila come qualsiasi nota per vedere una board modificabile in tempo reale.
+
+![Dashboard](docs/images/dashboard.png)
+
+**Creare una dashboard:**
+- Comando: **«Gemini Helper: Crea dashboard»** — crea una nuova board in `Dashboards/` e la apre
+- Oppure chiedilo all'IA nella chat (la skill di agente integrata **dashboard** crea i file `.dashboard` e i file `.base` sottostanti per te)
+
+**Modalità di modifica:** Fai clic su **Modifica** per spostare, ridimensionare, aggiungere e configurare i widget; **Fatto** per visualizzarla. La griglia è responsiva — sugli schermi stretti i widget si riorganizzano in una singola colonna. Tutte le modifiche vengono salvate automaticamente.
+
+## Tipi di widget
+
+Fai clic su **+ Aggiungi widget** nella modalità di modifica per scegliere un tipo:
+
+![Aggiungi widget](docs/images/dashboard_widgets.png)
+
+| Widget | Mostra | Configurazione chiave |
+|--------|-------|------------|
+| **Base** | Una vista con nome di un file `.base` tramite l'interfaccia Bases nativa di Obsidian (tabella / schede / elenco) | percorso `base`, nome `view` |
+| **Markdown** | Una nota esistente, renderizzata inline | `path` alla nota |
+| **Web Embed** | Una pagina web in un iframe | `url` |
+| **Workflow** | L'output di un workflow, eseguito in modalità headless e renderizzato come Markdown o HTML | percorso `workflow`, `output`, `refreshInterval` |
+| **Kanban** | Note come schede trascinabili raggruppate in colonne di stato | filtro `tag`/`folder`, `statusProperty`, `columns` |
+
+I widget **Base** e **Workflow** includono un pulsante **Crea con l'IA** per creare il file `.base` o il workflow sottostante senza lasciare il pannello delle impostazioni.
+
+## Board Kanban
+
+Trasforma le note in una board drag-and-drop. Le schede sono note che corrispondono a un filtro per **tag** e/o **cartella**, raggruppate in colonne in base a una **proprietà di stato** del frontmatter. Trascina una scheda in un'altra colonna per aggiornare lo stato di quella nota — scritto direttamente nel frontmatter della nota. La board è completamente interattiva in **modalità di visualizzazione**; non è necessario entrare in modalità di modifica per spostare le schede.
+
+![Board Kanban](docs/images/dashboard_kanban.png)
+
+- **Titolo e Nuova** — l'intestazione mostra un titolo della board opzionale (utile quando una dashboard contiene più board) e un pulsante **Nuova** che apre una finestra di dialogo per inserire un titolo e scegliere una colonna, quindi crea una nota che corrisponde già ai filtri della board (cartella, tag, stato).
+- **Anteprima e apertura** — clicca su una scheda per visualizzarne l'anteprima della nota in una finestra di dialogo; l'icona di apertura della finestra apre la nota in una nuova scheda.
+- **Colonne** — codificate per colore e completamente configurabili; una colonna opzionale «Non specificato» raccoglie le schede il cui stato non corrisponde a nessuna colonna.
+
+Configura tutto dalle impostazioni del widget in modalità di modifica:
+
+![Impostazioni Kanban](docs/images/dashboard_kanban_edit.png)
+
+> [!NOTE]
+> **I widget di workflow leggono da una cache, non in tempo reale.** Un widget di workflow viene eseguito solo con il pulsante **Esegui**, l'esecuzione di prova dell'editor di configurazione, o una volta all'apertura quando il suo risultato in cache è più vecchio dell'**intervallo di aggiornamento automatico** (minuti; `0` = solo manuale). I risultati vengono memorizzati in un file sidecar nascosto accanto alla dashboard, in modo che l'output sopravviva alla riapertura. Il workflow deve memorizzare il suo output Markdown/HTML in una variabile (predefinito `result`).
+
+> **Per il formato del file `.dashboard`, lo schema YAML completo e suggerimenti per la generazione con IA, vedi la [Documentazione della dashboard](docs/DASHBOARD.md)**
 
 ---
 

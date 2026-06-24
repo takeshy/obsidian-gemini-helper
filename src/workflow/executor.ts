@@ -1037,7 +1037,10 @@ export class WorkflowExecutor {
                     subLog.status
                   );
                 },
-                undefined, // Don't record sub-workflow history separately
+                // Don't record sub-workflow history separately, but forward the
+                // abort signal so cancelling the parent run (e.g. a dashboard
+                // workflow widget) also interrupts the sub-workflow.
+                { abortSignal: options?.abortSignal },
                 promptCallbacks
               );
 

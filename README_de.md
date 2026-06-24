@@ -17,6 +17,7 @@
 - **KI-Ordnerzugriff** - Begrenzen Sie, welche Ordner die KI automatisch lesen darf, wenn kein Zugriff auf den gesamten Vault gewünscht ist
 - **Verschlüsselung** - Passwortschutz für Chat-Verlauf und Workflow-Ausführungsprotokolle
 - **Bearbeitungsverlauf** - Verfolgen und Wiederherstellen von KI-Änderungen mit Diff-Ansicht
+- **Dashboard** - Ordnen Sie Bases-Ansichten, Notizen, Webseiten und Workflow-Ausgaben in einem responsiven Widget-Raster an
 
 ![Chat-Oberfläche](docs/images/chat.png)
 
@@ -496,6 +497,55 @@ Workflows können automatisch durch Obsidian-Ereignisse ausgelöst werden:
 | `_eventOldPath` | Vorheriger Pfad (nur für Umbenennungs-Ereignisse) |
 
 > **Hinweis:** `prompt-file`- und `prompt-selection`-Nodes verwenden automatisch die Ereignis-Datei, wenn sie durch Ereignisse ausgelöst werden. `prompt-selection` verwendet den gesamten Dateiinhalt als Auswahl.
+
+---
+
+# Dashboard
+
+Erstellen Sie eine persönliche **Start-/Übersichtsseite** aus einem responsiven Raster von Widgets. Ein Dashboard ist eine `.dashboard`-Datei, die **Bases-Ansichten**, **Notizen**, **Webseiten**, **Workflow-Ausgaben** und **Kanban-Boards** in einem per Drag-and-Drop verschieb- und skalierbaren Raster anordnet — öffnen Sie es wie jede Notiz, um ein bearbeitbares Live-Board zu sehen.
+
+![Dashboard](docs/images/dashboard.png)
+
+**Ein Dashboard erstellen:**
+- Befehl: **„Gemini Helper: Dashboard erstellen"** — erstellt ein neues Board unter `Dashboards/` und öffnet es
+- Oder bitten Sie die KI im Chat (der integrierte Agent-Skill **dashboard** erstellt `.dashboard`-Dateien und die zugrunde liegenden `.base`-Dateien für Sie)
+
+**Bearbeitungsmodus:** Klicken Sie auf **Bearbeiten**, um Widgets zu verschieben, zu skalieren, hinzuzufügen und zu konfigurieren; **Fertig** zum Anzeigen. Das Raster ist responsiv — auf schmalen Bildschirmen werden Widgets in einer einzigen Spalte umgebrochen. Alle Änderungen werden automatisch gespeichert.
+
+## Widget-Typen
+
+Klicken Sie im Bearbeitungsmodus auf **+ Widget hinzufügen**, um einen Typ auszuwählen:
+
+![Widget hinzufügen](docs/images/dashboard_widgets.png)
+
+| Widget | Zeigt | Wichtige Konfiguration |
+|--------|-------|------------|
+| **Base** | Eine benannte Ansicht einer `.base`-Datei über die native Bases-UI von Obsidian (Tabelle / Karten / Liste) | `base`-Pfad, `view`-Name |
+| **Markdown** | Eine bestehende Notiz, inline gerendert | `path` zur Notiz |
+| **Web Embed** | Eine Webseite in einem iframe | `url` |
+| **Workflow** | Die Ausgabe eines Workflows, headless ausgeführt und als Markdown oder HTML gerendert | `workflow`-Pfad, `output`, `refreshInterval` |
+| **Kanban** | Notizen als ziehbare Karten, gruppiert in Status-Spalten | `tag`/`folder`-Filter, `statusProperty`, `columns` |
+
+**Base**- und **Workflow**-Widgets enthalten eine Schaltfläche **Mit KI erstellen**, um die zugrunde liegende `.base`-Datei oder den Workflow zu erstellen, ohne das Einstellungsfenster zu verlassen.
+
+## Kanban-Board
+
+Verwandeln Sie Notizen in ein Drag-and-Drop-Board. Karten sind Notizen, die einem **Tag**- und/oder **Ordner**-Filter entsprechen, gruppiert in Spalten nach einer Frontmatter-**Status-Eigenschaft**. Ziehen Sie eine Karte in eine andere Spalte, um den Status dieser Notiz zu aktualisieren — direkt in die Frontmatter der Notiz geschrieben. Das Board ist im **Anzeigemodus** voll interaktiv; Sie müssen den Bearbeitungsmodus nicht aktivieren, um Karten zu verschieben.
+
+![Kanban-Board](docs/images/dashboard_kanban.png)
+
+- **Titel & Neu** — die Kopfzeile zeigt einen optionalen Board-Titel (praktisch, wenn ein Dashboard mehrere Boards enthält) und eine Schaltfläche **Neu**, die ein Dialogfenster öffnet, in dem Sie einen Titel eingeben und eine Spalte auswählen, und dann eine Notiz erstellt, die bereits den Filtern des Boards entspricht (Ordner, Tag, Status).
+- **Vorschau & Öffnen** — klicken Sie auf eine Karte, um ihre Notiz in einem Dialogfenster anzuzeigen; das Öffnen-Symbol des Dialogs springt in einem neuen Tab zur Notiz.
+- **Spalten** — farbcodiert und vollständig konfigurierbar; eine optionale Spalte „Nicht angegeben" sammelt Karten, deren Status zu keiner Spalte passt.
+
+Konfigurieren Sie alles über die Widget-Einstellungen im Bearbeitungsmodus:
+
+![Kanban-Einstellungen](docs/images/dashboard_kanban_edit.png)
+
+> [!NOTE]
+> **Workflow-Widgets lesen aus einem Cache, nicht live.** Ein Workflow-Widget wird nur ausgeführt über die Schaltfläche **Ausführen**, den Testlauf im Konfigurationseditor oder einmalig beim Öffnen, wenn sein zwischengespeichertes Ergebnis älter als das **Aktualisierungsintervall** ist (Minuten; `0` = nur manuell). Die Ergebnisse werden in einer versteckten Sidecar-Datei neben dem Dashboard gespeichert, sodass die Ausgabe ein erneutes Öffnen übersteht. Der Workflow muss seine Markdown-/HTML-Ausgabe in einer Variable speichern (Standard `result`).
+
+> **Für das `.dashboard`-Dateiformat, das vollständige YAML-Schema und Tipps zur KI-Generierung siehe [Dashboard-Dokumentation](docs/DASHBOARD.md)**
 
 ---
 

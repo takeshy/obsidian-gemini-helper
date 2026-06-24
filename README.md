@@ -17,6 +17,7 @@
 - **AI Folder Access** - Limit which folders AI can read automatically when you do not want whole-vault access
 - **Encryption** - Password-protect chat history and workflow execution logs
 - **Edit History** - Track and restore AI-made changes with diff view
+- **Dashboard** - Arrange Bases views, notes, web pages, and workflow output in a responsive widget grid
 
 ![Chat Interface](docs/images/chat.png)
 
@@ -463,6 +464,55 @@ Workflows can be automatically triggered by Obsidian events:
 | `_eventOldPath` | Previous path (for rename events only) |
 
 > **Note:** `prompt-file` and `prompt-selection` nodes automatically use the event file when triggered by events. `prompt-selection` uses the entire file content as the selection.
+
+---
+
+# Dashboard
+
+Build a personal **home / overview page** from a responsive grid of widgets. A dashboard is a `.dashboard` file that arranges **Bases views**, **notes**, **web pages**, **workflow output**, and **kanban boards** in a drag-and-resize grid — open it like any note to see a live, editable board.
+
+![Dashboard](docs/images/dashboard.png)
+
+**Create a dashboard:**
+- Command: **"Gemini Helper: Create dashboard"** — creates a new board under `Dashboards/` and opens it
+- Or ask the AI in chat (the built-in **dashboard** agent skill authors `.dashboard` files, and the backing `.base` files, for you)
+
+**Edit mode:** Click **Edit** to drag, resize, add, and configure widgets; **Done** to view. The grid is responsive — widgets reflow into a single column on narrow screens. All edits save automatically.
+
+## Widget Types
+
+Click **+ Add widget** in edit mode to choose a type:
+
+![Add widget](docs/images/dashboard_widgets.png)
+
+| Widget | Shows | Key config |
+|--------|-------|------------|
+| **Base** | A named view of a `.base` file via Obsidian's native Bases UI (table / cards / list) | `base` path, `view` name |
+| **Markdown** | An existing note, rendered inline | `path` to the note |
+| **Web Embed** | A web page in an iframe | `url` |
+| **Workflow** | The output of a workflow, run headlessly and rendered as Markdown or HTML | `workflow` path, `output`, `refreshInterval` |
+| **Kanban** | Notes as draggable cards grouped into status columns | `tag`/`folder` filter, `statusProperty`, `columns` |
+
+**Base** and **Workflow** widgets include a **Create with AI** button to author the backing `.base` file or workflow without leaving the settings panel.
+
+## Kanban Board
+
+Turn notes into a drag-and-drop board. Cards are notes that match a **tag** and/or **folder** filter, grouped into columns by a frontmatter **status property**. Drag a card to another column to update that note's status — written straight back to the note's frontmatter. The board is fully interactive in **view mode**; no need to enter edit mode to move cards.
+
+![Kanban board](docs/images/dashboard_kanban.png)
+
+- **Title & New** — the header shows an optional board title (handy when one dashboard holds several boards) and a **New** button that opens a modal to enter a title and pick a column, then creates a note already matching the board's filters (folder, tag, status).
+- **Preview & open** — click a card to preview its note in a modal; the modal's open icon jumps to the note in a new tab.
+- **Columns** — color-coded and fully configurable; an optional "Unspecified" column collects cards whose status matches none of the columns.
+
+Configure everything from the widget settings in edit mode:
+
+![Kanban settings](docs/images/dashboard_kanban_edit.png)
+
+> [!NOTE]
+> **Workflow widgets read from a cache, not live.** A workflow widget runs only on the **Run** button, the config editor's test-run, or once on open when its cached result is older than the **Auto-refresh interval** (minutes; `0` = manual only). Results are stored in a hidden sidecar file next to the dashboard, so output survives reopening. The workflow must store its Markdown/HTML output in a variable (default `result`).
+
+> **For the `.dashboard` file format, the full YAML schema, and AI-generation tips, see [Dashboard Documentation](docs/DASHBOARD.md)**
 
 ---
 

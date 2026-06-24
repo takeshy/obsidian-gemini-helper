@@ -56,6 +56,15 @@ This runs `version-bump.mjs` which updates `package.json`, `manifest.json`, and 
 - **historyCanvas.ts** - Export execution history to Obsidian Canvas
 - **codeblockSync.ts** - Sync workflow changes back to markdown
 
+### Dashboard Layer (`src/dashboard/`)
+- Responsive widget grid stored as a `.dashboard` file (YAML, version 1). Opened via `DashboardView` (`src/ui/DashboardView.tsx`, a `TextFileView` registered for the `.dashboard` extension).
+- **dashboardFile.ts** - Parse/serialize `.dashboard` YAML, layout helpers, `createEmptyDashboard()`
+- **DashboardCanvas.tsx / GridCell.tsx / useGridLayout.ts / useBreakpoint.ts** - Drag/resize responsive grid
+- **widgets/registry.ts** - `registerCoreWidgets()` registers widget types (base, markdown, web, workflow, kanban); called once in `plugin.ts` onload
+- **widgets/** - Widget renderers + `config-editors/` panels; `workflowRunner.ts` runs workflow widgets headlessly with a sidecar result cache
+- **AIBaseModal.ts / aiBaseGenerate.ts** - Headless `.base` generation (Gemini-only) from the built-in `base` skill
+- New dashboards: `Dashboards/` folder; backing `.base` files: `Dashboards/Bases/`. The `dashboard` built-in agent skill (`builtinSkills.ts`) authors `.dashboard` + `.base` files.
+
 ### UI Layer (`src/ui/`)
 - **ChatView.tsx** - Obsidian ItemView wrapper for React
 - **SettingsTab.tsx** - Plugin settings UI

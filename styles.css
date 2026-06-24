@@ -7889,3 +7889,1047 @@
   word-break: break-word;
   user-select: text;
 }
+
+/* ============ Dashboard feature (ported from obsidian-llm-hub) ============ */
+.nav-folder[data-path="Dashboards"] > .nav-folder-title > .nav-folder-title-content::before,
+.nav-folder:has(> [data-path="Dashboards"]) > .nav-folder-title > .nav-folder-title-content::before {
+  content: "📊 ";
+}
+
+/* ===================================================================== */
+/* Dashboard (.dashboard widget grid)                                     */
+/* ===================================================================== */
+
+.llm-hub-dashboard-container {
+  height: 100%;
+  overflow: hidden;
+  padding: 0;
+}
+
+.llm-hub-db-root {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+  background: var(--background-primary);
+}
+
+/* Toolbar */
+.llm-hub-db-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 12px;
+  border-bottom: 1px solid var(--background-modifier-border);
+  flex-shrink: 0;
+}
+.llm-hub-db-toolbar-left,
+.llm-hub-db-toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.llm-hub-db-title {
+  font-weight: 600;
+  color: var(--text-normal);
+}
+.llm-hub-db-toolbtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  font-size: 12px;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-muted);
+  border: none;
+  cursor: pointer;
+  box-shadow: none;
+}
+.llm-hub-db-toolbtn:hover:not(:disabled) {
+  background: var(--background-modifier-hover);
+  color: var(--text-normal);
+}
+.llm-hub-db-toolbtn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+.llm-hub-db-toolbtn.is-accent {
+  color: var(--text-accent);
+}
+.llm-hub-db-toolbtn.is-active {
+  background: var(--background-modifier-active-hover);
+  color: var(--text-accent);
+}
+
+/* Scroll + grid */
+.llm-hub-db-scroll {
+  flex: 1;
+  overflow: auto;
+  padding: 12px;
+}
+.llm-hub-db-grid {
+  position: relative;
+  min-height: 100%;
+}
+
+/* Empty state */
+.llm-hub-db-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  min-height: 300px;
+  color: var(--text-muted);
+}
+.llm-hub-db-empty-icon {
+  color: var(--text-faint);
+}
+
+/* Grid cell */
+.llm-hub-db-cell {
+  position: relative;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: var(--background-primary);
+  overflow: hidden;
+  transition: box-shadow 0.15s ease;
+}
+.llm-hub-db-cell.is-edit {
+  border-color: var(--background-modifier-border);
+}
+.llm-hub-db-cell.is-active {
+  box-shadow: var(--shadow-l);
+  opacity: 0.85;
+  z-index: 30;
+}
+.llm-hub-db-cell-content {
+  height: 100%;
+  width: 100%;
+  overflow: auto;
+}
+
+/* Snap preview */
+.llm-hub-db-snap {
+  position: absolute;
+  pointer-events: none;
+  border: 2px solid var(--interactive-accent);
+  background: hsla(var(--interactive-accent-hsl), 0.12);
+  border-radius: 8px;
+  z-index: 20;
+}
+
+/* Cell controls (edit mode) */
+.llm-hub-db-drag {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: grab;
+  background: var(--background-secondary);
+  border-bottom: 1px solid var(--background-modifier-border);
+  color: var(--text-faint);
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+.llm-hub-db-drag:active {
+  cursor: grabbing;
+}
+.llm-hub-db-cell:hover .llm-hub-db-drag {
+  opacity: 1;
+}
+.llm-hub-db-actions {
+  position: absolute;
+  top: 2px;
+  right: 4px;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  z-index: 10;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+.llm-hub-db-cell:hover .llm-hub-db-actions {
+  opacity: 1;
+}
+.llm-hub-db-iconbtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  border-radius: 4px;
+  background: var(--background-secondary);
+  color: var(--text-muted);
+  border: none;
+  cursor: pointer;
+  box-shadow: none;
+}
+.llm-hub-db-iconbtn:hover {
+  color: var(--text-normal);
+  background: var(--background-modifier-hover);
+}
+.llm-hub-db-iconbtn.is-danger:hover {
+  color: var(--text-error);
+}
+.llm-hub-db-resize {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 18px;
+  height: 18px;
+  cursor: se-resize;
+  color: var(--text-faint);
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+.llm-hub-db-cell:hover .llm-hub-db-resize {
+  opacity: 1;
+}
+
+/* Widget bodies */
+.llm-hub-db-widget-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 100%;
+  padding: 12px;
+  color: var(--text-muted);
+  font-size: 13px;
+  text-align: center;
+}
+.llm-hub-db-web {
+  width: 100%;
+  height: 100%;
+  border: none;
+}
+.llm-hub-db-base,
+.llm-hub-db-markdown-wrap {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+.llm-hub-db-markdown-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 8px;
+  flex: 0 0 auto;
+  border-bottom: 1px solid var(--background-modifier-border);
+}
+.llm-hub-db-markdown-path {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--font-ui-smaller);
+  color: var(--text-muted);
+}
+.llm-hub-db-markdown-open {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  padding: 4px;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-muted);
+  border: none;
+  cursor: pointer;
+  box-shadow: none;
+}
+.llm-hub-db-markdown-open:hover {
+  background: var(--background-modifier-hover);
+  color: var(--text-normal);
+}
+.llm-hub-db-markdown {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 8px 12px;
+}
+
+/* Modal (widget palette) */
+.llm-hub-db-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: var(--layer-modal, 100);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.5);
+}
+.llm-hub-db-modal {
+  width: 100%;
+  max-width: 420px;
+  margin: 16px;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--background-primary);
+  border-radius: 8px;
+  box-shadow: var(--shadow-l);
+}
+.llm-hub-db-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--background-modifier-border);
+}
+.llm-hub-db-modal-header h3 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+}
+.llm-hub-db-palette-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: 12px;
+  padding: 16px;
+  overflow: auto;
+}
+.llm-hub-db-palette-item {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 92px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 18px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--background-modifier-border);
+  background: var(--background-secondary);
+  color: var(--text-normal);
+  font-size: 13px;
+  font-weight: 500;
+  text-align: center;
+  cursor: pointer;
+  box-shadow: none;
+  transition: border-color 0.12s ease, background 0.12s ease;
+}
+.llm-hub-db-palette-item:hover {
+  border-color: var(--interactive-accent);
+  background: var(--background-modifier-hover);
+}
+.llm-hub-db-palette-icon {
+  color: var(--text-muted);
+  display: inline-flex;
+}
+.llm-hub-db-palette-item .llm-hub-db-palette-icon svg {
+  width: 22px;
+  height: 22px;
+}
+
+/* Settings panel (right drawer) */
+.llm-hub-db-panel-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: var(--layer-modal, 100);
+  display: flex;
+  justify-content: flex-end;
+  background: rgba(0, 0, 0, 0.3);
+}
+.llm-hub-db-panel {
+  width: 100%;
+  max-width: 420px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: var(--background-primary);
+  box-shadow: var(--shadow-l);
+}
+.llm-hub-db-panel-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.llm-hub-db-panel-title h3 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+}
+.llm-hub-db-panel-body {
+  flex: 1;
+  overflow: auto;
+  padding: 16px;
+}
+.llm-hub-db-panel-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-top: 1px solid var(--background-modifier-border);
+}
+.llm-hub-db-hint {
+  margin: 0 0 12px;
+  font-size: 11px;
+  color: var(--text-faint);
+}
+.llm-hub-db-empty-hint {
+  text-align: center;
+  padding: 32px 0;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+/* Config editor fields */
+.llm-hub-db-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.llm-hub-db-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.llm-hub-db-field label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-normal);
+}
+.llm-hub-db-field input,
+.llm-hub-db-field select {
+  width: 100%;
+}
+.llm-hub-db-error {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-error);
+}
+
+/* Buttons */
+.llm-hub-db-primary-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  font-size: 13px;
+  font-weight: 500;
+  border-radius: 6px;
+  background: var(--interactive-accent);
+  color: var(--text-on-accent);
+  border: none;
+  cursor: pointer;
+}
+.llm-hub-db-primary-btn:hover {
+  background: var(--interactive-accent-hover);
+}
+.llm-hub-db-danger-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  background: transparent;
+  border: none;
+  color: var(--text-error);
+  cursor: pointer;
+  box-shadow: none;
+}
+
+/* Searchable file picker (@-mention style) */
+.llm-hub-db-picker {
+  position: relative;
+  width: 100%;
+}
+.llm-hub-db-picker-button {
+  box-sizing: border-box;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  border: 1px solid var(--background-modifier-border);
+  background: var(--background-primary);
+  color: var(--text-normal);
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+  box-shadow: none;
+}
+.llm-hub-db-picker-button:hover {
+  background: var(--background-modifier-hover);
+}
+.llm-hub-db-picker-leadicon {
+  flex-shrink: 0;
+  color: var(--text-muted);
+}
+.llm-hub-db-picker-label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.llm-hub-db-picker-caret {
+  flex-shrink: 0;
+  color: var(--text-faint);
+}
+.llm-hub-db-picker-clear {
+  flex-shrink: 0;
+  color: var(--text-faint);
+  cursor: pointer;
+}
+.llm-hub-db-picker-clear:hover {
+  color: var(--text-error);
+}
+.llm-hub-db-picker-menu {
+  position: absolute;
+  z-index: 10;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  background: var(--background-primary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 8px;
+  box-shadow: var(--shadow-l);
+  padding: 6px;
+}
+.llm-hub-db-picker-search {
+  width: 100%;
+  margin-bottom: 4px;
+}
+.llm-hub-db-picker-list {
+  max-height: 220px;
+  overflow: auto;
+}
+.llm-hub-db-picker-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 6px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-normal);
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+  box-shadow: none;
+}
+.llm-hub-db-picker-item.is-active {
+  background: var(--background-modifier-hover);
+}
+.llm-hub-db-picker-item.is-selected {
+  color: var(--interactive-accent);
+}
+.llm-hub-db-picker-itemicon {
+  flex-shrink: 0;
+  color: var(--text-muted);
+}
+.llm-hub-db-picker-itemlabel {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.llm-hub-db-picker-empty {
+  padding: 8px 6px;
+  font-size: 12px;
+  color: var(--text-faint);
+}
+
+/* AI base actions (config editor) */
+.llm-hub-db-ai-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+.llm-hub-db-ai-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  font-size: 12px;
+  border-radius: 6px;
+  border: 1px solid var(--background-modifier-border);
+  background: var(--background-secondary);
+  color: var(--text-normal);
+  cursor: pointer;
+  box-shadow: none;
+}
+.llm-hub-db-ai-btn:hover {
+  border-color: var(--interactive-accent);
+  color: var(--interactive-accent);
+}
+
+/* Input with a leading icon (web URL) */
+.llm-hub-db-input-icon {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 8px;
+  border-radius: 6px;
+  border: 1px solid var(--background-modifier-border);
+  background: var(--background-primary);
+}
+.llm-hub-db-input-icon .llm-hub-db-input-leadicon {
+  flex-shrink: 0;
+  color: var(--text-muted);
+}
+.llm-hub-db-input-icon input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  box-shadow: none;
+  padding: 6px 0;
+}
+.llm-hub-db-web-open {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  color: var(--interactive-accent);
+  text-decoration: none;
+}
+.llm-hub-db-web-open:hover {
+  text-decoration: underline;
+}
+
+/* AI base generation modal */
+.llm-hub-db-ai-modal h3 {
+  margin: 0 0 12px;
+  font-size: 15px;
+}
+.llm-hub-db-ai-row {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-bottom: 12px;
+}
+.llm-hub-db-ai-row label {
+  font-size: 13px;
+  font-weight: 500;
+}
+.llm-hub-db-ai-row input,
+.llm-hub-db-ai-row textarea,
+.llm-hub-db-ai-row select {
+  width: 100%;
+}
+.llm-hub-db-ai-row textarea {
+  resize: vertical;
+  min-height: 80px;
+}
+.llm-hub-db-ai-target {
+  margin: 0 0 12px;
+  font-size: 12px;
+  color: var(--text-muted);
+  word-break: break-all;
+}
+.llm-hub-db-ai-status {
+  min-height: 18px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+.llm-hub-db-ai-status.is-error {
+  color: var(--text-error);
+}
+.llm-hub-db-ai-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 12px;
+}
+.llm-hub-db-ai-footer button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+/* Segmented toggle (output format) */
+.llm-hub-db-toggle {
+  display: inline-flex;
+  gap: 4px;
+}
+.llm-hub-db-toggle-btn {
+  padding: 5px 14px;
+  font-size: 12px;
+  border-radius: 6px;
+  border: 1px solid var(--background-modifier-border);
+  background: var(--background-primary);
+  color: var(--text-muted);
+  cursor: pointer;
+  box-shadow: none;
+}
+.llm-hub-db-toggle-btn.is-active {
+  border-color: var(--interactive-accent);
+  background: var(--background-modifier-hover);
+  color: var(--text-normal);
+}
+
+/* Test-run result preview (config editor) */
+.llm-hub-db-test-ok,
+.llm-hub-db-test-err {
+  margin-top: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+}
+.llm-hub-db-test-ok {
+  color: var(--text-success, var(--interactive-accent));
+}
+.llm-hub-db-test-err {
+  color: var(--text-error);
+}
+.llm-hub-db-test-ok pre {
+  flex-basis: 100%;
+  max-height: 90px;
+  overflow: auto;
+  margin: 4px 0 0;
+  padding: 6px;
+  font-size: 11px;
+  white-space: pre-wrap;
+  word-break: break-all;
+  background: var(--background-secondary);
+  border-radius: 6px;
+  color: var(--text-muted);
+}
+
+/* Workflow widget */
+.llm-hub-db-wf {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+.llm-hub-db-wf-header {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 3px 8px;
+  border-bottom: 1px solid var(--background-modifier-border);
+}
+.llm-hub-db-wf-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 10px;
+  color: var(--text-faint);
+}
+.llm-hub-db-wf-time,
+.llm-hub-db-wf-stale {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+.llm-hub-db-wf-stale {
+  color: var(--text-warning, var(--text-error));
+}
+.llm-hub-db-wf-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.llm-hub-db-wf-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 7px;
+  font-size: 10px;
+  border-radius: 5px;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  box-shadow: none;
+}
+.llm-hub-db-wf-btn:hover:not(:disabled) {
+  background: var(--background-modifier-hover);
+}
+.llm-hub-db-wf-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.llm-hub-db-wf-btn.is-danger {
+  color: var(--text-error);
+}
+.llm-hub-db-wf-error {
+  flex-shrink: 0;
+  padding: 4px 8px;
+  font-size: 11px;
+  color: var(--text-error);
+  background: var(--background-modifier-error, rgba(255, 0, 0, 0.08));
+  border-bottom: 1px solid var(--background-modifier-border);
+}
+.llm-hub-db-wf-body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+.llm-hub-db-wf-body .llm-hub-db-web {
+  height: 100%;
+}
+.is-spinning {
+  animation: llm-hub-db-spin 1s linear infinite;
+}
+@keyframes llm-hub-db-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* Kanban widget */
+.llm-hub-db-kanban-wrap {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+.llm-hub-db-kanban-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 4px 8px;
+  flex: 0 0 auto;
+}
+.llm-hub-db-kanban-board-title {
+  font-weight: 600;
+  font-size: var(--font-ui-medium);
+  color: var(--text-normal);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* Keep the New button pinned right even when no title is set. */
+.llm-hub-db-kanban-header .llm-hub-db-kanban-new {
+  margin-left: auto;
+}
+.llm-hub-db-kanban-new {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  font-size: var(--font-ui-smaller);
+  font-weight: 500;
+  border-radius: 6px;
+  background: var(--interactive-accent);
+  color: var(--text-on-accent);
+  border: none;
+  cursor: pointer;
+  flex: 0 0 auto;
+}
+.llm-hub-db-kanban-new:hover {
+  background: var(--interactive-accent-hover);
+}
+.llm-hub-db-kanban {
+  display: flex;
+  gap: 10px;
+  flex: 1;
+  min-height: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 6px;
+}
+.llm-hub-db-kanban-column {
+  --col-accent: var(--interactive-accent);
+  display: flex;
+  flex-direction: column;
+  flex: 0 0 240px;
+  min-width: 240px;
+  background: var(--background-secondary);
+  border-radius: 8px;
+  border-top: 3px solid var(--col-accent);
+  padding: 6px;
+  transition: outline-color 0.1s;
+  outline: 2px solid transparent;
+  outline-offset: -2px;
+}
+/* Cycle accent colours per column so adjacent columns are visually distinct. */
+.llm-hub-db-kanban-column:nth-child(8n + 1) { --col-accent: var(--color-blue); }
+.llm-hub-db-kanban-column:nth-child(8n + 2) { --col-accent: var(--color-orange); }
+.llm-hub-db-kanban-column:nth-child(8n + 3) { --col-accent: var(--color-green); }
+.llm-hub-db-kanban-column:nth-child(8n + 4) { --col-accent: var(--color-purple); }
+.llm-hub-db-kanban-column:nth-child(8n + 5) { --col-accent: var(--color-cyan); }
+.llm-hub-db-kanban-column:nth-child(8n + 6) { --col-accent: var(--color-pink); }
+.llm-hub-db-kanban-column:nth-child(8n + 7) { --col-accent: var(--color-yellow); }
+.llm-hub-db-kanban-column:nth-child(8n + 8) { --col-accent: var(--color-red); }
+.llm-hub-db-kanban-column.is-drop-target {
+  outline-color: var(--col-accent);
+  background: color-mix(in srgb, var(--col-accent) 12%, var(--background-secondary));
+}
+.llm-hub-db-kanban-column-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 6px 6px;
+  font-weight: 600;
+  font-size: var(--font-ui-small);
+  color: var(--col-accent);
+  border-bottom: 2px solid var(--col-accent);
+  margin-bottom: 6px;
+}
+.llm-hub-db-kanban-column-count {
+  min-width: 18px;
+  padding: 1px 6px;
+  border-radius: 9px;
+  text-align: center;
+  background: var(--col-accent);
+  color: var(--text-on-accent);
+  font-weight: 600;
+  font-size: var(--font-ui-smaller);
+}
+.llm-hub-db-kanban-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  flex: 1;
+  overflow-y: auto;
+  min-height: 24px;
+}
+.llm-hub-db-kanban-card {
+  background: var(--background-primary);
+  border: 1px solid var(--background-modifier-border);
+  border-left: 3px solid var(--col-accent);
+  border-radius: 6px;
+  padding: 7px 9px;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+  transition: border-color 0.1s, box-shadow 0.1s;
+}
+.llm-hub-db-kanban-card:hover {
+  border-color: var(--col-accent);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+}
+.llm-hub-db-kanban-card.is-dragging {
+  opacity: 0.3;
+}
+/* Flash the card after it lands in its new column so the move is easy to track. */
+.llm-hub-db-kanban-card.is-landed {
+  animation: llm-hub-db-kanban-land 0.7s ease-out;
+}
+@keyframes llm-hub-db-kanban-land {
+  0% {
+    background: color-mix(in srgb, var(--col-accent) 40%, var(--background-primary));
+    transform: scale(1.04);
+    box-shadow: 0 0 0 2px var(--col-accent);
+  }
+  100% {
+    background: var(--background-primary);
+    transform: scale(1);
+    box-shadow: none;
+  }
+}
+.llm-hub-db-kanban-card:active {
+  cursor: grabbing;
+}
+.llm-hub-db-kanban-card-title {
+  font-weight: 500;
+  font-size: var(--font-ui-small);
+  word-break: break-word;
+  line-height: 1.3;
+}
+.llm-hub-db-kanban-card-meta {
+  color: var(--text-muted);
+  font-size: var(--font-ui-smaller);
+  margin-top: 3px;
+  word-break: break-all;
+}
+.llm-hub-db-kanban-column-empty {
+  min-height: 24px;
+}
+.llm-hub-db-kanban-ghost {
+  position: fixed;
+  pointer-events: none;
+  z-index: 9999;
+  max-width: 240px;
+  background: var(--background-primary);
+  border: 1px solid var(--interactive-accent);
+  border-left: 3px solid var(--interactive-accent);
+  border-radius: 6px;
+  padding: 7px 9px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+  opacity: 0.95;
+  transform: rotate(2deg) scale(1.03);
+}
+.llm-hub-db-kanban-empty {
+  color: var(--text-muted);
+  font-size: var(--font-ui-smaller);
+  padding: 24px 12px;
+  text-align: center;
+  width: 100%;
+}
+
+/* Kanban card preview modal */
+.llm-hub-db-kanban-card-modal-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  /* Leave room for Obsidian's absolutely-positioned close (×) button. */
+  padding-right: 28px;
+  margin-bottom: 10px;
+}
+.llm-hub-db-kanban-card-modal-title {
+  flex: 0 1 auto;
+  min-width: 0;
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.llm-hub-db-kanban-card-modal-open {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  padding: 4px;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-muted);
+  border: none;
+  cursor: pointer;
+  box-shadow: none;
+}
+.llm-hub-db-kanban-card-modal-open:hover {
+  background: var(--background-modifier-hover);
+  color: var(--text-normal);
+}
+.llm-hub-db-kanban-card-modal-body {
+  max-height: 60vh;
+  overflow-y: auto;
+  border-top: 1px solid var(--background-modifier-border);
+  padding-top: 10px;
+}
+
+/* Kanban config editor */
+.llm-hub-db-kanban-config-col {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  margin-bottom: 6px;
+}
+.llm-hub-db-kanban-config-col input {
+  flex: 1;
+  min-width: 0;
+}
+.llm-hub-db-kanban-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+}
+.llm-hub-db-kanban-checkbox input[type="checkbox"] {
+  width: var(--checkbox-size, 16px);
+  height: var(--checkbox-size, 16px);
+  flex: 0 0 auto;
+  margin: 0;
+}

@@ -342,6 +342,9 @@ export class AIWorkflowModal extends Modal {
   private forceSkill = false;
   /** Existing skill instructions (SKILL.md body), passed when modifying a skill. */
   private existingInstructions?: string;
+  /** Extra model-facing instructions appended to the user's request (e.g. an
+   *  output-format contract for dashboard workflow widgets). */
+  private appendInstructions?: string;
   private resolvePromise: (result: AIWorkflowResult | null) => void;
 
   private nameInputEl: HTMLInputElement | null = null;
@@ -398,7 +401,7 @@ export class AIWorkflowModal extends Modal {
     existingYaml?: string,
     existingName?: string,
     defaultOutputPath?: string,
-    options?: { isSkill?: boolean; existingInstructions?: string }
+    options?: { isSkill?: boolean; existingInstructions?: string; appendInstructions?: string }
   ) {
     super(app);
     this.plugin = plugin;
@@ -409,6 +412,7 @@ export class AIWorkflowModal extends Modal {
     this.defaultOutputPath = defaultOutputPath;
     this.forceSkill = options?.isSkill ?? false;
     this.existingInstructions = options?.existingInstructions;
+    this.appendInstructions = options?.appendInstructions;
   }
 
   /** Whether this session is operating on a skill (either forced via constructor or chosen via checkbox). */
@@ -1826,7 +1830,30 @@ IMPORTANT RULES:
 ${outputRules}`;
   }
 
+  /**
+   * Build the generation user prompt, always re-asserting `appendInstructions`
+   * (e.g. the dashboard widget's headless output contract) as ACTIVE guidance.
+   * Appending here — rather than baking it into the first request only — keeps
+   * the contract present on user-requested revisions, where the original
+   * request is demoted to a "previous attempts" reference.
+   */
   private buildUserPrompt(
+    currentRequest: string,
+    workflowName?: string,
+    previousYaml?: string,
+    requestHistory: string[] = [],
+    selectedExecutionSteps?: import("src/workflow/types").ExecutionStep[],
+    isSkill = false,
+    plan?: string
+  ): string {
+    const body = this.buildUserPromptBody(
+      currentRequest, workflowName, previousYaml, requestHistory,
+      selectedExecutionSteps, isSkill, plan
+    );
+    return this.appendInstructions ? `${body}\n\n${this.appendInstructions}` : body;
+  }
+
+  private buildUserPromptBody(
     currentRequest: string,
     workflowName?: string,
     previousYaml?: string,
@@ -2444,7 +2471,7 @@ export function promptForAIWorkflow(
   existingYaml?: string,
   existingName?: string,
   defaultOutputPath?: string,
-  options?: { isSkill?: boolean; existingInstructions?: string }
+  options?: { isSkill?: boolean; existingInstructions?: string; appendInstructions?: string }
 ): Promise<AIWorkflowResult | null> {
   return new Promise((resolve) => {
     const modal = new AIWorkflowModal(

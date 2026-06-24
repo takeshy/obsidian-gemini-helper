@@ -388,71 +388,41 @@ A canvas file (\`.canvas\`) contains two top-level arrays following the JSON Can
 };
 
 // ---------------------------------------------------------------------------
-// obsidian-bases
+// base + dashboard
 // ---------------------------------------------------------------------------
 
-const OBSIDIAN_BASES: BuiltinSkillDefinition = {
-  id: "obsidian-bases",
-  name: "obsidian-bases",
+const BASE: BuiltinSkillDefinition = {
+  id: "base",
+  name: "base",
   description: "Create and edit Obsidian Bases (.base files) with views, filters, formulas, and summaries. Use when working with .base files, creating database-like views of notes, or when the user mentions Bases, table views, card views, filters, or formulas in Obsidian.",
   instructions: `# Obsidian Bases Skill
 
+Create Obsidian Bases (\`.base\`) files that display dynamic, filtered views of vault content.
+
 ## Workflow
 
-1. **Create the file**: Create a \`.base\` file in the vault with valid YAML content
-2. **Define scope**: Add \`filters\` to select which notes appear (by tag, folder, property, or date)
-3. **Add formulas** (optional): Define computed properties in the \`formulas\` section
-4. **Configure views**: Add one or more views (\`table\`, \`cards\`, \`list\`, or \`map\`)
-5. **Validate**: Verify valid YAML with no syntax errors
+1. **Clarify the use case** — ask what data to show, how to filter, and how to group/sort if not clear.
+2. **Create the file** — use \`create_note\` with \`name: "<Name>.base"\` and \`folder: "Dashboards/Bases"\`.
+3. **Define filters** — narrow down which notes appear (by tag, folder, property, or date).
+4. **Add formulas** (optional) — compute derived values in the \`formulas\` section.
+5. **Configure views** — add one or more views (\`table\`, \`cards\`, \`list\`, or \`map\`).
+6. **Validate YAML** — ensure valid YAML with no syntax errors, proper quoting.
 
-## Schema
+## File Structure
+
+A \`.base\` file is YAML with these top-level sections (all optional):
 
 \`\`\`yaml
-filters:
-  and: []
-  or: []
-  not: []
-
-formulas:
-  formula_name: 'expression'
-
-properties:
-  property_name:
-    displayName: "Display Name"
-
-summaries:
-  custom_summary_name: 'values.mean().round(3)'
-
-views:
-  - type: table | cards | list | map
-    name: "View Name"
-    limit: 10
-    groupBy:
-      property: property_name
-      direction: ASC | DESC
-    filters:
-      and: []
-    order:
-      - file.name
-      - property_name
-      - formula.formula_name
-    summaries:
-      property_name: Average
+filters:    # Global filters applied to all views
+formulas:   # Computed properties reusable across views
+properties: # Display configuration per property
+summaries:  # Custom summary formula definitions
+views:      # List of view configurations
 \`\`\`
 
-## Filter Syntax
+## Complete Example
 
 \`\`\`yaml
-# Single filter
-filters: 'status == "done"'
-
-# AND - all conditions must be true
-filters:
-  and:
-    - 'status == "done"'
-    - 'priority > 3'
-
-# OR / NOT / Nested
 filters:
   or:
     - file.hasTag("tag")
@@ -460,117 +430,363 @@ filters:
         - file.hasTag("book")
         - file.hasLink("Textbook")
     - not:
-        - file.hasTag("archived")
+        - file.hasTag("book")
+        - file.inFolder("Required Reading")
+formulas:
+  formatted_price: 'if(price, price.toFixed(2) + " dollars")'
+  ppu: "(price / age).toFixed(2)"
+properties:
+  status:
+    displayName: Status
+  formula.formatted_price:
+    displayName: "Price"
+  file.ext:
+    displayName: Extension
+summaries:
+  customAverage: 'values.mean().round(3)'
+views:
+  - type: table
+    name: "My table"
+    limit: 10
+    groupBy:
+      property: note.age
+      direction: DESC
+    filters:
+      and:
+        - 'status != "done"'
+        - or:
+            - "formula.ppu > 5"
+            - "price > 2.1"
+    order:
+      - file.name
+      - file.ext
+      - note.age
+      - formula.ppu
+      - formula.formatted_price
+    summaries:
+      formula.ppu: Average
 \`\`\`
 
-### Filter Operators
+## Filters
 
-| Operator | Description |
-|----------|-------------|
-| \`==\` | equals |
-| \`!=\` | not equal |
-| \`>\`, \`<\`, \`>=\`, \`<=\` | comparison |
-| \`&&\`, \`\\|\\|\`, \`!\` | logical |
+By default a base includes every file in the vault (no \`from\`/\`source\` like SQL or Dataview). Use \`filters\` to narrow down.
+
+Filters can be applied at two levels:
+1. **Global \`filters\`** — apply to all views in the base.
+2. **View-level \`filters\`** — apply only to a specific view.
+
+Both are concatenated with \`AND\` when evaluating a view.
+
+### Filter Structure
+
+A filter is either a single string statement, or a recursively defined object with \`and\`, \`or\`, or \`not\` keys containing lists of filter objects or string statements.
+
+\`\`\`yaml
+# Simple
+filters:
+  and:
+    - file.hasTag("tag")
+
+# Complex nested
+filters:
+  or:
+    - file.hasTag("tag")
+    - and:
+        - file.hasTag("book")
+        - file.hasLink("Textbook")
+    - not:
+        - file.hasTag("book")
+        - file.inFolder("Required Reading")
+\`\`\`
+
+### Filter Statements
+
+A filter statement is a string that evaluates to truthy/falsey. It can be:
+- A basic comparison using arithmetic/comparison operators.
+- A function call (e.g., \`file.hasTag("book")\`).
+
+## Formulas
+
+Formula properties are computed values displayed across views. Stored as strings in YAML; output type depends on data and functions used.
+
+\`\`\`yaml
+formulas:
+  formatted_price: 'if(price, price.toFixed(2) + " dollars")'
+  ppu: "(price / age).toFixed(2)"
+\`\`\`
+
+### Property References
+
+| Kind | Prefix | Example |
+|------|--------|---------|
+| Note properties (frontmatter) | \`note.\` or none | \`note.price\`, \`price\` |
+| File properties | \`file.\` | \`file.size\`, \`file.ext\` |
+| Formula properties | \`formula.\` | \`formula.formatted_price\` |
+
+- Formulas can reference other formulas as long as there is no circular reference.
+- Use nested quotes for text literals: \`'if(status, "Done")'\`.
 
 ## Properties
 
-### Three Types
-
-1. **Note properties** - From frontmatter: \`author\` or \`note.author\`
-2. **File properties** - File metadata: \`file.name\`, \`file.mtime\`, etc.
-3. **Formula properties** - Computed: \`formula.my_formula\`
-
-### File Properties
-
-| Property | Type | Description |
-|----------|------|-------------|
-| \`file.name\` | String | File name |
-| \`file.basename\` | String | Name without extension |
-| \`file.path\` | String | Full path |
-| \`file.folder\` | String | Parent folder |
-| \`file.ext\` | String | Extension |
-| \`file.size\` | Number | Size in bytes |
-| \`file.ctime\` | Date | Created time |
-| \`file.mtime\` | Date | Modified time |
-| \`file.tags\` | List | All tags |
-| \`file.links\` | List | Internal links |
-| \`file.backlinks\` | List | Files linking to this |
-
-## Formula Syntax
+Stores display configuration per property. Used by views (e.g., table column headers use \`displayName\`).
 
 \`\`\`yaml
-formulas:
-  total: "price * quantity"
-  status_icon: 'if(done, "✅", "⏳")'
-  created: 'file.ctime.format("YYYY-MM-DD")'
-  days_old: '(now() - file.ctime).days'
-  days_until_due: 'if(due_date, (date(due_date) - today()).days, "")'
+properties:
+  status:
+    displayName: Status
+  formula.formatted_price:
+    displayName: "Price"
+  file.ext:
+    displayName: Extension
 \`\`\`
 
-**Duration**: Subtracting dates returns Duration, not a number. Always access \`.days\`, \`.hours\`, etc. before using number functions.
+Display names are NOT used in filters or formulas.
 
-## View Types
+## Summaries
 
-### Table
+### Custom Summary Formulas
+
+\`\`\`yaml
+summaries:
+  customAverage: 'values.mean().round(3)'
+\`\`\`
+
+In summary formulas, \`values\` is a list of all values for that property across every note in the result set. The formula should return a single Value.
+
+### Default Summary Formulas
+
+| Name | Input Type | Description |
+|------|-----------|-------------|
+| Average | Number | Mathematical mean |
+| Min | Number | Smallest value |
+| Max | Number | Largest value |
+| Sum | Number | Sum of all numbers |
+| Range | Number | Max - Min |
+| Range | Date | Latest - Earliest |
+| Median | Number | Mathematical median |
+| Stddev | Number | Standard deviation |
+| Earliest | Date | Earliest date |
+| Latest | Date | Latest date |
+| Checked | Boolean | Count of true values |
+| Unchecked | Boolean | Count of false values |
+| Empty | Any | Count of empty values |
+| Filled | Any | Count of non-empty values |
+| Unique | Any | Count of unique values |
+
+## Views
+
+Each entry in \`views\` defines a separate view of the same data.
+
 \`\`\`yaml
 views:
   - type: table
-    name: "My Table"
-    order: [file.name, status, due_date]
-    summaries:
-      price: Sum
-\`\`\`
-
-### Cards
-\`\`\`yaml
-views:
-  - type: cards
-    name: "Gallery"
-    order: [file.name, cover_image, description]
-\`\`\`
-
-### List
-\`\`\`yaml
-views:
-  - type: list
-    name: "Simple List"
-    order: [file.name, status]
-\`\`\`
-
-## Default Summary Formulas
-
-\`Average\`, \`Min\`, \`Max\`, \`Sum\`, \`Range\`, \`Median\`, \`Stddev\`, \`Earliest\`, \`Latest\`, \`Checked\`, \`Unchecked\`, \`Empty\`, \`Filled\`, \`Unique\`
-
-## Complete Example
-
-\`\`\`yaml
-filters:
-  and:
-    - file.hasTag("task")
-    - 'file.ext == "md"'
-
-formulas:
-  days_until_due: 'if(due, (date(due) - today()).days, "")'
-  is_overdue: 'if(due, date(due) < today() && status != "done", false)'
-  priority_label: 'if(priority == 1, "🔴 High", if(priority == 2, "🟡 Medium", "🟢 Low"))'
-
-views:
-  - type: table
-    name: "Active Tasks"
+    name: "My table"
+    limit: 10
+    groupBy:
+      property: note.age
+      direction: DESC
     filters:
       and:
         - 'status != "done"'
     order:
       - file.name
-      - status
-      - formula.priority_label
-      - due
-      - formula.days_until_due
-    groupBy:
-      property: status
-      direction: ASC
+      - note.age
     summaries:
-      formula.days_until_due: Average
+      formula.ppu: Average
+\`\`\`
+
+### View Fields
+
+| Field | Description |
+|-------|-------------|
+| \`type\` | View layout: \`table\`, \`cards\`, \`list\`, \`map\` |
+| \`name\` | Display name; first view in list loads by default |
+| \`limit\` | Max number of rows |
+| \`filters\` | View-level filters (same syntax as global, concatenated with AND) |
+| \`groupBy\` | Object with \`property\` and \`direction\` (\`ASC\`/\`DESC\`) |
+| \`order\` | List of property names to sort by |
+| \`summaries\` | Map of property names to summary formula names |
+
+### View Types
+
+| Type | Description | App version |
+|------|-------------|-------------|
+| \`table\` | Rows in a table, columns from properties | 1.9 |
+| \`cards\` | Grid of cards, gallery-like with images | 1.9 |
+| \`list\` | Bulleted or numbered list | 1.10 |
+| \`map\` | Pins on interactive map (requires Maps plugin) | 1.10 |
+
+### Embedding
+
+Embed a base in any file: \`![[File.base]]\` (uses first view) or \`![[File.base#View]]\` (specific view).
+
+## File Properties
+
+Available for all file types (including attachments):
+
+| Property | Type | Description |
+|----------|------|-------------|
+| \`file.backlinks\` | List | List of backlink files (performance heavy; prefer \`file.links\` reverse) |
+| \`file.ctime\` | Date | Created time |
+| \`file.embeds\` | List | List of all embeds in the note |
+| \`file.ext\` | String | File extension |
+| \`file.file\` | File | File object, only usable in specific functions |
+| \`file.folder\` | String | Path of the file folder |
+| \`file.links\` | List | List of all internal links (including frontmatter) |
+| \`file.mtime\` | Date | Modified time |
+| \`file.name\` | String | File name |
+| \`file.basename\` | String | File name without extension |
+| \`file.path\` | String | Path of the file |
+| \`file.properties\` | Object | All properties on the file |
+| \`file.size\` | Number | File size |
+| \`file.tags\` | List | List of all tags in content and frontmatter |
+
+### The \`this\` Object
+
+\`this\` refers to different things depending on context:
+- **Main content area**: properties of the base file itself (e.g., \`this.file.folder\`).
+- **Embedded in another file**: properties of the embedding file.
+- **Sidebar**: properties of the active file in main content area.
+
+Use case: \`file.hasLink(this.file)\` replicates the backlinks pane.
+
+## Operators
+
+### Arithmetic
+
+| Operator | Description |
+|----------|-------------|
+| \`+\` | plus |
+| \`-\` | minus |
+| \`*\` | multiply |
+| \`/\` | divide |
+| \`%\` | modulo |
+| \`( )\` | parenthesis |
+
+### Date Arithmetic
+
+Add/subtract durations using \`+\`/\`-\` with duration strings:
+
+| Unit | Duration |
+|------|----------|
+| \`y\`, \`year\`, \`years\` | year |
+| \`M\`, \`month\`, \`months\` | month |
+| \`d\`, \`day\`, \`days\` | day |
+| \`w\`, \`week\`, \`weeks\` | week |
+| \`h\`, \`hour\`, \`hours\` | hour |
+| \`m\`, \`minute\`, \`minutes\` | minute |
+| \`s\`, \`second\`, \`seconds\` | second |
+
+Examples:
+- \`now() + "1 day"\` — 24 hours from now
+- \`file.mtime > now() - "1 week"\` — modified within last week
+- \`date("2024-12-01") + "1M" + "4h" + "3m"\` — 2025-01-01 04:03:00
+- Subtract two dates for millisecond difference: \`now() - file.ctime\`
+- \`datetime.date()\` — date portion only
+- \`datetime.format("YYYY-MM-DD")\` — formatted string
+
+### Comparison
+
+| Operator | Description |
+|----------|-------------|
+| \`==\` | equals (any type) |
+| \`!=\` | not equal (any type) |
+| \`>\` | greater than |
+| \`<\` | less than |
+| \`>=\` | greater than or equal |
+| \`<=\` | less than or equal |
+
+### Boolean
+
+| Operator | Description |
+|----------|-------------|
+| \`!\` | logical not |
+| \`&&\` | logical and |
+| \`\\|\\|\` | logical or |
+
+## Types
+
+- **Strings**: \`"message"\` (single or double quotes)
+- **Numbers**: \`1\`, \`(2.5)\` (parenthesis optional for clarity)
+- **Booleans**: \`true\` / \`false\` (no quotes)
+- **Dates**: via \`date("2025-01-01 12:00:00")\`, \`now()\`, \`today()\`
+- **Lists**: \`list()\` function, access via \`[index]\`
+- **Objects**: access via \`.prop\` or \`["prop"]\`
+- **Links**: auto-recognized from wikilinks in frontmatter; \`link("filename")\`
+- **Files**: via \`file()\` function; \`file.asLink()\` to convert
+
+## Common Dashboard Patterns
+
+**Task tracker** (notes with status frontmatter):
+\`\`\`yaml
+filters:
+  and:
+    - file.hasTag("task")
+    - 'status != "done"'
+views:
+  - type: table
+    name: "Active tasks"
+    order:
+      - file.name
+      - note.priority
+      - note.due
+    groupBy:
+      property: note.status
+      direction: ASC
+\`\`\`
+
+**Recently modified notes**:
+\`\`\`yaml
+filters:
+  and:
+    - 'file.mtime > now() - "7 days"'
+    - 'file.ext == "md"'
+views:
+  - type: table
+    name: "Recently modified"
+    order:
+      - file.name
+      - file.mtime
+    limit: 20
+\`\`\`
+
+**Books by reading status**:
+\`\`\`yaml
+filters:
+  and:
+    - file.hasTag("book")
+formulas:
+  pages_read: 'if(read, pages, 0)'
+  progress: '(pages_read / pages * 100).round(1)'
+properties:
+  formula.progress:
+    displayName: "Progress %"
+views:
+  - type: cards
+    name: "Library"
+    order:
+      - file.name
+      - note.author
+      - formula.progress
+  - type: table
+    name: "Reading list"
+    filters:
+      and:
+        - 'status == "reading"'
+    order:
+      - file.name
+      - note.author
+      - formula.progress
+\`\`\`
+
+**Backlinks for active file** (sidebar use):
+\`\`\`yaml
+filters:
+  and:
+    - file.hasLink(this.file)
+views:
+  - type: list
+    name: "Backlinks"
 \`\`\`
 
 ## YAML Quoting Rules
@@ -578,94 +794,427 @@ views:
 - Use single quotes for formulas containing double quotes: \`'if(done, "Yes", "No")'\`
 - Use double quotes for simple strings: \`"My View Name"\`
 - Strings containing \`:\`, \`{\`, \`}\`, \`[\`, \`]\`, \`#\`, etc. must be quoted
+- No tabs allowed; use consistent spaces for indentation
 
-## Embedding Bases
+## Validation Checklist
 
-\`\`\`markdown
-![[MyBase.base]]
-![[MyBase.base#View Name]]
-\`\`\``,
+- [ ] Valid YAML (no tabs, consistent indentation)
+- [ ] Filter statements are strings (quoted)
+- [ ] Formula strings properly quoted with nested quotes for literals
+- [ ] Property references use correct prefix (\`note.\`, \`file.\`, \`formula.\`)
+- [ ] View \`type\` is valid (\`table\`, \`cards\`, \`list\`, \`map\`)
+- [ ] No circular formula references
+- [ ] \`groupBy.direction\` is \`ASC\` or \`DESC\``,
   references: [
     `[FUNCTIONS_REFERENCE.md]
 # Functions Reference
 
 ## Global Functions
 
-| Function | Description |
-|----------|-------------|
-| \`date(string)\` | Parse string to date (YYYY-MM-DD HH:mm:ss) |
-| \`duration(string)\` | Parse duration string |
-| \`now()\` | Current date and time |
-| \`today()\` | Current date (time = 00:00:00) |
-| \`if(condition, trueResult, falseResult?)\` | Conditional |
-| \`min(n1, n2, ...)\` | Smallest number |
-| \`max(n1, n2, ...)\` | Largest number |
-| \`number(any)\` | Convert to number |
-| \`link(path, display?)\` | Create a link |
-| \`file(path)\` | Get file object |
-| \`image(path)\` | Create image for rendering |
+| Function | Signature | Description |
+|----------|-----------|-------------|
+| \`escapeHTML()\` | \`escapeHTML(html: string): string\` | Escape HTML special characters |
+| \`date()\` | \`date(date: string): date\` | Parse YYYY-MM-DD HH:mm:ss to date |
+| \`duration()\` | \`duration(value: string): duration\` | Parse duration string |
+| \`file()\` | \`file(path: string | file | url): file\` | Get file object from path/link/url |
+| \`html()\` | \`html(html: string): html\` | Render string as HTML |
+| \`if()\` | \`if(condition, trueResult, falseResult?): any\` | Conditional; false defaults to null |
+| \`image()\` | \`image(path: string | file | url): image\` | Image object for rendering |
+| \`icon()\` | \`icon(name: string): icon\` | Lucide icon for display |
+| \`link()\` | \`link(path: string, display?: value): Link\` | Create a Link object |
+| \`list()\` | \`list(element: any): List\` | Wrap single value in a list |
+| \`max()\` | \`max(value1, value2, ...): number\` | Largest of provided numbers |
+| \`min()\` | \`min(value1, value2, ...): number\` | Smallest of provided numbers |
+| \`now()\` | \`now(): date\` | Current date and time |
+| \`number()\` | \`number(input: any): number\` | Convert to number |
+| \`today()\` | \`today(): date\` | Current date at midnight |
+| \`random()\` | \`random(): number\` | Random 0-1 |
 
 ## Date Functions
 
-Fields: \`year\`, \`month\`, \`day\`, \`hour\`, \`minute\`, \`second\`
+### Fields
+
+| Field | Type | Description |
+|------|------|-------------|
+| \`.year\` | number | Year of the date |
+| \`.month\` | number | Month (1-12) |
+| \`.day\` | number | Day of the month |
+| \`.hour\` | number | Hour (0-23) |
+| \`.minute\` | number | Minute (0-59) |
+| \`.second\` | number | Second (0-59) |
+| \`.millisecond\` | number | Millisecond (0-999) |
+
+### Methods
 
 | Function | Description |
 |----------|-------------|
-| \`format(pattern)\` | Format with Moment.js pattern |
-| \`relative()\` | Human-readable relative time |
+| \`.date()\` | Date with time removed |
+| \`.format(format)\` | Format with Moment.js pattern |
+| \`.time()\` | Time portion as string |
+| \`.relative()\` | Human-readable relative time (e.g., "3 days ago") |
+| \`.isEmpty()\` | Returns false |
 
-Duration fields: \`days\`, \`hours\`, \`minutes\`, \`seconds\`, \`milliseconds\`
+### Date Arithmetic
 
-Date arithmetic:
 \`\`\`
-"now() + \\"1 day\\""       # Tomorrow
-"today() + \\"7d\\""        # A week from today
-"(now() - file.ctime).days"  # Days since created
+now() + "1 day"              # Tomorrow
+today() + "7d"               # A week from today
+now() - file.ctime           # Milliseconds since created
+file.mtime > now() - "1 week"  # Modified within last week
+date("2024-12-01") + "1M" + "4h" + "3m"  # 2025-01-01 04:03:00
 \`\`\`
+
+Duration units: y/year/years, M/month/months, d/day/days, w/week/weeks, h/hour/hours, m/minute/minutes, s/second/seconds
 
 ## String Functions
 
+### Fields
+
+| Field | Type | Description |
+|------|------|-------------|
+| \`.length\` | number | Character count |
+
+### Methods
+
 | Function | Description |
 |----------|-------------|
-| \`contains(value)\` | Check substring |
-| \`startsWith(query)\` | Starts with query |
-| \`endsWith(query)\` | Ends with query |
-| \`isEmpty()\` | Empty or not present |
-| \`lower()\` | To lowercase |
-| \`replace(pattern, replacement)\` | Replace pattern |
-| \`split(separator)\` | Split to list |
-| \`slice(start, end?)\` | Substring |
+| \`.contains(value)\` | Substring check |
+| \`.containsAll(...values)\` | Contains all substrings |
+| \`.containsAny(...values)\` | Contains at least one |
+| \`.endsWith(query)\` | Suffix check |
+| \`.startsWith(query)\` | Prefix check |
+| \`.isEmpty()\` | True if empty |
+| \`.lower()\` | To lowercase |
+| \`.upper()\` | To uppercase |
+| \`.replace(pattern, replacement)\` | Replace (string or Regexp; $1, $2 for capture groups) |
+| \`.repeat(count)\` | Repeat string |
+| \`.reverse()\` | Reverse string |
+| \`.split(separator)\` | Split to list |
+| \`.slice(start, end?)\` | Substring |
+| \`.title()\` | Title case (first letter of each word) |
+| \`.trim()\` | Remove whitespace from both ends |
 
 ## Number Functions
 
 | Function | Description |
 |----------|-------------|
-| \`abs()\` | Absolute value |
-| \`ceil()\` | Round up |
-| \`floor()\` | Round down |
-| \`round(digits?)\` | Round to digits |
-| \`toFixed(precision)\` | Fixed-point notation |
+| \`.abs()\` | Absolute value |
+| \`.ceil()\` | Round up |
+| \`.floor()\` | Round down |
+| \`.round(digits?)\` | Round to digits |
+| \`.toFixed(precision)\` | Fixed-point notation |
+| \`.isEmpty()\` | True if number is not present |
 
 ## List Functions
 
 | Function | Description |
 |----------|-------------|
-| \`contains(value)\` | Element exists |
-| \`filter(expression)\` | Filter by condition (uses \`value\`, \`index\`) |
-| \`map(expression)\` | Transform elements |
-| \`join(separator)\` | Join to string |
-| \`sort()\` | Sort ascending |
-| \`unique()\` | Remove duplicates |
-| \`flat()\` | Flatten nested lists |
+| \`[index]\` | Access element (0-based) |
+| \`.length\` | List length (field) |
+| \`.contains(value)\` | Check if list contains value |
+| \`.containsAll(...values)\` | Contains all of the values |
+| \`.containsAny(...values)\` | Contains at least one of the values |
+| \`.mean()\` | Average of numeric list |
+| \`.filter(expression)\` | Filter by condition (uses value, index) |
+| \`.flat()\` | Flatten nested lists |
+| \`.isEmpty()\` | True if list has no elements |
+| \`.join(separator)\` | Join into string |
+| \`.map(expression)\` | Transform elements (uses value, index) |
+| \`.reduce(expression, acc)\` | Reduce to single value (uses value, index, acc) |
+| \`.reverse()\` | Reverse list |
+| \`.slice(start, end?)\` | Sublist from start (inclusive) to end (exclusive) |
+| \`.sort()\` | Sort list |
+| \`.unique()\` | Remove duplicates |
+
+## Any Type Functions
+
+| Function | Description |
+|----------|-------------|
+| \`.isTruthy()\` | Coerce to boolean |
+| \`.isType(type)\` | Type check (e.g., "string") |
+| \`.toString()\` | String representation |
 
 ## File Functions
 
 | Function | Description |
 |----------|-------------|
-| \`hasTag(...tags)\` | Has any of the tags |
-| \`hasLink(otherFile)\` | Has link to file |
-| \`hasProperty(name)\` | Has property |
-| \`inFolder(folder)\` | In folder or subfolder |`,
+| \`file.hasTag(...tags)\` | Has any of the tags |
+| \`file.hasLink(otherFile)\` | Has link to file |
+| \`file.hasProperty(name)\` | Has property |
+| \`file.inFolder(folder)\` | In folder or subfolder |
+| \`file.asLink(display?)\` | Convert file to Link |
+
+## Link Functions
+
+| Function | Description |
+|----------|-------------|
+| \`link.asFile()\` | Return file object if link refers to valid local file |
+| \`link.linksTo(file)\` | True if the link's file has a link to the given file |
+
+## Object Functions
+
+| Function | Description |
+|----------|-------------|
+| \`object.isEmpty()\` | True if object has no own properties |
+| \`object.keys()\` | List of object keys |
+| \`object.values()\` | List of object values |
+
+## Regular Expression Functions
+
+| Function | Description |
+|----------|-------------|
+| \`regexp.matches(value)\` | True if regexp matches the value string |`,
+
+    `[VIEWS_REFERENCE.md]
+# Views Reference
+
+## View Types
+
+| Type | Description | App version |
+|------|-------------|-------------|
+| table | Rows in a table, columns from properties | 1.9 |
+| cards | Grid of cards, gallery-like with images | 1.9 |
+| list | Bulleted or numbered list | 1.10 |
+| map | Pins on interactive map (requires Maps plugin) | 1.10 |
+
+## View Configuration
+
+| Field | Description |
+|-------|-------------|
+| \`type\` | View layout type |
+| \`name\` | Display name; first view loads by default |
+| \`limit\` | Max number of rows |
+| \`filters\` | View-level filters (concatenated with AND alongside global filters) |
+| \`groupBy\` | Object with \`property\` and \`direction\` (\`ASC\`/\`DESC\`) |
+| \`order\` | List of property names to sort by |
+| \`summaries\` | Map of property names to summary formula names |
+
+## Sort and Group
+
+- Sort by one or more properties in ascending or descending order.
+- Group by one property to organize similar items into sections.
+- Only one groupBy property is supported at a time.
+
+Sort direction depends on property type:
+- Text: A->Z or Z->A
+- Number: 0->1 or 1->0
+- Date: old->new or new->old
+
+## Embedding Bases
+
+\`\`\`markdown
+![[MyBase.base]]           # Uses first view
+![[MyBase.base#View Name]]  # Specific view
+\`\`\`
+
+## Toolbar
+
+- View menu: create, edit, switch views
+- Results: limit, copy, export files
+- Sort: sort and group files
+- Filter: filter files
+- Properties: choose properties to display, create formulas
+- Search: search displayed properties
+- New: create a new file in the current view`,
+  ],
+};
+
+// ---------------------------------------------------------------------------
+// dashboard
+// ---------------------------------------------------------------------------
+
+const DASHBOARD: BuiltinSkillDefinition = {
+  id: "dashboard",
+  name: "dashboard",
+  description: "Create Obsidian Gemini Helper Dashboards (.dashboard files): a grid of widgets that embed Bases views, notes, and web pages. Use when the user asks for a dashboard, a home/overview page, or to arrange .base views, notes, or web embeds in a grid.",
+  instructions: `# Dashboard Skill
+
+Create \`.dashboard\` files for the Gemini Helper plugin: a grid of widgets that embed
+Obsidian **Bases** views, markdown notes, and web pages. Opening a \`.dashboard\`
+file shows an editable widget grid (drag/resize in edit mode).
+
+## Workflow
+
+1. **Clarify the goal** — what should the dashboard show (tasks, notes, links)?
+2. **Create the backing data first** — for data widgets, author a \`.base\` file
+   (stored under \`Dashboards/Bases\`). Note its view names. You do **not** need a
+   separate Bases skill: the full \`.base\` authoring reference is included below.
+3. **Create the file** — use \`create_note\` with \`name: "<Name>.dashboard"\` and
+   \`folder: "Dashboards"\`. The content is YAML (schema below).
+4. **Lay out widgets** — give each widget an \`lg\` layout on a 12-column grid.
+5. **Validate YAML** — valid YAML, every widget has \`id\`, \`type\`, \`layout.lg\`.
+
+## File Structure
+
+A \`.dashboard\` file is YAML (version 1):
+
+\`\`\`yaml
+version: 1
+grid:
+  cols: 12        # column count (default 12)
+  rowHeight: 80   # pixels per grid row
+  gap: 8          # pixels between cells
+widgets:
+  - id: <uuid>
+    type: base | markdown | web | workflow | kanban
+    layout:
+      lg: { x: 0, y: 0, w: 6, h: 4 }   # required: position on the wide grid
+      sm: { x: 0, y: 0, w: 12, h: 4 }  # optional: auto-derived (stacked) if omitted
+    config: { ... }                    # per-widget-type config (see below)
+\`\`\`
+
+- \`id\` must be unique — use a UUID-like string.
+- \`layout.lg\` is the position on the wide (≥768px) grid: \`x\`/\`y\` are the
+  top-left cell (0-based), \`w\`/\`h\` are width/height in grid cells.
+- \`sm\` (narrow screens) is auto-derived as a full-width stack if omitted.
+- Place widgets so they don't overlap; stack vertically by increasing \`y\`.
+
+## Widget Types
+
+### \`base\` — embed an Obsidian Bases view (the primary data widget)
+
+Renders a named view of a \`.base\` file using Obsidian's native Bases UI
+(table / cards / list / map). **Use this for any list/table/card of notes** —
+do not reimplement those; create a \`.base\` and point a \`base\` widget at it.
+
+\`\`\`yaml
+- id: tasks-1
+  type: base
+  layout: { lg: { x: 0, y: 0, w: 8, h: 6 } }
+  config:
+    base: Dashboards/Bases/Tasks.base   # vault path to the .base file
+    view: Active                     # view name; omit/empty = the base's first view
+\`\`\`
+
+### \`markdown\` — embed an existing note
+
+Renders an existing markdown note inline (read-only embed with a link to open).
+
+\`\`\`yaml
+- id: notes-1
+  type: markdown
+  layout: { lg: { x: 8, y: 0, w: 4, h: 6 } }
+  config:
+    path: Welcome.md              # vault path to a markdown note
+\`\`\`
+
+### \`web\` — embed a web page
+
+\`\`\`yaml
+- id: web-1
+  type: web
+  layout: { lg: { x: 0, y: 6, w: 6, h: 4 } }
+  config:
+    url: https://example.com
+\`\`\`
+
+### \`workflow\` — run a workflow and render its output
+
+Runs an existing workflow (from \`workflows/\`) headlessly and renders the result
+as Markdown or HTML. The workflow must store its output string in a variable
+(default \`result\`). Card/table outputs are not supported — produce a Markdown or
+HTML string.
+
+\`\`\`yaml
+- id: digest-1
+  type: workflow
+  layout: { lg: { x: 0, y: 6, w: 6, h: 5 } }
+  config:
+    workflow: workflows/Daily Digest.md  # vault path to the workflow note
+    output: markdown                     # markdown | html
+    outputVariable: result               # variable holding the output string
+    refreshInterval: 60                  # minutes; 0/omit = manual refresh only
+\`\`\`
+
+Unknown widget types are preserved on save but render as a placeholder.
+
+### \`kanban\` — drag-and-drop board of notes by status
+
+Renders notes matching a tag/folder filter as cards grouped into columns by a
+frontmatter status property. Drag cards between columns to update the status
+(writes via \`processFrontMatter\`). Click a card to preview its note in a modal
+(with an icon to open it). The header
+shows an optional board title plus a **New** button that opens a modal (title +
+column) and creates a note already matching the board's filters (placed in
+\`folder\`, tagged with \`tag\`, set to the chosen column's status). Works in view
+mode — the board is interactive without entering edit mode.
+
+\`\`\`yaml
+- id: board-1
+  type: kanban
+  layout: { lg: { x: 0, y: 0, w: 12, h: 6 } }
+  config:
+    title: Tasks                   # optional board title shown in the header
+    tag: task                      # optional tag filter (without #)
+    folder: ""                     # optional folder path prefix
+    statusProperty: status         # frontmatter property holding the status
+    titleProperty: ""              # frontmatter property for card title (empty = file name)
+    columns:                       # ordered list of status values
+      - value: todo
+        label: To Do
+      - value: in-progress
+        label: In Progress
+      - value: done
+        label: Done
+    showUnspecified: true          # show cards with no/unknown status in an extra column
+\`\`\`
+
+## Importing a .base into a Dashboard
+
+The \`base\` widget **is** the import mechanism: set \`config.base\` to the
+\`.base\` file's vault path and \`config.view\` to the view name. The same \`.base\`
+can be referenced by multiple \`base\` widgets (e.g. one per view).
+
+Recommended flow:
+1. Author \`Dashboards/Bases/Tasks.base\` (defining views such as "Active", "Done").
+   The \`.base\` authoring reference is included with this skill — no separate
+   Bases skill needs to be activated.
+2. Add \`base\` widgets to the dashboard referencing \`Dashboards/Bases/Tasks.base\`
+   with each view name.
+
+## Complete Example
+
+\`\`\`yaml
+version: 1
+grid:
+  cols: 12
+  rowHeight: 80
+  gap: 8
+widgets:
+  - id: tasks-active
+    type: base
+    layout: { lg: { x: 0, y: 0, w: 8, h: 6 } }
+    config:
+      base: Dashboards/Bases/Tasks.base
+      view: Active
+  - id: readme
+    type: markdown
+    layout: { lg: { x: 8, y: 0, w: 4, h: 6 } }
+    config:
+      path: Home.md
+  - id: docs
+    type: web
+    layout: { lg: { x: 0, y: 6, w: 12, h: 4 } }
+    config:
+      url: https://help.obsidian.md
+\`\`\`
+
+## Validation Checklist
+
+- [ ] Valid YAML (no tabs, consistent indentation)
+- [ ] \`version: 1\`, and \`grid\` with \`cols\`/\`rowHeight\`/\`gap\`
+- [ ] Every widget has a unique \`id\`, a \`type\`, and \`layout.lg\`
+- [ ] \`type\` is one of \`base\`, \`markdown\`, \`web\`, \`workflow\`, \`kanban\`
+- [ ] \`base\` widgets point at an existing \`.base\` path; \`view\` matches a view name
+- [ ] \`markdown\` widgets point at an existing note path
+- [ ] \`kanban\` widgets define \`statusProperty\` and at least one column with \`value\` and \`label\`
+- [ ] Widgets don't overlap (increase \`y\` to stack)`,
+  // Fold the full Bases authoring guide in as references so the `dashboard`
+  // skill is self-sufficient: activating it alone gives the model everything it
+  // needs to author the backing `.base` files, without also activating `base`.
+  references: [
+    `[BASE_SKILL.md]\n${BASE.instructions}`,
+    ...BASE.references,
   ],
 };
 
@@ -676,7 +1225,8 @@ Date arithmetic:
 const ALL_BUILTIN_SKILLS: BuiltinSkillDefinition[] = [
   OBSIDIAN_MARKDOWN,
   JSON_CANVAS,
-  OBSIDIAN_BASES,
+  BASE,
+  DASHBOARD,
 ];
 
 /** Default built-in skills to auto-activate in new chats. */

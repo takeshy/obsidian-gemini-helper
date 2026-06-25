@@ -133,7 +133,7 @@ export default function KanbanWidget({
         last = now;
         rerender();
       } else if (timer == null) {
-        timer = activeWindow.setTimeout(() => {
+        timer = window.setTimeout(() => {
           timer = null;
           last = Date.now();
           rerender();
@@ -153,7 +153,7 @@ export default function KanbanWidget({
       app.vault.on("rename", schedule),
     ];
     return () => {
-      if (timer != null) activeWindow.clearTimeout(timer);
+      if (timer != null) window.clearTimeout(timer);
       refs.forEach((r) => {
         app.metadataCache.offref(r);
         app.vault.offref(r);
@@ -226,14 +226,14 @@ export default function KanbanWidget({
 
   useEffect(() => {
     return () => {
-      if (landedTimer.current != null) activeWindow.clearTimeout(landedTimer.current);
+      if (landedTimer.current != null) window.clearTimeout(landedTimer.current);
     };
   }, []);
 
   const flashLanded = useCallback((path: string) => {
-    if (landedTimer.current != null) activeWindow.clearTimeout(landedTimer.current);
+    if (landedTimer.current != null) window.clearTimeout(landedTimer.current);
     setLanded(path);
-    landedTimer.current = activeWindow.setTimeout(() => {
+    landedTimer.current = window.setTimeout(() => {
       setLanded(null);
       landedTimer.current = null;
     }, 700);

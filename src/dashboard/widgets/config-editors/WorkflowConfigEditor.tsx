@@ -7,8 +7,9 @@ import { promptForAIWorkflow } from "src/ui/components/workflow/AIWorkflowModal"
 import { saveToCodeBlock } from "src/workflow/codeblockSync";
 import { findWorkflowBlocks } from "src/workflow/parser";
 import type { ConfigEditorProps } from "../../types";
+import { ensureVaultFolder } from "../../dashboardFile";
 import { FilePicker } from "./FilePicker";
-import { runWorkflowText, saveWidgetCache, resolveWorkflowFile } from "../workflowRunner";
+import { loadWidgetCache, runWorkflowText, saveWidgetCache, resolveWorkflowFile } from "../workflowRunner";
 
 /**
  * Output-format contract appended to the AI workflow-generation prompt so the
@@ -86,7 +87,21 @@ export function WorkflowConfigEditor({ config, onChange, app, plugin, widgetId, 
         setResult({ status: "ok", text });
       } catch (err) {
         if (abort.signal.aborted) return;
-        setResult({ status: "error", error: err instanceof Error ? err.message : String(err) });
+        const error = err instanceof Error ? err.message : String(err);
+        if (widgetId && sourcePath) {
+          try {
+            const cached = await loadWidgetCache(app, sourcePath, widgetId);
+            await saveWidgetCache(app, sourcePath, widgetId, {
+              ranAt: Date.now(),
+              status: "error",
+              error,
+              text: cached?.text,
+            });
+          } catch (cacheErr) {
+            console.error("Dashboard workflow: failed to save error cache", cacheErr);
+          }
+        }
+        setResult({ status: "error", error });
       } finally {
         if (abortRef.current === abort) {
           abortRef.current = null;
@@ -141,9 +156,7 @@ export function WorkflowConfigEditor({ config, onChange, app, plugin, widgetId, 
     if (!result || !result.outputPath) return;
     const path = result.outputPath.endsWith(".md") ? result.outputPath : `${result.outputPath}.md`;
     const folder = path.includes("/") ? path.slice(0, path.lastIndexOf("/")) : "";
-    if (folder && !app.vault.getAbstractFileByPath(folder)) {
-      await app.vault.createFolder(folder).catch(() => {});
-    }
+    await ensureVaultFolder(app.vault, folder);
     const existingAbstract = app.vault.getAbstractFileByPath(path);
     let target: TFile;
     if (existingAbstract instanceof TFile) {

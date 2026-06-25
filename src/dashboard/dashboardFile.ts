@@ -2,9 +2,10 @@
 // File load/save is handled by Obsidian's TextFileView (DashboardView), so this
 // module only deals with the in-memory model and pure transforms.
 
-import { parseYaml, stringifyYaml } from "obsidian";
+import { parseYaml, stringifyYaml, TFolder, type Vault } from "obsidian";
 import {
   type DashboardData,
+  type GridLayout,
   type LayoutPos,
   type Breakpoint,
   DEFAULT_GRID,
@@ -50,11 +51,46 @@ export function parseDashboard(content: string): DashboardData | null {
     const data = parsed as DashboardData;
     // Defensive defaults so a hand-edited / partial file still renders.
     if (typeof data.version !== "number") data.version = 1;
-    if (!data.grid || typeof data.grid !== "object") data.grid = { ...DEFAULT_GRID };
+    if (!data.grid || typeof data.grid !== "object") {
+      data.grid = { ...DEFAULT_GRID };
+    } else {
+      const grid = data.grid as Partial<GridLayout>;
+      data.grid = {
+        cols: Number.isFinite(grid.cols) && grid.cols! > 0 ? grid.cols! : DEFAULT_GRID.cols,
+        rowHeight: Number.isFinite(grid.rowHeight) && grid.rowHeight! > 0
+          ? grid.rowHeight!
+          : DEFAULT_GRID.rowHeight,
+        gap: Number.isFinite(grid.gap) && grid.gap! >= 0 ? grid.gap! : DEFAULT_GRID.gap,
+      };
+    }
     if (!Array.isArray(data.widgets)) data.widgets = [];
     return data;
   } catch {
     return null;
+  }
+}
+
+/**
+ * Create a vault folder and any missing parents. Obsidian's `createFolder`
+ * expects the immediate parent to already exist, so nested dashboard-generated
+ * paths need to be built segment by segment.
+ */
+export async function ensureVaultFolder(vault: Vault, folderPath: string): Promise<void> {
+  const normalized = folderPath.replace(/\\/g, "/").replace(/^\/+|\/+$/g, "");
+  if (!normalized) return;
+
+  let current = "";
+  for (const segment of normalized.split("/").filter(Boolean)) {
+    current = current ? `${current}/${segment}` : segment;
+    const existing = vault.getAbstractFileByPath(current);
+    if (existing instanceof TFolder) continue;
+    if (existing) throw new Error(`Path exists and is not a folder: ${current}`);
+    try {
+      await vault.createFolder(current);
+    } catch {
+      const afterRace = vault.getAbstractFileByPath(current);
+      if (!(afterRace instanceof TFolder)) throw new Error(`Failed to create folder: ${current}`);
+    }
   }
 }
 

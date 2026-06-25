@@ -14,6 +14,7 @@ import {
 import { t } from "src/i18n";
 import { renderDiffView, createDiffViewToggle, type DiffRendererState } from "src/ui/components/workflow/DiffRenderer";
 import { generateBaseYaml } from "./aiBaseGenerate";
+import { ensureVaultFolder } from "./dashboardFile";
 import { BASES_FOLDER } from "./types";
 
 export type AIBaseMode = "create" | "modify";
@@ -279,13 +280,7 @@ export class AIBaseModal extends Modal {
   private async writeBase(path: string, yaml: string): Promise<void> {
     const { vault } = this.app;
     const folder = path.includes("/") ? path.slice(0, path.lastIndexOf("/")) : "";
-    if (folder && !vault.getAbstractFileByPath(folder)) {
-      try {
-        await vault.createFolder(folder);
-      } catch {
-        // race — folder may have just been created
-      }
-    }
+    await ensureVaultFolder(vault, folder);
     const existing = vault.getAbstractFileByPath(path);
     if (existing instanceof TFile) {
       await vault.modify(existing, yaml);

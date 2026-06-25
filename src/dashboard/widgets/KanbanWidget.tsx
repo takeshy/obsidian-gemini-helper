@@ -7,6 +7,7 @@ import { Plus } from "lucide-react";
 import { Notice, TFile, type App } from "obsidian";
 import { t } from "src/i18n";
 import type { WidgetContext } from "../types";
+import { ensureVaultFolder } from "../dashboardFile";
 import { KanbanNewCardModal, type NewCardInput } from "./KanbanNewCardModal";
 import { KanbanCardModal } from "./KanbanCardModal";
 
@@ -327,9 +328,7 @@ export default function KanbanWidget({
       const app = ctx.app;
       const folder = folderFilter.replace(/[/\\]+$/, "");
       try {
-        if (folder && !app.vault.getAbstractFileByPath(folder)) {
-          await app.vault.createFolder(folder).catch(() => {});
-        }
+        await ensureVaultFolder(app.vault, folder);
         const dir = folder ? `${folder}/` : "";
         const base = sanitizeFileName(title) || t("dashboard.kanbanNewCardName");
         let name = base;

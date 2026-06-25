@@ -1063,7 +1063,7 @@ export const ja: Record<string, string> = {
   "dashboard.stale": "古い結果",
   "dashboard.testRunSuccess": "実行に成功しました",
   "dashboard.refreshInterval": "自動更新間隔（分）",
-  "dashboard.refreshIntervalHint": "0 = 手動のみ。開いたときにキャッシュがこの分数より古ければ一度だけ自動実行します。",
+  "dashboard.refreshIntervalHint": "0 = 手動のみ。開いたときにキャッシュがこの分数より古ければ一度自動実行し、その後ダッシュボードを開いている間は定期的に再実行します。",
   "dashboard.loading": "読み込み中…",
   "dashboard.aiWorkflowCreate": "AIで新規作成",
   "dashboard.aiWorkflowEdit": "AIで編集",

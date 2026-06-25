@@ -1066,7 +1066,7 @@ export const ko: Record<string, string> = {
   "dashboard.stale": "오래됨",
   "dashboard.testRunSuccess": "실행 성공",
   "dashboard.refreshInterval": "자동 새로 고침 간격(분)",
-  "dashboard.refreshIntervalHint": "0 = 수동 전용. 캐시된 결과가 이보다 오래된 경우 열 때 한 번 자동 실행됩니다.",
+  "dashboard.refreshIntervalHint": "0 = 수동 전용. 열 때 캐시된 결과가 이보다 오래된 경우 한 번 자동 실행되고, 이후 대시보드가 열려 있는 동안 주기적으로 다시 실행됩니다.",
   "dashboard.loading": "로드 중…",
   "dashboard.aiWorkflowCreate": "AI로 만들기",
   "dashboard.aiWorkflowEdit": "AI로 편집",

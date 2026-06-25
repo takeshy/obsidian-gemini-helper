@@ -1070,7 +1070,7 @@ export const en = {
   "dashboard.stale": "Stale",
   "dashboard.testRunSuccess": "Run succeeded",
   "dashboard.refreshInterval": "Auto-refresh interval (minutes)",
-  "dashboard.refreshIntervalHint": "0 = manual only. Auto-runs once on open if the cached result is older than this.",
+  "dashboard.refreshIntervalHint": "0 = manual only. On open, auto-runs once if the cached result is older than this, then re-runs periodically while the dashboard is open.",
   "dashboard.loading": "Loading…",
   "dashboard.aiWorkflowCreate": "Create with AI",
   "dashboard.aiWorkflowEdit": "Edit with AI",

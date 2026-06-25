@@ -1066,7 +1066,7 @@ export const pt: Record<string, string> = {
   "dashboard.stale": "desatualizado",
   "dashboard.testRunSuccess": "Execução bem-sucedida",
   "dashboard.refreshInterval": "Intervalo de atualização automática (minutos)",
-  "dashboard.refreshIntervalHint": "0 = somente manual. Executa uma vez ao abrir se o resultado em cache for mais antigo que isso.",
+  "dashboard.refreshIntervalHint": "0 = somente manual. Ao abrir, executa uma vez se o resultado em cache for mais antigo que isso, e depois reexecuta periodicamente enquanto o painel estiver aberto.",
   "dashboard.loading": "Carregando…",
   "dashboard.aiWorkflowCreate": "Criar com IA",
   "dashboard.aiWorkflowEdit": "Editar com IA",

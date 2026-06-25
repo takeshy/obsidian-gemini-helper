@@ -1064,7 +1064,7 @@ export const de: Record<string, string> = {
   "dashboard.stale": "veraltet",
   "dashboard.testRunSuccess": "Ausführung erfolgreich",
   "dashboard.refreshInterval": "Aktualisierungsintervall (Minuten)",
-  "dashboard.refreshIntervalHint": "0 = nur manuell. Wird beim Öffnen einmal ausgeführt, wenn das zwischengespeicherte Ergebnis älter ist.",
+  "dashboard.refreshIntervalHint": "0 = nur manuell. Beim Öffnen wird einmal ausgeführt, wenn das zwischengespeicherte Ergebnis älter ist, und danach regelmäßig erneut ausgeführt, solange das Dashboard geöffnet ist.",
   "dashboard.loading": "Wird geladen…",
   "dashboard.aiWorkflowCreate": "Mit KI erstellen",
   "dashboard.aiWorkflowEdit": "Mit KI bearbeiten",

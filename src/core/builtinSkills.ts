@@ -1123,7 +1123,7 @@ HTML string.
     workflow: workflows/Daily Digest.md  # vault path to the workflow note
     output: markdown                     # markdown | html
     outputVariable: result               # variable holding the output string
-    refreshInterval: 60                  # minutes; 0/omit = manual refresh only
+    refreshInterval: 60                  # minutes; 0/omit = manual refresh only; re-runs periodically while the dashboard is open
 \`\`\`
 
 Unknown widget types are preserved on save but render as a placeholder.

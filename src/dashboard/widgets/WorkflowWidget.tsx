@@ -1,7 +1,8 @@
 // Workflow widget — runs a workflow headlessly and renders its output as
 // Markdown or an HTML embed. The render path reads only from the sidecar cache;
-// execution happens on the refresh button or the once-per-mount interval
-// auto-run (see workflowRunner.ts).
+// execution happens on the refresh button, the config editor's test-run, or
+// the interval auto-run (stale-on-open check plus a recurring timer while the
+// dashboard view is open). See workflowRunner.ts.
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { RefreshCw, Clock, AlertCircle, XCircle } from "lucide-react";
@@ -60,9 +61,10 @@ export default function WorkflowWidget({
   // (so the callback identity stays stable across cache updates).
   const recordRef = useRef(record);
   recordRef.current = record;
-  // Tracks the (workflow, interval) key already auto-run, so changing the
-  // workflow or interval in the settings panel re-enables a fresh auto-run.
-  const autoRunKeyRef = useRef<string | null>(null);
+  // Latest executeWorkflow, read inside the interval timer without making it a
+  // dependency (so the timer is keyed by workflow/interval, not callback
+  // identity which changes with `executing`).
+  const executeWorkflowRef = useRef<() => Promise<void>>(() => Promise.resolve());
 
   // Load from sidecar cache (never executes).
   useEffect(() => {
@@ -137,21 +139,29 @@ export default function WorkflowWidget({
       }
     }
   }, [app, plugin, widgetId, dashboardPath, executing, cfg.workflow, cfg.outputVariable]);
+  executeWorkflowRef.current = executeWorkflow;
 
-  // Interval auto-run: once per (workflow, interval) key, only when stale
-  // relative to the interval. Re-runs if the workflow or interval is changed.
+  // Auto-run: on mount, run once if the cached result is stale relative to the
+  // interval. Then register a recurring timer that re-runs the workflow every
+  // `interval` minutes while the dashboard view is open. The timer is cleared
+  // on cleanup (unmount or workflow/interval config change).
   useEffect(() => {
     if (loading) return;
     if (!app || !widgetId || !dashboardPath || !cfg.workflow) return;
     const interval = cfg.refreshInterval ?? 0;
-    const key = `${cfg.workflow}|${interval}`;
-    if (autoRunKeyRef.current === key) return;
-    autoRunKeyRef.current = key;
     if (interval <= 0) return;
+
+    // One-shot stale-on-open check.
     const stale = Date.now() - (recordRef.current?.ranAt ?? 0) > interval * 60_000;
-    if (stale) void executeWorkflow();
-    // executeWorkflow/record intentionally omitted from deps: the key ref makes
-    // this run once per (workflow, interval), not on every cacheRecord change.
+    if (stale) void executeWorkflowRef.current();
+
+    // Periodic re-run while the widget is mounted.
+    const timer = window.setInterval(() => {
+      void executeWorkflowRef.current();
+    }, interval * 60_000);
+    return () => window.clearInterval(timer);
+    // executeWorkflow/record intentionally omitted from deps: the timer is
+    // keyed by workflow path + interval value; config changes re-register it.
   }, [loading, app, widgetId, dashboardPath, cfg.workflow, cfg.refreshInterval]);
 
   if (!ctx) return null;

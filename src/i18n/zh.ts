@@ -1065,7 +1065,7 @@ export const zh: Record<string, string> = {
   "dashboard.stale": "已过期",
   "dashboard.testRunSuccess": "运行成功",
   "dashboard.refreshInterval": "自动刷新间隔（分钟）",
-  "dashboard.refreshIntervalHint": "0 = 仅手动。如果缓存结果早于此值，则在打开时自动运行一次。",
+  "dashboard.refreshIntervalHint": "0 = 仅手动。打开时如果缓存结果早于此值则自动运行一次，之后在仪表板打开期间定期重新运行。",
   "dashboard.loading": "加载中…",
   "dashboard.aiWorkflowCreate": "用 AI 创建",
   "dashboard.aiWorkflowEdit": "用 AI 编辑",

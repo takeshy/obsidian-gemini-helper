@@ -26,6 +26,8 @@ interface KanbanConfig {
   showUnspecified?: boolean;
   /** Frontmatter property names shown on each card below the title. */
   displayFields?: string[];
+  /** Stable card path order used for vertical ordering inside columns. */
+  cardOrder?: string[];
 }
 
 interface Card {
@@ -37,6 +39,8 @@ interface Card {
 }
 
 type FrontmatterRecord = Record<string, unknown>;
+type DropPosition = "before" | "after";
+type DropTarget = { column: string; path: string; position: DropPosition } | null;
 
 function asFrontmatterRecord(value: unknown): FrontmatterRecord {
   return typeof value === "object" && value !== null && !Array.isArray(value) ? value as FrontmatterRecord : {};
@@ -204,12 +208,29 @@ export default function KanbanWidget({
     return out;
   }, [columns]);
   const columnValues = useMemo(() => new Set(uniqueColumns.map((c) => c.value)), [uniqueColumns]);
+  const [cardOrder, setCardOrder] = useState<string[]>(
+    Array.isArray(cfg.cardOrder) ? cfg.cardOrder.filter((id): id is string => typeof id === "string") : [],
+  );
+  useEffect(() => {
+    setCardOrder(Array.isArray(cfg.cardOrder) ? cfg.cardOrder.filter((id): id is string => typeof id === "string") : []);
+  }, [cfg.cardOrder]);
+  const orderedCards = useMemo(() => {
+    const orderMap = new Map(cardOrder.map((path, index) => [path, index]));
+    return [...cards].sort((a, b) => {
+      const ai = orderMap.get(a.path);
+      const bi = orderMap.get(b.path);
+      if (ai == null && bi == null) return a.path.localeCompare(b.path);
+      if (ai == null) return 1;
+      if (bi == null) return -1;
+      return ai - bi;
+    });
+  }, [cards, cardOrder]);
   const grouped = new Map<string, Card[]>();
   for (const col of uniqueColumns) {
     grouped.set(col.value, []);
   }
   const unspecified: Card[] = [];
-  for (const card of cards) {
+  for (const card of orderedCards) {
     if (columnValues.has(card.status)) {
       grouped.get(card.status)!.push(card);
     } else {
@@ -219,6 +240,7 @@ export default function KanbanWidget({
 
   const [drag, setDrag] = useState<{ card: Card; x: number; y: number; offsetX: number; offsetY: number } | null>(null);
   const [dropCol, setDropCol] = useState<string | null>(null);
+  const [dropTarget, setDropTarget] = useState<DropTarget>(null);
   // Path of the card that just landed in a new column — used to flash it so the
   // user can see where the card moved to after dropping.
   const [landed, setLanded] = useState<string | null>(null);
@@ -250,6 +272,58 @@ export default function KanbanWidget({
     return null;
   };
 
+  const hitTestDrop = (clientX: number, clientY: number): { column: string | null; target: DropTarget } => {
+    const column = hitTestColumn(clientX, clientY);
+    const cardEl = activeDocument
+      .elementsFromPoint(clientX, clientY)
+      .find((el) => el instanceof HTMLElement && el.dataset.kanbanCardPath) as HTMLElement | undefined;
+    const path = cardEl?.dataset.kanbanCardPath;
+    const cardColumn = cardEl?.dataset.kanbanColumn;
+    if (!column || !path || !cardColumn || cardColumn !== column) return { column, target: null };
+    const rect = cardEl.getBoundingClientRect();
+    const position: DropPosition = clientY < rect.top + rect.height / 2 ? "before" : "after";
+    return { column, target: { column, path, position } };
+  };
+
+  const persistCardOrder = useCallback(
+    (nextOrder: string[]) => {
+      setCardOrder(nextOrder);
+      ctx?.onConfigChange?.({ ...cfg, cardOrder: nextOrder });
+    },
+    [ctx, cfg],
+  );
+
+  const columnForCard = useCallback(
+    (card: Card): string => columnValues.has(card.status) ? card.status : UNSPECIFIED,
+    [columnValues],
+  );
+
+  const reorderCard = useCallback(
+    (path: string, target: DropTarget, fallbackColumn: string): string[] => {
+      const visiblePaths = new Set(orderedCards.map((card) => card.path));
+      const base = [
+        ...cardOrder.filter((id) => visiblePaths.has(id)),
+        ...orderedCards.map((card) => card.path).filter((id) => !cardOrder.includes(id)),
+      ].filter((id) => id !== path);
+
+      if (target?.path && target.path !== path) {
+        const index = base.indexOf(target.path);
+        if (index >= 0) {
+          base.splice(target.position === "before" ? index : index + 1, 0, path);
+          return base;
+        }
+      }
+
+      const columnCards = fallbackColumn === UNSPECIFIED ? unspecified : grouped.get(fallbackColumn) ?? [];
+      const lastInColumn = [...columnCards].reverse().find((card) => card.path !== path);
+      if (!lastInColumn) return [path, ...base];
+      const index = base.indexOf(lastInColumn.path);
+      base.splice(index >= 0 ? index + 1 : base.length, 0, path);
+      return base;
+    },
+    [cardOrder, orderedCards, grouped, unspecified],
+  );
+
   const onCardPointerDown = useCallback(
     (e: React.PointerEvent, card: Card) => {
       if (!ctx) return;
@@ -277,15 +351,22 @@ export default function KanbanWidget({
           offsetX: ev.clientX - rect.left,
           offsetY: ev.clientY - rect.top,
         });
-        setDropCol(hitTestColumn(ev.clientX, ev.clientY));
+        const hit = hitTestDrop(ev.clientX, ev.clientY);
+        setDropCol(hit.column);
+        setDropTarget(hit.target?.path === card.path ? null : hit.target);
       };
 
       const onUp = (ev: PointerEvent) => {
         activeWindow.removeEventListener("pointermove", onMove);
         activeWindow.removeEventListener("pointerup", onUp);
         if (isDragging) {
-          const found = hitTestColumn(ev.clientX, ev.clientY);
-          const currentCol = columnValues.has(card.status) ? card.status : UNSPECIFIED;
+          const hit = hitTestDrop(ev.clientX, ev.clientY);
+          const found = hit.column;
+          const target = hit.target?.path === card.path ? null : hit.target;
+          const currentCol = columnForCard(card);
+          if (found != null) {
+            persistCardOrder(reorderCard(card.path, target, found));
+          }
           if (found != null && found !== currentCol) {
             void ctx.app.fileManager
               .processFrontMatter(card.file, (fm) => {
@@ -300,6 +381,7 @@ export default function KanbanWidget({
           }
           setDrag(null);
           setDropCol(null);
+          setDropTarget(null);
         } else {
           // Treat as a click — preview the note in a modal. The modal's open
           // icon navigates to the note in a new leaf (keeps the dashboard).
@@ -316,7 +398,7 @@ export default function KanbanWidget({
       activeWindow.addEventListener("pointermove", onMove);
       activeWindow.addEventListener("pointerup", onUp);
     },
-    [ctx, statusProp, columnValues, flashLanded],
+    [ctx, statusProp, columnForCard, flashLanded, hitTestDrop, persistCardOrder, reorderCard],
   );
 
   // Create a note that already matches this board's filters: dropped in the
@@ -386,7 +468,9 @@ export default function KanbanWidget({
         {cardsInCol.map((card) => (
           <div
             key={card.path}
-            className={`llm-hub-db-kanban-card${drag?.card.path === card.path ? " is-dragging" : ""}${landed === card.path ? " is-landed" : ""}`}
+            className={`llm-hub-db-kanban-card${drag?.card.path === card.path ? " is-dragging" : ""}${landed === card.path ? " is-landed" : ""}${dropTarget?.path === card.path && dropTarget.position === "before" ? " is-drop-before" : ""}${dropTarget?.path === card.path && dropTarget.position === "after" ? " is-drop-after" : ""}`}
+            data-kanban-card-path={card.path}
+            data-kanban-column={value}
             onPointerDown={(e) => onCardPointerDown(e, card)}
             title={t("dashboard.kanbanDragToMove")}
           >

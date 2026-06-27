@@ -17,7 +17,7 @@ Assistant IA **gratuit et open-source** pour Obsidian avec **Chat**, **Automatis
 - **Acces aux dossiers par l'IA** - Limitez les dossiers que l'IA peut lire automatiquement quand vous ne voulez pas d'acces a tout le coffre
 - **Chiffrement** - Protection par mot de passe de l'historique de chat et des journaux d'execution des workflows
 - **Historique d'Edition** - Suivez et restaurez les modifications faites par l'IA avec vue des differences
-- **Tableau de bord** - Organisez des vues Bases, des notes, des pages web et la sortie de workflows dans une grille de widgets responsive
+- **Tableau de bord** - Organisez des vues Bases, des notes, des pages web, des timelines, des tableaux Kanban et la sortie de workflows dans une grille de widgets responsive
 
 ![Interface de Chat](docs/images/chat.png)
 
@@ -522,9 +522,10 @@ Cliquez sur **+ Ajouter un widget** en mode édition pour choisir un type :
 |--------|-------|------------|
 | **Base** | Une vue nommée d'un fichier `.base` via l'interface Bases native d'Obsidian (tableau / cartes / liste) | chemin `base`, nom de `view` |
 | **Markdown** | Une note existante, rendue en ligne | `path` vers la note |
-| **Web Embed** | Une page web dans un iframe | `url` |
+| **Web Embed** | Une page web dans un iframe, avec un en-tête optionnel et un bouton d’ouverture dans le navigateur | `url`, `showHeader` |
 | **Workflow** | La sortie d'un workflow, exécuté en headless et rendu en Markdown ou HTML | chemin `workflow`, `output`, `refreshInterval` |
 | **Kanban** | Des notes sous forme de cartes déplaçables, groupées en colonnes par statut | filtre `tag`/`folder`, `statusProperty`, `columns`, `displayFields` |
+| **Timeline** | Publications datées avec tags, images jointes, épinglage et filtres | `name`, `latestCount` |
 
 Les widgets **Base** et **Workflow** incluent un bouton **Créer avec l'IA** pour créer le fichier `.base` ou le workflow sous-jacent sans quitter le panneau de paramètres. Pour une base, l'IA peut inspecter vos notes avec des outils en lecture seule avant la création, et **Modifier avec l'IA** affiche un diff avec un champ d'instructions supplémentaires pour affiner avant d'appliquer.
 
@@ -537,6 +538,7 @@ Transformez des notes en un tableau par glisser-déposer. Les cartes sont des no
 - **Titre & Nouveau** — l'en-tête affiche un titre de tableau optionnel (pratique lorsqu'un tableau de bord contient plusieurs tableaux) et un bouton **Nouveau** qui ouvre une boîte de dialogue pour saisir un titre et choisir une colonne, puis crée une note correspondant déjà aux filtres du tableau (dossier, tag, statut).
 - **Aperçu & ouverture** — cliquez sur une carte pour prévisualiser sa note dans une boîte de dialogue ; l'icône d'ouverture de la boîte de dialogue ouvre la note dans un nouvel onglet.
 - **Colonnes** — codées par couleur et entièrement configurables ; une colonne optionnelle « Non spécifié » regroupe les cartes dont le statut ne correspond à aucune colonne.
+- **Ordre manuel** — faites glisser les cartes vers le haut/bas dans une colonne pour conserver un ordre personnalisé pour le tableau.
 - **Champs affichés** — listez des propriétés frontmatter supplémentaires (par ex. `priority`, `due`) à afficher sur chaque carte sous le titre.
 
 Configurez tout depuis les paramètres du widget en mode édition :
@@ -544,7 +546,7 @@ Configurez tout depuis les paramètres du widget en mode édition :
 ![Paramètres Kanban](docs/images/dashboard_kanban_edit.png)
 
 > [!NOTE]
-> **Les widgets de workflow lisent depuis un cache, pas en direct.** Un widget de workflow ne s'exécute que via le bouton **Exécuter**, l'exécution de test de l'éditeur de configuration, ou une fois à l'ouverture lorsque son résultat en cache est plus ancien que l'**intervalle d'actualisation automatique** (minutes ; `0` = manuel uniquement). Les résultats sont stockés dans un fichier sidecar masqué à côté du tableau de bord, de sorte que la sortie survit à une réouverture. Le workflow doit stocker sa sortie Markdown/HTML dans une variable (par défaut `result`).
+> **Les widgets de workflow lisent depuis un cache, pas en direct.** Un widget de workflow ne s'exécute que via le bouton **Exécuter**, l'exécution de test de l'éditeur de configuration, ou une fois à l'ouverture lorsque son résultat en cache est plus ancien que l'**intervalle d'actualisation automatique** (minutes ; `0` = manuel uniquement). Les résultats sont stockés comme fichiers normaux du coffre sous `Dashboards/Data/<encoded dashboard path>.json`, ils se synchronisent/versionnent comme les autres fichiers et sont inclus dans les workflows push/pull. Le workflow doit stocker sa sortie Markdown/HTML dans une variable (par défaut `result`).
 
 > **Pour le format de fichier `.dashboard`, le schéma YAML complet et des conseils de génération par IA, consultez la [Documentation du tableau de bord](docs/DASHBOARD.md)**
 

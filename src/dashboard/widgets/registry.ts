@@ -3,19 +3,21 @@
 // registerWidget.
 
 import React from "react";
-import { Database, FileText, Globe, Kanban, Puzzle, Workflow } from "lucide-react";
+import { Clock3, Database, FileText, Globe, Kanban, Puzzle, Workflow } from "lucide-react";
 import type { WidgetDef } from "../types";
 import BaseWidget from "./BaseWidget";
 import MarkdownWidget from "./MarkdownWidget";
 import WebWidget from "./WebWidget";
 import WorkflowWidget from "./WorkflowWidget";
 import KanbanWidget from "./KanbanWidget";
+import TimelineWidget from "./TimelineWidget";
 import UnknownWidget from "./UnknownWidget";
 import { BaseConfigEditor } from "./config-editors/BaseConfigEditor";
 import { MarkdownConfigEditor } from "./config-editors/MarkdownConfigEditor";
 import { WebConfigEditor } from "./config-editors/WebConfigEditor";
 import { WorkflowConfigEditor } from "./config-editors/WorkflowConfigEditor";
 import { KanbanConfigEditor } from "./config-editors/KanbanConfigEditor";
+import { TimelineConfigEditor } from "./config-editors/TimelineConfigEditor";
 
 const registry = new Map<string, WidgetDef>();
 
@@ -85,7 +87,7 @@ export function registerCoreWidgets(): void {
     type: "web",
     label: "Web Embed",
     icon: React.createElement(Globe, { size: 16 }),
-    defaultConfig: { url: "" },
+    defaultConfig: { url: "", showHeader: true },
     render: (config, ctx) => React.createElement(WebWidget, { config, ctx }),
     defaultSize: { w: 6, h: 4 },
     ConfigEditor: WebConfigEditor,
@@ -122,5 +124,15 @@ export function registerCoreWidgets(): void {
     render: (config, ctx) => React.createElement(KanbanWidget, { config, ctx }),
     defaultSize: { w: 12, h: 6 },
     ConfigEditor: KanbanConfigEditor,
+  });
+
+  registerWidget({
+    type: "timeline",
+    label: "Timeline",
+    icon: React.createElement(Clock3, { size: 16 }),
+    defaultConfig: { name: "Timeline", latestCount: 20 },
+    render: (config, ctx) => React.createElement(TimelineWidget, { config, ctx }),
+    defaultSize: { w: 6, h: 6 },
+    ConfigEditor: TimelineConfigEditor,
   });
 }

@@ -1,6 +1,6 @@
 # Dashboard
 
-Erstellen Sie eine persönliche **Start-/Übersichtsseite** aus einem responsiven Raster von Widgets. Ein Dashboard ist eine `.dashboard`-Datei, die **Bases-Ansichten**, **Notizen**, **Webseiten** und **Workflow-Ausgaben** in einem per Drag-and-Drop verschieb- und skalierbaren Raster anordnet. Öffnen Sie es wie jede Notiz, um ein bearbeitbares Live-Board zu erhalten.
+Erstellen Sie eine persönliche **Start-/Übersichtsseite** aus einem responsiven Raster von Widgets. Ein Dashboard ist eine `.dashboard`-Datei, die **Bases-Ansichten**, **Notizen**, **Webseiten**, **Timelines**, **Kanban-Boards** und **Workflow-Ausgaben** in einem verschieb- und skalierbaren Raster anordnet. Öffnen Sie es wie jede Notiz, um ein bearbeitbares Live-Board zu erhalten.
 
 ![Dashboard](images/dashboard.png)
 
@@ -12,7 +12,7 @@ Obsidians **Canvas** und ein Dashboard sehen ähnlich aus, lösen aber unterschi
 
 | | Dashboard | Canvas |
 |---|-----------|--------|
-| **Inhalt** | **Live** — Bases-Ansichten, Workflow-Ausgaben und Notizen aktualisieren sich selbst (abfragegesteuert) | **Statisch** — Karten sind von Hand platzierte Momentaufnahmen |
+| **Inhalt** | **Live** — Bases-Ansichten, Timelines, Kanban-Boards, Workflow-Ausgaben und Notizen aktualisieren sich | **Statisch** — Karten sind manuell platzierte Schnappschüsse |
 | **Layout** | Responsives Raster (12 Spalten; bricht auf schmalen Bildschirmen in eine einzelne Spalte um) | Frei gestaltbare unendliche Fläche mit absoluten Positionen |
 | **Zweck** | Eine strukturierte **Start-/Übersichtsseite**, die Sie öffnen, um den Status zu prüfen | Ein Raum zum **Denken** — Ideen anordnen und mit Pfeilen verbinden |
 | **KI** | Aus dem Chat erstellt (der `dashboard`-Skill baut die Datei und ihre zugrunde liegenden `.base`-Daten) | Manuelle Platzierung |
@@ -29,7 +29,7 @@ Es gibt zwei Möglichkeiten, ein Dashboard zu erstellen:
 1. **Befehl** — führen Sie **„Gemini Helper: Dashboard erstellen"** über die Befehlspalette aus. Dadurch wird eine neue Datei im Ordner `Dashboards/` erstellt (benannt `Dashboard`, `Dashboard 2`, …) und geöffnet.
 2. **Die KI fragen** — das Plugin enthält einen integrierten Agent-Skill **`dashboard`**. Aktivieren Sie ihn im Chat und beschreiben Sie, was Sie möchten (*„eine Startseite mit meinen aktiven Aufgaben, einer Willkommensnotiz und dem heutigen Wetter"*). Die KI erstellt die `.dashboard`-Datei — und alle zugrunde liegenden `.base`-Dateien — für Sie.
 
-Dashboards werden als einfache `.dashboard`-Dateien in Ihrem Vault gespeichert, sodass sie wie jede andere Notiz synchronisiert und versioniert werden.
+Dashboards werden als einfache `.dashboard`-Dateien in Ihrem Vault gespeichert und wie andere Notizen synchronisiert/versioniert. Ergebnisse von Workflow-Widgets werden separat unter `Dashboards/Data/` als normale Vault-Dateien gespeichert.
 
 ---
 
@@ -62,9 +62,11 @@ Rendert eine benannte Ansicht einer `.base`-Datei über die **native Bases-UI** 
 |---------|-------------|
 | **Base-Datei** | Vault-Pfad zur `.base`-Datei |
 | **Ansicht** | Der zu rendernde Ansichtsname; leer lassen, um die erste Ansicht der Base zu verwenden |
-| **Mit KI erstellen** | Eine neue `.base`-Datei erstellen (oder die ausgewählte bearbeiten), ohne das Panel zu verlassen |
+| **New Base** | Create a new `.base` file under `Dashboards/Bases/` |
+| **View editor** | Edit the selected view's name, type, order, sort, limit, filters, card image, list indentation, and raw YAML |
+| **Create with AI / Edit with AI** | Author a new `.base` file or propose edits to the selected one with a diff before applying |
 
-Dieselbe `.base`-Datei kann von mehreren Base-Widgets referenziert werden — zum Beispiel ein Widget pro Ansicht (Active / Done / Backlog).
+The same `.base` file can be referenced by multiple Base widgets — for example, one widget per view (Active / Done / Backlog). If the `.base` file changes outside the settings panel, the editor reloads it before saving so it does not overwrite newer content with stale state.
 
 ### Markdown — eine Notiz einbetten
 
@@ -85,6 +87,7 @@ Bettet eine Webseite in einem iframe ein.
 | Einstellung | Beschreibung |
 |---------|-------------|
 | **URL** | Die einzubettende Seite |
+| **Show header** | Show a compact header with the URL and a browser-open button. Existing widgets default to on. |
 
 > [!NOTE]
 > Einige Websites senden `X-Frame-Options`- / `Content-Security-Policy`-Header, die das Einbetten blockieren, und erscheinen leer.
@@ -109,7 +112,7 @@ Führt einen bestehenden [Workflow](WORKFLOW_NODES_de.md) **headless** aus und r
 > - auf **Ausführen** klicken (in der Widget-Kopfzeile oder im Einstellungs-Panel), oder
 > - das Dashboard öffnen und das zwischengespeicherte Ergebnis älter als das Aktualisierungsintervall ist.
 >
-> Die Ergebnisse werden in einer versteckten **Sidecar-Datei** neben dem Dashboard gespeichert, sodass die Ausgabe ein erneutes Öffnen übersteht, ohne die `.dashboard`-Datei aufzublähen. Der Workflow muss seine Markdown-/HTML-Ausgabe in einer Zeichenfolgenvariable speichern (Standard `result`) — Karten-/Tabellenausgaben werden nicht unterstützt. Da er unbeaufsichtigt läuft, darf der Workflow keine interaktiven Nodes (`prompt-*`, `dialog`) verwenden.
+> Ergebnisse werden in `Dashboards/Data/<encoded dashboard path>.json` als normale Vault-Datei gespeichert. Die Ausgabe bleibt daher nach dem erneuten Öffnen erhalten, ohne die `.dashboard`-Datei aufzublähen, und kann wie jede andere Datei synchronisiert, gepusht/gepullt, geprüft oder versioniert werden. Der Workflow muss seine Markdown-/HTML-Ausgabe in einer Zeichenfolgenvariable speichern (Standard `result`) — Karten-/Tabellenausgaben werden nicht unterstützt. Da er unbeaufsichtigt läuft, darf der Workflow keine interaktiven Nodes (`prompt-*`, `dialog`) verwenden.
 
 ### Kanban — Karten ziehen, um den Status zu ändern
 
@@ -133,6 +136,17 @@ Konfigurieren Sie das Board über die Widget-Einstellungen im Bearbeitungsmodus:
 | **Spalten** | Geordnete Liste von Statuswerten. Jede Spalte hat einen **Wert** (gegen die Eigenschaft abgeglichen) und eine **Bezeichnung** (als Kopfzeile angezeigt). |
 | **Anzeigefelder** | Geordnete Liste von Frontmatter-Eigenschaften, die auf jeder Karte unter dem Titel angezeigt werden (z. B. `priority`, `due`). Jede wird als `name: value` angezeigt; leere Werte werden übersprungen, Listenwerte mit Kommas verbunden. |
 | **Spalte für nicht zugeordnete Karten anzeigen** | Wenn aktiviert, erscheinen Karten, deren Status zu keiner Spalte passt, in einer zusätzlichen Spalte „Nicht angegeben" (Standard ein). |
+
+### Timeline — datierte Beiträge erfassen
+
+Speichert kurze datierte Beiträge unter `Dashboards/Timeline/<name>/`, eine Markdown-Datei pro Tag. Beiträge können `#tags`, Bildanhänge und angeheftete Einträge enthalten. Das Widget zeigt einen umgekehrt chronologischen Feed mit Text-/Tag-/Datumsfiltern und Composer.
+
+| Einstellung | Beschreibung |
+|---------|-------------|
+| **Timeline-Name** | Ordnername unter `Dashboards/Timeline/` |
+| **Neueste Beiträge anzeigen** | Anfangszahl der neuesten Beiträge vor dem Laden älterer Einträge |
+
+Jede Tagesdatei heißt `<YYYY-MM-DD>.md`. Beiträge werden nur dann mit `---` getrennt, wenn danach ein Timeline-Marker oder ISO-Zeitstempel folgt, sodass normale Markdown-Horizontallinien im Beitrag erhalten bleiben.
 
 Unbekannte Widget-Typen (z. B. aus einer neueren Plugin-Version) werden **beim Speichern beibehalten** und als Platzhalter gerendert, sodass das Bearbeiten eines unbekannten Dashboards niemals Daten verliert.
 
@@ -174,7 +188,7 @@ grid:
   gap: 8          # pixels between cells
 widgets:
   - id: <uuid>                            # unique id (UUID-like string)
-    type: base | markdown | web | workflow | kanban
+    type: base | markdown | web | workflow | kanban | timeline
     layout:
       lg: { x: 0, y: 0, w: 6, h: 4 }      # required: position on the wide grid
       sm: { x: 0, y: 0, w: 12, h: 4 }     # optional: auto-derived (stacked) if omitted
@@ -200,6 +214,7 @@ config:
 # web
 config:
   url: https://example.com
+  showHeader: true                    # optional; false hides the URL/open header
 
 # workflow
 config:
@@ -215,6 +230,7 @@ config:
   statusProperty: status               # frontmatter property holding the status
   titleProperty: ""                    # frontmatter property for card title (empty = file name)
   displayFields: [priority, due]       # frontmatter properties shown on each card
+  cardOrder: [Tasks/A.md, Tasks/B.md]   # optional manual order persisted by drag/drop
   columns:                             # ordered list of status values
     - value: todo
       label: To Do
@@ -223,6 +239,10 @@ config:
     - value: done
       label: Done
   showUnspecified: true                # show cards with no/unknown status
+# timeline
+config:
+  name: Journal                        # stores posts under Dashboards/Timeline/Journal/
+  latestCount: 20
 ```
 
 ### Vollständiges Beispiel
@@ -250,6 +270,12 @@ widgets:
     layout: { lg: { x: 0, y: 6, w: 12, h: 4 } }
     config:
       url: https://help.obsidian.md
+  - id: journal
+    type: timeline
+    layout: { lg: { x: 0, y: 10, w: 6, h: 6 } }
+    config:
+      name: Journal
+      latestCount: 20
 ```
 
 ---
@@ -260,6 +286,6 @@ widgets:
 - **Nach Ansicht gruppieren.** Verwenden Sie eine `.base` über mehrere Base-Widgets hinweg (Active / Done / Backlog), anstatt Daten zu duplizieren.
 - **Halten Sie Workflow-Widgets günstig.** Sie speichern Ergebnisse zwischen; legen Sie ein sinnvolles **Aktualisierungsintervall** fest, anstatt sie bei jedem Öffnen auszuführen, und speichern Sie die Ausgabe in `result`.
 - **Nur Desktop.** Dashboards laufen (wie der Rest des Plugins) auf Obsidian Desktop.
-- **Dateien liegen in Ihrem Vault.** Dashboards werden unter `Dashboards/` als `.dashboard`-Dateien gespeichert und mit Ihren Notizen synchronisiert/versioniert; der Workflow-Cache pro Dashboard liegt in einer versteckten Sidecar-Datei neben jedem.
+- **Dateien liegen in Ihrem Vault.** Dashboards werden unter `Dashboards/` als `.dashboard`-Dateien gespeichert, Workflow-Ergebnisse unter `Dashboards/Data/`, Timeline-Beiträge unter `Dashboards/Timeline/` und generierte Bases unter `Dashboards/Bases/`. Sie sind normale Vault-Dateien und werden mit Ihren Notizen synchronisiert/versioniert.
 
 > Siehe auch: [Workflow-Nodes](WORKFLOW_NODES_de.md) · [Agent-Skills](SKILLS_de.md)

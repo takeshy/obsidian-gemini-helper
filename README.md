@@ -17,7 +17,7 @@
 - **AI Folder Access** - Limit which folders AI can read automatically when you do not want whole-vault access
 - **Encryption** - Password-protect chat history and workflow execution logs
 - **Edit History** - Track and restore AI-made changes with diff view
-- **Dashboard** - Arrange Bases views, notes, web pages, and workflow output in a responsive widget grid
+- **Dashboard** - Arrange Bases views, notes, web pages, timelines, kanban boards, and workflow output in a responsive widget grid
 
 ![Chat Interface](docs/images/chat.png)
 
@@ -469,7 +469,7 @@ Workflows can be automatically triggered by Obsidian events:
 
 # Dashboard
 
-Build a personal **home / overview page** from a responsive grid of widgets. A dashboard is a `.dashboard` file that arranges **Bases views**, **notes**, **web pages**, **workflow output**, and **kanban boards** in a drag-and-resize grid — open it like any note to see a live, editable board.
+Build a personal **home / overview page** from a responsive grid of widgets. A dashboard is a `.dashboard` file that arranges **Bases views**, **notes**, **web pages**, **timelines**, **workflow output**, and **kanban boards** in a drag-and-resize grid — open it like any note to see a live, editable board.
 
 ![Dashboard](docs/images/dashboard.png)
 
@@ -489,11 +489,12 @@ Click **+ Add widget** in edit mode to choose a type:
 |--------|-------|------------|
 | **Base** | A named view of a `.base` file via Obsidian's native Bases UI (table / cards / list) | `base` path, `view` name |
 | **Markdown** | An existing note, rendered inline | `path` to the note |
-| **Web Embed** | A web page in an iframe | `url` |
+| **Web Embed** | A web page in an iframe, with an optional header and browser-open button | `url`, `showHeader` |
 | **Workflow** | The output of a workflow, run headlessly and rendered as Markdown or HTML | `workflow` path, `output`, `refreshInterval` |
 | **Kanban** | Notes as draggable cards grouped into status columns | `tag`/`folder` filter, `statusProperty`, `columns`, `displayFields` |
+| **Timeline** | Date-based microblog posts with tags, image attachments, pinning, and filters | `name`, `latestCount` |
 
-**Base** and **Workflow** widgets include a **Create with AI** button to author the backing `.base` file or workflow without leaving the settings panel. For a base, the AI can inspect your notes with read-only tools before authoring, and **Edit with AI** shows a diff with an additional-instruction box to refine before applying.
+**Base** and **Workflow** widgets include a **Create with AI** button to author the backing `.base` file or workflow without leaving the settings panel. Base widgets can also create/select `.base` files and edit the selected view's display type, order, sort, limit, filters, card image, list indentation, and raw YAML directly from the dashboard settings panel. For AI edits, the proposed `.base` change is shown as a diff before applying.
 
 ## Kanban Board
 
@@ -504,6 +505,7 @@ Turn notes into a drag-and-drop board. Cards are notes that match a **tag** and/
 - **Title & New** — the header shows an optional board title (handy when one dashboard holds several boards) and a **New** button that opens a modal to enter a title and pick a column, then creates a note already matching the board's filters (folder, tag, status).
 - **Preview & open** — click a card to preview its note in a modal; the modal's open icon jumps to the note in a new tab.
 - **Columns** — color-coded and fully configurable; an optional "Unspecified" column collects cards whose status matches none of the columns.
+- **Manual order** — drag cards up/down within a column to persist a custom order for the board.
 - **Display fields** — list extra frontmatter properties (e.g. `priority`, `due`) to show on each card below the title.
 
 Configure everything from the widget settings in edit mode:
@@ -511,7 +513,7 @@ Configure everything from the widget settings in edit mode:
 ![Kanban settings](docs/images/dashboard_kanban_edit.png)
 
 > [!NOTE]
-> **Workflow widgets read from a cache, not live.** A workflow widget runs only on the **Run** button, the config editor's test-run, or once on open when its cached result is older than the **Auto-refresh interval** (minutes; `0` = manual only). Results are stored in a hidden sidecar file next to the dashboard, so output survives reopening. The workflow must store its Markdown/HTML output in a variable (default `result`).
+> **Workflow widgets read from a cache, not live.** A workflow widget runs only on the **Run** button, the config editor's test-run, or once on open when its cached result is older than the **Auto-refresh interval** (minutes; `0` = manual only). Results are stored as normal vault files under `Dashboards/Data/<encoded dashboard path>.json`, so they sync/version like other files and are included in push/pull workflows. The workflow must store its Markdown/HTML output in a variable (default `result`).
 
 > **For the `.dashboard` file format, the full YAML schema, and AI-generation tips, see [Dashboard Documentation](docs/DASHBOARD.md)**
 

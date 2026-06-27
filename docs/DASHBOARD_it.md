@@ -1,6 +1,6 @@
 # Dashboard
 
-Crea una **home page / pagina di panoramica** personale da una griglia responsiva di widget. Una dashboard è un file `.dashboard` che dispone **viste Bases**, **note**, **pagine web** e **output di workflow** in una griglia in cui si trascina e si ridimensiona. Aprila come qualsiasi nota per ottenere una board modificabile in tempo reale.
+Crea una **pagina home / panoramica** personale da una griglia responsiva di widget. Una dashboard è un file `.dashboard` che organizza **viste Bases**, **note**, **pagine web**, **timeline**, **bacheche Kanban** e **output di workflow** in una griglia trascinabile e ridimensionabile. Aprila come qualsiasi nota per ottenere una bacheca live e modificabile.
 
 ![Dashboard](images/dashboard.png)
 
@@ -12,7 +12,7 @@ Il **Canvas** di Obsidian e una Dashboard sembrano simili ma risolvono problemi 
 
 | | Dashboard | Canvas |
 |---|-----------|--------|
-| **Contenuto** | **In tempo reale** — Le viste Bases, l'output dei workflow e le note si aggiornano da sole (basate su query) | **Statico** — le schede sono istantanee posizionate a mano |
+| **Contenuto** | **Live** — viste Bases, timeline, bacheche Kanban, output di workflow e note si aggiornano | **Statico** — le schede sono snapshot posizionati manualmente |
 | **Layout** | Griglia responsiva (12 colonne; si riorganizza in una singola colonna su schermi stretti) | Piano infinito libero con posizioni assolute |
 | **Scopo** | Una **home page / pagina di panoramica** strutturata che apri per controllare lo stato | Uno spazio per **pensare** — organizzare idee e collegarle con frecce |
 | **IA** | Creata dalla chat (la skill `dashboard` costruisce il file e i suoi dati `.base` sottostanti) | Posizionamento manuale |
@@ -29,7 +29,7 @@ Ci sono due modi per creare una dashboard:
 1. **Comando** — esegui **«Gemini Helper: Crea dashboard»** dalla palette dei comandi. Questo crea un nuovo file nella cartella `Dashboards/` (denominato `Dashboard`, `Dashboard 2`, …) e lo apre.
 2. **Chiedere all'IA** — il plugin include una skill di agente integrata **`dashboard`**. Attivala nella chat e descrivi ciò che vuoi (*«una home page con le mie attività attive, una nota di benvenuto e il meteo di oggi»*). L'IA crea il file `.dashboard` — e qualsiasi file `.base` sottostante — per te.
 
-Le dashboard vengono memorizzate come semplici file `.dashboard` nel tuo vault, quindi si sincronizzano e si versionano come qualsiasi altra nota.
+Le dashboard sono memorizzate come semplici file `.dashboard` nel tuo vault, quindi si sincronizzano/versionano come qualsiasi altra nota. I risultati dei widget Workflow sono memorizzati separatamente in `Dashboards/Data/` come normali file del vault.
 
 ---
 
@@ -64,7 +64,7 @@ Renderizza una vista con nome di un file `.base` tramite l'**interfaccia Bases n
 | **Vista** | Il nome della vista da renderizzare; lascia vuoto per usare la prima vista della base |
 | **Crea con l'IA** | Creare un nuovo file `.base` (o modificare quello selezionato) senza lasciare il pannello |
 
-Lo stesso file `.base` può essere referenziato da più widget Base — ad esempio, un widget per vista (Active / Done / Backlog).
+The same `.base` file can be referenced by multiple Base widgets — for example, one widget per view (Active / Done / Backlog). If the `.base` file changes outside the settings panel, the editor reloads it before saving so it does not overwrite newer content with stale state.
 
 ### Markdown — incorporare una nota
 
@@ -85,6 +85,7 @@ Incorpora una pagina web in un iframe.
 | Impostazione | Descrizione |
 |---------|-------------|
 | **URL** | La pagina da incorporare |
+| **Show header** | Show a compact header with the URL and a browser-open button. Existing widgets default to on. |
 
 > [!NOTE]
 > Alcuni siti inviano header `X-Frame-Options` / `Content-Security-Policy` che bloccano l'incorporamento e appariranno vuoti.
@@ -109,7 +110,7 @@ Esegue un [workflow](WORKFLOW_NODES_it.md) esistente in modalità **headless** e
 > - fai clic su **Esegui** (nell'intestazione del widget o nel pannello delle impostazioni), oppure
 > - apri la dashboard e il risultato in cache è più vecchio dell'intervallo di aggiornamento automatico.
 >
-> I risultati vengono memorizzati in un file **sidecar** nascosto accanto alla dashboard, in modo che l'output sopravviva alla riapertura senza gonfiare il file `.dashboard`. Il workflow deve memorizzare il suo output Markdown/HTML in una variabile stringa (predefinito `result`) — gli output a schede/tabelle non sono supportati. Poiché viene eseguito senza supervisione, il workflow non deve usare nodi interattivi (`prompt-*`, `dialog`).
+> Los resultados se almacenan en `Dashboards/Data/<encoded dashboard path>.json` como archivo normal de la bóveda. Así la salida sobrevive a la reapertura sin inflar el archivo `.dashboard`, y puede sincronizarse, subirse/bajarse, revisarse o versionarse como cualquier otro archivo. El workflow debe almacenar su salida Markdown/HTML en una variable de cadena (predeterminado `result`) — no se admiten salidas de tarjetas/tablas. Como se ejecuta sin supervisión, no debe usar nodos interactivos (`prompt-*`, `dialog`).
 
 ### Kanban — trascina le schede per cambiare lo stato
 
@@ -174,7 +175,7 @@ grid:
   gap: 8          # pixels between cells
 widgets:
   - id: <uuid>                            # unique id (UUID-like string)
-    type: base | markdown | web | workflow | kanban
+    type: base | markdown | web | workflow | kanban | timeline
     layout:
       lg: { x: 0, y: 0, w: 6, h: 4 }      # required: position on the wide grid
       sm: { x: 0, y: 0, w: 12, h: 4 }     # optional: auto-derived (stacked) if omitted
@@ -200,6 +201,7 @@ config:
 # web
 config:
   url: https://example.com
+  showHeader: true                    # optional; false hides the URL/open header
 
 # workflow
 config:
@@ -215,6 +217,7 @@ config:
   statusProperty: status               # frontmatter property holding the status
   titleProperty: ""                    # frontmatter property for card title (empty = file name)
   displayFields: [priority, due]       # frontmatter properties shown on each card
+  cardOrder: [Tasks/A.md, Tasks/B.md]   # optional manual order persisted by drag/drop
   columns:                             # ordered list of status values
     - value: todo
       label: To Do
@@ -223,6 +226,10 @@ config:
     - value: done
       label: Done
   showUnspecified: true                # show cards with no/unknown status
+# timeline
+config:
+  name: Journal                        # stores posts under Dashboards/Timeline/Journal/
+  latestCount: 20
 ```
 
 ### Esempio completo
@@ -250,6 +257,12 @@ widgets:
     layout: { lg: { x: 0, y: 6, w: 12, h: 4 } }
     config:
       url: https://help.obsidian.md
+  - id: journal
+    type: timeline
+    layout: { lg: { x: 0, y: 10, w: 6, h: 6 } }
+    config:
+      name: Journal
+      latestCount: 20
 ```
 
 ---
@@ -260,6 +273,6 @@ widgets:
 - **Raggruppa per vista.** Riutilizza un `.base` su più widget Base (Active / Done / Backlog) invece di duplicare i dati.
 - **Mantieni economici i widget di workflow.** Memorizzano i risultati nella cache; imposta un **intervallo di aggiornamento automatico** sensato invece di eseguirli a ogni apertura, e memorizza l'output in `result`.
 - **Solo desktop.** Le dashboard (come il resto del plugin) funzionano su Obsidian desktop.
-- **I file risiedono nel tuo vault.** Le dashboard vengono memorizzate in `Dashboards/` come file `.dashboard` e si sincronizzano/versionano con le tue note; la cache di workflow per dashboard risiede in un file sidecar nascosto accanto a ciascuna.
+- **I file risiedono nel tuo vault.** Le dashboard sono memorizzate in `Dashboards/` come file `.dashboard`, i risultati dei workflow in `Dashboards/Data/`, i post timeline in `Dashboards/Timeline/` e le Bases generate in `Dashboards/Bases/`. Sono normali file del vault e si sincronizzano/versionano con le tue note.
 
 > Vedi anche: [Nodi di workflow](WORKFLOW_NODES_it.md) · [Skill di agente](SKILLS_it.md)

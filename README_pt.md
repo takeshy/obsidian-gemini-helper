@@ -17,7 +17,7 @@ Assistente de IA **gratuito e open-source** para Obsidian com **Chat**, **Automa
 - **Acesso da IA a pastas** - Limite quais pastas a IA pode ler automaticamente quando você não quiser acesso ao vault inteiro
 - **Criptografia** - Proteja com senha o histórico de chat e logs de execução de workflows
 - **Histórico de Edições** - Rastreie e restaure alterações feitas pela IA com visualização de diff
-- **Painel** - Organize visualizacoes de Bases, notas, paginas web e a saida de workflows em uma grade de widgets responsiva
+- **Painel** - Organize visualizacoes de Bases, notas, paginas web, timelines, quadros Kanban e a saida de workflows em uma grade de widgets responsiva
 
 ![Interface do Chat](docs/images/chat.png)
 
@@ -503,7 +503,7 @@ Workflows podem ser acionados automaticamente por eventos do Obsidian:
 
 # Painel
 
-Crie uma **pagina inicial / de visao geral** pessoal a partir de uma grade responsiva de widgets. Um painel e um arquivo `.dashboard` que organiza **visualizacoes de Bases**, **notas**, **paginas web**, **saida de workflows** e **quadros kanban** em uma grade onde se arrasta e redimensiona — abra-o como qualquer nota para ver um quadro editavel ao vivo.
+Crie uma **pagina inicial / visao geral** pessoal a partir de uma grade responsiva de widgets. Um painel e um arquivo `.dashboard` que organiza **visualizacoes de Bases**, **notas**, **paginas web**, **timelines**, **saida de workflow** e **quadros Kanban** em uma grade que pode ser arrastada e redimensionada — abra-o como qualquer nota para ver um quadro ativo e editavel.
 
 ![Painel](docs/images/dashboard.png)
 
@@ -523,9 +523,10 @@ Clique em **+ Adicionar widget** no modo de edicao para escolher um tipo:
 |--------|-------|------------|
 | **Base** | Uma visualizacao nomeada de um arquivo `.base` pela UI nativa de Bases do Obsidian (tabela / cartoes / lista) | caminho `base`, nome de `view` |
 | **Markdown** | Uma nota existente, renderizada inline | `path` para a nota |
-| **Web Embed** | Uma pagina web em um iframe | `url` |
+| **Web Embed** | Uma pagina web em um iframe, com cabecalho opcional e botao para abrir no navegador | `url`, `showHeader` |
 | **Workflow** | A saida de um workflow, executado headless e renderizado como Markdown ou HTML | caminho `workflow`, `output`, `refreshInterval` |
 | **Kanban** | Notas como cartoes arrastaveis agrupados em colunas de status | filtro `tag`/`folder`, `statusProperty`, `columns`, `displayFields` |
+| **Timeline** | Publicacoes datadas com tags, imagens anexas, fixacao e filtros | `name`, `latestCount` |
 
 Os widgets **Base** e **Workflow** incluem um botao **Criar com IA** para criar o arquivo `.base` ou o workflow subjacente sem sair do painel de configuracoes. Para uma base, a IA pode inspecionar suas notas com ferramentas somente leitura antes de criar, e **Editar com IA** mostra um diff com uma caixa de instrucoes adicionais para refinar antes de aplicar.
 
@@ -538,6 +539,7 @@ Transforme notas em um quadro de arrastar e soltar. Os cartoes sao notas que cor
 - **Titulo e Novo** — o cabecalho mostra um titulo de quadro opcional (util quando um painel contem varios quadros) e um botao **Novo** que abre uma caixa de dialogo para inserir um titulo e escolher uma coluna, e entao cria uma nota que ja corresponde aos filtros do quadro (pasta, tag, status).
 - **Previsualizar e abrir** — clique em um cartao para previsualizar sua nota em uma caixa de dialogo; o icone de abertura da caixa de dialogo salta para a nota em uma nova aba.
 - **Colunas** — codificadas por cor e totalmente configuraveis; uma coluna opcional "Nao especificado" reune os cartoes cujo status nao corresponde a nenhuma coluna.
+- **Ordem manual** — arraste cartoes para cima/baixo dentro de uma coluna para salvar uma ordem personalizada para o quadro.
 - **Campos exibidos** — liste propriedades extras do frontmatter (por exemplo, `priority`, `due`) para mostrar em cada cartao abaixo do titulo.
 
 Configure tudo nas configuracoes do widget no modo de edicao:
@@ -545,7 +547,7 @@ Configure tudo nas configuracoes do widget no modo de edicao:
 ![Configuracoes do Kanban](docs/images/dashboard_kanban_edit.png)
 
 > [!NOTE]
-> **Os widgets de workflow leem de um cache, nao ao vivo.** Um widget de workflow so e executado pelo botao **Executar**, pela execucao de teste do editor de configuracao, ou uma vez ao abrir quando seu resultado em cache e mais antigo que o **intervalo de atualizacao automatica** (minutos; `0` = somente manual). Os resultados sao armazenados em um arquivo sidecar oculto ao lado do painel, de modo que a saida sobrevive a reabertura. O workflow deve armazenar sua saida Markdown/HTML em uma variavel (padrao `result`).
+> **Os widgets de workflow leem de um cache, nao ao vivo.** Um widget de workflow so e executado pelo botao **Executar**, pela execucao de teste do editor de configuracao, ou uma vez ao abrir quando seu resultado em cache e mais antigo que o **intervalo de atualizacao automatica** (minutos; `0` = somente manual). Os resultados sao armazenados como arquivos normais do vault em `Dashboards/Data/<encoded dashboard path>.json`, portanto sincronizam/versionam como outros arquivos e entram nos workflows de push/pull. O workflow deve armazenar sua saida Markdown/HTML em uma variavel (padrao `result`).
 
 > **Para o formato do arquivo `.dashboard`, o esquema YAML completo e dicas de geracao com IA, consulte a [Documentacao do painel](docs/DASHBOARD.md)**
 

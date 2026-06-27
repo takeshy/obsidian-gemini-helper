@@ -1,6 +1,6 @@
 # Panel
 
-Crea una **página de inicio / resumen** personal a partir de una cuadrícula adaptable de widgets. Un panel es un archivo `.dashboard` que organiza **vistas de Bases**, **notas**, **páginas web** y **salida de workflows** en una cuadrícula que se arrastra y redimensiona. Ábrelo como cualquier nota para obtener un tablero editable en vivo.
+Construye una **página de inicio / resumen** personal desde una cuadrícula adaptable de widgets. Un panel es un archivo `.dashboard` que organiza **vistas de Bases**, **notas**, **páginas web**, **timelines**, **tableros Kanban** y **salida de workflow** en una cuadrícula que se puede arrastrar y redimensionar. Ábrelo como cualquier nota para obtener un tablero vivo y editable.
 
 ![Panel](images/dashboard.png)
 
@@ -12,7 +12,7 @@ El **Canvas** de Obsidian y un Panel parecen similares pero resuelven problemas 
 
 | | Panel | Canvas |
 |---|-----------|--------|
-| **Contenido** | **En vivo** — Las vistas de Bases, la salida de workflows y las notas se actualizan solas (basadas en consultas) | **Estático** — las tarjetas son instantáneas colocadas a mano |
+| **Contenido** | **En vivo** — vistas Bases, timelines, tableros Kanban, salida de workflow y notas se actualizan | **Estático** — las tarjetas son instantáneas colocadas a mano |
 | **Diseño** | Cuadrícula adaptable (12 columnas; se reorganiza en una sola columna en pantallas estrechas) | Plano infinito de forma libre con posiciones absolutas |
 | **Propósito** | Una **página de inicio / resumen** estructurada que abres para comprobar el estado | Un espacio para **pensar** — organizar ideas y conectarlas con flechas |
 | **IA** | Creado desde el chat (la skill `dashboard` construye el archivo y sus datos `.base` subyacentes) | Colocación manual |
@@ -29,7 +29,7 @@ Hay dos maneras de crear un panel:
 1. **Comando** — ejecuta **«Gemini Helper: Crear panel»** desde la paleta de comandos. Esto crea un nuevo archivo en la carpeta `Dashboards/` (con nombre `Dashboard`, `Dashboard 2`, …) y lo abre.
 2. **Pedir a la IA** — el plugin incluye una skill de agente integrada **`dashboard`**. Actívala en el chat y describe lo que quieres (*«una página de inicio con mis tareas activas, una nota de bienvenida y el clima de hoy»*). La IA crea el archivo `.dashboard` — y cualquier archivo `.base` subyacente — por ti.
 
-Los paneles se almacenan como archivos `.dashboard` simples en tu bóveda, por lo que se sincronizan y versionan como cualquier otra nota.
+Los paneles se almacenan como archivos `.dashboard` simples en tu bóveda, por lo que se sincronizan y versionan como cualquier otra nota. Los resultados de widgets Workflow se guardan aparte bajo `Dashboards/Data/` como archivos normales de la bóveda.
 
 ---
 
@@ -62,9 +62,11 @@ Renderiza una vista con nombre de un archivo `.base` mediante la **UI nativa de 
 |---------|-------------|
 | **Archivo base** | Ruta de bóveda al archivo `.base` |
 | **Vista** | El nombre de la vista a renderizar; déjalo vacío para usar la primera vista de la base |
-| **Crear con IA** | Crear un nuevo archivo `.base` (o editar el seleccionado) sin salir del panel |
+| **New Base** | Create a new `.base` file under `Dashboards/Bases/` |
+| **View editor** | Edit the selected view's name, type, order, sort, limit, filters, card image, list indentation, and raw YAML |
+| **Create with AI / Edit with AI** | Author a new `.base` file or propose edits to the selected one with a diff before applying |
 
-El mismo archivo `.base` puede ser referenciado por múltiples widgets Base — por ejemplo, un widget por vista (Active / Done / Backlog).
+The same `.base` file can be referenced by multiple Base widgets — for example, one widget per view (Active / Done / Backlog). If the `.base` file changes outside the settings panel, the editor reloads it before saving so it does not overwrite newer content with stale state.
 
 ### Markdown — incrustar una nota
 
@@ -85,6 +87,7 @@ Incrusta una página web en un iframe.
 | Ajuste | Descripción |
 |---------|-------------|
 | **URL** | La página a incrustar |
+| **Show header** | Show a compact header with the URL and a browser-open button. Existing widgets default to on. |
 
 > [!NOTE]
 > Algunos sitios envían encabezados `X-Frame-Options` / `Content-Security-Policy` que bloquean la incrustación y aparecerán en blanco.
@@ -109,11 +112,11 @@ Ejecuta un [workflow](WORKFLOW_NODES_es.md) existente de forma **headless** y re
 > - haces clic en **Ejecutar** (en el encabezado del widget o el panel de ajustes), o
 > - abres el panel y el resultado en caché es más antiguo que el intervalo de actualización automática.
 >
-> Los resultados se almacenan en un archivo **sidecar** oculto junto al panel, de modo que la salida sobrevive a la reapertura sin inflar el archivo `.dashboard`. El workflow debe almacenar su salida Markdown/HTML en una variable de cadena (predeterminado `result`) — las salidas de tarjetas/tablas no son compatibles. Como se ejecuta sin supervisión, el workflow no debe usar nodos interactivos (`prompt-*`, `dialog`).
+> Los resultados se almacenan en `Dashboards/Data/<encoded dashboard path>.json` como archivo normal de la bóveda. Así la salida sobrevive a la reapertura sin inflar el archivo `.dashboard`, y puede sincronizarse, subirse/bajarse, revisarse o versionarse como cualquier otro archivo. El workflow debe almacenar su salida Markdown/HTML en una variable de cadena (predeterminado `result`) — no se admiten salidas de tarjetas/tablas. Como se ejecuta sin supervisión, no debe usar nodos interactivos (`prompt-*`, `dialog`).
 
 ### Kanban — arrastra tarjetas para cambiar el estado
 
-Renderiza las notas que coinciden con un filtro de **etiqueta** y/o **carpeta** como tarjetas agrupadas en columnas por una **propiedad de estado** del frontmatter. Arrastra una tarjeta a otra columna para actualizar el estado de esa nota (escrito mediante `processFrontMatter`). Haz clic en una tarjeta para previsualizar su nota en un diálogo; el icono de apertura del diálogo abre la nota en una pestaña nueva. El tablero es interactivo en **modo de visualización** — no es necesario entrar en modo de edición para arrastrar tarjetas.
+Renderiza las notas que coinciden con un filtro de **etiqueta** y/o **carpeta** como tarjetas agrupadas en columnas por una **propiedad de estado** del frontmatter. Arrastra una tarjeta a otra columna para actualizar el estado de esa nota (escrito mediante `processFrontMatter`). Drag a card up/down within a column to persist a manual order for that board. Haz clic en una tarjeta para previsualizar su nota en un diálogo; el icono de apertura del diálogo abre la nota en una pestaña nueva. El tablero es interactivo en **modo de visualización** — no es necesario entrar en modo de edición para arrastrar tarjetas.
 
 ![Tablero Kanban](images/dashboard_kanban.png)
 
@@ -174,7 +177,7 @@ grid:
   gap: 8          # pixels between cells
 widgets:
   - id: <uuid>                            # unique id (UUID-like string)
-    type: base | markdown | web | workflow | kanban
+    type: base | markdown | web | workflow | kanban | timeline
     layout:
       lg: { x: 0, y: 0, w: 6, h: 4 }      # required: position on the wide grid
       sm: { x: 0, y: 0, w: 12, h: 4 }     # optional: auto-derived (stacked) if omitted
@@ -200,6 +203,7 @@ config:
 # web
 config:
   url: https://example.com
+  showHeader: true                    # optional; false hides the URL/open header
 
 # workflow
 config:
@@ -215,6 +219,7 @@ config:
   statusProperty: status               # frontmatter property holding the status
   titleProperty: ""                    # frontmatter property for card title (empty = file name)
   displayFields: [priority, due]       # frontmatter properties shown on each card
+  cardOrder: [Tasks/A.md, Tasks/B.md]   # optional manual order persisted by drag/drop
   columns:                             # ordered list of status values
     - value: todo
       label: To Do
@@ -223,6 +228,10 @@ config:
     - value: done
       label: Done
   showUnspecified: true                # show cards with no/unknown status
+# timeline
+config:
+  name: Journal                        # stores posts under Dashboards/Timeline/Journal/
+  latestCount: 20
 ```
 
 ### Ejemplo completo
@@ -250,6 +259,12 @@ widgets:
     layout: { lg: { x: 0, y: 6, w: 12, h: 4 } }
     config:
       url: https://help.obsidian.md
+  - id: journal
+    type: timeline
+    layout: { lg: { x: 0, y: 10, w: 6, h: 6 } }
+    config:
+      name: Journal
+      latestCount: 20
 ```
 
 ---
@@ -260,6 +275,6 @@ widgets:
 - **Agrupa por vista.** Reutiliza un `.base` en varios widgets Base (Active / Done / Backlog) en lugar de duplicar datos.
 - **Mantén baratos los widgets de workflow.** Almacenan resultados en caché; establece un **intervalo de actualización automática** sensato en lugar de ejecutarlos en cada apertura, y almacena la salida en `result`.
 - **Solo escritorio.** Los paneles (como el resto del plugin) se ejecutan en Obsidian de escritorio.
-- **Los archivos viven en tu bóveda.** Los paneles se almacenan en `Dashboards/` como archivos `.dashboard` y se sincronizan/versionan con tus notas; la caché de workflow por panel reside en un archivo sidecar oculto junto a cada uno.
+- **Los archivos viven en tu bóveda.** Los paneles se guardan bajo `Dashboards/` como archivos `.dashboard`, los resultados de workflow bajo `Dashboards/Data/`, las publicaciones timeline bajo `Dashboards/Timeline/` y las Bases generadas bajo `Dashboards/Bases/`. Son archivos normales de la bóveda y se sincronizan/versionan con tus notas.
 
 > Véase también: [Nodos de workflow](WORKFLOW_NODES_es.md) · [Skills de agente](SKILLS_es.md)

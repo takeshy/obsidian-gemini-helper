@@ -16,6 +16,7 @@ interface KanbanConfig {
   columns?: KanbanColumn[];
   showUnspecified?: boolean;
   displayFields?: string[];
+  cardOrder?: string[];
 }
 
 export function KanbanConfigEditor({ config, onChange }: ConfigEditorProps) {

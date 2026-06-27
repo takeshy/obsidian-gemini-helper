@@ -17,7 +17,7 @@
 - **KI-Ordnerzugriff** - Begrenzen Sie, welche Ordner die KI automatisch lesen darf, wenn kein Zugriff auf den gesamten Vault gewünscht ist
 - **Verschlüsselung** - Passwortschutz für Chat-Verlauf und Workflow-Ausführungsprotokolle
 - **Bearbeitungsverlauf** - Verfolgen und Wiederherstellen von KI-Änderungen mit Diff-Ansicht
-- **Dashboard** - Ordnen Sie Bases-Ansichten, Notizen, Webseiten und Workflow-Ausgaben in einem responsiven Widget-Raster an
+- **Dashboard** - Ordnen Sie Bases-Ansichten, Notizen, Webseiten, Timelines, Kanban-Boards und Workflow-Ausgaben in einem responsiven Widget-Raster an
 
 ![Chat-Oberfläche](docs/images/chat.png)
 
@@ -502,7 +502,7 @@ Workflows können automatisch durch Obsidian-Ereignisse ausgelöst werden:
 
 # Dashboard
 
-Erstellen Sie eine persönliche **Start-/Übersichtsseite** aus einem responsiven Raster von Widgets. Ein Dashboard ist eine `.dashboard`-Datei, die **Bases-Ansichten**, **Notizen**, **Webseiten**, **Workflow-Ausgaben** und **Kanban-Boards** in einem per Drag-and-Drop verschieb- und skalierbaren Raster anordnet — öffnen Sie es wie jede Notiz, um ein bearbeitbares Live-Board zu sehen.
+Erstellen Sie eine persönliche **Start-/Übersichtsseite** aus einem responsiven Raster von Widgets. Ein Dashboard ist eine `.dashboard`-Datei, die **Bases-Ansichten**, **Notizen**, **Webseiten**, **Timelines**, **Workflow-Ausgaben** und **Kanban-Boards** in einem per Drag-and-Drop verschieb- und skalierbaren Raster anordnet — öffnen Sie es wie jede Notiz, um ein bearbeitbares Live-Board zu sehen.
 
 ![Dashboard](docs/images/dashboard.png)
 
@@ -522,11 +522,12 @@ Klicken Sie im Bearbeitungsmodus auf **+ Widget hinzufügen**, um einen Typ ausz
 |--------|-------|------------|
 | **Base** | Eine benannte Ansicht einer `.base`-Datei über die native Bases-UI von Obsidian (Tabelle / Karten / Liste) | `base`-Pfad, `view`-Name |
 | **Markdown** | Eine bestehende Notiz, inline gerendert | `path` zur Notiz |
-| **Web Embed** | Eine Webseite in einem iframe | `url` |
+| **Web Embed** | Eine Webseite in einem iframe, mit optionaler Kopfzeile und Browser-Öffnen-Schaltfläche | `url`, `showHeader` |
 | **Workflow** | Die Ausgabe eines Workflows, headless ausgeführt und als Markdown oder HTML gerendert | `workflow`-Pfad, `output`, `refreshInterval` |
 | **Kanban** | Notizen als ziehbare Karten, gruppiert in Status-Spalten | `tag`/`folder`-Filter, `statusProperty`, `columns`, `displayFields` |
+| **Timeline** | Datierte Kurzbeiträge mit Tags, Bildanhängen, Anheften und Filtern | `name`, `latestCount` |
 
-**Base**- und **Workflow**-Widgets enthalten eine Schaltfläche **Mit KI erstellen**, um die zugrunde liegende `.base`-Datei oder den Workflow zu erstellen, ohne das Einstellungsfenster zu verlassen. Bei einer Base kann die KI Ihre Notizen vor dem Erstellen mit schreibgeschützten Tools prüfen, und **Mit KI bearbeiten** zeigt vor dem Anwenden ein Diff mit einem Feld für zusätzliche Anweisungen zur Verfeinerung.
+**Base**- und **Workflow**-Widgets enthalten eine Schaltfläche **Mit KI erstellen**, um die zugrunde liegende `.base`-Datei oder den Workflow zu erstellen, ohne das Einstellungs-Panel zu verlassen. Base-Widgets können außerdem `.base`-Dateien erstellen/auswählen und den Anzeigetyp, die Reihenfolge, Sortierung, Begrenzung, Filter, das Kartenbild, die Listeneinrückung und rohes YAML der ausgewählten Ansicht direkt im Dashboard-Einstellungs-Panel bearbeiten. Bei KI-Bearbeitungen wird die vorgeschlagene `.base`-Änderung vor dem Anwenden als Diff angezeigt.
 
 ## Kanban-Board
 
@@ -537,6 +538,7 @@ Verwandeln Sie Notizen in ein Drag-and-Drop-Board. Karten sind Notizen, die eine
 - **Titel & Neu** — die Kopfzeile zeigt einen optionalen Board-Titel (praktisch, wenn ein Dashboard mehrere Boards enthält) und eine Schaltfläche **Neu**, die ein Dialogfenster öffnet, in dem Sie einen Titel eingeben und eine Spalte auswählen, und dann eine Notiz erstellt, die bereits den Filtern des Boards entspricht (Ordner, Tag, Status).
 - **Vorschau & Öffnen** — klicken Sie auf eine Karte, um ihre Notiz in einem Dialogfenster anzuzeigen; das Öffnen-Symbol des Dialogs springt in einem neuen Tab zur Notiz.
 - **Spalten** — farbcodiert und vollständig konfigurierbar; eine optionale Spalte „Nicht angegeben" sammelt Karten, deren Status zu keiner Spalte passt.
+- **Manuelle Reihenfolge** — ziehen Sie Karten innerhalb einer Spalte nach oben/unten, um eine benutzerdefinierte Reihenfolge für das Board zu speichern.
 - **Anzeigefelder** — zusätzliche Frontmatter-Eigenschaften (z. B. `priority`, `due`) auflisten, die unter dem Titel jeder Karte angezeigt werden.
 
 Konfigurieren Sie alles über die Widget-Einstellungen im Bearbeitungsmodus:
@@ -544,7 +546,7 @@ Konfigurieren Sie alles über die Widget-Einstellungen im Bearbeitungsmodus:
 ![Kanban-Einstellungen](docs/images/dashboard_kanban_edit.png)
 
 > [!NOTE]
-> **Workflow-Widgets lesen aus einem Cache, nicht live.** Ein Workflow-Widget wird nur ausgeführt über die Schaltfläche **Ausführen**, den Testlauf im Konfigurationseditor oder einmalig beim Öffnen, wenn sein zwischengespeichertes Ergebnis älter als das **Aktualisierungsintervall** ist (Minuten; `0` = nur manuell). Die Ergebnisse werden in einer versteckten Sidecar-Datei neben dem Dashboard gespeichert, sodass die Ausgabe ein erneutes Öffnen übersteht. Der Workflow muss seine Markdown-/HTML-Ausgabe in einer Variable speichern (Standard `result`).
+> **Workflow-Widgets lesen aus einem Cache, nicht live.** Ein Workflow-Widget wird nur über die Schaltfläche **Ausführen**, den Testlauf im Konfigurationseditor oder einmalig beim Öffnen ausgeführt, wenn sein zwischengespeichertes Ergebnis älter als das **Aktualisierungsintervall** ist (Minuten; `0` = nur manuell). Ergebnisse werden als normale Vault-Dateien unter `Dashboards/Data/<encoded dashboard path>.json` gespeichert, synchronisieren/versionieren wie andere Dateien und sind in Push/Pull-Workflows enthalten. Der Workflow muss seine Markdown-/HTML-Ausgabe in einer Variable speichern (Standard `result`).
 
 > **Für das `.dashboard`-Dateiformat, das vollständige YAML-Schema und Tipps zur KI-Generierung siehe [Dashboard-Dokumentation](docs/DASHBOARD.md)**
 

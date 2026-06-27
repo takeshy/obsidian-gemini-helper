@@ -502,7 +502,7 @@ I workflow possono essere attivati automaticamente dagli eventi di Obsidian:
 
 # Dashboard
 
-Crea una **home page / pagina di panoramica** personale da una griglia responsiva di widget. Una dashboard è un file `.dashboard` che dispone **viste Bases**, **note**, **pagine web**, **output di workflow** e **board kanban** in una griglia in cui si trascina e si ridimensiona — aprila come qualsiasi nota per vedere una board modificabile in tempo reale.
+Crea una **pagina home / panoramica** personale da una griglia responsiva di widget. Una dashboard è un file `.dashboard` che organizza **viste Bases**, **note**, **pagine web**, **timeline**, **output di workflow** e **bacheche Kanban** in una griglia trascinabile e ridimensionabile — aprila come qualsiasi nota per vedere una bacheca live e modificabile.
 
 ![Dashboard](docs/images/dashboard.png)
 
@@ -522,9 +522,10 @@ Fai clic su **+ Aggiungi widget** nella modalità di modifica per scegliere un t
 |--------|-------|------------|
 | **Base** | Una vista con nome di un file `.base` tramite l'interfaccia Bases nativa di Obsidian (tabella / schede / elenco) | percorso `base`, nome `view` |
 | **Markdown** | Una nota esistente, renderizzata inline | `path` alla nota |
-| **Web Embed** | Una pagina web in un iframe | `url` |
+| **Web Embed** | Una pagina web in un iframe, con intestazione opzionale e pulsante per aprire nel browser | `url`, `showHeader` |
 | **Workflow** | L'output di un workflow, eseguito in modalità headless e renderizzato come Markdown o HTML | percorso `workflow`, `output`, `refreshInterval` |
 | **Kanban** | Note come schede trascinabili raggruppate in colonne di stato | filtro `tag`/`folder`, `statusProperty`, `columns`, `displayFields` |
+| **Timeline** | Post datati con tag, immagini allegate, fissaggio e filtri | `name`, `latestCount` |
 
 I widget **Base** e **Workflow** includono un pulsante **Crea con l'IA** per creare il file `.base` o il workflow sottostante senza lasciare il pannello delle impostazioni. Per una base, l'IA può ispezionare le note con strumenti di sola lettura prima della creazione, e **Modifica con l'IA** mostra un diff con un campo per istruzioni aggiuntive per rifinire prima di applicare.
 
@@ -537,6 +538,7 @@ Trasforma le note in una board drag-and-drop. Le schede sono note che corrispond
 - **Titolo e Nuova** — l'intestazione mostra un titolo della board opzionale (utile quando una dashboard contiene più board) e un pulsante **Nuova** che apre una finestra di dialogo per inserire un titolo e scegliere una colonna, quindi crea una nota che corrisponde già ai filtri della board (cartella, tag, stato).
 - **Anteprima e apertura** — clicca su una scheda per visualizzarne l'anteprima della nota in una finestra di dialogo; l'icona di apertura della finestra apre la nota in una nuova scheda.
 - **Colonne** — codificate per colore e completamente configurabili; una colonna opzionale «Non specificato» raccoglie le schede il cui stato non corrisponde a nessuna colonna.
+- **Ordine manuale** — trascina le schede su/giù all’interno di una colonna per salvare un ordine personalizzato per la bacheca.
 - **Campi visualizzati** — elenca proprietà frontmatter aggiuntive (ad es. `priority`, `due`) da mostrare su ogni scheda sotto il titolo.
 
 Configura tutto dalle impostazioni del widget in modalità di modifica:
@@ -544,7 +546,7 @@ Configura tutto dalle impostazioni del widget in modalità di modifica:
 ![Impostazioni Kanban](docs/images/dashboard_kanban_edit.png)
 
 > [!NOTE]
-> **I widget di workflow leggono da una cache, non in tempo reale.** Un widget di workflow viene eseguito solo con il pulsante **Esegui**, l'esecuzione di prova dell'editor di configurazione, o una volta all'apertura quando il suo risultato in cache è più vecchio dell'**intervallo di aggiornamento automatico** (minuti; `0` = solo manuale). I risultati vengono memorizzati in un file sidecar nascosto accanto alla dashboard, in modo che l'output sopravviva alla riapertura. Il workflow deve memorizzare il suo output Markdown/HTML in una variabile (predefinito `result`).
+> **I widget di workflow leggono da una cache, non in tempo reale.** Un widget di workflow viene eseguito solo con il pulsante **Esegui**, l’esecuzione di prova dell’editor di configurazione, o una volta all’apertura quando il suo risultato in cache è più vecchio dell’**intervallo di aggiornamento automatico** (minuti; `0` = solo manuale). I risultati vengono salvati come normali file del vault in `Dashboards/Data/<encoded dashboard path>.json`, quindi si sincronizzano/versionano come gli altri file e sono inclusi nei workflow push/pull. Il workflow deve memorizzare il suo output Markdown/HTML in una variabile (predefinito `result`).
 
 > **Per il formato del file `.dashboard`, lo schema YAML completo e suggerimenti per la generazione con IA, vedi la [Documentazione della dashboard](docs/DASHBOARD.md)**
 

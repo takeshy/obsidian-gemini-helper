@@ -1,6 +1,6 @@
 # Tableau de bord
 
-Construisez une **page d'accueil / de synthèse** personnelle à partir d'une grille de widgets responsive. Un tableau de bord est un fichier `.dashboard` qui organise des **vues Bases**, des **notes**, des **pages web** et la **sortie de workflows** dans une grille où l'on déplace et redimensionne par glisser-déposer. Ouvrez-le comme n'importe quelle note pour obtenir un tableau modifiable en direct.
+Créez une **page d'accueil / vue d'ensemble** personnelle à partir d'une grille responsive de widgets. Un tableau de bord est un fichier `.dashboard` qui organise des **vues Bases**, des **notes**, des **pages web**, des **timelines**, des **tableaux Kanban** et des **sorties de workflow** dans une grille déplaçable et redimensionnable. Ouvrez-le comme n'importe quelle note pour obtenir un tableau vivant et modifiable.
 
 ![Tableau de bord](images/dashboard.png)
 
@@ -12,7 +12,7 @@ Le **Canvas** d'Obsidian et un tableau de bord se ressemblent mais résolvent de
 
 | | Tableau de bord | Canvas |
 |---|-----------|--------|
-| **Contenu** | **En direct** — Les vues Bases, la sortie des workflows et les notes se mettent à jour seules (basées sur des requêtes) | **Statique** — les cartes sont des instantanés placés à la main |
+| **Contenu** | **Live** — vues Bases, timelines, tableaux Kanban, sorties de workflow et notes se mettent à jour | **Statique** — les cartes sont des instantanés placés à la main |
 | **Disposition** | Grille responsive (12 colonnes ; se réorganise en une seule colonne sur les écrans étroits) | Plan infini libre avec positions absolues |
 | **Objectif** | Une **page d'accueil / de synthèse** structurée que vous ouvrez pour vérifier le statut | Un espace pour **réfléchir** — organiser des idées et les relier par des flèches |
 | **IA** | Créé depuis le chat (le skill `dashboard` construit le fichier et ses données `.base` sous-jacentes) | Placement manuel |
@@ -29,7 +29,7 @@ Il existe deux façons de créer un tableau de bord :
 1. **Commande** — exécutez **« Gemini Helper : Créer un tableau de bord »** depuis la palette de commandes. Cela crée un nouveau fichier dans le dossier `Dashboards/` (nommé `Dashboard`, `Dashboard 2`, …) et l'ouvre.
 2. **Demander à l'IA** — le plugin fournit un skill d'agent intégré **`dashboard`**. Activez-le dans le chat et décrivez ce que vous voulez (*« une page d'accueil avec mes tâches actives, une note de bienvenue et la météo du jour »*). L'IA crée le fichier `.dashboard` — et tous les fichiers `.base` sous-jacents — pour vous.
 
-Les tableaux de bord sont stockés sous forme de fichiers `.dashboard` simples dans votre coffre, de sorte qu'ils se synchronisent et se versionnent comme n'importe quelle autre note.
+Les tableaux de bord sont stockés comme fichiers `.dashboard` simples dans votre coffre, ils se synchronisent et se versionnent comme les autres notes. Les résultats des widgets Workflow sont stockés séparément sous `Dashboards/Data/` comme fichiers normaux du coffre.
 
 ---
 
@@ -62,9 +62,11 @@ Affiche une vue nommée d'un fichier `.base` via l'**interface Bases native** d'
 |---------|-------------|
 | **Fichier base** | Chemin du coffre vers le fichier `.base` |
 | **Vue** | Le nom de la vue à afficher ; laissez vide pour utiliser la première vue de la base |
-| **Créer avec l'IA** | Créer un nouveau fichier `.base` (ou modifier celui sélectionné) sans quitter le panneau |
+| **New Base** | Create a new `.base` file under `Dashboards/Bases/` |
+| **View editor** | Edit the selected view's name, type, order, sort, limit, filters, card image, list indentation, and raw YAML |
+| **Create with AI / Edit with AI** | Author a new `.base` file or propose edits to the selected one with a diff before applying |
 
-Le même fichier `.base` peut être référencé par plusieurs widgets Base — par exemple, un widget par vue (Active / Done / Backlog).
+The same `.base` file can be referenced by multiple Base widgets — for example, one widget per view (Active / Done / Backlog). If the `.base` file changes outside the settings panel, the editor reloads it before saving so it does not overwrite newer content with stale state.
 
 ### Markdown — intégrer une note
 
@@ -85,6 +87,7 @@ Intègre une page web dans un iframe.
 | Paramètre | Description |
 |---------|-------------|
 | **URL** | La page à intégrer |
+| **Show header** | Show a compact header with the URL and a browser-open button. Existing widgets default to on. |
 
 > [!NOTE]
 > Certains sites envoient des en-têtes `X-Frame-Options` / `Content-Security-Policy` qui bloquent l'intégration et apparaîtront vides.
@@ -109,11 +112,11 @@ Exécute un [workflow](WORKFLOW_NODES_fr.md) existant en mode **headless** et af
 > - cliquez sur **Exécuter** (dans l'en-tête du widget ou le panneau des paramètres), ou
 > - ouvrez le tableau de bord et que le résultat en cache est plus ancien que l'intervalle d'actualisation automatique.
 >
-> Les résultats sont stockés dans un fichier **sidecar** masqué à côté du tableau de bord, de sorte que la sortie survit à une réouverture sans gonfler le fichier `.dashboard`. Le workflow doit stocker sa sortie Markdown/HTML dans une variable de chaîne (par défaut `result`) — les sorties en cartes/tableaux ne sont pas prises en charge. Comme il s'exécute sans surveillance, le workflow ne doit pas utiliser de nœuds interactifs (`prompt-*`, `dialog`).
+> Les résultats sont stockés dans `Dashboards/Data/<encoded dashboard path>.json` comme fichier normal du coffre. La sortie survit donc à la réouverture sans gonfler le fichier `.dashboard`, et peut être synchronisée, poussée/tirée, revue ou versionnée comme tout autre fichier. Le workflow doit stocker sa sortie Markdown/HTML dans une variable de chaîne (par défaut `result`) — les sorties en cartes/tableaux ne sont pas prises en charge. Comme il s'exécute sans surveillance, le workflow ne doit pas utiliser de nœuds interactifs (`prompt-*`, `dialog`).
 
 ### Kanban — faites glisser les cartes pour changer le statut
 
-Affiche les notes correspondant à un filtre par **tag** et/ou **dossier** sous forme de cartes regroupées en colonnes selon une **propriété de statut** du frontmatter. Faites glisser une carte vers une autre colonne pour mettre à jour le statut de cette note (écrit via `processFrontMatter`). Cliquez sur une carte pour prévisualiser sa note dans une boîte de dialogue ; l'icône d'ouverture de la boîte ouvre la note dans un nouvel onglet. Le tableau est interactif en **mode affichage** — pas besoin d'entrer en mode édition pour déplacer les cartes.
+Affiche les notes correspondant à un filtre par **tag** et/ou **dossier** sous forme de cartes regroupées en colonnes selon une **propriété de statut** du frontmatter. Faites glisser une carte vers une autre colonne pour mettre à jour le statut de cette note (écrit via `processFrontMatter`). Drag a card up/down within a column to persist a manual order for that board. Cliquez sur une carte pour prévisualiser sa note dans une boîte de dialogue ; l'icône d'ouverture de la boîte ouvre la note dans un nouvel onglet. Le tableau est interactif en **mode affichage** — pas besoin d'entrer en mode édition pour déplacer les cartes.
 
 ![Tableau Kanban](images/dashboard_kanban.png)
 
@@ -174,7 +177,7 @@ grid:
   gap: 8          # pixels between cells
 widgets:
   - id: <uuid>                            # unique id (UUID-like string)
-    type: base | markdown | web | workflow | kanban
+    type: base | markdown | web | workflow | kanban | timeline
     layout:
       lg: { x: 0, y: 0, w: 6, h: 4 }      # required: position on the wide grid
       sm: { x: 0, y: 0, w: 12, h: 4 }     # optional: auto-derived (stacked) if omitted
@@ -200,6 +203,7 @@ config:
 # web
 config:
   url: https://example.com
+  showHeader: true                    # optional; false hides the URL/open header
 
 # workflow
 config:
@@ -215,6 +219,7 @@ config:
   statusProperty: status               # frontmatter property holding the status
   titleProperty: ""                    # frontmatter property for card title (empty = file name)
   displayFields: [priority, due]       # frontmatter properties shown on each card
+  cardOrder: [Tasks/A.md, Tasks/B.md]   # optional manual order persisted by drag/drop
   columns:                             # ordered list of status values
     - value: todo
       label: To Do
@@ -223,6 +228,10 @@ config:
     - value: done
       label: Done
   showUnspecified: true                # show cards with no/unknown status
+# timeline
+config:
+  name: Journal                        # stores posts under Dashboards/Timeline/Journal/
+  latestCount: 20
 ```
 
 ### Exemple complet
@@ -250,6 +259,12 @@ widgets:
     layout: { lg: { x: 0, y: 6, w: 12, h: 4 } }
     config:
       url: https://help.obsidian.md
+  - id: journal
+    type: timeline
+    layout: { lg: { x: 0, y: 10, w: 6, h: 6 } }
+    config:
+      name: Journal
+      latestCount: 20
 ```
 
 ---
@@ -260,6 +275,6 @@ widgets:
 - **Regroupez par vue.** Réutilisez un `.base` sur plusieurs widgets Base (Active / Done / Backlog) au lieu de dupliquer les données.
 - **Gardez les widgets de workflow légers.** Ils mettent les résultats en cache ; définissez un **intervalle d'actualisation automatique** raisonnable au lieu de les exécuter à chaque ouverture, et stockez la sortie dans `result`.
 - **Bureau uniquement.** Les tableaux de bord (comme le reste du plugin) fonctionnent sur Obsidian bureau.
-- **Les fichiers se trouvent dans votre coffre.** Les tableaux de bord sont stockés sous `Dashboards/` en tant que fichiers `.dashboard` et se synchronisent/versionnent avec vos notes ; le cache de workflow par tableau de bord réside dans un fichier sidecar masqué à côté de chacun.
+- **Les fichiers se trouvent dans votre coffre.** Les tableaux de bord sont stockés sous `Dashboards/` en fichiers `.dashboard`, les résultats de workflow sous `Dashboards/Data/`, les publications timeline sous `Dashboards/Timeline/`, et les Bases générées sous `Dashboards/Bases/`. Ce sont des fichiers normaux du coffre, synchronisés/versionnés avec vos notes.
 
 > Voir aussi : [Nœuds de workflow](WORKFLOW_NODES_fr.md) · [Skills d'agent](SKILLS_fr.md)

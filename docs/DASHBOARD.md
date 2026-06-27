@@ -2,8 +2,8 @@
 
 Build a personal **home / overview page** from a responsive grid of widgets. A
 dashboard is a `.dashboard` file that arranges **Bases views**, **notes**, **web
-pages**, and **workflow output** in a drag-and-resize grid. Open it like any
-note to get a live, editable board.
+pages**, **timelines**, **kanban boards**, and **workflow output** in a
+drag-and-resize grid. Open it like any note to get a live, editable board.
 
 ![Dashboard](images/dashboard.png)
 
@@ -16,6 +16,7 @@ note to get a live, editable board.
   - [Web Embed](#web-embed--embed-a-web-page)
   - [Workflow](#workflow--render-workflow-output)
   - [Kanban](#kanban--drag-cards-to-change-status)
+  - [Timeline](#timeline--capture-dated-posts)
 - [Responsive Layout](#responsive-layout)
 - [Creating Widgets with AI](#creating-widgets-with-ai)
 - [The `.dashboard` File Format](#the-dashboard-file-format)
@@ -29,7 +30,7 @@ Obsidian's **Canvas** and a Dashboard look similar but solve different problems:
 
 | | Dashboard | Canvas |
 |---|-----------|--------|
-| **Content** | **Live** — Bases views, workflow output, and notes update on their own (query-driven) | **Static** — cards are snapshots placed by hand |
+| **Content** | **Live** — Bases views, timelines, kanban boards, workflow output, and notes update on their own | **Static** — cards are snapshots placed by hand |
 | **Layout** | Responsive grid (12 columns; reflows to a single column on narrow screens) | Free-form infinite plane with absolute positions |
 | **Purpose** | A structured **home / overview** page you open to check status | A space to **think** — arrange ideas and connect them with arrows |
 | **AI** | Authored from chat (the `dashboard` skill builds the file and its backing `.base` data) | Manual placement |
@@ -52,7 +53,8 @@ There are two ways to create a dashboard:
    `.dashboard` file — and any backing `.base` files — for you.
 
 Dashboards are stored as plain `.dashboard` files in your vault, so they sync and
-version like any other note.
+version like any other note. Workflow widget results are stored separately under
+`Dashboards/Data/` as normal vault files.
 
 ---
 
@@ -89,10 +91,14 @@ list, table, or card view of notes rather than reimplementing one.
 |---------|-------------|
 | **Base file** | Vault path to the `.base` file |
 | **View** | The view name to render; leave empty to use the base's first view |
-| **Create with AI** | Author a new `.base` file (or edit the selected one) without leaving the panel |
+| **New Base** | Create a new `.base` file under `Dashboards/Bases/` |
+| **View editor** | Edit the selected view's name, type, order, sort, limit, filters, card image, list indentation, and raw YAML |
+| **Create with AI / Edit with AI** | Author a new `.base` file or propose edits to the selected one with a diff before applying |
 
 The same `.base` file can be referenced by multiple Base widgets — for example,
-one widget per view (Active / Done / Backlog).
+one widget per view (Active / Done / Backlog). If the `.base` file changes
+outside the settings panel, the editor reloads it before saving so it does not
+overwrite newer content with stale state.
 
 ### Markdown — embed a note
 
@@ -114,6 +120,7 @@ Embeds a web page in an iframe.
 | Setting | Description |
 |---------|-------------|
 | **URL** | The page to embed |
+| **Show header** | Show a compact header with the URL and a browser-open button. Existing widgets default to on. |
 
 > [!NOTE]
 > Some sites send `X-Frame-Options` / `Content-Security-Policy` headers that
@@ -144,18 +151,21 @@ output as Markdown or HTML. This lets you put dynamic, generated content
 > - open the dashboard and the cached result is older than the auto-refresh
 >   interval.
 >
-> Results are stored in a hidden **sidecar file** next to the dashboard, so
-> output survives reopening without bloating the `.dashboard` file. The workflow
-> must store its Markdown/HTML output in a string variable (default `result`) —
-> card/table outputs are not supported. Because it runs unattended, the workflow
-> must not use interactive nodes (`prompt-*`, `dialog`).
+> Results are stored in `Dashboards/Data/<encoded dashboard path>.json` as a
+> normal vault file, so output survives reopening without bloating the
+> `.dashboard` file and can be synced, pushed, pulled, reviewed, or versioned
+> like any other file. The workflow must store its Markdown/HTML output in a
+> string variable (default `result`) — card/table outputs are not supported.
+> Because it runs unattended, the workflow must not use interactive nodes
+> (`prompt-*`, `dialog`).
 
 ### Kanban — drag cards to change status
 
 Renders notes matching a **tag** and/or **folder** filter as cards grouped into
 columns by a frontmatter **status property**. Drag a card to another column to
-update that note's status (written via `processFrontMatter`). Click a card to
-preview its note in a modal; the modal's open icon navigates to the note in a
+update that note's status (written via `processFrontMatter`). Drag a card
+up/down within a column to persist a manual order for that board. Click a card
+to preview its note in a modal; the modal's open icon navigates to the note in a
 new tab. The board is interactive in **view mode** — no need to enter edit mode
 to drag cards.
 
@@ -182,6 +192,25 @@ Configure the board from the widget settings in edit mode:
 | **Columns** | Ordered list of status values. Each column has a **value** (matched against the property) and a **label** (shown as the header). |
 | **Display fields** | Ordered list of frontmatter property names shown on each card below the title (e.g. `priority`, `due`). Each is shown as `name: value`; empty values are skipped, and list values are joined with commas. |
 | **Show unmatched cards column** | When on, cards whose status doesn't match any column appear in an extra "Unspecified" column (default on). |
+
+The board stores manual card order in the widget config as `cardOrder`. The
+values are note paths, so the order round-trips with the `.dashboard` file.
+
+### Timeline — capture dated posts
+
+Stores short dated posts under `Dashboards/Timeline/<name>/`, one Markdown file
+per day. Posts can include `#tags`, image attachments, and pinned items. The
+widget renders a reverse-chronological feed with text/tag/date filters and a
+composer for new posts.
+
+| Setting | Description |
+|---------|-------------|
+| **Timeline name** | Folder name under `Dashboards/Timeline/` |
+| **Latest posts to show** | Initial number of recent posts to render before loading older entries |
+
+Each daily file is named `<YYYY-MM-DD>.md`. Posts are separated with `---` only
+when the separator is followed by a timeline marker or ISO timestamp, so normal
+Markdown horizontal rules inside a post body are preserved.
 
 Unknown widget types (e.g. from a newer plugin version) are **preserved on
 save** and render as a placeholder, so editing an unfamiliar dashboard never
@@ -242,7 +271,7 @@ grid:
   gap: 8          # pixels between cells
 widgets:
   - id: <uuid>                            # unique id (UUID-like string)
-    type: base | markdown | web | workflow | kanban
+    type: base | markdown | web | workflow | kanban | timeline
     layout:
       lg: { x: 0, y: 0, w: 6, h: 4 }      # required: position on the wide grid
       sm: { x: 0, y: 0, w: 12, h: 4 }     # optional: auto-derived (stacked) if omitted
@@ -270,6 +299,7 @@ config:
 # web
 config:
   url: https://example.com
+  showHeader: true                    # optional; false hides the URL/open header
 
 # workflow
 config:
@@ -285,6 +315,7 @@ config:
   statusProperty: status               # frontmatter property holding the status
   titleProperty: ""                    # frontmatter property for card title (empty = file name)
   displayFields: [priority, due]       # frontmatter properties shown on each card
+  cardOrder: [Tasks/A.md, Tasks/B.md]   # optional manual order persisted by drag/drop
   columns:                             # ordered list of status values
     - value: todo
       label: To Do
@@ -293,6 +324,11 @@ config:
     - value: done
       label: Done
   showUnspecified: true                # show cards with no/unknown status
+
+# timeline
+config:
+  name: Journal                        # stores posts under Dashboards/Timeline/Journal/
+  latestCount: 20
 ```
 
 ### Complete example
@@ -320,15 +356,22 @@ widgets:
     layout: { lg: { x: 0, y: 6, w: 12, h: 4 } }
     config:
       url: https://help.obsidian.md
+      showHeader: true
+  - id: journal
+    type: timeline
+    layout: { lg: { x: 0, y: 10, w: 6, h: 6 } }
+    config:
+      name: Journal
+      latestCount: 20
 ```
 
 ---
 
 ## Tips & Notes
 
-- **Build the data first.** For a Base widget, author the `.base` file (and its
-  views) before pointing a widget at it. The AI dashboard skill does this for
-  you in one pass.
+- **Build or edit the data first.** For a Base widget, author the `.base` file
+  and its views from the settings panel, or let the AI dashboard skill do it in
+  one pass.
 - **Group by view.** Reuse one `.base` across several Base widgets (Active /
   Done / Backlog) instead of duplicating data.
 - **Keep workflow widgets cheap.** They cache results; set a sensible
@@ -337,7 +380,8 @@ widgets:
 - **Desktop only.** Dashboards (like the rest of the plugin) run on Obsidian
   desktop.
 - **Files live in your vault.** Dashboards are stored under `Dashboards/` as
-  `.dashboard` files and sync/version with your notes; the per-dashboard
-  workflow cache lives in a hidden sidecar file beside each one.
+  `.dashboard` files, workflow results under `Dashboards/Data/`, timeline posts
+  under `Dashboards/Timeline/`, and generated Bases under `Dashboards/Bases/`.
+  They are normal vault files and sync/version with your notes.
 
 > See also: [Workflow Nodes](WORKFLOW_NODES.md) · [Agent Skills](SKILLS.md)

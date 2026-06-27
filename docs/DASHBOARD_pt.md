@@ -1,6 +1,6 @@
 # Painel
 
-Crie uma **página inicial / de visão geral** pessoal a partir de uma grade responsiva de widgets. Um painel é um arquivo `.dashboard` que organiza **visualizações de Bases**, **notas**, **páginas web** e **saída de workflows** em uma grade onde se arrasta e redimensiona. Abra-o como qualquer nota para obter um quadro editável ao vivo.
+Crie uma **pagina inicial / visao geral** pessoal a partir de uma grade responsiva de widgets. Um painel e um arquivo `.dashboard` que organiza **visualizacoes de Bases**, **notas**, **paginas web**, **timelines**, **quadros Kanban** e **saida de workflow** em uma grade que pode ser arrastada e redimensionada. Abra-o como qualquer nota para obter um quadro ativo e editavel.
 
 ![Painel](images/dashboard.png)
 
@@ -29,7 +29,7 @@ Há duas maneiras de criar um painel:
 1. **Comando** — execute **"Gemini Helper: Criar painel"** a partir da paleta de comandos. Isso cria um novo arquivo na pasta `Dashboards/` (com nome `Dashboard`, `Dashboard 2`, …) e o abre.
 2. **Pedir à IA** — o plugin inclui uma skill de agente integrada **`dashboard`**. Ative-a no chat e descreva o que você quer (*"uma página inicial com minhas tarefas ativas, uma nota de boas-vindas e o clima de hoje"*). A IA cria o arquivo `.dashboard` — e quaisquer arquivos `.base` subjacentes — para você.
 
-Os painéis são armazenados como arquivos `.dashboard` simples no seu cofre, de modo que se sincronizam e versionam como qualquer outra nota.
+Os paineis sao armazenados como arquivos `.dashboard` simples no seu vault, portanto sincronizam/versionam como qualquer outra nota. Os resultados de widgets Workflow sao armazenados separadamente em `Dashboards/Data/` como arquivos normais do vault.
 
 ---
 
@@ -64,7 +64,7 @@ Renderiza uma visualização nomeada de um arquivo `.base` pela **UI nativa de B
 | **Visualização** | O nome da visualização a renderizar; deixe vazio para usar a primeira visualização da base |
 | **Criar com IA** | Criar um novo arquivo `.base` (ou editar o selecionado) sem sair do painel |
 
-O mesmo arquivo `.base` pode ser referenciado por vários widgets Base — por exemplo, um widget por visualização (Active / Done / Backlog).
+The same `.base` file can be referenced by multiple Base widgets — for example, one widget per view (Active / Done / Backlog). If the `.base` file changes outside the settings panel, the editor reloads it before saving so it does not overwrite newer content with stale state.
 
 ### Markdown — incorporar uma nota
 
@@ -85,6 +85,7 @@ Incorpora uma página web em um iframe.
 | Configuração | Descrição |
 |---------|-------------|
 | **URL** | A página a incorporar |
+| **Show header** | Show a compact header with the URL and a browser-open button. Existing widgets default to on. |
 
 > [!NOTE]
 > Alguns sites enviam cabeçalhos `X-Frame-Options` / `Content-Security-Policy` que bloqueiam a incorporação e aparecerão em branco.
@@ -109,7 +110,7 @@ Executa um [workflow](WORKFLOW_NODES_pt.md) existente de forma **headless** e re
 > - clica em **Executar** (no cabeçalho do widget ou no painel de configurações), ou
 > - abre o painel e o resultado em cache é mais antigo que o intervalo de atualização automática.
 >
-> Os resultados são armazenados em um arquivo **sidecar** oculto ao lado do painel, de modo que a saída sobrevive à reabertura sem inflar o arquivo `.dashboard`. O workflow deve armazenar sua saída Markdown/HTML em uma variável de string (padrão `result`) — saídas em cartões/tabelas não são suportadas. Como é executado sem supervisão, o workflow não deve usar nós interativos (`prompt-*`, `dialog`).
+> Los resultados se almacenan en `Dashboards/Data/<encoded dashboard path>.json` como archivo normal de la bóveda. Así la salida sobrevive a la reapertura sin inflar el archivo `.dashboard`, y puede sincronizarse, subirse/bajarse, revisarse o versionarse como cualquier otro archivo. El workflow debe almacenar su salida Markdown/HTML en una variable de cadena (predeterminado `result`) — no se admiten salidas de tarjetas/tablas. Como se ejecuta sin supervisión, no debe usar nodos interactivos (`prompt-*`, `dialog`).
 
 ### Kanban — arraste cartões para mudar o status
 
@@ -174,7 +175,7 @@ grid:
   gap: 8          # pixels between cells
 widgets:
   - id: <uuid>                            # unique id (UUID-like string)
-    type: base | markdown | web | workflow | kanban
+    type: base | markdown | web | workflow | kanban | timeline
     layout:
       lg: { x: 0, y: 0, w: 6, h: 4 }      # required: position on the wide grid
       sm: { x: 0, y: 0, w: 12, h: 4 }     # optional: auto-derived (stacked) if omitted
@@ -200,6 +201,7 @@ config:
 # web
 config:
   url: https://example.com
+  showHeader: true                    # optional; false hides the URL/open header
 
 # workflow
 config:
@@ -215,6 +217,7 @@ config:
   statusProperty: status               # frontmatter property holding the status
   titleProperty: ""                    # frontmatter property for card title (empty = file name)
   displayFields: [priority, due]       # frontmatter properties shown on each card
+  cardOrder: [Tasks/A.md, Tasks/B.md]   # optional manual order persisted by drag/drop
   columns:                             # ordered list of status values
     - value: todo
       label: To Do
@@ -223,6 +226,10 @@ config:
     - value: done
       label: Done
   showUnspecified: true                # show cards with no/unknown status
+# timeline
+config:
+  name: Journal                        # stores posts under Dashboards/Timeline/Journal/
+  latestCount: 20
 ```
 
 ### Exemplo completo
@@ -250,6 +257,12 @@ widgets:
     layout: { lg: { x: 0, y: 6, w: 12, h: 4 } }
     config:
       url: https://help.obsidian.md
+  - id: journal
+    type: timeline
+    layout: { lg: { x: 0, y: 10, w: 6, h: 6 } }
+    config:
+      name: Journal
+      latestCount: 20
 ```
 
 ---
@@ -260,6 +273,6 @@ widgets:
 - **Agrupe por visualização.** Reutilize um `.base` em vários widgets Base (Active / Done / Backlog) em vez de duplicar dados.
 - **Mantenha os widgets de workflow baratos.** Eles armazenam resultados em cache; defina um **intervalo de atualização automática** sensato em vez de executá-los a cada abertura, e armazene a saída em `result`.
 - **Somente desktop.** Os painéis (como o resto do plugin) funcionam no Obsidian desktop.
-- **Os arquivos residem no seu cofre.** Os painéis são armazenados em `Dashboards/` como arquivos `.dashboard` e se sincronizam/versionam com suas notas; o cache de workflow por painel reside em um arquivo sidecar oculto ao lado de cada um.
+- **Os arquivos residem no seu vault.** Os paineis sao armazenados em `Dashboards/` como arquivos `.dashboard`, resultados de workflow em `Dashboards/Data/`, publicacoes de timeline em `Dashboards/Timeline/` e Bases geradas em `Dashboards/Bases/`. Sao arquivos normais do vault e sincronizam/versionam com suas notas.
 
 > Veja também: [Nós de workflow](WORKFLOW_NODES_pt.md) · [Skills de agente](SKILLS_pt.md)

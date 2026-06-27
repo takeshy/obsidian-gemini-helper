@@ -927,7 +927,7 @@ export default function TimelineWidget({
 
       {composerOpen && (
         <div className="llm-hub-db-timeline-composer">
-          <div className="llm-hub-db-timeline-textarea-wrap">
+          <div className="llm-hub-db-timeline-textarea-wrap is-composer">
             <textarea
               ref={textareaRef}
               value={draft}

@@ -9329,6 +9329,11 @@
   background: var(--background-secondary);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.16);
 }
+.llm-hub-db-timeline-textarea-wrap.is-composer .llm-hub-db-timeline-wiki-suggestions {
+  position: static;
+  margin-top: 4px;
+  z-index: auto;
+}
 .llm-hub-db-timeline-wiki-suggestions button {
   appearance: none;
   display: flex;

@@ -9059,6 +9059,15 @@
   border-radius: 6px;
   background: var(--background-secondary);
 }
+.llm-hub-db-base-field-row.is-drag-over {
+  border-color: var(--interactive-accent);
+  background: var(--background-modifier-hover);
+}
+.llm-hub-db-base-grip {
+  flex: 0 0 auto;
+  color: var(--text-faint);
+  cursor: move;
+}
 .llm-hub-db-base-field-row span {
   flex: 1;
   min-width: 0;
@@ -9067,6 +9076,80 @@
   white-space: nowrap;
   font-size: var(--font-ui-smaller);
   color: var(--text-normal);
+}
+.llm-hub-db-base-field-row input {
+  flex: 1;
+  min-width: 90px;
+  font-size: var(--font-ui-smaller);
+}
+.llm-hub-db-base-card-options {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+.llm-hub-db-base-filter {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.llm-hub-db-base-filter-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.llm-hub-db-base-filter-head .llm-hub-db-hint {
+  margin: 0;
+}
+.llm-hub-db-base-filter-terms {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.llm-hub-db-base-filter-row {
+  display: grid;
+  grid-template-columns: minmax(110px, 1fr) minmax(90px, 0.8fr) minmax(110px, 1fr) auto;
+  align-items: center;
+  gap: 6px;
+}
+.llm-hub-db-base-filter-row.is-short {
+  grid-template-columns: minmax(130px, 1fr) minmax(130px, 1.4fr) auto;
+}
+.llm-hub-db-base-filter-row.is-raw {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+.llm-hub-db-base-filter-row.is-raw span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 4px 6px;
+  border: 1px dashed var(--background-modifier-border);
+  border-radius: 6px;
+  color: var(--text-muted);
+  font-family: var(--font-monospace);
+  font-size: var(--font-ui-smaller);
+}
+.llm-hub-db-base-filter-row select,
+.llm-hub-db-base-filter-row input {
+  min-width: 0;
+  font-size: var(--font-ui-smaller);
+}
+.llm-hub-db-base-add-filter {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 0;
+  border: none;
+  background: transparent;
+  box-shadow: none;
+  color: var(--interactive-accent);
+  font-size: var(--font-ui-smaller);
+  cursor: pointer;
+}
+.llm-hub-db-base-add-filter:hover {
+  color: var(--interactive-accent-hover);
 }
 .llm-hub-db-base-raw summary {
   cursor: pointer;
@@ -9080,6 +9163,13 @@
   resize: vertical;
   font-family: var(--font-monospace);
   font-size: var(--font-ui-smaller);
+}
+@media (max-width: 640px) {
+  .llm-hub-db-base-card-options,
+  .llm-hub-db-base-filter-row,
+  .llm-hub-db-base-filter-row.is-short {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* Timeline widget */

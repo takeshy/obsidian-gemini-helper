@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { ChevronDown, ChevronUp, Image, Loader2, PenLine, Pin, Plus, Search, Send, Trash2, X } from "lucide-react";
 import { Notice, TFile } from "obsidian";
 import { t } from "src/i18n";
@@ -568,12 +568,6 @@ export default function TimelineWidget({
     await refresh();
   };
 
-  const groupedPosts = useMemo(() => {
-    const pinned = posts.filter((post) => post.pinned);
-    const regular = posts.filter((post) => !post.pinned);
-    return [...pinned, ...regular];
-  }, [posts]);
-
   if (!ctx) return null;
 
   const renderImages = (items: PendingImage[], editing = false) => items.length > 0 && (
@@ -626,10 +620,10 @@ export default function TimelineWidget({
       <div ref={listRef} className="llm-hub-db-timeline-list">
         {loading && posts.length === 0 ? (
           <div className="llm-hub-db-widget-empty">{t("dashboard.loading")}</div>
-        ) : groupedPosts.length === 0 ? (
+        ) : posts.length === 0 ? (
           <div className="llm-hub-db-widget-empty">{t("dashboard.timelineEmpty")}</div>
         ) : (
-          groupedPosts.map((post) => {
+          posts.map((post) => {
             const editing = editingPostId === post.id;
             const collapsed = shouldCollapsePost(post.content) && !expandedPosts.has(post.id);
             const tags = extractPostTags(post.content);

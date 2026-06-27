@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { FileText, Pencil, Plus, Sparkles, Trash2 } from "lucide-react";
+import { FileText, GripVertical, Pencil, Plus, Sparkles, Trash2, X } from "lucide-react";
 import { Notice, TFile, parseYaml, stringifyYaml } from "obsidian";
 import { t } from "src/i18n";
 import type { ConfigEditorProps } from "../../types";
@@ -25,7 +25,43 @@ type EditableBaseView = Record<string, unknown> & {
 type EditableBaseConfig = Record<string, unknown> & {
   views: EditableBaseView[];
   formulas?: Record<string, string>;
+  properties?: Record<string, PropertyConfig>;
 };
+
+type PropertyConfig = Record<string, unknown> & {
+  displayName?: string;
+};
+
+type PropertyType = "string" | "number" | "date" | "boolean";
+
+interface FieldInfo {
+  name: string;
+  type: PropertyType;
+}
+
+type FilterNode = string | { and?: FilterNode[]; or?: FilterNode[]; not?: FilterNode[] };
+
+type FilterOp =
+  | "eq"
+  | "neq"
+  | "contains"
+  | "notContains"
+  | "empty"
+  | "notEmpty"
+  | "gt"
+  | "lt"
+  | "gte"
+  | "lte"
+  | "isTrue"
+  | "isFalse"
+  | "before"
+  | "after";
+
+interface FilterCondition {
+  property: string;
+  op: FilterOp;
+  value?: unknown;
+}
 
 const DEFAULT_BASE_YAML = `views:
   - type: table
@@ -39,7 +75,16 @@ const DEFAULT_BASE_YAML = `views:
     limit: 50
 `;
 
-const FILE_FIELDS = ["file.name", "file.path", "file.folder", "file.ext", "file.ctime", "file.mtime", "file.tags", "file.links"];
+const FILE_FIELDS: FieldInfo[] = [
+  { name: "file.name", type: "string" },
+  { name: "file.path", type: "string" },
+  { name: "file.folder", type: "string" },
+  { name: "file.ext", type: "string" },
+  { name: "file.ctime", type: "date" },
+  { name: "file.mtime", type: "date" },
+  { name: "file.tags", type: "string" },
+  { name: "file.links", type: "string" },
+];
 
 function sanitizeBaseName(name: string): string {
   return (name || "New Base")
@@ -104,22 +149,6 @@ function dumpEditableBase(config: EditableBaseConfig): string {
   return stringifyYaml(config).trimEnd() + "\n";
 }
 
-function parseFilterInput(value: string): unknown {
-  const raw = value.trim();
-  if (!raw) return undefined;
-  try {
-    return parseYaml(raw) as unknown;
-  } catch {
-    return raw;
-  }
-}
-
-function filterInputValue(value: unknown): string {
-  if (value == null || value === "") return "";
-  if (typeof value === "string") return value;
-  return stringifyYaml(value).trimEnd();
-}
-
 function defaultFieldLabel(field: string): string {
   const dot = field.indexOf(".");
   return dot >= 0 ? field.slice(dot + 1) : field;
@@ -151,18 +180,41 @@ function uniquePath(existingPaths: string[], desiredName: string): string {
   return path;
 }
 
-function fileFieldsFromVault(app: ConfigEditorProps["app"]): string[] {
-  const seen = new Set<string>(FILE_FIELDS);
+function inferPropertyType(value: unknown): PropertyType {
+  if (typeof value === "number") return "number";
+  if (typeof value === "boolean") return "boolean";
+  if (value instanceof Date) return "date";
+  if (typeof value === "string" && /^\d{4}-\d{2}-\d{2}(?:[T ].*)?$/.test(value)) return "date";
+  return "string";
+}
+
+function fileFieldsFromVault(app: ConfigEditorProps["app"]): FieldInfo[] {
+  const seen = new Map<string, PropertyType>(FILE_FIELDS.map((field) => [field.name, field.type]));
   for (const file of app.vault.getMarkdownFiles()) {
     const fm = app.metadataCache.getFileCache(file)?.frontmatter;
     if (fm && typeof fm === "object") {
       for (const key of Object.keys(fm)) {
         if (key === "position") continue;
-        seen.add(`note.${key}`);
+        const fieldName = `note.${key}`;
+        if (!seen.has(fieldName)) seen.set(fieldName, inferPropertyType(fm[key]));
       }
     }
   }
-  return Array.from(seen).sort((a, b) => a.localeCompare(b));
+  return Array.from(seen, ([name, type]) => ({ name, type })).sort((a, b) => a.name.localeCompare(b.name));
+}
+
+function folderPathsFromVault(app: ConfigEditorProps["app"]): string[] {
+  const folders = new Set<string>();
+  for (const file of app.vault.getFiles()) {
+    const parts = file.path.split("/");
+    parts.pop();
+    let current = "";
+    for (const part of parts) {
+      current = current ? `${current}/${part}` : part;
+      folders.add(current);
+    }
+  }
+  return Array.from(folders).sort((a, b) => a.localeCompare(b));
 }
 
 export function BaseConfigEditor({ config, onChange, app, plugin }: ConfigEditorProps) {
@@ -259,13 +311,19 @@ export function BaseConfigEditor({ config, onChange, app, plugin }: ConfigEditor
     }
   };
 
-  const fieldNames = useMemo(() => {
+  const fieldInfos = useMemo(() => {
     const fields = fileFieldsFromVault(app);
     for (const formula of Object.keys(baseConfig?.formulas ?? {})) {
-      fields.push(`formula.${formula}`);
+      fields.push({ name: `formula.${formula}`, type: "string" });
     }
-    return Array.from(new Set(fields)).sort((a, b) => a.localeCompare(b));
+    const seen = new Map<string, FieldInfo>();
+    for (const field of fields) {
+      if (!seen.has(field.name)) seen.set(field.name, field);
+    }
+    return Array.from(seen.values()).sort((a, b) => a.name.localeCompare(b.name));
   }, [app, baseConfig]);
+
+  const folderOptions = useMemo(() => folderPathsFromVault(app), [app, baseFiles]);
 
   const activeViewName = cfg.view || baseConfig?.views[0]?.name || "";
   const activeViewIndex = baseConfig?.views.findIndex((v) => v.name === activeViewName) ?? -1;
@@ -297,6 +355,14 @@ export function BaseConfigEditor({ config, onChange, app, plugin }: ConfigEditor
     }
     nextViews[index] = cleanView(patched);
     void saveBaseConfig({ ...baseConfig, views: nextViews }, nextViewName);
+  };
+
+  const updateProperties = (next: Record<string, PropertyConfig>) => {
+    if (!baseConfig) return;
+    const nextConfig: EditableBaseConfig = { ...baseConfig };
+    if (Object.keys(next).length > 0) nextConfig.properties = next;
+    else delete nextConfig.properties;
+    void saveBaseConfig(nextConfig);
   };
 
   const createNewBase = async () => {
@@ -402,10 +468,12 @@ export function BaseConfigEditor({ config, onChange, app, plugin }: ConfigEditor
           baseConfig={baseConfig}
           activeView={activeView}
           baseContent={baseContent}
-          fieldNames={fieldNames}
+          fieldInfos={fieldInfos}
+          folderOptions={folderOptions}
           activeViewName={activeViewName}
           onViewSelect={(viewName) => onChange({ ...cfg, view: viewName })}
           onUpdateView={updateActiveView}
+          onUpdateProperties={updateProperties}
           onSaveConfig={(next, nextViewName) => void saveBaseConfig(next, nextViewName)}
           onRawChange={(content) => {
             setBaseContent(content);
@@ -429,28 +497,33 @@ function ManualBaseEditor({
   baseConfig,
   activeView,
   baseContent,
-  fieldNames,
+  fieldInfos,
+  folderOptions,
   activeViewName,
   onViewSelect,
   onUpdateView,
+  onUpdateProperties,
   onSaveConfig,
   onRawChange,
 }: {
   baseConfig: EditableBaseConfig;
   activeView: EditableBaseView;
   baseContent: string;
-  fieldNames: string[];
+  fieldInfos: FieldInfo[];
+  folderOptions: string[];
   activeViewName: string;
   onViewSelect: (viewName: string) => void;
   onUpdateView: (patch: Partial<EditableBaseView>, nextViewName?: string) => void;
+  onUpdateProperties: (next: Record<string, PropertyConfig>) => void;
   onSaveConfig: (next: EditableBaseConfig, nextViewName?: string) => void;
   onRawChange: (content: string) => void;
 }) {
   const order = activeView.order ?? [];
-  const availableFields = fieldNames.filter((field) => !order.includes(field));
+  const fieldNames = fieldInfos.map((field) => field.name);
+  const fieldTypeMap = new Map(fieldInfos.map((field) => [field.name, field.type]));
   const sort = activeView.sort?.[0];
-  const filterText = filterInputValue(activeView.filters);
   const viewType = activeView.type === "cards" || activeView.type === "list" ? activeView.type : "table";
+  const properties = baseConfig.properties ?? {};
 
   const addView = () => {
     let index = baseConfig.views.length + 1;
@@ -467,12 +540,17 @@ function ManualBaseEditor({
     onSaveConfig({ ...baseConfig, views: nextViews }, nextViews[0]?.name ?? "");
   };
 
-  const moveField = (index: number, dir: -1 | 1) => {
-    const target = index + dir;
-    if (target < 0 || target >= order.length) return;
-    const next = [...order];
-    [next[index], next[target]] = [next[target], next[index]];
-    onUpdateView({ order: next });
+  const setPropertyAlias = (id: string, alias: string) => {
+    const next: Record<string, PropertyConfig> = { ...properties };
+    const trimmed = alias.trim();
+    if (trimmed) {
+      next[id] = { ...next[id], displayName: trimmed };
+    } else if (next[id]) {
+      const { displayName: _drop, ...rest } = next[id];
+      if (Object.keys(rest).length > 0) next[id] = rest;
+      else delete next[id];
+    }
+    onUpdateProperties(next);
   };
 
   return (
@@ -520,42 +598,18 @@ function ManualBaseEditor({
 
       <div className="llm-hub-db-field">
         <label>{viewType === "table" ? t("dashboard.baseColumns") : t("dashboard.baseProperties")}</label>
-        {order.length === 0 && <p className="llm-hub-db-hint">{t("dashboard.baseFieldsAuto")}</p>}
-        {order.map((field, index) => (
-          <div className="llm-hub-db-base-field-row" key={field}>
-            <span title={field}>{field}</span>
-            <button type="button" className="llm-hub-db-iconbtn" onClick={() => moveField(index, -1)} disabled={index === 0} title={t("dashboard.moveUp")}>↑</button>
-            <button type="button" className="llm-hub-db-iconbtn" onClick={() => moveField(index, 1)} disabled={index === order.length - 1} title={t("dashboard.moveDown")}>↓</button>
-            <button type="button" className="llm-hub-db-iconbtn is-danger" onClick={() => onUpdateView({ order: order.filter((_, i) => i !== index) })} title={t("dashboard.remove")}>
-              <Trash2 size={12} />
-            </button>
-          </div>
-        ))}
-        <select
-          value=""
-          onChange={(e) => {
-            if (e.target.value) onUpdateView({ order: [...order, e.target.value] });
-          }}
-          disabled={availableFields.length === 0}
-        >
-          <option value="">{t("dashboard.baseAddField")}</option>
-          {availableFields.map((field) => (
-            <option key={field} value={field}>{defaultFieldLabel(field)} ({field})</option>
-          ))}
-        </select>
+        <BaseFieldsEditor
+          order={order}
+          fieldNames={fieldNames}
+          allowAlias={viewType === "table"}
+          aliasFor={(id) => properties[id]?.displayName ?? ""}
+          onOrderChange={(next) => onUpdateView({ order: next.length > 0 ? next : undefined })}
+          onAliasChange={setPropertyAlias}
+        />
       </div>
 
       {viewType === "cards" && (
-        <div className="llm-hub-db-field">
-          <label>{t("dashboard.baseCardImage")}</label>
-          <select
-            value={typeof activeView.image === "string" ? activeView.image : ""}
-            onChange={(e) => onUpdateView({ image: e.target.value || undefined })}
-          >
-            <option value="">{t("dashboard.baseImageNone")}</option>
-            {fieldNames.map((field) => <option key={field} value={field}>{field}</option>)}
-          </select>
-        </div>
+        <BaseCardOptions view={activeView} fieldNames={fieldNames} onUpdateView={onUpdateView} />
       )}
 
       {viewType === "list" && (
@@ -606,13 +660,13 @@ function ManualBaseEditor({
 
       <div className="llm-hub-db-field">
         <label>{t("dashboard.baseFilters")}</label>
-        <textarea
-          value={filterText}
-          onChange={(e) => onUpdateView({ filters: parseFilterInput(e.target.value) })}
-          rows={4}
-          placeholder='file.inFolder("Projects")'
+        <BaseFilterEditor
+          filters={activeView.filters}
+          fieldNames={fieldNames}
+          fieldTypeMap={fieldTypeMap}
+          folderOptions={folderOptions}
+          onChange={(next) => onUpdateView({ filters: next })}
         />
-        <p className="llm-hub-db-hint">{t("dashboard.baseFiltersHint")}</p>
       </div>
 
       <details className="llm-hub-db-base-raw">
@@ -621,4 +675,434 @@ function ManualBaseEditor({
       </details>
     </>
   );
+}
+
+function BaseFieldsEditor({
+  order,
+  fieldNames,
+  allowAlias,
+  aliasFor,
+  onOrderChange,
+  onAliasChange,
+}: {
+  order: string[];
+  fieldNames: string[];
+  allowAlias: boolean;
+  aliasFor: (id: string) => string;
+  onOrderChange: (next: string[]) => void;
+  onAliasChange: (id: string, alias: string) => void;
+}) {
+  const dragIndexRef = useRef<number | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+  const availableFields = fieldNames.filter((field) => !order.includes(field));
+
+  const move = (from: number, to: number) => {
+    if (from === to) return;
+    const next = [...order];
+    const [item] = next.splice(from, 1);
+    next.splice(to, 0, item);
+    onOrderChange(next);
+  };
+
+  return (
+    <>
+      {order.length === 0 && <p className="llm-hub-db-hint">{t("dashboard.baseFieldsAuto")}</p>}
+      <div className="llm-hub-db-base-fields-list">
+        {order.map((field, index) => (
+          <div
+            className={`llm-hub-db-base-field-row${dragOverIndex === index ? " is-drag-over" : ""}`}
+            draggable
+            key={field}
+            onDragStart={() => {
+              dragIndexRef.current = index;
+            }}
+            onDragOver={(e) => {
+              e.preventDefault();
+              setDragOverIndex(index);
+            }}
+            onDragLeave={() => setDragOverIndex(null)}
+            onDrop={() => {
+              if (dragIndexRef.current !== null) move(dragIndexRef.current, index);
+              dragIndexRef.current = null;
+              setDragOverIndex(null);
+            }}
+          >
+            <GripVertical size={12} className="llm-hub-db-base-grip" />
+            <span title={field}>{field}</span>
+            {allowAlias && (
+              <input
+                type="text"
+                value={aliasFor(field)}
+                placeholder={defaultFieldLabel(field)}
+                onChange={(e) => onAliasChange(field, e.target.value)}
+              />
+            )}
+            <button type="button" className="llm-hub-db-iconbtn is-danger" onClick={() => onOrderChange(order.filter((_, i) => i !== index))} title={t("dashboard.remove")}>
+              <X size={12} />
+            </button>
+          </div>
+        ))}
+      </div>
+      <select
+        value=""
+        onChange={(e) => {
+          if (e.target.value) onOrderChange([...order, e.target.value]);
+        }}
+        disabled={availableFields.length === 0}
+      >
+        <option value="">{t("dashboard.baseAddField")}</option>
+        {availableFields.map((field) => (
+          <option key={field} value={field}>{defaultFieldLabel(field)} ({field})</option>
+        ))}
+      </select>
+    </>
+  );
+}
+
+function BaseCardOptions({
+  view,
+  fieldNames,
+  onUpdateView,
+}: {
+  view: EditableBaseView;
+  fieldNames: string[];
+  onUpdateView: (patch: Partial<EditableBaseView>) => void;
+}) {
+  const imageProp = typeof view.image === "string" ? view.image : "";
+  const imageFit = typeof view.imageFit === "string" ? view.imageFit : "cover";
+  const imageAspectRatio = typeof view.imageAspectRatio === "string" ? view.imageAspectRatio : "16 / 9";
+  const cardSize = typeof view.cardSize === "string" ? view.cardSize : "medium";
+
+  return (
+    <div className="llm-hub-db-base-card-options">
+      <div className="llm-hub-db-field">
+        <label>{t("dashboard.baseCardImage")}</label>
+        <select value={imageProp} onChange={(e) => onUpdateView({ image: e.target.value || undefined })}>
+          <option value="">{t("dashboard.baseImageNone")}</option>
+          {fieldNames.map((field) => <option key={field} value={field}>{field}</option>)}
+        </select>
+      </div>
+      <div className="llm-hub-db-field">
+        <label>{t("dashboard.baseCardImageFit")}</label>
+        <select value={imageFit} onChange={(e) => onUpdateView({ imageFit: e.target.value })}>
+          <option value="cover">Cover</option>
+          <option value="contain">Contain</option>
+        </select>
+      </div>
+      <div className="llm-hub-db-field">
+        <label>{t("dashboard.baseCardImageRatio")}</label>
+        <select value={imageAspectRatio} onChange={(e) => onUpdateView({ imageAspectRatio: e.target.value })}>
+          <option value="16 / 9">16:9</option>
+          <option value="4 / 3">4:3</option>
+          <option value="1 / 1">1:1</option>
+          <option value="3 / 2">3:2</option>
+        </select>
+      </div>
+      <div className="llm-hub-db-field">
+        <label>{t("dashboard.baseCardSize")}</label>
+        <select value={cardSize} onChange={(e) => onUpdateView({ cardSize: e.target.value })}>
+          <option value="small">Small</option>
+          <option value="medium">Medium</option>
+          <option value="large">Large</option>
+        </select>
+      </div>
+    </div>
+  );
+}
+
+type Combinator = "and" | "or";
+type BaseTerm =
+  | { kind: "cmp"; cond: FilterCondition }
+  | { kind: "inFolder"; value: string }
+  | { kind: "hasTag"; value: string }
+  | { kind: "raw"; node: FilterNode };
+
+const VALUELESS_OPS = new Set<FilterOp>(["empty", "notEmpty", "isTrue", "isFalse"]);
+const INFOLDER_KEY = "@inFolder";
+const HASTAG_KEY = "@hasTag";
+const OPERATORS_BY_TYPE: Record<PropertyType, FilterOp[]> = {
+  string: ["contains", "eq", "neq", "notContains", "empty", "notEmpty"],
+  number: ["eq", "neq", "gt", "lt", "gte", "lte", "empty", "notEmpty"],
+  date: ["before", "after", "eq", "neq", "empty", "notEmpty"],
+  boolean: ["isTrue", "isFalse", "eq", "neq", "empty", "notEmpty"],
+};
+
+function BaseFilterEditor({
+  filters,
+  fieldNames,
+  fieldTypeMap,
+  folderOptions,
+  onChange,
+}: {
+  filters: unknown;
+  fieldNames: string[];
+  fieldTypeMap: Map<string, PropertyType>;
+  folderOptions: string[];
+  onChange: (next: FilterNode | undefined) => void;
+}) {
+  const parsed = useMemo(() => parseBaseFilter(filters), [filters]);
+  const { combinator, terms, representable } = parsed;
+
+  const commit = (nextCombinator: Combinator, nextTerms: BaseTerm[]) =>
+    onChange(serializeBaseFilter(nextCombinator, nextTerms));
+  const setTerm = (index: number, term: BaseTerm) =>
+    commit(combinator, terms.map((item, i) => (i === index ? term : item)));
+  const removeTerm = (index: number) =>
+    commit(combinator, terms.filter((_, i) => i !== index));
+  const addTerm = () => {
+    const property = fieldNames[0] ?? "";
+    const type = fieldTypeMap.get(property) ?? "string";
+    commit(combinator, [...terms, { kind: "cmp", cond: { property, op: OPERATORS_BY_TYPE[type][0] } }]);
+  };
+
+  const onFieldChange = (index: number, value: string) => {
+    if (value === INFOLDER_KEY) return setTerm(index, { kind: "inFolder", value: "" });
+    if (value === HASTAG_KEY) return setTerm(index, { kind: "hasTag", value: "" });
+    const type = fieldTypeMap.get(value) ?? "string";
+    setTerm(index, { kind: "cmp", cond: { property: value, op: OPERATORS_BY_TYPE[type][0] } });
+  };
+
+  const fieldSelect = (index: number, term: BaseTerm, selectedValue: string) => (
+    <select value={selectedValue} onChange={(e) => onFieldChange(index, e.target.value)}>
+      {term.kind === "cmp" && !fieldNames.includes(term.cond.property) && (
+        <option value={term.cond.property}>{term.cond.property}</option>
+      )}
+      <optgroup label={t("dashboard.baseProperties")}>
+        {fieldNames.map((name) => <option key={name} value={name}>{name}</option>)}
+      </optgroup>
+      <optgroup label="file">
+        <option value={INFOLDER_KEY}>{t("dashboard.baseFilterInFolder")}</option>
+        <option value={HASTAG_KEY}>{t("dashboard.baseFilterHasTag")}</option>
+      </optgroup>
+    </select>
+  );
+
+  if (!representable) {
+    return (
+      <p className="llm-hub-db-hint llm-hub-db-base-filter-advanced">
+        {t("dashboard.baseAdvancedFilters")}
+      </p>
+    );
+  }
+
+  return (
+    <div className="llm-hub-db-base-filter">
+      <div className="llm-hub-db-base-filter-head">
+        {terms.length === 0 && <p className="llm-hub-db-hint">{t("dashboard.noFilters")}</p>}
+        {terms.length >= 2 && (
+          <select value={combinator} onChange={(e) => commit(e.target.value as Combinator, terms)}>
+            <option value="and">{t("dashboard.baseFilterAnd")}</option>
+            <option value="or">{t("dashboard.baseFilterOr")}</option>
+          </select>
+        )}
+      </div>
+      <div className="llm-hub-db-base-filter-terms">
+        {terms.map((term, index) => {
+          if (term.kind === "raw") {
+            return (
+              <div className="llm-hub-db-base-filter-row is-raw" key={index}>
+                <span title={rawNodeToText(term.node)}>{rawNodeToText(term.node)}</span>
+                <button type="button" className="llm-hub-db-iconbtn is-danger" onClick={() => removeTerm(index)} title={t("dashboard.remove")}>
+                  <X size={12} />
+                </button>
+              </div>
+            );
+          }
+          if (term.kind === "inFolder") {
+            const missing = term.value && !folderOptions.includes(term.value);
+            return (
+              <div className="llm-hub-db-base-filter-row is-short" key={index}>
+                {fieldSelect(index, term, INFOLDER_KEY)}
+                <select value={term.value} onChange={(e) => setTerm(index, { ...term, value: e.target.value })}>
+                  <option value="">{t("dashboard.baseFilterSelectFolder")}</option>
+                  {missing && <option value={term.value}>{term.value}</option>}
+                  {folderOptions.map((folder) => <option key={folder} value={folder}>{folder}</option>)}
+                </select>
+                <button type="button" className="llm-hub-db-iconbtn is-danger" onClick={() => removeTerm(index)} title={t("dashboard.remove")}>
+                  <X size={12} />
+                </button>
+              </div>
+            );
+          }
+          if (term.kind === "hasTag") {
+            return (
+              <div className="llm-hub-db-base-filter-row is-short" key={index}>
+                {fieldSelect(index, term, HASTAG_KEY)}
+                <input value={term.value} placeholder="#tag" onChange={(e) => setTerm(index, { ...term, value: e.target.value })} />
+                <button type="button" className="llm-hub-db-iconbtn is-danger" onClick={() => removeTerm(index)} title={t("dashboard.remove")}>
+                  <X size={12} />
+                </button>
+              </div>
+            );
+          }
+          const cond = term.cond;
+          const type = fieldTypeMap.get(cond.property) ?? "string";
+          const needsValue = !VALUELESS_OPS.has(cond.op);
+          return (
+            <div className="llm-hub-db-base-filter-row" key={index}>
+              {fieldSelect(index, term, cond.property)}
+              <select value={cond.op} onChange={(e) => setTerm(index, { kind: "cmp", cond: { ...cond, op: e.target.value as FilterOp } })}>
+                {(OPERATORS_BY_TYPE[type] ?? OPERATORS_BY_TYPE.string).map((op) => (
+                  <option key={op} value={op}>{operatorLabel(op)}</option>
+                ))}
+              </select>
+              {needsValue ? (
+                <input
+                  type={type === "number" ? "number" : type === "date" ? "date" : "text"}
+                  value={inputValueString(cond.value)}
+                  onChange={(e) => {
+                    const value: unknown = type === "number" ? Number(e.target.value) : e.target.value;
+                    setTerm(index, { kind: "cmp", cond: { ...cond, value } });
+                  }}
+                />
+              ) : (
+                <span />
+              )}
+              <button type="button" className="llm-hub-db-iconbtn is-danger" onClick={() => removeTerm(index)} title={t("dashboard.remove")}>
+                <X size={12} />
+              </button>
+            </div>
+          );
+        })}
+      </div>
+      <button type="button" className="llm-hub-db-base-add-filter" onClick={addTerm}>
+        <Plus size={12} />
+        {t("dashboard.addFilter")}
+      </button>
+    </div>
+  );
+}
+
+function parseBaseFilter(filters: unknown): { combinator: Combinator; terms: BaseTerm[]; representable: boolean } {
+  if (filters == null || filters === "") return { combinator: "and", terms: [], representable: true };
+  if (typeof filters === "string") return { combinator: "and", terms: [parseTermNode(filters)], representable: true };
+  if (filters && typeof filters === "object" && !Array.isArray(filters)) {
+    const obj = filters as { and?: unknown[]; or?: unknown[] };
+    if (Array.isArray(obj.and)) return { combinator: "and", terms: obj.and.map(parseTermNode), representable: true };
+    if (Array.isArray(obj.or)) return { combinator: "or", terms: obj.or.map(parseTermNode), representable: true };
+  }
+  return { combinator: "and", terms: [{ kind: "raw", node: filters as FilterNode }], representable: false };
+}
+
+function parseTermNode(node: unknown): BaseTerm {
+  if (typeof node !== "string") return { kind: "raw", node: node as FilterNode };
+  const raw = node.trim();
+  const inFolder = raw.match(/^file\.inFolder\((["'])(.*?)\1\)$/);
+  if (inFolder) return { kind: "inFolder", value: inFolder[2] };
+  const hasTag = raw.match(/^file\.hasTag\((["'])(.*?)\1\)$/);
+  if (hasTag) return { kind: "hasTag", value: hasTag[2] };
+  const cond = parseConditionExpr(raw);
+  return cond ? { kind: "cmp", cond } : { kind: "raw", node };
+}
+
+function termToNode(term: BaseTerm): FilterNode {
+  switch (term.kind) {
+    case "cmp":
+      return conditionToExpr(term.cond);
+    case "inFolder":
+      return `file.inFolder(${literal(term.value)})`;
+    case "hasTag":
+      return `file.hasTag(${literal(term.value)})`;
+    case "raw":
+      return term.node;
+  }
+}
+
+function serializeBaseFilter(combinator: Combinator, terms: BaseTerm[]): FilterNode | undefined {
+  const nodes = terms.map(termToNode);
+  if (nodes.length === 0) return undefined;
+  if (nodes.length === 1) return nodes[0];
+  return { [combinator]: nodes } as FilterNode;
+}
+
+function rawNodeToText(node: FilterNode): string {
+  return typeof node === "string" ? node : JSON.stringify(node);
+}
+
+const PROP_EXPR = String.raw`([A-Za-z_][\w.]*)`;
+
+function parseConditionExpr(raw: string): FilterCondition | null {
+  let match: RegExpMatchArray | null;
+  if ((match = raw.match(new RegExp(`^!\\s*${PROP_EXPR}\\.isEmpty\\(\\)$`)))) return { property: match[1], op: "notEmpty" };
+  if ((match = raw.match(new RegExp(`^${PROP_EXPR}\\.isEmpty\\(\\)$`)))) return { property: match[1], op: "empty" };
+  if ((match = raw.match(new RegExp(`^!\\s*${PROP_EXPR}\\.contains\\((.+)\\)$`)))) return { property: match[1], op: "notContains", value: parseLiteral(match[2]) };
+  if ((match = raw.match(new RegExp(`^${PROP_EXPR}\\.contains\\((.+)\\)$`)))) return { property: match[1], op: "contains", value: parseLiteral(match[2]) };
+  if ((match = raw.match(new RegExp(`^${PROP_EXPR}\\s*>=\\s*(.+)$`)))) return { property: match[1], op: "gte", value: parseLiteral(match[2]) };
+  if ((match = raw.match(new RegExp(`^${PROP_EXPR}\\s*<=\\s*(.+)$`)))) return { property: match[1], op: "lte", value: parseLiteral(match[2]) };
+  if ((match = raw.match(new RegExp(`^${PROP_EXPR}\\s*!=\\s*(.+)$`)))) return { property: match[1], op: "neq", value: parseLiteral(match[2]) };
+  if ((match = raw.match(new RegExp(`^${PROP_EXPR}\\s*==\\s*(.+)$`)))) {
+    const value = parseLiteral(match[2]);
+    if (value === true) return { property: match[1], op: "isTrue" };
+    if (value === false) return { property: match[1], op: "isFalse" };
+    return { property: match[1], op: "eq", value };
+  }
+  if ((match = raw.match(new RegExp(`^${PROP_EXPR}\\s*<\\s*date\\((.+)\\)$`)))) return { property: match[1], op: "before", value: parseLiteral(match[2]) };
+  if ((match = raw.match(new RegExp(`^${PROP_EXPR}\\s*>\\s*date\\((.+)\\)$`)))) return { property: match[1], op: "after", value: parseLiteral(match[2]) };
+  if ((match = raw.match(new RegExp(`^${PROP_EXPR}\\s*<\\s*(.+)$`)))) return { property: match[1], op: "lt", value: parseLiteral(match[2]) };
+  if ((match = raw.match(new RegExp(`^${PROP_EXPR}\\s*>\\s*(.+)$`)))) return { property: match[1], op: "gt", value: parseLiteral(match[2]) };
+  return null;
+}
+
+function parseLiteral(raw: string): unknown {
+  const text = raw.trim();
+  if ((text.startsWith('"') && text.endsWith('"')) || (text.startsWith("'") && text.endsWith("'"))) {
+    return text.slice(1, -1).replace(/\\(["'\\])/g, "$1");
+  }
+  if (text === "true") return true;
+  if (text === "false") return false;
+  if (/^-?\d+(?:\.\d+)?$/.test(text)) return Number(text);
+  return text;
+}
+
+function conditionToExpr(cond: FilterCondition): string {
+  const prop = cond.property;
+  switch (cond.op) {
+    case "empty": return `${prop}.isEmpty()`;
+    case "notEmpty": return `!${prop}.isEmpty()`;
+    case "contains": return `${prop}.contains(${literal(cond.value)})`;
+    case "notContains": return `!${prop}.contains(${literal(cond.value)})`;
+    case "eq": return `${prop} == ${literal(cond.value)}`;
+    case "neq": return `${prop} != ${literal(cond.value)}`;
+    case "gt": return `${prop} > ${literal(cond.value)}`;
+    case "lt": return `${prop} < ${literal(cond.value)}`;
+    case "gte": return `${prop} >= ${literal(cond.value)}`;
+    case "lte": return `${prop} <= ${literal(cond.value)}`;
+    case "isTrue": return `${prop} == true`;
+    case "isFalse": return `${prop} == false`;
+    case "before": return `${prop} < date(${literal(cond.value)})`;
+    case "after": return `${prop} > date(${literal(cond.value)})`;
+  }
+}
+
+function literal(value: unknown): string {
+  if (typeof value === "number" && Number.isFinite(value)) return String(value);
+  if (typeof value === "boolean") return String(value);
+  if (typeof value === "string") return JSON.stringify(value);
+  return JSON.stringify(value == null ? "" : value);
+}
+
+function inputValueString(value: unknown): string {
+  if (value == null) return "";
+  if (typeof value === "string") return value;
+  if (typeof value === "number" || typeof value === "boolean") return String(value);
+  return JSON.stringify(value);
+}
+
+function operatorLabel(op: FilterOp): string {
+  switch (op) {
+    case "eq": return "=";
+    case "neq": return "!=";
+    case "contains": return "contains";
+    case "notContains": return "not contains";
+    case "empty": return "empty";
+    case "notEmpty": return "not empty";
+    case "gt": return ">";
+    case "lt": return "<";
+    case "gte": return ">=";
+    case "lte": return "<=";
+    case "isTrue": return "true";
+    case "isFalse": return "false";
+    case "before": return "before";
+    case "after": return "after";
+  }
 }

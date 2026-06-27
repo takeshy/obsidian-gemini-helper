@@ -597,10 +597,6 @@ export default function TimelineWidget({
         <button type="button" className="llm-hub-db-timeline-iconbtn" onClick={() => setShowFilters((v) => !v)} title={t("dashboard.timelineFilterWord")}>
           <Search size={14} />
         </button>
-        <button type="button" className="llm-hub-db-timeline-new" onClick={() => setComposerOpen((v) => !v)}>
-          <Plus size={13} />
-          {t("dashboard.timelineNew")}
-        </button>
       </div>
 
       {showFilters && (
@@ -624,31 +620,6 @@ export default function TimelineWidget({
           >
             <X size={14} />
           </button>
-        </div>
-      )}
-
-      {composerOpen && (
-        <div className="llm-hub-db-timeline-composer">
-          <textarea
-            ref={textareaRef}
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            placeholder={t("dashboard.timelinePlaceholder")}
-          />
-          {renderImages(images)}
-          <div className="llm-hub-db-timeline-composer-actions">
-            <input ref={inputRef} type="file" accept="image/*" multiple onChange={(e) => addImages(e.target.files)} />
-            <button type="button" className="llm-hub-db-timeline-iconbtn" onClick={() => inputRef.current?.click()} title={t("dashboard.timelineAttachImage")}>
-              <Image size={14} />
-            </button>
-            <button type="button" className="llm-hub-db-timeline-iconbtn" onClick={closeComposer} title={t("dashboard.cancel")}>
-              <X size={14} />
-            </button>
-            <button type="button" className="llm-hub-db-timeline-post" disabled={posting || (!draft.trim() && images.length === 0)} onClick={() => void submitPost()}>
-              {posting ? <Loader2 size={13} className="is-spinning" /> : <Send size={13} />}
-              {t("dashboard.timelinePost")}
-            </button>
-          </div>
         </div>
       )}
 
@@ -731,6 +702,38 @@ export default function TimelineWidget({
             {t("dashboard.timelineLoadOlder")}
           </button>
         )}
+      </div>
+
+      {composerOpen && (
+        <div className="llm-hub-db-timeline-composer">
+          <textarea
+            ref={textareaRef}
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            placeholder={t("dashboard.timelinePlaceholder")}
+          />
+          {renderImages(images)}
+          <div className="llm-hub-db-timeline-composer-actions">
+            <input ref={inputRef} type="file" accept="image/*" multiple onChange={(e) => addImages(e.target.files)} />
+            <button type="button" className="llm-hub-db-timeline-iconbtn" onClick={() => inputRef.current?.click()} title={t("dashboard.timelineAttachImage")}>
+              <Image size={14} />
+            </button>
+            <button type="button" className="llm-hub-db-timeline-iconbtn" onClick={closeComposer} title={t("dashboard.cancel")}>
+              <X size={14} />
+            </button>
+            <button type="button" className="llm-hub-db-timeline-post" disabled={posting || (!draft.trim() && images.length === 0)} onClick={() => void submitPost()}>
+              {posting ? <Loader2 size={13} className="is-spinning" /> : <Send size={13} />}
+              {t("dashboard.timelinePost")}
+            </button>
+          </div>
+        </div>
+      )}
+
+      <div className="llm-hub-db-timeline-footer">
+        <button type="button" className="llm-hub-db-timeline-new" onClick={() => setComposerOpen((v) => !v)}>
+          <Plus size={13} />
+          {t("dashboard.timelineNew")}
+        </button>
       </div>
     </div>
   );

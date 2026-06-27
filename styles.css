@@ -9190,6 +9190,10 @@
   border-bottom: 1px solid var(--background-modifier-border);
   background: var(--background-secondary);
 }
+.llm-hub-db-timeline > .llm-hub-db-timeline-composer {
+  border-top: 1px solid var(--background-modifier-border);
+  border-bottom: none;
+}
 .llm-hub-db-timeline-edit {
   margin-top: 6px;
   border: 1px solid var(--background-modifier-border);
@@ -9312,6 +9316,14 @@
 .llm-hub-db-timeline-load {
   width: 100%;
   justify-content: center;
+}
+.llm-hub-db-timeline-footer {
+  flex: 0 0 auto;
+  display: flex;
+  justify-content: flex-end;
+  padding: 6px 8px;
+  border-top: 1px solid var(--background-modifier-border);
+  background: var(--background-primary);
 }
 @media (max-width: 640px) {
   .llm-hub-db-timeline-filters {

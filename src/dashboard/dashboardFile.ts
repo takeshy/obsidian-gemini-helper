@@ -79,17 +79,25 @@ export async function ensureVaultFolder(vault: Vault, folderPath: string): Promi
   const normalized = folderPath.replace(/\\/g, "/").replace(/^\/+|\/+$/g, "");
   if (!normalized) return;
 
+  const adapterPathIsFolder = async (path: string): Promise<boolean> => {
+    const stat = await vault.adapter.stat(path);
+    return stat?.type === "folder";
+  };
+
   let current = "";
   for (const segment of normalized.split("/").filter(Boolean)) {
     current = current ? `${current}/${segment}` : segment;
     const existing = vault.getAbstractFileByPath(current);
     if (existing instanceof TFolder) continue;
     if (existing) throw new Error(`Path exists and is not a folder: ${current}`);
+    if (await adapterPathIsFolder(current)) continue;
     try {
       await vault.createFolder(current);
     } catch {
       const afterRace = vault.getAbstractFileByPath(current);
-      if (!(afterRace instanceof TFolder)) throw new Error(`Failed to create folder: ${current}`);
+      if (!(afterRace instanceof TFolder) && !(await adapterPathIsFolder(current))) {
+        throw new Error(`Failed to create folder: ${current}`);
+      }
     }
   }
 }

@@ -201,16 +201,25 @@ values are note paths, so the order round-trips with the `.dashboard` file.
 Stores short dated posts under `Dashboards/Timeline/<name>/`, one Markdown file
 per day. Posts can include `#tags`, image attachments, and pinned items. The
 widget renders a reverse-chronological feed with text/tag/date filters and a
-composer for new posts.
+composer for new posts. Long posts and embedded notes are collapsed by default,
+with **Show more / Show less** controls and configurable line/character limits.
+The composer and inline editor also include **Edit with AI** next to the image
+attachment button: enter an instruction, review the generated diff in a modal,
+then apply it back to the textarea.
 
 | Setting | Description |
 |---------|-------------|
 | **Timeline name** | Folder name under `Dashboards/Timeline/` |
 | **Latest posts to show** | Initial number of recent posts to render before loading older entries |
+| **Collapse after lines** | Estimated visual line threshold for showing the collapsed preview (default `8`) |
+| **Collapse after characters** | Character threshold for showing the collapsed preview (default `440`) |
 
 Each daily file is named `<YYYY-MM-DD>.md`. Posts are separated with `---` only
 when the separator is followed by a timeline marker or ISO timestamp, so normal
 Markdown horizontal rules inside a post body are preserved.
+
+When a post contains `[[wikilinks]]`, clicking the link opens a preview modal
+with an open icon; embedded article links can be opened separately in a new tab.
 
 Unknown widget types (e.g. from a newer plugin version) are **preserved on
 save** and render as a placeholder, so editing an unfamiliar dashboard never
@@ -329,6 +338,8 @@ config:
 config:
   name: Journal                        # stores posts under Dashboards/Timeline/Journal/
   latestCount: 20
+  collapseLineLimit: 8
+  collapseCharLimit: 440
 ```
 
 ### Complete example
@@ -363,6 +374,8 @@ widgets:
     config:
       name: Journal
       latestCount: 20
+      collapseLineLimit: 8
+      collapseCharLimit: 440
 ```
 
 ---

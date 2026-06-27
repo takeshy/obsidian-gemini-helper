@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ChevronDown, ChevronUp, ExternalLink, Image, Loader2, PenLine, Pin, Plus, Search, Send, Trash2, X } from "lucide-react";
+import { ChevronDown, ChevronUp, ExternalLink, Image, Loader2, PenLine, Pin, Plus, Search, Send, Sparkles, Trash2, X } from "lucide-react";
 import { Notice, TFile } from "obsidian";
 import { t } from "src/i18n";
 import type { WidgetContext } from "../types";
 import { ensureVaultFolder } from "../dashboardFile";
 import ObsidianMarkdown from "./ObsidianMarkdown";
 import { TimelineLinkPreviewModal } from "./TimelineLinkPreviewModal";
+import { TimelineAiRewriteModal } from "./TimelineAiRewriteModal";
 
 interface TimelineConfig {
   name?: string;
@@ -706,6 +707,23 @@ export default function TimelineWidget({
     await refresh();
   };
 
+  const openAiRewrite = (target: "draft" | "edit") => {
+    if (!ctx) return;
+    const content = target === "draft" ? draft : editDraft;
+    new TimelineAiRewriteModal(ctx.app, ctx.plugin, {
+      content,
+      onApply: (next) => {
+        if (target === "draft") setDraft(next);
+        else setEditDraft(next);
+        window.setTimeout(() => {
+          const textarea = target === "draft" ? textareaRef.current : editTextareaRef.current;
+          resizeTextarea(textarea);
+          textarea?.focus();
+        }, 0);
+      },
+    }).open();
+  };
+
   if (!ctx) return null;
 
   const renderImages = (items: PendingImage[], editing = false) => items.length > 0 && (
@@ -833,6 +851,9 @@ export default function TimelineWidget({
                         <X size={14} />
                       </button>
                       <div className="llm-hub-db-timeline-composer-primary-actions">
+                        <button type="button" className="llm-hub-db-timeline-iconbtn" onClick={() => openAiRewrite("edit")} title={t("dashboard.timelineAiEdit")}>
+                          <Sparkles size={14} />
+                        </button>
                         <button type="button" className="llm-hub-db-timeline-iconbtn" onClick={() => editInputRef.current?.click()} title={t("dashboard.timelineAttachImage")}>
                           <Image size={14} />
                         </button>
@@ -929,6 +950,9 @@ export default function TimelineWidget({
               <X size={14} />
             </button>
             <div className="llm-hub-db-timeline-composer-primary-actions">
+              <button type="button" className="llm-hub-db-timeline-iconbtn" onClick={() => openAiRewrite("draft")} title={t("dashboard.timelineAiEdit")}>
+                <Sparkles size={14} />
+              </button>
               <button type="button" className="llm-hub-db-timeline-iconbtn" onClick={() => inputRef.current?.click()} title={t("dashboard.timelineAttachImage")}>
                 <Image size={14} />
               </button>

@@ -492,9 +492,11 @@ Click **+ Add widget** in edit mode to choose a type:
 | **Web Embed** | A web page in an iframe, with an optional header and browser-open button | `url`, `showHeader` |
 | **Workflow** | The output of a workflow, run headlessly and rendered as Markdown or HTML | `workflow` path, `output`, `refreshInterval` |
 | **Kanban** | Notes as draggable cards grouped into status columns | `tag`/`folder` filter, `statusProperty`, `columns`, `displayFields` |
-| **Timeline** | Date-based microblog posts with tags, image attachments, pinning, and filters | `name`, `latestCount` |
+| **Timeline** | Date-based microblog posts with tags, image attachments, pinning, filters, collapsible long posts, and AI-assisted draft rewriting | `name`, `latestCount`, collapse limits |
 
 **Base** and **Workflow** widgets include a **Create with AI** button to author the backing `.base` file or workflow without leaving the settings panel. Base widgets can also create/select `.base` files and edit the selected view's display type, order, sort, limit, filters, card image, list indentation, and raw YAML directly from the dashboard settings panel. For AI edits, the proposed `.base` change is shown as a diff before applying.
+
+Timeline composers include an **Edit with AI** button next to image attachment. It sends only the current draft text plus your instruction to the model, shows a diff in a modal, and applies the result back to the textarea only when you approve it.
 
 ## Kanban Board
 

@@ -459,6 +459,13 @@ export default function TimelineWidget({
     });
   };
 
+  const searchTag = (tag: string) => {
+    const normalized = tag.trim().replace(/^#+/, "");
+    if (!normalized) return;
+    setShowFilters(true);
+    setFilters((prev) => ({ ...prev, tags: `#${normalized}` }));
+  };
+
   const closeComposer = () => {
     setComposerOpen(false);
     setDraft("");
@@ -666,7 +673,11 @@ export default function TimelineWidget({
                     <ObsidianMarkdown app={ctx.app} markdown={body} sourcePath={post.sourcePath} className="llm-hub-db-timeline-body" />
                     {tags.length > 0 && (
                       <div className="llm-hub-db-timeline-tags">
-                        {tags.map((tag) => <span key={tag}>#{tag}</span>)}
+                        {tags.map((tag) => (
+                          <button type="button" key={tag} onClick={() => searchTag(tag)}>
+                            #{tag}
+                          </button>
+                        ))}
                       </div>
                     )}
                     {shouldCollapsePost(post.content) && (

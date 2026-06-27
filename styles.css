@@ -9178,6 +9178,7 @@
   flex-direction: column;
   height: 100%;
   min-height: 0;
+  overflow: hidden;
   background: var(--background-primary);
 }
 .llm-hub-db-timeline-header {
@@ -9253,7 +9254,7 @@
 .llm-hub-db-timeline-filters {
   flex: 0 0 auto;
   display: grid;
-  grid-template-columns: minmax(120px, 1fr) minmax(120px, 1fr) minmax(118px, auto) minmax(118px, auto) auto auto;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 120px), 1fr));
   align-items: center;
   gap: 6px;
   padding: 6px 8px;
@@ -9262,13 +9263,24 @@
 .llm-hub-db-timeline-filters input {
   min-width: 0;
 }
+.llm-hub-db-timeline-filters input:not([type="checkbox"]) {
+  width: 100%;
+}
 .llm-hub-db-timeline-filters label {
   display: inline-flex;
   align-items: center;
   gap: 4px;
+  min-width: 0;
+  overflow: hidden;
   white-space: nowrap;
   font-size: var(--font-ui-smaller);
   color: var(--text-muted);
+}
+.llm-hub-db-timeline-filters label input[type="checkbox"] {
+  flex: 0 0 auto;
+}
+.llm-hub-db-timeline-filters > .llm-hub-db-timeline-iconbtn {
+  justify-self: end;
 }
 .llm-hub-db-timeline-composer,
 .llm-hub-db-timeline-edit {
@@ -9383,12 +9395,19 @@
   gap: 4px;
   margin-top: 6px;
 }
-.llm-hub-db-timeline-tags span {
+.llm-hub-db-timeline-tags button {
   padding: 1px 6px;
+  border: none;
   border-radius: 999px;
   background: var(--background-secondary);
   color: var(--text-muted);
   font-size: var(--font-ui-smaller);
+  box-shadow: none;
+  cursor: pointer;
+}
+.llm-hub-db-timeline-tags button:hover {
+  background: var(--background-modifier-hover);
+  color: var(--interactive-accent);
 }
 .llm-hub-db-timeline-more,
 .llm-hub-db-timeline-load {

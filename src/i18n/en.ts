@@ -1153,6 +1153,8 @@ export const en = {
   "dashboard.timelineName": "Timeline name",
   "dashboard.timelineStorageHint": "Posts are stored under Dashboards/Timeline/{name}/ by date.",
   "dashboard.timelineLatestCount": "Latest posts to show",
+  "dashboard.timelineCollapseLines": "Collapse after lines",
+  "dashboard.timelineCollapseChars": "Collapse after characters",
   "dashboard.timelinePlaceholder": "What's happening?",
   "dashboard.timelineNew": "New",
   "dashboard.timelineAttachImage": "Attach images",

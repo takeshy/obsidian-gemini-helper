@@ -1,14 +1,17 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ChevronDown, ChevronUp, Image, Loader2, PenLine, Pin, Plus, Search, Send, Trash2, X } from "lucide-react";
+import { ChevronDown, ChevronUp, ExternalLink, Image, Loader2, PenLine, Pin, Plus, Search, Send, Trash2, X } from "lucide-react";
 import { Notice, TFile } from "obsidian";
 import { t } from "src/i18n";
 import type { WidgetContext } from "../types";
 import { ensureVaultFolder } from "../dashboardFile";
 import ObsidianMarkdown from "./ObsidianMarkdown";
+import { TimelineLinkPreviewModal } from "./TimelineLinkPreviewModal";
 
 interface TimelineConfig {
   name?: string;
   latestCount?: number;
+  collapseLineLimit?: number;
+  collapseCharLimit?: number;
 }
 
 interface TimelinePost {
@@ -39,13 +42,19 @@ interface TimelineFilters {
   pinnedOnly: boolean;
 }
 
+interface WikiFileSuggestion {
+  path: string;
+  name: string;
+}
+
 const POST_MARKER_RE = /<!--\s*timeline-post:\s*([^>]+?)\s*-->/;
 const POST_SEPARATOR_RE = /^\s*---\s*\r?\n(?=(?:<!--\s*timeline-post:|\d{4}-\d{2}-\d{2}T))/m;
 const ISO_DATE_LINE_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/;
 const POST_ID_RE = /^id:\s*([A-Za-z0-9_-]+)\s*$/i;
 const PINNED_RE = /^pinned:\s*(true|false)\s*$/i;
 const COLLAPSE_LINE_LIMIT = 8;
-const COLLAPSE_CHAR_LIMIT = 520;
+const COLLAPSE_CHAR_LIMIT = 440;
+const COLLAPSE_ESTIMATED_CHARS_PER_LINE = 34;
 const DEFAULT_LATEST_COUNT = 20;
 const TIMELINE_ROOT = "Dashboards/Timeline";
 const IMAGE_EXT_BY_MIME: Record<string, string> = {
@@ -120,6 +129,17 @@ function parseTagFilter(value: string): string[] {
     .split(/\s+/)
     .map((tag) => tag.trim().replace(/^#+/, "").toLowerCase())
     .filter(Boolean);
+}
+
+function wikiFileSuggestions(ctx: WidgetContext | undefined, query: string): WikiFileSuggestion[] {
+  if (!ctx) return [];
+  const q = query.trim().toLowerCase();
+  return ctx.app.vault
+    .getFiles()
+    .filter((file) => !q || file.path.toLowerCase().includes(q) || file.basename.toLowerCase().includes(q))
+    .sort((a, b) => a.path.localeCompare(b.path))
+    .slice(0, 10)
+    .map((file) => ({ path: file.path, name: file.name }));
 }
 
 function parsePostBlock(raw: string, index: number, sourcePath: string, sourceFile: TFile): TimelinePost | null {
@@ -218,19 +238,41 @@ function textForCollapse(content: string): string {
   return content.replace(/!\[\[[^\]]+\]\]/g, "").replace(/!\[[^\]]*\]\([^)]+\)/g, "").trim();
 }
 
-function shouldCollapsePost(content: string): boolean {
+function extractEmbedTargets(content: string): string[] {
+  const targets = new Set<string>();
+  const re = /!\[\[([^\]]+)\]\]/g;
+  let match: RegExpExecArray | null;
+  while ((match = re.exec(content)) !== null) {
+    const target = match[1].split("|")[0].trim();
+    if (target) targets.add(target);
+  }
+  return Array.from(targets);
+}
+
+function embedDisplayName(target: string): string {
+  const path = target.split("#")[0];
+  const base = path.includes("/") ? path.slice(path.lastIndexOf("/") + 1) : path;
+  return base || target;
+}
+
+function shouldCollapsePost(content: string, lineLimit: number, charLimit: number): boolean {
   const embedCount = (content.match(/!\[\[[^\]]+\]\]/g) ?? []).length + (content.match(/!\[[^\]]*\]\([^)]+\)/g) ?? []).length;
-  if (embedCount > 1) return true;
+  if (embedCount > 0) return true;
   if (embedCount > 0 && content.split(/\r?\n/).filter((line) => line.trim()).length > 3) return true;
   const text = textForCollapse(content);
   if (!text) return embedCount > 0 && content.split(/\r?\n/).length > 3;
-  return text.length > COLLAPSE_CHAR_LIMIT || text.split(/\r?\n/).length > COLLAPSE_LINE_LIMIT;
+  const lines = text.split(/\r?\n/).filter((line) => line.trim());
+  const estimatedLines = lines.reduce(
+    (sum, line) => sum + Math.max(1, Math.ceil(line.length / COLLAPSE_ESTIMATED_CHARS_PER_LINE)),
+    0,
+  );
+  return text.length > charLimit || lines.length > lineLimit || estimatedLines > lineLimit;
 }
 
-function collapsedContent(content: string): string {
+function collapsedContent(content: string, lineLimit: number, charLimit: number): string {
   const lines = content.split(/\r?\n/);
-  const byLines = lines.length > COLLAPSE_LINE_LIMIT ? lines.slice(0, COLLAPSE_LINE_LIMIT).join("\n").trim() : content.trim();
-  const clipped = byLines.length <= COLLAPSE_CHAR_LIMIT ? byLines : byLines.slice(0, COLLAPSE_CHAR_LIMIT).trimEnd();
+  const byLines = lines.length > lineLimit ? lines.slice(0, lineLimit).join("\n").trim() : content.trim();
+  const clipped = byLines.length <= charLimit ? byLines : byLines.slice(0, charLimit).trimEnd();
   return `${clipped}\n\n...`;
 }
 
@@ -297,6 +339,12 @@ export default function TimelineWidget({
   const latestCount = typeof cfg.latestCount === "number" && Number.isFinite(cfg.latestCount) && cfg.latestCount > 0
     ? Math.floor(cfg.latestCount)
     : DEFAULT_LATEST_COUNT;
+  const collapseLineLimit = typeof cfg.collapseLineLimit === "number" && Number.isFinite(cfg.collapseLineLimit) && cfg.collapseLineLimit > 0
+    ? Math.floor(cfg.collapseLineLimit)
+    : COLLAPSE_LINE_LIMIT;
+  const collapseCharLimit = typeof cfg.collapseCharLimit === "number" && Number.isFinite(cfg.collapseCharLimit) && cfg.collapseCharLimit > 0
+    ? Math.floor(cfg.collapseCharLimit)
+    : COLLAPSE_CHAR_LIMIT;
 
   const [posts, setPosts] = useState<TimelinePost[]>([]);
   const [loadedCount, setLoadedCount] = useState(latestCount);
@@ -316,18 +364,30 @@ export default function TimelineWidget({
   const [showFilters, setShowFilters] = useState(false);
   const [wordInput, setWordInput] = useState("");
   const [filters, setFilters] = useState<TimelineFilters>({ word: "", tags: "", from: "", to: "", pinnedOnly: false });
+  const [wikiSuggestions, setWikiSuggestions] = useState<WikiFileSuggestion[]>([]);
+  const [wikiIndex, setWikiIndex] = useState(0);
+  const [wikiStartPos, setWikiStartPos] = useState(0);
+  const [wikiTarget, setWikiTarget] = useState<"draft" | "edit" | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const editInputRef = useRef<HTMLInputElement | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const editTextareaRef = useRef<HTMLTextAreaElement | null>(null);
   const listRef = useRef<HTMLDivElement | null>(null);
   const imagesRef = useRef<PendingImage[]>([]);
   const editImagesRef = useRef<PendingImage[]>([]);
+  const skipNextScrollToLatestRef = useRef(false);
 
   const scrollToLatest = useCallback(() => {
     const el = listRef.current;
     if (!el) return;
     el.scrollTop = el.scrollHeight;
   }, []);
+
+  const resizeTextarea = (textarea: HTMLTextAreaElement | null) => {
+    if (!textarea) return;
+    textarea.setCssProps({ height: "auto" });
+    textarea.setCssProps({ height: `${Math.min(textarea.scrollHeight, 180)}px` });
+  };
 
   const refresh = useCallback(async () => {
     if (!ctx || !name) return;
@@ -391,6 +451,14 @@ export default function TimelineWidget({
   }, [editImages]);
 
   useEffect(() => {
+    resizeTextarea(textareaRef.current);
+  }, [draft, composerOpen]);
+
+  useEffect(() => {
+    resizeTextarea(editTextareaRef.current);
+  }, [editDraft, editingPostId]);
+
+  useEffect(() => {
     return () => {
       imagesRef.current.forEach((img) => URL.revokeObjectURL(img.previewUrl));
       editImagesRef.current.forEach((img) => URL.revokeObjectURL(img.previewUrl));
@@ -399,6 +467,10 @@ export default function TimelineWidget({
 
   useEffect(() => {
     if (editingPostId) return;
+    if (skipNextScrollToLatestRef.current) {
+      skipNextScrollToLatestRef.current = false;
+      return;
+    }
     requestAnimationFrame(scrollToLatest);
     const timers = [80, 240, 600].map((delay) => window.setTimeout(scrollToLatest, delay));
     return () => timers.forEach((timer) => window.clearTimeout(timer));
@@ -413,6 +485,7 @@ export default function TimelineWidget({
     try {
       const nextCount = loadedCount + latestCount;
       const loaded = await loadTimelineFiles(ctx, name, nextCount, filters);
+      skipNextScrollToLatestRef.current = true;
       setLoadedCount(nextCount);
       setPosts(loaded.posts);
       setHasOlderPosts(loaded.hasMore);
@@ -457,6 +530,64 @@ export default function TimelineWidget({
       prev.forEach((img) => URL.revokeObjectURL(img.previewUrl));
       return [];
     });
+  };
+
+  const updateWikiSuggestions = (value: string, cursorPos: number, target: "draft" | "edit") => {
+    const before = value.slice(0, cursorPos);
+    const match = before.match(/\[\[([^\]\n]*)$/);
+    if (!match) {
+      if (wikiTarget === target) setWikiTarget(null);
+      return;
+    }
+    const suggestions = wikiFileSuggestions(ctx, match[1]);
+    setWikiSuggestions(suggestions);
+    setWikiIndex(0);
+    setWikiStartPos(cursorPos - match[0].length);
+    setWikiTarget(suggestions.length > 0 ? target : null);
+  };
+
+  const insertWikiSuggestion = (suggestion: WikiFileSuggestion) => {
+    if (!wikiTarget) return;
+    const value = wikiTarget === "draft" ? draft : editDraft;
+    const textarea = wikiTarget === "draft" ? textareaRef.current : editTextareaRef.current;
+    const cursorPos = textarea?.selectionStart ?? value.length;
+    const before = value.slice(0, wikiStartPos);
+    const after = value.slice(cursorPos);
+    const inserted = `[[${suggestion.path}]]`;
+    const next = before + inserted + after;
+    if (wikiTarget === "draft") setDraft(next);
+    else setEditDraft(next);
+    setWikiTarget(null);
+    window.setTimeout(() => {
+      const pos = wikiStartPos + inserted.length;
+      textarea?.focus();
+      textarea?.setSelectionRange(pos, pos);
+    }, 0);
+  };
+
+  const handleWikiKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (!wikiTarget || wikiSuggestions.length === 0) return false;
+    if (e.key === "ArrowDown" || (e.key === "Tab" && !e.shiftKey)) {
+      e.preventDefault();
+      setWikiIndex((prev) => Math.min(prev + 1, wikiSuggestions.length - 1));
+      return true;
+    }
+    if (e.key === "ArrowUp" || (e.key === "Tab" && e.shiftKey)) {
+      e.preventDefault();
+      setWikiIndex((prev) => Math.max(prev - 1, 0));
+      return true;
+    }
+    if (e.key === "Enter" && !e.nativeEvent.isComposing) {
+      e.preventDefault();
+      insertWikiSuggestion(wikiSuggestions[wikiIndex]);
+      return true;
+    }
+    if (e.key === "Escape") {
+      e.preventDefault();
+      setWikiTarget(null);
+      return true;
+    }
+    return false;
   };
 
   const searchTag = (tag: string) => {
@@ -590,6 +721,26 @@ export default function TimelineWidget({
     </div>
   );
 
+  const renderWikiSuggestions = (target: "draft" | "edit") => wikiTarget === target && wikiSuggestions.length > 0 && (
+    <div className="llm-hub-db-timeline-wiki-suggestions">
+      {wikiSuggestions.map((suggestion, index) => (
+        <button
+          type="button"
+          key={suggestion.path}
+          className={index === wikiIndex ? "active" : ""}
+          onMouseEnter={() => setWikiIndex(index)}
+          onMouseDown={(e) => {
+            e.preventDefault();
+            insertWikiSuggestion(suggestion);
+          }}
+        >
+          <span>{suggestion.name}</span>
+          <small>{suggestion.path}</small>
+        </button>
+      ))}
+    </div>
+  );
+
   return (
     <div className="llm-hub-db-timeline">
       <div className="llm-hub-db-timeline-header">
@@ -625,6 +776,12 @@ export default function TimelineWidget({
       )}
 
       <div ref={listRef} className="llm-hub-db-timeline-list">
+        {hasOlderPosts && (
+          <button type="button" className="llm-hub-db-timeline-load" disabled={loadingOlder} onClick={() => void loadOlder()}>
+            {loadingOlder ? <Loader2 size={13} className="is-spinning" /> : <ChevronUp size={13} />}
+            {t("dashboard.timelineLoadOlder")}
+          </button>
+        )}
         {loading && posts.length === 0 ? (
           <div className="llm-hub-db-widget-empty">{t("dashboard.loading")}</div>
         ) : posts.length === 0 ? (
@@ -632,9 +789,11 @@ export default function TimelineWidget({
         ) : (
           posts.map((post) => {
             const editing = editingPostId === post.id;
-            const collapsed = shouldCollapsePost(post.content) && !expandedPosts.has(post.id);
+            const canCollapse = shouldCollapsePost(post.content, collapseLineLimit, collapseCharLimit);
+            const collapsed = canCollapse && !expandedPosts.has(post.id);
             const tags = extractPostTags(post.content);
-            const body = stripPostTags(collapsed ? collapsedContent(post.content) : post.content);
+            const embedTargets = extractEmbedTargets(post.content);
+            const body = stripPostTags(collapsed ? collapsedContent(post.content, collapseLineLimit, collapseCharLimit) : post.content);
             return (
               <article key={`${post.sourcePath}:${post.id}`} className={`llm-hub-db-timeline-post-card${post.pinned ? " is-pinned" : ""}`}>
                 <div className="llm-hub-db-timeline-post-meta">
@@ -652,25 +811,49 @@ export default function TimelineWidget({
                 </div>
                 {editing ? (
                   <div className="llm-hub-db-timeline-edit">
-                    <textarea value={editDraft} onChange={(e) => setEditDraft(e.target.value)} />
+                    <div className="llm-hub-db-timeline-textarea-wrap">
+                      <textarea
+                        ref={editTextareaRef}
+                        value={editDraft}
+                        onChange={(e) => {
+                          setEditDraft(e.target.value);
+                          resizeTextarea(e.target);
+                          updateWikiSuggestions(e.target.value, e.target.selectionStart, "edit");
+                        }}
+                        onKeyDown={(e) => {
+                          handleWikiKeyDown(e);
+                        }}
+                      />
+                      {renderWikiSuggestions("edit")}
+                    </div>
                     {renderImages(editImages, true)}
                     <div className="llm-hub-db-timeline-composer-actions">
                       <input ref={editInputRef} type="file" accept="image/*" multiple onChange={(e) => addImages(e.target.files, true)} />
-                      <button type="button" className="llm-hub-db-timeline-iconbtn" onClick={() => editInputRef.current?.click()} title={t("dashboard.timelineAttachImage")}>
-                        <Image size={14} />
-                      </button>
                       <button type="button" className="llm-hub-db-timeline-iconbtn" onClick={cancelEditing} title={t("dashboard.cancel")}>
                         <X size={14} />
                       </button>
-                      <button type="button" className="llm-hub-db-timeline-post" disabled={savingPostId === post.id || (!editDraft.trim() && editImages.length === 0)} onClick={() => void saveEdit(post)}>
-                        {savingPostId === post.id ? <Loader2 size={13} className="is-spinning" /> : <Send size={13} />}
-                        {t("dashboard.save")}
-                      </button>
+                      <div className="llm-hub-db-timeline-composer-primary-actions">
+                        <button type="button" className="llm-hub-db-timeline-iconbtn" onClick={() => editInputRef.current?.click()} title={t("dashboard.timelineAttachImage")}>
+                          <Image size={14} />
+                        </button>
+                        <button type="button" className="llm-hub-db-timeline-post" disabled={savingPostId === post.id || (!editDraft.trim() && editImages.length === 0)} onClick={() => void saveEdit(post)}>
+                          {savingPostId === post.id ? <Loader2 size={13} className="is-spinning" /> : <Send size={13} />}
+                          {t("dashboard.save")}
+                        </button>
+                      </div>
                     </div>
                   </div>
                 ) : (
                   <>
-                    <ObsidianMarkdown app={ctx.app} markdown={body} sourcePath={post.sourcePath} className="llm-hub-db-timeline-body" />
+                    <ObsidianMarkdown
+                      app={ctx.app}
+                      markdown={body}
+                      sourcePath={post.sourcePath}
+                      className={`llm-hub-db-timeline-body${collapsed ? " is-collapsed" : ""}`}
+                      onInternalLinkClick={(target) => {
+                        new TimelineLinkPreviewModal(ctx.app, target, post.sourcePath).open();
+                      }}
+                    />
                     {tags.length > 0 && (
                       <div className="llm-hub-db-timeline-tags">
                         {tags.map((tag) => (
@@ -680,20 +863,38 @@ export default function TimelineWidget({
                         ))}
                       </div>
                     )}
-                    {shouldCollapsePost(post.content) && (
-                      <button
-                        type="button"
-                        className="llm-hub-db-timeline-more"
-                        onClick={() => setExpandedPosts((prev) => {
-                          const next = new Set(prev);
-                          if (next.has(post.id)) next.delete(post.id);
-                          else next.add(post.id);
-                          return next;
-                        })}
-                      >
-                        {expandedPosts.has(post.id) ? <ChevronDown size={13} /> : <ChevronUp size={13} />}
-                        {expandedPosts.has(post.id) ? t("dashboard.timelineShowLess") : t("dashboard.timelineShowMore")}
-                      </button>
+                    {(canCollapse || embedTargets.length > 0) && (
+                      <div className="llm-hub-db-timeline-post-actions">
+                        {canCollapse && (
+                          <button
+                            type="button"
+                            className="llm-hub-db-timeline-more"
+                            onClick={() => setExpandedPosts((prev) => {
+                              const next = new Set(prev);
+                              if (next.has(post.id)) next.delete(post.id);
+                              else next.add(post.id);
+                              return next;
+                            })}
+                          >
+                            {expandedPosts.has(post.id) ? <ChevronDown size={13} /> : <ChevronUp size={13} />}
+                            {expandedPosts.has(post.id) ? t("dashboard.timelineShowLess") : t("dashboard.timelineShowMore")}
+                          </button>
+                        )}
+                        {embedTargets.map((target) => (
+                          <button
+                            type="button"
+                            className="llm-hub-db-timeline-embed-link"
+                            key={target}
+                            title={target}
+                            onClick={() => {
+                              void ctx.app.workspace.openLinkText(target, post.sourcePath, true);
+                            }}
+                          >
+                            <ExternalLink size={12} />
+                            <span>{embedDisplayName(target)}</span>
+                          </button>
+                        ))}
+                      </div>
                     )}
                   </>
                 )}
@@ -701,41 +902,47 @@ export default function TimelineWidget({
             );
           })
         )}
-        {hasOlderPosts && (
-          <button type="button" className="llm-hub-db-timeline-load" disabled={loadingOlder} onClick={() => void loadOlder()}>
-            {loadingOlder ? <Loader2 size={13} className="is-spinning" /> : <ChevronUp size={13} />}
-            {t("dashboard.timelineLoadOlder")}
-          </button>
-        )}
       </div>
 
       {composerOpen && (
         <div className="llm-hub-db-timeline-composer">
-          <textarea
-            ref={textareaRef}
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            placeholder={t("dashboard.timelinePlaceholder")}
-          />
+          <div className="llm-hub-db-timeline-textarea-wrap">
+            <textarea
+              ref={textareaRef}
+              value={draft}
+              onChange={(e) => {
+                setDraft(e.target.value);
+                resizeTextarea(e.target);
+                updateWikiSuggestions(e.target.value, e.target.selectionStart, "draft");
+              }}
+              onKeyDown={(e) => {
+                handleWikiKeyDown(e);
+              }}
+              placeholder={t("dashboard.timelinePlaceholder")}
+            />
+            {renderWikiSuggestions("draft")}
+          </div>
           {renderImages(images)}
           <div className="llm-hub-db-timeline-composer-actions">
             <input ref={inputRef} type="file" accept="image/*" multiple onChange={(e) => addImages(e.target.files)} />
-            <button type="button" className="llm-hub-db-timeline-iconbtn" onClick={() => inputRef.current?.click()} title={t("dashboard.timelineAttachImage")}>
-              <Image size={14} />
-            </button>
             <button type="button" className="llm-hub-db-timeline-iconbtn" onClick={closeComposer} title={t("dashboard.cancel")}>
               <X size={14} />
             </button>
-            <button type="button" className="llm-hub-db-timeline-post" disabled={posting || (!draft.trim() && images.length === 0)} onClick={() => void submitPost()}>
-              {posting ? <Loader2 size={13} className="is-spinning" /> : <Send size={13} />}
-              {t("dashboard.timelinePost")}
-            </button>
+            <div className="llm-hub-db-timeline-composer-primary-actions">
+              <button type="button" className="llm-hub-db-timeline-iconbtn" onClick={() => inputRef.current?.click()} title={t("dashboard.timelineAttachImage")}>
+                <Image size={14} />
+              </button>
+              <button type="button" className="llm-hub-db-timeline-post" disabled={posting || (!draft.trim() && images.length === 0)} onClick={() => void submitPost()}>
+                {posting ? <Loader2 size={13} className="is-spinning" /> : <Send size={13} />}
+                {t("dashboard.timelinePost")}
+              </button>
+            </div>
           </div>
         </div>
       )}
 
       <div className="llm-hub-db-timeline-footer">
-        <button type="button" className="llm-hub-db-timeline-new" onClick={() => setComposerOpen((v) => !v)}>
+        <button type="button" className="llm-hub-db-timeline-new" onClick={() => setComposerOpen(true)} disabled={composerOpen}>
           <Plus size={13} />
           {t("dashboard.timelineNew")}
         </button>

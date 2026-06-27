@@ -11,11 +11,13 @@ export default function ObsidianMarkdown({
   markdown,
   sourcePath,
   className,
+  onInternalLinkClick,
 }: {
   app: App;
   markdown: string;
   sourcePath: string;
   className?: string;
+  onInternalLinkClick?: (href: string) => void;
 }) {
   const ref = useRef<HTMLDivElement>(null);
 
@@ -25,12 +27,21 @@ export default function ObsidianMarkdown({
     el.innerHTML = "";
     const component = new Component();
     component.load();
-    void MarkdownRenderer.render(app, markdown, el, sourcePath, component);
+    void MarkdownRenderer.render(app, markdown, el, sourcePath, component).then(() => {
+      if (!onInternalLinkClick) return;
+      el.querySelectorAll("a.internal-link").forEach((link) => {
+        link.addEventListener("click", (e) => {
+          e.preventDefault();
+          const href = link.getAttribute("href");
+          if (href) onInternalLinkClick(href);
+        });
+      });
+    });
     return () => {
       component.unload();
       el.innerHTML = "";
     };
-  }, [app, markdown, sourcePath]);
+  }, [app, markdown, sourcePath, onInternalLinkClick]);
 
   return <div ref={ref} className={className} />;
 }

@@ -4,6 +4,8 @@ import type { ConfigEditorProps } from "../../types";
 interface TimelineConfig {
   name?: string;
   latestCount?: number;
+  collapseLineLimit?: number;
+  collapseCharLimit?: number;
 }
 
 function sanitizeName(value: string): string {
@@ -44,6 +46,34 @@ export function TimelineConfigEditor({ config, onChange }: ConfigEditorProps) {
           onChange={(e) => {
             const value = Number(e.target.value);
             update({ latestCount: Number.isFinite(value) && value > 0 ? value : 20 });
+          }}
+        />
+      </div>
+
+      <div className="llm-hub-db-field">
+        <label>{t("dashboard.timelineCollapseLines")}</label>
+        <input
+          type="number"
+          min={1}
+          max={30}
+          value={cfg.collapseLineLimit ?? 8}
+          onChange={(e) => {
+            const value = Number(e.target.value);
+            update({ collapseLineLimit: Number.isFinite(value) && value > 0 ? value : 8 });
+          }}
+        />
+      </div>
+
+      <div className="llm-hub-db-field">
+        <label>{t("dashboard.timelineCollapseChars")}</label>
+        <input
+          type="number"
+          min={40}
+          max={5000}
+          value={cfg.collapseCharLimit ?? 440}
+          onChange={(e) => {
+            const value = Number(e.target.value);
+            update({ collapseCharLimit: Number.isFinite(value) && value > 0 ? value : 440 });
           }}
         />
       </div>

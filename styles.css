@@ -9247,6 +9247,7 @@
 .llm-hub-db-timeline-post:hover:not(:disabled) {
   background: var(--interactive-accent-hover);
 }
+.llm-hub-db-timeline-new:disabled,
 .llm-hub-db-timeline-post:disabled {
   opacity: 0.55;
   cursor: default;
@@ -9304,17 +9305,90 @@
 .llm-hub-db-timeline-composer textarea,
 .llm-hub-db-timeline-edit textarea {
   width: 100%;
-  min-height: 84px;
-  resize: vertical;
+  min-height: 72px;
+  max-height: 180px;
+  resize: none;
+  overflow-y: auto;
+}
+.llm-hub-db-timeline-textarea-wrap {
+  position: relative;
+  min-width: 0;
+}
+.llm-hub-db-timeline-wiki-suggestions {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: calc(100% + 4px);
+  z-index: 20;
+  max-height: 180px;
+  overflow-y: auto;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 8px;
+  background: var(--background-secondary);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.16);
+}
+.llm-hub-db-timeline-wiki-suggestions button {
+  appearance: none;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-start;
+  gap: 2px;
+  width: 100%;
+  height: auto;
+  min-height: 0;
+  min-width: 0;
+  margin: 0;
+  padding: 8px 10px;
+  border: none;
+  border-bottom: 1px solid var(--background-modifier-border);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  color: var(--text-normal);
+  cursor: pointer;
+  line-height: normal;
+  text-align: left;
+}
+.llm-hub-db-timeline-wiki-suggestions button:last-child {
+  border-bottom: none;
+}
+.llm-hub-db-timeline-wiki-suggestions button:hover,
+.llm-hub-db-timeline-wiki-suggestions button.active {
+  background: var(--background-modifier-hover);
+}
+.llm-hub-db-timeline-wiki-suggestions span,
+.llm-hub-db-timeline-wiki-suggestions small {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  line-height: 1.35;
+}
+.llm-hub-db-timeline-wiki-suggestions span {
+  color: var(--interactive-accent);
+  font-size: var(--font-ui-small);
+  font-weight: 600;
+}
+.llm-hub-db-timeline-wiki-suggestions small {
+  color: var(--text-muted);
+  font-size: var(--font-ui-smaller);
 }
 .llm-hub-db-timeline-composer-actions {
   display: flex;
   align-items: center;
-  justify-content: flex-end;
+  justify-content: space-between;
   gap: 6px;
 }
 .llm-hub-db-timeline-composer-actions input[type="file"] {
   display: none;
+}
+.llm-hub-db-timeline-composer-primary-actions {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
 }
 .llm-hub-db-timeline-images {
   display: flex;
@@ -9350,10 +9424,13 @@
   flex: 1;
   min-height: 0;
   overflow-y: auto;
+  overflow-x: hidden;
   padding: 8px;
 }
 .llm-hub-db-timeline-post-card {
   position: relative;
+  min-width: 0;
+  overflow: hidden;
   margin: 0 0 8px;
   padding: 9px 10px;
   border: 1px solid var(--background-modifier-border);
@@ -9381,7 +9458,112 @@
   white-space: nowrap;
 }
 .llm-hub-db-timeline-body {
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: hidden;
   overflow-wrap: anywhere;
+  word-break: break-word;
+}
+.llm-hub-db-timeline-body.is-collapsed {
+  position: relative;
+  max-height: 9.5em;
+  overflow: hidden;
+}
+.llm-hub-db-timeline-body.is-collapsed::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 2.2em;
+  pointer-events: none;
+  background: linear-gradient(transparent, var(--background-primary));
+}
+.llm-hub-db-timeline-post-card.is-pinned .llm-hub-db-timeline-body.is-collapsed::after {
+  background: linear-gradient(transparent, color-mix(in srgb, var(--interactive-accent) 5%, var(--background-primary)));
+}
+.llm-hub-db-timeline-body * {
+  max-width: 100%;
+}
+.llm-hub-db-timeline-body p,
+.llm-hub-db-timeline-body li,
+.llm-hub-db-timeline-body blockquote,
+.llm-hub-db-timeline-body h1,
+.llm-hub-db-timeline-body h2,
+.llm-hub-db-timeline-body h3,
+.llm-hub-db-timeline-body h4,
+.llm-hub-db-timeline-body h5,
+.llm-hub-db-timeline-body h6 {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+.llm-hub-db-timeline-body pre {
+  overflow-x: auto;
+}
+.llm-hub-db-timeline-body img {
+  height: auto;
+}
+.llm-hub-db-timeline-body .markdown-embed,
+.llm-hub-db-timeline-body .internal-embed,
+.llm-hub-db-timeline-body .markdown-embed-content,
+.llm-hub-db-timeline-body .markdown-embed-title,
+.llm-hub-db-timeline-body .markdown-embed-link,
+.llm-hub-db-timeline-body .markdown-embed-content > .markdown-preview-view,
+.llm-hub-db-timeline-body .markdown-embed-content .markdown-preview-sizer,
+.llm-hub-db-timeline-body .markdown-embed-content .markdown-preview-section,
+.llm-hub-db-timeline-body .markdown-preview-view,
+.llm-hub-db-timeline-body .markdown-preview-sizer,
+.llm-hub-db-timeline-body .markdown-preview-section,
+.llm-hub-db-timeline-body .markdown-rendered {
+  width: auto !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  overflow-x: hidden !important;
+  white-space: normal !important;
+}
+.llm-hub-db-timeline-body .markdown-embed-title,
+.llm-hub-db-timeline-body .markdown-embed-link,
+.llm-hub-db-timeline-body .inline-title,
+.llm-hub-db-timeline-body .markdown-preview-section h1,
+.llm-hub-db-timeline-body .markdown-preview-section h2,
+.llm-hub-db-timeline-body .markdown-preview-section h3,
+.llm-hub-db-timeline-body .markdown-preview-section h4,
+.llm-hub-db-timeline-body .markdown-preview-section h5,
+.llm-hub-db-timeline-body .markdown-preview-section h6,
+.llm-hub-db-timeline-body .markdown-rendered h1,
+.llm-hub-db-timeline-body .markdown-rendered h2,
+.llm-hub-db-timeline-body .markdown-rendered h3,
+.llm-hub-db-timeline-body .markdown-rendered h4,
+.llm-hub-db-timeline-body .markdown-rendered h5,
+.llm-hub-db-timeline-body .markdown-rendered h6 {
+  display: block !important;
+  width: auto !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  overflow-wrap: anywhere !important;
+  word-break: break-all !important;
+  white-space: normal !important;
+}
+.llm-hub-db-timeline-body .markdown-embed-content p,
+.llm-hub-db-timeline-body .markdown-embed-content div,
+.llm-hub-db-timeline-body .markdown-embed-content span,
+.llm-hub-db-timeline-body .markdown-embed-content .el-p,
+.llm-hub-db-timeline-body .markdown-preview-section p,
+.llm-hub-db-timeline-body .markdown-preview-section div,
+.llm-hub-db-timeline-body .markdown-preview-section span,
+.llm-hub-db-timeline-body .markdown-rendered p,
+.llm-hub-db-timeline-body .markdown-rendered div,
+.llm-hub-db-timeline-body .markdown-rendered span {
+  max-width: 100% !important;
+  overflow-wrap: anywhere !important;
+  word-break: break-all !important;
+  white-space: normal !important;
+}
+.llm-hub-db-timeline-body .markdown-embed-content pre,
+.llm-hub-db-timeline-body .markdown-preview-section pre,
+.llm-hub-db-timeline-body .markdown-rendered pre {
+  white-space: pre-wrap !important;
+  overflow-x: hidden !important;
 }
 .llm-hub-db-timeline-body > :first-child {
   margin-top: 0;
@@ -9394,6 +9576,44 @@
   flex-wrap: wrap;
   gap: 4px;
   margin-top: 6px;
+}
+.llm-hub-db-timeline-post-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  margin-top: 6px;
+}
+.llm-hub-db-timeline-embed-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex: 0 1 180px;
+  max-width: min(180px, 100%);
+  min-width: 0;
+  padding: 4px 8px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 6px;
+  background: var(--background-secondary);
+  color: var(--interactive-accent);
+  font-size: var(--font-ui-smaller);
+  box-shadow: none;
+  cursor: pointer;
+  overflow: hidden;
+  white-space: nowrap;
+}
+.llm-hub-db-timeline-embed-link svg {
+  flex: 0 0 auto;
+}
+.llm-hub-db-timeline-embed-link span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.llm-hub-db-timeline-embed-link:hover {
+  background: var(--background-modifier-hover);
 }
 .llm-hub-db-timeline-tags button {
   padding: 1px 6px;
@@ -9422,9 +9642,16 @@
 .llm-hub-db-timeline-load:hover {
   background: var(--background-modifier-hover);
 }
+.llm-hub-db-timeline-post-actions .llm-hub-db-timeline-more {
+  margin-top: 0;
+}
 .llm-hub-db-timeline-load {
   width: 100%;
   justify-content: center;
+}
+.llm-hub-db-timeline-list > .llm-hub-db-timeline-load:first-child {
+  margin-top: 0;
+  margin-bottom: 8px;
 }
 .llm-hub-db-timeline-footer {
   flex: 0 0 auto;

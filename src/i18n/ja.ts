@@ -1146,6 +1146,8 @@ export const ja: Record<string, string> = {
   "dashboard.timelineName": "Timeline名",
   "dashboard.timelineStorageHint": "投稿は Dashboards/Timeline/{name}/ 配下に日付ごとに保存されます。",
   "dashboard.timelineLatestCount": "表示する最新投稿数",
+  "dashboard.timelineCollapseLines": "折り畳む行数",
+  "dashboard.timelineCollapseChars": "折り畳む文字数",
   "dashboard.timelinePlaceholder": "いまどうしてる？",
   "dashboard.timelineNew": "New",
   "dashboard.timelineAttachImage": "画像を添付",

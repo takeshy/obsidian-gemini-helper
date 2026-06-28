@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
+import { createPortal } from "react-dom";
 import { ChevronDown, ChevronUp, ExternalLink, Image, Loader2, PenLine, Pin, Plus, Search, Send, Sparkles, Trash2, X } from "lucide-react";
 import { Notice, TFile } from "obsidian";
 import { t } from "src/i18n";
@@ -46,6 +47,12 @@ interface TimelineFilters {
 interface WikiFileSuggestion {
   path: string;
   name: string;
+}
+
+interface WikiSuggestionPosition {
+  top: number;
+  left: number;
+  width: number;
 }
 
 const POST_MARKER_RE = /<!--\s*timeline-post:\s*([^>]+?)\s*-->/;
@@ -141,6 +148,72 @@ function wikiFileSuggestions(ctx: WidgetContext | undefined, query: string): Wik
     .sort((a, b) => a.path.localeCompare(b.path))
     .slice(0, 10)
     .map((file) => ({ path: file.path, name: file.name }));
+}
+
+function textareaCaretMenuPosition(textarea: HTMLTextAreaElement, cursorPos: number): WikiSuggestionPosition {
+  const doc = textarea.ownerDocument;
+  const win = doc.defaultView ?? window;
+  const style = win.getComputedStyle(textarea);
+  const mirror = doc.createElement("div");
+  const marker = doc.createElement("span");
+  const copyProps = [
+    "boxSizing",
+    "fontFamily",
+    "fontSize",
+    "fontStyle",
+    "fontWeight",
+    "letterSpacing",
+    "lineHeight",
+    "paddingTop",
+    "paddingRight",
+    "paddingBottom",
+    "paddingLeft",
+    "borderTopWidth",
+    "borderRightWidth",
+    "borderBottomWidth",
+    "borderLeftWidth",
+    "textTransform",
+    "textIndent",
+    "textAlign",
+    "tabSize",
+    "wordBreak",
+  ] as const;
+
+  mirror.setCssProps({
+    position: "fixed",
+    left: "0",
+    top: "-9999px",
+    visibility: "hidden",
+    whiteSpace: "pre-wrap",
+    overflowWrap: "break-word",
+    width: `${textarea.offsetWidth}px`,
+  });
+  copyProps.forEach((prop) => {
+    mirror.style[prop] = style[prop];
+  });
+  mirror.textContent = textarea.value.slice(0, cursorPos);
+  marker.textContent = "\u200b";
+  mirror.appendChild(marker);
+  doc.body.appendChild(mirror);
+
+  const markerTop = marker.offsetTop;
+  const markerLeft = marker.offsetLeft;
+  mirror.remove();
+
+  const rect = textarea.getBoundingClientRect();
+  const lineHeight = Number.parseFloat(style.lineHeight) || Number.parseFloat(style.fontSize) * 1.2 || 18;
+  const menuHeight = 180;
+  const margin = 6;
+  const width = Math.min(360, Math.max(220, rect.width));
+  const maxLeft = Math.max(margin, win.innerWidth - width - margin);
+  const belowTop = rect.top + markerTop - textarea.scrollTop + lineHeight + margin;
+  const aboveTop = rect.top + markerTop - textarea.scrollTop - menuHeight - margin;
+
+  return {
+    top: Math.max(margin, Math.min(belowTop > win.innerHeight - menuHeight - margin ? aboveTop : belowTop, win.innerHeight - margin)),
+    left: Math.max(margin, Math.min(rect.left + markerLeft - textarea.scrollLeft, maxLeft)),
+    width,
+  };
 }
 
 function parsePostBlock(raw: string, index: number, sourcePath: string, sourceFile: TFile): TimelinePost | null {
@@ -369,6 +442,7 @@ export default function TimelineWidget({
   const [wikiIndex, setWikiIndex] = useState(0);
   const [wikiStartPos, setWikiStartPos] = useState(0);
   const [wikiTarget, setWikiTarget] = useState<"draft" | "edit" | null>(null);
+  const [wikiPosition, setWikiPosition] = useState<WikiSuggestionPosition | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const editInputRef = useRef<HTMLInputElement | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
@@ -533,11 +607,12 @@ export default function TimelineWidget({
     });
   };
 
-  const updateWikiSuggestions = (value: string, cursorPos: number, target: "draft" | "edit") => {
+  const updateWikiSuggestions = (value: string, cursorPos: number, target: "draft" | "edit", textarea: HTMLTextAreaElement) => {
     const before = value.slice(0, cursorPos);
     const match = before.match(/\[\[([^\]\n]*)$/);
     if (!match) {
       if (wikiTarget === target) setWikiTarget(null);
+      setWikiPosition(null);
       return;
     }
     const suggestions = wikiFileSuggestions(ctx, match[1]);
@@ -545,6 +620,7 @@ export default function TimelineWidget({
     setWikiIndex(0);
     setWikiStartPos(cursorPos - match[0].length);
     setWikiTarget(suggestions.length > 0 ? target : null);
+    setWikiPosition(target === "edit" && suggestions.length > 0 ? textareaCaretMenuPosition(textarea, cursorPos) : null);
   };
 
   const insertWikiSuggestion = (suggestion: WikiFileSuggestion) => {
@@ -559,6 +635,7 @@ export default function TimelineWidget({
     if (wikiTarget === "draft") setDraft(next);
     else setEditDraft(next);
     setWikiTarget(null);
+    setWikiPosition(null);
     window.setTimeout(() => {
       const pos = wikiStartPos + inserted.length;
       textarea?.focus();
@@ -654,6 +731,8 @@ export default function TimelineWidget({
 
   const startEditing = (post: TimelinePost) => {
     clearImages(true);
+    setWikiTarget(null);
+    setWikiPosition(null);
     setEditingPostId(post.id);
     setEditDraft(post.content);
     setExpandedPosts((prev) => new Set(prev).add(post.id));
@@ -662,6 +741,8 @@ export default function TimelineWidget({
   const cancelEditing = () => {
     setEditingPostId(null);
     setEditDraft("");
+    setWikiTarget(null);
+    setWikiPosition(null);
     clearImages(true);
     if (editInputRef.current) editInputRef.current.value = "";
   };
@@ -739,8 +820,14 @@ export default function TimelineWidget({
     </div>
   );
 
-  const renderWikiSuggestions = (target: "draft" | "edit") => wikiTarget === target && wikiSuggestions.length > 0 && (
-    <div className="llm-hub-db-timeline-wiki-suggestions">
+  const renderWikiSuggestions = (target: "draft" | "edit") => {
+    if (wikiTarget !== target || wikiSuggestions.length === 0) return null;
+    const floating = target === "edit" && wikiPosition;
+    const style: CSSProperties | undefined = floating
+      ? { top: wikiPosition.top, left: wikiPosition.left, width: wikiPosition.width }
+      : undefined;
+    const menu = (
+      <div className={`llm-hub-db-timeline-wiki-suggestions${floating ? " is-floating" : ""}`} style={style}>
       {wikiSuggestions.map((suggestion, index) => (
         <button
           type="button"
@@ -756,8 +843,12 @@ export default function TimelineWidget({
           <small>{suggestion.path}</small>
         </button>
       ))}
-    </div>
-  );
+      </div>
+    );
+    return floating && editTextareaRef.current
+      ? createPortal(menu, editTextareaRef.current.ownerDocument.body)
+      : menu;
+  };
 
   return (
     <div className="llm-hub-db-timeline">
@@ -829,14 +920,14 @@ export default function TimelineWidget({
                 </div>
                 {editing ? (
                   <div className="llm-hub-db-timeline-edit">
-                    <div className="llm-hub-db-timeline-textarea-wrap">
+                    <div className="llm-hub-db-timeline-textarea-wrap is-editor">
                       <textarea
                         ref={editTextareaRef}
                         value={editDraft}
                         onChange={(e) => {
                           setEditDraft(e.target.value);
                           resizeTextarea(e.target);
-                          updateWikiSuggestions(e.target.value, e.target.selectionStart, "edit");
+                          updateWikiSuggestions(e.target.value, e.target.selectionStart, "edit", e.target);
                         }}
                         onKeyDown={(e) => {
                           handleWikiKeyDown(e);
@@ -934,7 +1025,7 @@ export default function TimelineWidget({
               onChange={(e) => {
                 setDraft(e.target.value);
                 resizeTextarea(e.target);
-                updateWikiSuggestions(e.target.value, e.target.selectionStart, "draft");
+                updateWikiSuggestions(e.target.value, e.target.selectionStart, "draft", e.target);
               }}
               onKeyDown={(e) => {
                 handleWikiKeyDown(e);

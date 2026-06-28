@@ -88,8 +88,9 @@ export class TimelineAiRewriteModal extends Modal {
   }
 
   onOpen(): void {
-    const { contentEl } = this;
+    const { contentEl, modalEl } = this;
     contentEl.empty();
+    modalEl.addClass("llm-hub-db-timeline-ai-modal-shell");
     contentEl.addClass("llm-hub-db-ai-modal");
     contentEl.addClass("llm-hub-db-timeline-ai-modal");
 

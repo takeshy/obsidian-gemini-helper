@@ -8598,6 +8598,31 @@
   border: 1px solid var(--background-modifier-border);
   border-radius: 6px;
 }
+.llm-hub-db-timeline-ai-modal-shell {
+  width: min(1120px, calc(100vw - 64px));
+}
+.llm-hub-db-timeline-ai-modal {
+  max-height: min(82vh, 860px);
+  display: flex;
+  flex-direction: column;
+}
+.llm-hub-db-timeline-ai-modal .llm-hub-db-ai-diff {
+  min-height: clamp(220px, 34vh, 420px);
+  max-height: 44vh;
+}
+.llm-hub-db-timeline-ai-modal .gemini-helper-diff-view {
+  min-height: 100%;
+}
+
+@media (max-width: 700px) {
+  .llm-hub-db-timeline-ai-modal-shell {
+    width: calc(100vw - 24px);
+  }
+  .llm-hub-db-timeline-ai-modal .llm-hub-db-ai-diff {
+    min-height: 200px;
+    max-height: 38vh;
+  }
+}
 
 /* Segmented toggle (output format) */
 .llm-hub-db-toggle {

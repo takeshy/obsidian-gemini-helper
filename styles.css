@@ -9709,3 +9709,28 @@
     grid-template-columns: 1fr;
   }
 }
+
+.is-mobile .llm-hub-db-timeline-composer-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 999;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  background: rgba(0, 0, 0, 0.24);
+  box-shadow: none;
+}
+.is-mobile .llm-hub-db-timeline-composer.is-mobile-modal {
+  position: fixed;
+  left: 12px;
+  right: 12px;
+  bottom: calc(var(--llm-hub-db-timeline-keyboard-inset, 0px) + env(safe-area-inset-bottom) + 12px);
+  z-index: 1000;
+  max-height: min(420px, calc(100vh - var(--llm-hub-db-timeline-keyboard-inset, 0px) - 40px));
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 18px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.22);
+}

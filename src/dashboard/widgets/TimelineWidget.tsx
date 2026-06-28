@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
 import { createPortal } from "react-dom";
 import { ChevronDown, ChevronUp, ExternalLink, Image, Loader2, PenLine, Pin, Plus, Search, Send, Sparkles, Trash2, X } from "lucide-react";
-import { Notice, TFile } from "obsidian";
+import { Notice, Platform, TFile } from "obsidian";
 import { t } from "src/i18n";
 import type { WidgetContext } from "../types";
 import { ensureVaultFolder } from "../dashboardFile";
@@ -428,6 +428,7 @@ export default function TimelineWidget({
   const [posting, setPosting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [composerOpen, setComposerOpen] = useState(false);
+  const [composerFocused, setComposerFocused] = useState(false);
   const [draft, setDraft] = useState("");
   const [editingPostId, setEditingPostId] = useState<string | null>(null);
   const [editDraft, setEditDraft] = useState("");
@@ -447,6 +448,7 @@ export default function TimelineWidget({
   const editInputRef = useRef<HTMLInputElement | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const editTextareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const composerRef = useRef<HTMLDivElement | null>(null);
   const listRef = useRef<HTMLDivElement | null>(null);
   const imagesRef = useRef<PendingImage[]>([]);
   const editImagesRef = useRef<PendingImage[]>([]);
@@ -528,6 +530,32 @@ export default function TimelineWidget({
   useEffect(() => {
     resizeTextarea(textareaRef.current);
   }, [draft, composerOpen]);
+
+  useEffect(() => {
+    if (!Platform.isMobile || !composerOpen || !composerFocused) return;
+    const composerEl = composerRef.current;
+    if (!composerEl) return;
+    const win = composerEl.ownerDocument.defaultView ?? window;
+    const viewport = win.visualViewport;
+
+    const updateKeyboardInset = () => {
+      const inset = viewport
+        ? Math.max(0, win.innerHeight - viewport.height - viewport.offsetTop)
+        : 0;
+      composerEl.style.setProperty("--llm-hub-db-timeline-keyboard-inset", `${inset}px`);
+    };
+
+    updateKeyboardInset();
+    viewport?.addEventListener("resize", updateKeyboardInset);
+    viewport?.addEventListener("scroll", updateKeyboardInset);
+    win.addEventListener("resize", updateKeyboardInset);
+    return () => {
+      viewport?.removeEventListener("resize", updateKeyboardInset);
+      viewport?.removeEventListener("scroll", updateKeyboardInset);
+      win.removeEventListener("resize", updateKeyboardInset);
+      composerEl.style.removeProperty("--llm-hub-db-timeline-keyboard-inset");
+    };
+  }, [composerOpen, composerFocused]);
 
   useEffect(() => {
     resizeTextarea(editTextareaRef.current);
@@ -677,6 +705,7 @@ export default function TimelineWidget({
 
   const closeComposer = () => {
     setComposerOpen(false);
+    setComposerFocused(false);
     setDraft("");
     clearImages(false);
     setError(null);
@@ -1017,43 +1046,62 @@ export default function TimelineWidget({
       </div>
 
       {composerOpen && (
-        <div className="llm-hub-db-timeline-composer">
-          <div className="llm-hub-db-timeline-textarea-wrap is-composer">
-            <textarea
-              ref={textareaRef}
-              value={draft}
-              onChange={(e) => {
-                setDraft(e.target.value);
-                resizeTextarea(e.target);
-                updateWikiSuggestions(e.target.value, e.target.selectionStart, "draft", e.target);
-              }}
-              onKeyDown={(e) => {
-                handleWikiKeyDown(e);
-              }}
-              placeholder={t("dashboard.timelinePlaceholder")}
+        <>
+          {Platform.isMobile && (
+            <button
+              type="button"
+              className="llm-hub-db-timeline-composer-backdrop"
+              aria-label={t("dashboard.cancel")}
+              onClick={closeComposer}
             />
-            {renderWikiSuggestions("draft")}
-          </div>
-          {renderImages(images)}
-          <div className="llm-hub-db-timeline-composer-actions">
-            <input ref={inputRef} type="file" accept="image/*" multiple onChange={(e) => addImages(e.target.files)} />
-            <button type="button" className="llm-hub-db-timeline-iconbtn" onClick={closeComposer} title={t("dashboard.cancel")}>
-              <X size={14} />
-            </button>
-            <div className="llm-hub-db-timeline-composer-primary-actions">
-              <button type="button" className="llm-hub-db-timeline-iconbtn" onClick={() => openAiRewrite("draft")} title={t("dashboard.timelineAiEdit")}>
-                <Sparkles size={14} />
+          )}
+          <div
+            ref={composerRef}
+            className={`llm-hub-db-timeline-composer${Platform.isMobile ? " is-mobile-modal" : ""}${composerFocused ? " is-keyboard-focused" : ""}`}
+            onFocus={() => setComposerFocused(true)}
+            onBlur={(e) => {
+              if (!e.currentTarget.contains(e.relatedTarget as Node | null)) {
+                setComposerFocused(false);
+              }
+            }}
+          >
+            <div className="llm-hub-db-timeline-textarea-wrap is-composer">
+              <textarea
+                ref={textareaRef}
+                value={draft}
+                onChange={(e) => {
+                  setDraft(e.target.value);
+                  resizeTextarea(e.target);
+                  updateWikiSuggestions(e.target.value, e.target.selectionStart, "draft", e.target);
+                }}
+                onKeyDown={(e) => {
+                  handleWikiKeyDown(e);
+                }}
+                placeholder={t("dashboard.timelinePlaceholder")}
+              />
+              {renderWikiSuggestions("draft")}
+            </div>
+            {renderImages(images)}
+            <div className="llm-hub-db-timeline-composer-actions">
+              <input ref={inputRef} type="file" accept="image/*" multiple onChange={(e) => addImages(e.target.files)} />
+              <button type="button" className="llm-hub-db-timeline-iconbtn" onClick={closeComposer} title={t("dashboard.cancel")}>
+                <X size={14} />
               </button>
-              <button type="button" className="llm-hub-db-timeline-iconbtn" onClick={() => inputRef.current?.click()} title={t("dashboard.timelineAttachImage")}>
-                <Image size={14} />
-              </button>
-              <button type="button" className="llm-hub-db-timeline-post" disabled={posting || (!draft.trim() && images.length === 0)} onClick={() => void submitPost()}>
-                {posting ? <Loader2 size={13} className="is-spinning" /> : <Send size={13} />}
-                {t("dashboard.timelinePost")}
-              </button>
+              <div className="llm-hub-db-timeline-composer-primary-actions">
+                <button type="button" className="llm-hub-db-timeline-iconbtn" onClick={() => openAiRewrite("draft")} title={t("dashboard.timelineAiEdit")}>
+                  <Sparkles size={14} />
+                </button>
+                <button type="button" className="llm-hub-db-timeline-iconbtn" onClick={() => inputRef.current?.click()} title={t("dashboard.timelineAttachImage")}>
+                  <Image size={14} />
+                </button>
+                <button type="button" className="llm-hub-db-timeline-post" disabled={posting || (!draft.trim() && images.length === 0)} onClick={() => void submitPost()}>
+                  {posting ? <Loader2 size={13} className="is-spinning" /> : <Send size={13} />}
+                  {t("dashboard.timelinePost")}
+                </button>
+              </div>
             </div>
           </div>
-        </div>
+        </>
       )}
 
       <div className="llm-hub-db-timeline-footer">

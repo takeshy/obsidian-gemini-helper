@@ -141,14 +141,24 @@ The board stores manual card order in the widget config as `cardOrder`. The valu
 
 ### Timeline — 记录带日期的帖子
 
-将短的日期帖子存储在 `Dashboards/Timeline/<name>/` 下，每天一个 Markdown 文件。帖子可以包含 `#tags`、图片附件和置顶项。小组件会显示倒序时间流，并提供文本/标签/日期筛选和新建帖子编辑器。
+将短的日期帖子存储在 `Dashboards/Timeline/<name>/` 下，每天一个 Markdown 文件。帖子可以包含 `#tags`、图片附件和置顶项。小组件会显示倒序时间流，并提供文本/标签/日期筛选和新建帖子编辑器。长帖和嵌入笔记默认折叠，可用 **显示更多 / 显示更少** 展开。新帖编辑器和内联编辑器也会在图片附件按钮旁显示 **用 AI 编辑**：输入指令，在模态框中查看生成结果的 diff，然后再应用回 textarea。
+
+![时间线编辑器](images/timeline_input.png)
 
 | 设置 | 说明 |
 |---------|-------------|
 | **时间线名称** | `Dashboards/Timeline/` 下的文件夹名称 |
 | **要显示的最新帖子数** | 加载更早条目前先显示的最近帖子数量 |
+| **超过行数后折叠** | 显示折叠预览的估算可视行数阈值（默认 `8`） |
+| **超过字符数后折叠** | 显示折叠预览的字符数阈值（默认 `440`） |
 
 每日文件名为 `<YYYY-MM-DD>.md`。只有当 `---` 后面跟着 timeline marker 或 ISO timestamp 时才会作为帖子分隔符，因此正文中的普通 Markdown 分隔线会被保留。
+
+![时间线内联编辑](images/timeline_edit.png)
+
+可以从新帖编辑器或内联编辑器使用 **用 AI 编辑**，将当前草稿和你的指令发送给模型。生成的改写会先以 diff 显示，确认后再应用回 textarea。
+
+![时间线 AI 改写](images/timeline_ai.png)
 
 未知的小组件类型（例如来自较新插件版本的）在**保存时会被保留**并渲染为占位符，因此编辑不熟悉的仪表板绝不会丢失数据。
 

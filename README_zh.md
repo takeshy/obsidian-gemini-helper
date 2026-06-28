@@ -525,9 +525,19 @@ nodes:
 | **Web Embed** | iframe 中的网页，可显示可选标题栏和浏览器打开按钮 | `url`, `showHeader` |
 | **Workflow** | 以无头方式运行工作流并将其输出渲染为 Markdown 或 HTML | `workflow` 路径、`output`、`refreshInterval` |
 | **Kanban** | 将笔记显示为可拖拽的卡片，按状态列分组 | `tag`/`folder` 筛选、`statusProperty`、`columns`、`displayFields` |
-| **Timeline** | 带标签、图片附件、置顶和筛选的日期短帖 | `name`, `latestCount` |
+| **Timeline** | 带标签、图片附件、置顶、筛选、长帖折叠和 AI 辅助草稿改写的日期短帖 | `name`, `latestCount`, 折叠限制 |
 
 **Base** 和 **Workflow** 小组件包含 **用 AI 创建** 按钮，可在不离开设置面板的情况下创建作为基础的 `.base` 文件或工作流。Base 小组件还可以创建/选择 `.base` 文件，并直接在仪表板设置面板中编辑所选视图的显示类型、顺序、排序、限制、筛选器、卡片图片、列表缩进和原始 YAML。对于 AI 编辑，应用前会以 diff 显示建议的 `.base` 更改。
+
+## 时间线
+
+直接在仪表板上记录带日期的短帖。Timeline 小组件支持快速文本输入、图片附件、筛选、置顶帖子、内联编辑、长帖折叠以及 AI 辅助改写。
+
+![时间线输入](docs/images/timeline_input.png)
+
+在新帖编辑器或内联编辑器中使用 **用 AI 编辑**，无需离开仪表板即可改写草稿：
+
+![时间线 AI 编辑](docs/images/timeline_ai.png)
 
 ## 看板
 

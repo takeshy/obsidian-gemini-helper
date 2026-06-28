@@ -498,6 +498,16 @@ Click **+ Add widget** in edit mode to choose a type:
 
 Timeline composers include an **Edit with AI** button next to image attachment. It sends only the current draft text plus your instruction to the model, shows a diff in a modal, and applies the result back to the textarea only when you approve it.
 
+## Timeline
+
+Capture dated microblog posts directly on a dashboard. Timeline widgets support quick text entry, image attachments, filters, pinned posts, inline editing, collapsible long posts, and AI-assisted rewriting.
+
+![Timeline input](docs/images/timeline_input.png)
+
+Use **Edit with AI** from the composer or inline editor to rewrite a draft without leaving the dashboard:
+
+![Timeline AI edit](docs/images/timeline_ai.png)
+
 ## Kanban Board
 
 Turn notes into a drag-and-drop board. Cards are notes that match a **tag** and/or **folder** filter, grouped into columns by a frontmatter **status property**. Drag a card to another column to update that note's status — written straight back to the note's frontmatter. The board is fully interactive in **view mode**; no need to enter edit mode to move cards.

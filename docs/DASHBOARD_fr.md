@@ -137,6 +137,27 @@ Configurez le tableau depuis les paramètres du widget en mode édition :
 | **Champs affichés** | Liste ordonnée de noms de propriétés frontmatter affichées sur chaque carte sous le titre (par ex. `priority`, `due`). Chacune s'affiche sous la forme `name: value` ; les valeurs vides sont ignorées et les listes sont jointes par des virgules. |
 | **Afficher la colonne des cartes non classées** | Lorsque activé, les cartes dont le statut ne correspond à aucune colonne apparaissent dans une colonne supplémentaire « Non spécifié » (activé par défaut). |
 
+### Timeline — capturer des publications datées
+
+Stocke de courtes publications datées sous `Dashboards/Timeline/<name>/`, avec un fichier Markdown par jour. Les publications peuvent inclure des `#tags`, des images jointes et des éléments épinglés. Le widget affiche un fil en ordre chronologique inverse avec des filtres texte/tag/date et un composer pour les nouvelles publications. Les longues publications et notes intégrées sont repliées par défaut avec les contrôles **Afficher plus / Afficher moins**. Le composer et l'éditeur en ligne incluent aussi **Modifier avec l'IA** à côté du bouton d'image jointe : saisissez une instruction, vérifiez le diff généré dans une modale, puis appliquez-le au textarea.
+
+![Composer Timeline](images/timeline_input.png)
+
+| Paramètre | Description |
+|---------|-------------|
+| **Nom de la timeline** | Nom du dossier sous `Dashboards/Timeline/` |
+| **Publications récentes à afficher** | Nombre initial de publications récentes à afficher avant de charger les plus anciennes |
+| **Réduire après les lignes** | Seuil estimé de lignes visibles pour afficher l'aperçu replié (par défaut `8`) |
+| **Réduire après les caractères** | Seuil de caractères pour afficher l'aperçu replié (par défaut `440`) |
+
+Chaque fichier quotidien est nommé `<YYYY-MM-DD>.md`. Les publications sont séparées par `---` uniquement lorsque le séparateur est suivi d'un marqueur timeline ou d'un horodatage ISO, afin que les lignes horizontales Markdown normales dans le corps soient conservées.
+
+![Éditeur en ligne Timeline](images/timeline_edit.png)
+
+Utilisez **Modifier avec l'IA** depuis le composer ou l'éditeur en ligne pour envoyer le brouillon actuel et votre instruction au modèle. La réécriture générée s'affiche sous forme de diff avant d'être appliquée au textarea.
+
+![Réécriture Timeline avec l'IA](images/timeline_ai.png)
+
 Les types de widget inconnus (par exemple, d'une version plus récente du plugin) sont **conservés à l'enregistrement** et affichés comme un espace réservé, de sorte que la modification d'un tableau de bord inconnu ne perd jamais de données.
 
 ---

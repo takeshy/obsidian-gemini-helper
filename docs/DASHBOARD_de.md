@@ -139,14 +139,24 @@ Konfigurieren Sie das Board über die Widget-Einstellungen im Bearbeitungsmodus:
 
 ### Timeline — datierte Beiträge erfassen
 
-Speichert kurze datierte Beiträge unter `Dashboards/Timeline/<name>/`, eine Markdown-Datei pro Tag. Beiträge können `#tags`, Bildanhänge und angeheftete Einträge enthalten. Das Widget zeigt einen umgekehrt chronologischen Feed mit Text-/Tag-/Datumsfiltern und Composer.
+Speichert kurze datierte Beiträge unter `Dashboards/Timeline/<name>/`, eine Markdown-Datei pro Tag. Beiträge können `#tags`, Bildanhänge und angeheftete Einträge enthalten. Das Widget zeigt einen umgekehrt chronologischen Feed mit Text-/Tag-/Datumsfiltern und Composer. Lange Beiträge und eingebettete Notizen werden standardmäßig eingeklappt und können mit **Mehr anzeigen / Weniger anzeigen** geöffnet werden. Composer und Inline-Editor enthalten außerdem **Mit KI bearbeiten** neben der Schaltfläche für Bildanhänge: Geben Sie eine Anweisung ein, prüfen Sie den generierten Diff in einem Modal und übernehmen Sie ihn dann zurück in das Textfeld.
+
+![Timeline-Composer](images/timeline_input.png)
 
 | Einstellung | Beschreibung |
 |---------|-------------|
 | **Timeline-Name** | Ordnername unter `Dashboards/Timeline/` |
 | **Neueste Beiträge anzeigen** | Anfangszahl der neuesten Beiträge vor dem Laden älterer Einträge |
+| **Nach Zeilen einklappen** | Geschätzter visueller Zeilengrenzwert für die eingeklappte Vorschau (Standard `8`) |
+| **Nach Zeichen einklappen** | Zeichengrenzwert für die eingeklappte Vorschau (Standard `440`) |
 
 Jede Tagesdatei heißt `<YYYY-MM-DD>.md`. Beiträge werden nur dann mit `---` getrennt, wenn danach ein Timeline-Marker oder ISO-Zeitstempel folgt, sodass normale Markdown-Horizontallinien im Beitrag erhalten bleiben.
+
+![Timeline-Inline-Editor](images/timeline_edit.png)
+
+Verwenden Sie **Mit KI bearbeiten** im Composer oder Inline-Editor, um den aktuellen Entwurf mit Ihrer Anweisung an das Modell zu senden. Die generierte Überarbeitung wird als Diff angezeigt, bevor sie in das Textfeld übernommen wird.
+
+![Timeline-KI-Umschreibung](images/timeline_ai.png)
 
 Unbekannte Widget-Typen (z. B. aus einer neueren Plugin-Version) werden **beim Speichern beibehalten** und als Platzhalter gerendert, sodass das Bearbeiten eines unbekannten Dashboards niemals Daten verliert.
 

@@ -137,6 +137,27 @@ Configura el tablero desde los ajustes del widget en modo de edición:
 | **Campos visibles** | Lista ordenada de nombres de propiedades del frontmatter que se muestran en cada tarjeta debajo del título (p. ej. `priority`, `due`). Cada una se muestra como `name: value`; los valores vacíos se omiten y las listas se unen con comas. |
 | **Mostrar columna de tarjetas sin coincidencia** | Cuando está activado, las tarjetas cuyo estado no coincide con ninguna columna aparecen en una columna adicional «Sin especificar» (predeterminado activado). |
 
+### Timeline — capturar publicaciones fechadas
+
+Guarda publicaciones breves fechadas en `Dashboards/Timeline/<name>/`, un archivo Markdown por día. Las publicaciones pueden incluir `#tags`, imágenes adjuntas y elementos fijados. El widget muestra un feed en orden cronológico inverso con filtros de texto/etiqueta/fecha y un composer para nuevas publicaciones. Las publicaciones largas y las notas incrustadas se contraen de forma predeterminada, con controles **Mostrar más / Mostrar menos**. El composer y el editor en línea también incluyen **Editar con IA** junto al botón de imágenes adjuntas: introduce una instrucción, revisa el diff generado en un modal y luego aplícalo de vuelta al textarea.
+
+![Composer de Timeline](images/timeline_input.png)
+
+| Configuración | Descripción |
+|---------|-------------|
+| **Nombre de la timeline** | Nombre de carpeta bajo `Dashboards/Timeline/` |
+| **Publicaciones recientes a mostrar** | Número inicial de publicaciones recientes antes de cargar entradas anteriores |
+| **Contraer después de líneas** | Umbral estimado de líneas visibles para mostrar la vista previa contraída (predeterminado `8`) |
+| **Contraer después de caracteres** | Umbral de caracteres para mostrar la vista previa contraída (predeterminado `440`) |
+
+Cada archivo diario se llama `<YYYY-MM-DD>.md`. Las publicaciones se separan con `---` solo cuando el separador va seguido de un marcador de timeline o una marca temporal ISO, por lo que las líneas horizontales normales de Markdown dentro del cuerpo se conservan.
+
+![Editor en línea de Timeline](images/timeline_edit.png)
+
+Usa **Editar con IA** desde el composer o el editor en línea para enviar el borrador actual y tu instrucción al modelo. La reescritura generada se muestra como diff antes de aplicarse al textarea.
+
+![Reescritura de Timeline con IA](images/timeline_ai.png)
+
 Los tipos de widget desconocidos (p. ej., de una versión más reciente del plugin) se **conservan al guardar** y se renderizan como un marcador de posición, de modo que editar un panel desconocido nunca pierde datos.
 
 ---

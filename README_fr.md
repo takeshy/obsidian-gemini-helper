@@ -525,9 +525,19 @@ Cliquez sur **+ Ajouter un widget** en mode édition pour choisir un type :
 | **Web Embed** | Une page web dans un iframe, avec un en-tête optionnel et un bouton d’ouverture dans le navigateur | `url`, `showHeader` |
 | **Workflow** | La sortie d'un workflow, exécuté en headless et rendu en Markdown ou HTML | chemin `workflow`, `output`, `refreshInterval` |
 | **Kanban** | Des notes sous forme de cartes déplaçables, groupées en colonnes par statut | filtre `tag`/`folder`, `statusProperty`, `columns`, `displayFields` |
-| **Timeline** | Publications datées avec tags, images jointes, épinglage et filtres | `name`, `latestCount` |
+| **Timeline** | Publications datées avec tags, images jointes, épinglage, filtres, longues publications repliables et réécriture de brouillon avec l'IA | `name`, `latestCount`, limites de repli |
 
 Les widgets **Base** et **Workflow** incluent un bouton **Créer avec l'IA** pour créer le fichier `.base` ou le workflow sous-jacent sans quitter le panneau de paramètres. Pour une base, l'IA peut inspecter vos notes avec des outils en lecture seule avant la création, et **Modifier avec l'IA** affiche un diff avec un champ d'instructions supplémentaires pour affiner avant d'appliquer.
+
+## Timeline
+
+Capturez des publications courtes datées directement sur un tableau de bord. Les widgets Timeline prennent en charge la saisie rapide, les images jointes, les filtres, les publications épinglées, l'édition en ligne, les longues publications repliables et la réécriture assistée par l'IA.
+
+![Saisie Timeline](docs/images/timeline_input.png)
+
+Utilisez **Modifier avec l'IA** depuis le composer ou l'éditeur en ligne pour réécrire un brouillon sans quitter le tableau de bord :
+
+![Édition Timeline avec l'IA](docs/images/timeline_ai.png)
 
 ## Tableau Kanban
 

@@ -525,9 +525,19 @@ Klicken Sie im Bearbeitungsmodus auf **+ Widget hinzufügen**, um einen Typ ausz
 | **Web Embed** | Eine Webseite in einem iframe, mit optionaler Kopfzeile und Browser-Öffnen-Schaltfläche | `url`, `showHeader` |
 | **Workflow** | Die Ausgabe eines Workflows, headless ausgeführt und als Markdown oder HTML gerendert | `workflow`-Pfad, `output`, `refreshInterval` |
 | **Kanban** | Notizen als ziehbare Karten, gruppiert in Status-Spalten | `tag`/`folder`-Filter, `statusProperty`, `columns`, `displayFields` |
-| **Timeline** | Datierte Kurzbeiträge mit Tags, Bildanhängen, Anheften und Filtern | `name`, `latestCount` |
+| **Timeline** | Datierte Kurzbeiträge mit Tags, Bildanhängen, Anheften, Filtern, einklappbaren langen Beiträgen und KI-gestützter Entwurfsbearbeitung | `name`, `latestCount`, Einklappgrenzen |
 
 **Base**- und **Workflow**-Widgets enthalten eine Schaltfläche **Mit KI erstellen**, um die zugrunde liegende `.base`-Datei oder den Workflow zu erstellen, ohne das Einstellungs-Panel zu verlassen. Base-Widgets können außerdem `.base`-Dateien erstellen/auswählen und den Anzeigetyp, die Reihenfolge, Sortierung, Begrenzung, Filter, das Kartenbild, die Listeneinrückung und rohes YAML der ausgewählten Ansicht direkt im Dashboard-Einstellungs-Panel bearbeiten. Bei KI-Bearbeitungen wird die vorgeschlagene `.base`-Änderung vor dem Anwenden als Diff angezeigt.
+
+## Timeline
+
+Erfassen Sie datierte Kurzbeiträge direkt auf einem Dashboard. Timeline-Widgets unterstützen schnelle Texteingabe, Bildanhänge, Filter, angeheftete Beiträge, Inline-Bearbeitung, einklappbare lange Beiträge und KI-gestütztes Umschreiben.
+
+![Timeline-Eingabe](docs/images/timeline_input.png)
+
+Verwenden Sie **Mit KI bearbeiten** im Composer oder Inline-Editor, um einen Entwurf zu überarbeiten, ohne das Dashboard zu verlassen:
+
+![Timeline-KI-Bearbeitung](docs/images/timeline_ai.png)
 
 ## Kanban-Board
 

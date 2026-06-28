@@ -153,14 +153,24 @@ The same `.base` file can be referenced by multiple Base widgets — for example
 
 ### Timeline — 記錄帶日期的貼文
 
-將短的日期貼文儲存在 `Dashboards/Timeline/<name>/` 下，每天一個 Markdown 檔案。貼文可以包含 `#tags`、圖片附件和釘選項目。小工具會顯示倒序時間流，並提供文字/標籤/日期篩選和新貼文編輯器。
+將短的日期貼文儲存在 `Dashboards/Timeline/<name>/` 下，每天一個 Markdown 檔案。貼文可以包含 `#tags`、圖片附件和釘選項目。小工具會顯示倒序時間流，並提供文字/標籤/日期篩選和新貼文編輯器。長文和嵌入筆記預設折疊，可用 **顯示更多 / 顯示更少** 展開。新貼文編輯器和內嵌編輯器也會在圖片附件按鈕旁顯示 **用 AI 編輯**：輸入指令，在彈窗中查看生成結果的 diff，然後再套用回 textarea。
+
+![時間軸編輯器](images/timeline_input.png)
 
 | 設定 | 說明 |
 |---------|-------------|
 | **時間軸名稱** | `Dashboards/Timeline/` 下的資料夾名稱 |
 | **要顯示的最新貼文數** | 載入更早項目前先顯示的近期貼文數量 |
+| **超過行數後折疊** | 顯示折疊預覽的估算可視行數門檻（預設 `8`） |
+| **超過字元數後折疊** | 顯示折疊預覽的字元數門檻（預設 `440`） |
 
 每日檔名為 `<YYYY-MM-DD>.md`。只有當 `---` 後面接著 timeline marker 或 ISO timestamp 時才會作為貼文分隔符，因此正文中的一般 Markdown 分隔線會被保留。
+
+![時間軸內嵌編輯](images/timeline_edit.png)
+
+可以從新貼文編輯器或內嵌編輯器使用 **用 AI 編輯**，將目前草稿和你的指令送給模型。生成的改寫會先以 diff 顯示，確認後再套用回 textarea。
+
+![時間軸 AI 改寫](images/timeline_ai.png)
 
 未知的小工具類型（例如來自較新外掛版本）會在**儲存時保留**並渲染為佔位符，因此編輯不熟悉的儀表板不會遺失資料。
 

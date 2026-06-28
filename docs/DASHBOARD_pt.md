@@ -135,6 +135,27 @@ Configure o quadro nas configurações do widget no modo de edição:
 | **Campos exibidos** | Lista ordenada de nomes de propriedades do frontmatter exibidas em cada cartão abaixo do título (por exemplo, `priority`, `due`). Cada uma aparece como `name: value`; valores vazios são ignorados e listas são unidas por vírgulas. |
 | **Mostrar coluna de cartões sem correspondência** | Quando ativado, os cartões cujo status não corresponde a nenhuma coluna aparecem em uma coluna adicional "Não especificado" (padrão ativado). |
 
+### Timeline — capturar publicações datadas
+
+Armazena publicações curtas com data em `Dashboards/Timeline/<name>/`, um arquivo Markdown por dia. As publicações podem incluir `#tags`, imagens anexas e itens fixados. O widget mostra um feed em ordem cronológica inversa com filtros de texto/tag/data e um composer para novas publicações. Publicações longas e notas incorporadas ficam recolhidas por padrão, com controles **Mostrar mais / Mostrar menos**. O composer e o editor inline também incluem **Editar com IA** ao lado do botão de imagem anexada: digite uma instrução, revise o diff gerado em um modal e aplique de volta ao textarea.
+
+![Composer da Timeline](images/timeline_input.png)
+
+| Configuração | Descrição |
+|---------|-------------|
+| **Nome da timeline** | Nome da pasta em `Dashboards/Timeline/` |
+| **Publicações recentes a mostrar** | Número inicial de publicações recentes antes de carregar entradas antigas |
+| **Recolher após linhas** | Limite estimado de linhas visíveis para mostrar a prévia recolhida (padrão `8`) |
+| **Recolher após caracteres** | Limite de caracteres para mostrar a prévia recolhida (padrão `440`) |
+
+Cada arquivo diário se chama `<YYYY-MM-DD>.md`. As publicações são separadas com `---` apenas quando o separador é seguido por um marcador timeline ou timestamp ISO, portanto linhas horizontais normais de Markdown no corpo da publicação são preservadas.
+
+![Editor inline da Timeline](images/timeline_edit.png)
+
+Use **Editar com IA** no composer ou no editor inline para enviar o rascunho atual e sua instrução ao modelo. A reescrita gerada é mostrada como diff antes de ser aplicada ao textarea.
+
+![Reescrita da Timeline com IA](images/timeline_ai.png)
+
 Tipos de widget desconhecidos (por exemplo, de uma versão mais recente do plugin) são **preservados ao salvar** e renderizados como um espaço reservado, de modo que editar um painel desconhecido nunca perde dados.
 
 ---

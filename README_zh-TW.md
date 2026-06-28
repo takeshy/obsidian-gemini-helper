@@ -526,9 +526,19 @@ nodes:
 | **Web Embed** | iframe 中的網頁，可顯示選用標頭和瀏覽器開啟按鈕 | `url`, `showHeader` |
 | **Workflow** | 以無頭方式執行工作流，並將輸出渲染為 Markdown 或 HTML | `workflow` 路徑、`output`、`refreshInterval` |
 | **Kanban** | 將筆記顯示為可拖曳的卡片，按狀態欄分組 | `tag`/`folder` 篩選、`statusProperty`、`columns`、`displayFields` |
-| **Timeline** | 帶標籤、圖片附件、釘選和篩選的日期短文 | `name`, `latestCount` |
+| **Timeline** | 帶標籤、圖片附件、釘選、篩選、長文折疊和 AI 輔助草稿改寫的日期短文 | `name`, `latestCount`, 折疊限制 |
 
 **Base** 和 **Workflow** 小工具包含 **用 AI 建立** 按鈕，可在不離開設定面板的情況下建立底層 `.base` 檔案或工作流。Base 小工具也可以建立/選擇 `.base` 檔案，並直接從儀表板設定面板編輯所選檢視的顯示類型、順序、排序、限制、篩選、卡片圖片、清單縮排和原始 YAML。對於 AI 編輯，套用前會以 diff 顯示建議的 `.base` 變更。
+
+## 時間軸
+
+直接在儀表板上記錄帶日期的短文。Timeline 小工具支援快速文字輸入、圖片附件、篩選、釘選貼文、內嵌編輯、長文折疊以及 AI 輔助改寫。
+
+![時間軸輸入](docs/images/timeline_input.png)
+
+在新貼文編輯器或內嵌編輯器中使用 **用 AI 編輯**，無需離開儀表板即可改寫草稿：
+
+![時間軸 AI 編輯](docs/images/timeline_ai.png)
 
 ## 看板
 

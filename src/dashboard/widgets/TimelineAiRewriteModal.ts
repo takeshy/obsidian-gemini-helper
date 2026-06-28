@@ -68,6 +68,7 @@ export class TimelineAiRewriteModal extends Modal {
   private plugin: GeminiHelperPlugin;
   private opts: TimelineAiRewriteModalOptions;
   private instructionEl: HTMLTextAreaElement | null = null;
+  private modelSelect: HTMLSelectElement | null = null;
   private generateBtn: HTMLButtonElement | null = null;
   private applyBtn: HTMLButtonElement | null = null;
   private statusEl: HTMLElement | null = null;
@@ -103,6 +104,19 @@ export class TimelineAiRewriteModal extends Modal {
       },
     });
 
+    const modelRow = contentEl.createDiv({ cls: "llm-hub-db-ai-row" });
+    modelRow.createEl("label", { text: t("aiWorkflow.model") });
+    this.modelSelect = modelRow.createEl("select");
+    const models = this.availableTextModels();
+    const defaultModel = this.defaultModel(models);
+    for (const model of models) {
+      const option = this.modelSelect.createEl("option", {
+        text: model.displayName,
+        value: model.name,
+      });
+      if (model.name === defaultModel) option.selected = true;
+    }
+
     this.statusEl = contentEl.createDiv({ cls: "llm-hub-db-ai-status" });
     this.diffLabelEl = contentEl.createDiv({ cls: "llm-hub-db-ai-difflabel" });
     this.diffContainerEl = contentEl.createDiv({ cls: "llm-hub-db-ai-diff" });
@@ -130,19 +144,33 @@ export class TimelineAiRewriteModal extends Modal {
     window.setTimeout(() => this.instructionEl?.focus(), 0);
   }
 
-  private chooseModel(): ModelType | null {
-    const all = this.plugin.settings.googleApiKey
-      ? getAvailableModels(this.plugin.settings.apiPlan).filter((m) => !m.isImageModel)
+  private availableTextModels(): ReturnType<typeof getAvailableModels> {
+    return this.plugin.settings.googleApiKey
+      ? getAvailableModels(this.plugin.settings.apiPlan).filter((model) => !model.isImageModel)
       : [];
+  }
+
+  private defaultModel(models: ReturnType<typeof getAvailableModels>): ModelType | null {
+    const lastTimelineAiModel = this.plugin.settings.lastTimelineAiModel;
+    if (lastTimelineAiModel && models.some((model) => model.name === lastTimelineAiModel)) {
+      return lastTimelineAiModel as ModelType;
+    }
     const selected = this.plugin.getSelectedModel();
-    if (all.some((m) => m.name === selected)) return selected;
-    return all[0]?.name ?? null;
+    if (models.some((model) => model.name === selected)) return selected;
+    return models[0]?.name ?? null;
+  }
+
+  private chooseModel(): ModelType | null {
+    const selected = this.modelSelect?.value as ModelType | undefined;
+    if (!selected) return null;
+    return this.availableTextModels().some((model) => model.name === selected) ? selected : null;
   }
 
   private setBusy(busy: boolean): void {
     this.busy = busy;
     if (this.generateBtn) this.generateBtn.disabled = busy;
     if (this.applyBtn) this.applyBtn.disabled = busy || !this.latest;
+    if (this.modelSelect) this.modelSelect.disabled = busy;
   }
 
   private generateButtonText(): string {
@@ -194,6 +222,8 @@ export class TimelineAiRewriteModal extends Modal {
     try {
       const base = this.latest ?? this.original;
       this.latest = await generateRewrite(this.plugin, model, base, instruction);
+      this.plugin.settings.lastTimelineAiModel = model;
+      await this.plugin.saveSettings();
       this.generatedOnce = true;
       this.renderDiff(this.latest);
       if (this.instructionEl) {

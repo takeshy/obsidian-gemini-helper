@@ -133,6 +133,9 @@ export interface GeminiHelperSettings {
   // Last used model for AI workflow generation
   lastAIWorkflowModel?: string;
 
+  // Last used model for Timeline AI rewrite
+  lastTimelineAiModel?: string;
+
   // Last selected workflow path in Run Workflow modal
   lastSelectedWorkflowPath?: string;
 

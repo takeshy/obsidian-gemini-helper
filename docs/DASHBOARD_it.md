@@ -135,6 +135,27 @@ Configura la board dalle impostazioni del widget in modalità di modifica:
 | **Campi visualizzati** | Elenco ordinato di nomi di proprietà frontmatter mostrati su ogni scheda sotto il titolo (ad es. `priority`, `due`). Ciascuno viene mostrato come `name: value`; i valori vuoti vengono saltati e i valori di lista sono uniti con virgole. |
 | **Mostra colonna delle schede non corrispondenti** | Se attivato, le schede il cui stato non corrisponde a nessuna colonna appaiono in una colonna aggiuntiva «Non specificato» (predefinito attivato). |
 
+### Timeline — catturare post datati
+
+Salva brevi post datati in `Dashboards/Timeline/<name>/`, un file Markdown per giorno. I post possono includere `#tag`, immagini allegate ed elementi fissati. Il widget mostra un feed in ordine cronologico inverso con filtri per testo/tag/data e un composer per nuovi post. I post lunghi e le note incorporate sono compressi per impostazione predefinita, con controlli **Mostra altro / Mostra meno**. Il composer e l'editor inline includono anche **Modifica con IA** accanto al pulsante per allegare immagini: inserisci un'istruzione, controlla il diff generato in una modale e poi applicalo alla textarea.
+
+![Composer Timeline](images/timeline_input.png)
+
+| Impostazione | Descrizione |
+|---------|-------------|
+| **Nome timeline** | Nome della cartella sotto `Dashboards/Timeline/` |
+| **Post recenti da mostrare** | Numero iniziale di post recenti da mostrare prima di caricare elementi più vecchi |
+| **Comprimi dopo le righe** | Soglia stimata di righe visibili per mostrare l'anteprima compressa (predefinito `8`) |
+| **Comprimi dopo i caratteri** | Soglia di caratteri per mostrare l'anteprima compressa (predefinito `440`) |
+
+Ogni file giornaliero si chiama `<YYYY-MM-DD>.md`. I post sono separati con `---` solo quando il separatore è seguito da un marker timeline o timestamp ISO, quindi le normali linee orizzontali Markdown nel corpo del post vengono conservate.
+
+![Editor inline Timeline](images/timeline_edit.png)
+
+Usa **Modifica con IA** dal composer o dall'editor inline per inviare al modello la bozza corrente e la tua istruzione. La riscrittura generata viene mostrata come diff prima di essere applicata alla textarea.
+
+![Riscrittura Timeline con IA](images/timeline_ai.png)
+
 I tipi di widget sconosciuti (ad esempio, da una versione più recente del plugin) vengono **conservati al salvataggio** e renderizzati come un segnaposto, in modo che la modifica di una dashboard sconosciuta non perda mai dati.
 
 ---

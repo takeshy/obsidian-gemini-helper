@@ -526,6 +526,9 @@ export class GeminiHelperPlugin extends Plugin {
     this.settings.lastAIWorkflowModel = normalizeDeprecatedModelName(
       loaded.lastAIWorkflowModel
     ) ?? undefined;
+    this.settings.lastTimelineAiModel = normalizeDeprecatedModelName(
+      loaded.lastTimelineAiModel
+    ) ?? undefined;
   }
 
   async saveSettings() {

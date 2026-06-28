@@ -526,9 +526,19 @@ Clique em **+ Adicionar widget** no modo de edicao para escolher um tipo:
 | **Web Embed** | Uma pagina web em um iframe, com cabecalho opcional e botao para abrir no navegador | `url`, `showHeader` |
 | **Workflow** | A saida de um workflow, executado headless e renderizado como Markdown ou HTML | caminho `workflow`, `output`, `refreshInterval` |
 | **Kanban** | Notas como cartoes arrastaveis agrupados em colunas de status | filtro `tag`/`folder`, `statusProperty`, `columns`, `displayFields` |
-| **Timeline** | Publicacoes datadas com tags, imagens anexas, fixacao e filtros | `name`, `latestCount` |
+| **Timeline** | Publicacoes datadas com tags, imagens anexas, fixacao, filtros, posts longos recolhiveis e reescrita de rascunho com IA | `name`, `latestCount`, limites de recolhimento |
 
 Os widgets **Base** e **Workflow** incluem um botao **Criar com IA** para criar o arquivo `.base` ou o workflow subjacente sem sair do painel de configuracoes. Para uma base, a IA pode inspecionar suas notas com ferramentas somente leitura antes de criar, e **Editar com IA** mostra um diff com uma caixa de instrucoes adicionais para refinar antes de aplicar.
+
+## Timeline
+
+Capture publicacoes curtas com data diretamente em um painel. Widgets Timeline suportam entrada rapida de texto, imagens anexas, filtros, publicacoes fixadas, edicao inline, posts longos recolhiveis e reescrita assistida por IA.
+
+![Entrada da Timeline](docs/images/timeline_input.png)
+
+Use **Editar com IA** no composer ou no editor inline para reescrever um rascunho sem sair do painel:
+
+![Edicao da Timeline com IA](docs/images/timeline_ai.png)
 
 ## Quadro Kanban
 

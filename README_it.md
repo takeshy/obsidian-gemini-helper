@@ -525,9 +525,19 @@ Fai clic su **+ Aggiungi widget** nella modalità di modifica per scegliere un t
 | **Web Embed** | Una pagina web in un iframe, con intestazione opzionale e pulsante per aprire nel browser | `url`, `showHeader` |
 | **Workflow** | L'output di un workflow, eseguito in modalità headless e renderizzato come Markdown o HTML | percorso `workflow`, `output`, `refreshInterval` |
 | **Kanban** | Note come schede trascinabili raggruppate in colonne di stato | filtro `tag`/`folder`, `statusProperty`, `columns`, `displayFields` |
-| **Timeline** | Post datati con tag, immagini allegate, fissaggio e filtri | `name`, `latestCount` |
+| **Timeline** | Post datati con tag, immagini allegate, fissaggio, filtri, post lunghi comprimibili e riscrittura bozze assistita dall'IA | `name`, `latestCount`, limiti di compressione |
 
 I widget **Base** e **Workflow** includono un pulsante **Crea con l'IA** per creare il file `.base` o il workflow sottostante senza lasciare il pannello delle impostazioni. Per una base, l'IA può ispezionare le note con strumenti di sola lettura prima della creazione, e **Modifica con l'IA** mostra un diff con un campo per istruzioni aggiuntive per rifinire prima di applicare.
+
+## Timeline
+
+Cattura brevi post datati direttamente in una dashboard. I widget Timeline supportano inserimento rapido del testo, immagini allegate, filtri, post fissati, modifica inline, post lunghi comprimibili e riscrittura assistita dall'IA.
+
+![Input Timeline](docs/images/timeline_input.png)
+
+Usa **Modifica con l'IA** dal composer o dall'editor inline per riscrivere una bozza senza lasciare la dashboard:
+
+![Modifica Timeline con IA](docs/images/timeline_ai.png)
 
 ## Board Kanban
 

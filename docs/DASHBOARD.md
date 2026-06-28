@@ -207,6 +207,8 @@ The composer and inline editor also include **Edit with AI** next to the image
 attachment button: enter an instruction, review the generated diff in a modal,
 then apply it back to the textarea.
 
+![Timeline composer](images/timeline_input.png)
+
 | Setting | Description |
 |---------|-------------|
 | **Timeline name** | Folder name under `Dashboards/Timeline/` |
@@ -220,6 +222,14 @@ Markdown horizontal rules inside a post body are preserved.
 
 When a post contains `[[wikilinks]]`, clicking the link opens a preview modal
 with an open icon; embedded article links can be opened separately in a new tab.
+
+![Timeline inline editor](images/timeline_edit.png)
+
+Use **Edit with AI** from either the composer or inline editor to send the
+current draft plus your instruction to the model. The generated rewrite is shown
+as a diff before it is applied back to the textarea.
+
+![Timeline AI rewrite](images/timeline_ai.png)
 
 Unknown widget types (e.g. from a newer plugin version) are **preserved on
 save** and render as a placeholder, so editing an unfamiliar dashboard never

@@ -8,6 +8,7 @@ export const ja: Record<string, string> = {
   "settings.rag": "セマンティック検索 (RAG)",
   "settings.advancedSemanticSearch": "セマンティック検索の詳細設定",
   "settings.externalSkills": "外部skills",
+  "settings.knowledge": "ナレッジソース",
 
   // Settings - API
   "settings.googleApiKey": "Google APIキー",
@@ -66,6 +67,13 @@ export const ja: Record<string, string> = {
   "settings.importSkills": "skillsを取り込み",
   "settings.importSkills.done": "{{skills}}個のskill、{{files}}個のファイルを取り込みました",
   "settings.importSkills.failed": "skillsの取り込みに失敗しました: {{error}}",
+
+  // Settings - Knowledge sources
+  "settings.okfSources": "OKF",
+  "settings.okfSources.desc": "OKFディレクトリをチャットのナレッジとして使います。Vault相対パスで指定します（例: Knowledge）。Obsidian上で隠したい場合は .Knowledge を使えます。",
+  "settings.okfSource": "OKF",
+  "settings.okfSourcePath": "ディレクトリ",
+  "settings.okfSourcePath.desc": "OKFディレクトリのVault相対パス。フォルダを隠したい場合は .Knowledge を指定します。",
 
   // Settings - Tool limits
   "settings.maxToolCalls": "リクエストあたりの最大ツール呼び出し回数",
@@ -155,6 +163,18 @@ export const ja: Record<string, string> = {
   "settings.metadataFilter": "メタデータフィルタ",
   "settings.metadataFilter.desc": "検索時に適用する Gemini File Search のメタデータフィルタ。内部同期では path、extension、basename、folder、modified、size を付与します。",
   "settings.metadataFilter.placeholder": "例：extension = \"pdf\" OR folder = \"notes\"",
+  "settings.metadataFilter.help": "メタデータフィルタの構文を表示",
+  "settings.metadataFilter.helpTitle": "メタデータフィルタの構文",
+  "settings.metadataFilter.helpIntro": "メタデータフィルタは、検索時に Gemini File Search の対象を絞ります。文字列比較、数値比較、AND/OR で条件を組み合わせられます。",
+  "settings.metadataFilter.helpKeys": "利用できるメタデータ",
+  "settings.metadataFilter.helpKeyPath": "Vault相対のファイルパス",
+  "settings.metadataFilter.helpKeyExtension": "小文字の拡張子",
+  "settings.metadataFilter.helpKeyBasename": "拡張子を除いたファイル名",
+  "settings.metadataFilter.helpKeyFolder": "親フォルダのパス",
+  "settings.metadataFilter.helpKeyModified": "Unix epoch milliseconds の更新時刻",
+  "settings.metadataFilter.helpKeySize": "バイト単位のファイルサイズ",
+  "settings.metadataFilter.helpExamples": "例",
+  "settings.metadataFilter.helpNote": "modified は Date.now() と同じミリ秒 timestamp です。日付はミリ秒に変換してから使います。",
 
   // Settings - Sync
   "settings.syncVault": "Vaultを同期",
@@ -263,6 +283,7 @@ export const ja: Record<string, string> = {
   "input.thinkFlash": "Flash",
   "input.thinkFlashLite": "Flash Lite",
   "input.thinkingLabel": "常に思考",
+  "input.knowledgeLabel": "ナレッジソース",
   "input.selectionVariable": "エディタで選択したテキスト",
   "input.contentVariable": "アクティブノートの内容",
   "input.vaultFile": "Vaultファイル",

@@ -1,5 +1,9 @@
 import obsidianmd from 'eslint-plugin-obsidianmd';
 import tseslint from 'typescript-eslint';
+import { DEFAULT_ACRONYMS } from 'eslint-plugin-obsidianmd/dist/lib/rules/ui/acronyms.js';
+
+// Extend the built-in acronym list so project-specific acronyms render uppercase.
+const ACRONYMS = [...DEFAULT_ACRONYMS, 'OKF'];
 
 export default tseslint.config(
   {
@@ -52,8 +56,8 @@ export default tseslint.config(
       'obsidianmd/sample-names': 'error',
       'obsidianmd/validate-manifest': 'error',
       'obsidianmd/validate-license': 'error',
-      'obsidianmd/ui/sentence-case': 'error',
-      'obsidianmd/ui/sentence-case-locale-module': 'error',
+      'obsidianmd/ui/sentence-case': ['error', { acronyms: ACRONYMS }],
+      'obsidianmd/ui/sentence-case-locale-module': ['error', { acronyms: ACRONYMS }],
 
       // Additional strict rules
       'no-case-declarations': 'error',

@@ -8,6 +8,7 @@ export const en = {
   "settings.rag": "Semantic search (rag)",
   "settings.advancedSemanticSearch": "Advanced semantic search",
   "settings.externalSkills": "External skills",
+  "settings.knowledge": "Knowledge sources",
 
   // Settings - API
   "settings.googleApiKey": "Google API key",
@@ -66,6 +67,13 @@ export const en = {
   "settings.importSkills": "Import skills",
   "settings.importSkills.done": "Imported {{skills}} skill(s), {{files}} file(s)",
   "settings.importSkills.failed": "Failed to import skills: {{error}}",
+
+  // Settings - Knowledge sources
+  "settings.okfSources": "OKF",
+  "settings.okfSources.desc": "Use an OKF directory as chat knowledge. Use a vault-relative path such as `Knowledge`, or `.Knowledge` to hide it in Obsidian.",
+  "settings.okfSource": "OKF",
+  "settings.okfSourcePath": "Directory",
+  "settings.okfSourcePath.desc": "Vault-relative path to the OKF directory. Use `.Knowledge` if you want the folder hidden.",
 
   // Settings - Tool limits
   "settings.maxToolCalls": "Max tool calls per request",
@@ -155,6 +163,18 @@ export const en = {
   "settings.metadataFilter": "Metadata filter",
   "settings.metadataFilter.desc": "Optional metadata filter applied at query time, with internal sync metadata such as path, extension, basename, folder, modified, and size",
   "settings.metadataFilter.placeholder": "Filter by extension or folder",
+  "settings.metadataFilter.help": "Show metadata filter syntax",
+  "settings.metadataFilter.helpTitle": "Metadata filter syntax",
+  "settings.metadataFilter.helpIntro": "Metadata filters limit file search results at query time. Use string comparisons, numeric comparisons, and and/or to combine conditions.",
+  "settings.metadataFilter.helpKeys": "Available metadata",
+  "settings.metadataFilter.helpKeyPath": "Vault-relative file path",
+  "settings.metadataFilter.helpKeyExtension": "Lowercase file extension",
+  "settings.metadataFilter.helpKeyBasename": "File name without extension",
+  "settings.metadataFilter.helpKeyFolder": "Parent folder path",
+  "settings.metadataFilter.helpKeyModified": "Modified time as unix epoch milliseconds",
+  "settings.metadataFilter.helpKeySize": "File size in bytes",
+  "settings.metadataFilter.helpExamples": "Examples",
+  "settings.metadataFilter.helpNote": "The modified value uses millisecond timestamps. Convert dates to milliseconds before using them.",
 
   // Settings - Sync
   "settings.syncVault": "Sync vault",
@@ -263,6 +283,7 @@ export const en = {
   "input.thinkFlash": "Flash",
   "input.thinkFlashLite": "Flash lite",
   "input.thinkingLabel": "Always think",
+  "input.knowledgeLabel": "Knowledge sources",
   "input.selectionVariable": "Selected text in editor",
   "input.contentVariable": "Active note content",
   "input.vaultFile": "Vault file",

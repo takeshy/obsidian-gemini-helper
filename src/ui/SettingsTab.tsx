@@ -8,6 +8,7 @@ import { displayEncryptionSettings } from "src/ui/settings/encryptionSettings";
 import { displayLangfuseSettings } from "src/ui/settings/langfuseSettings";
 import { displaySlashCommandSettings } from "src/ui/settings/slashCommandSettings";
 import { displayRagSettings } from "src/ui/settings/ragSettings";
+import { displayKnowledgeSettings } from "src/ui/settings/knowledgeSettings";
 
 import { displayMcpServersSettings } from "src/ui/settings/mcpServersSettings";
 
@@ -36,6 +37,7 @@ export class SettingsTab extends PluginSettingTab {
     displayEncryptionSettings(containerEl, ctx);
     displayLangfuseSettings(containerEl, ctx);
     displaySlashCommandSettings(containerEl, ctx);
+    displayKnowledgeSettings(containerEl, ctx);
     displayRagSettings(containerEl, ctx);
     displayMcpServersSettings(containerEl, ctx);
   }

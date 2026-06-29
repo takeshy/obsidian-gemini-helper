@@ -23,6 +23,7 @@ import {
 	type GeneratedImage,
 	type VaultToolNoneReason,
 	type McpAppInfo,
+	type KnowledgeSource,
 	isImageGenerationModel,
 	DEFAULT_WORKSPACE_FOLDER,
 } from "src/types";
@@ -70,6 +71,7 @@ import { cryptoCache } from "src/core/cryptoCache";
 import { formatError } from "src/utils/error";
 import { findFileMentionOccurrences } from "src/utils/mentionResolver";
 import { discoverSkills, loadSkill, buildSkillSystemPrompt, collectSkillWorkflows, type SkillMetadata, type LoadedSkill, type SkillWorkflowRef } from "src/core/skillsLoader";
+import { buildOkfSystemPrompt } from "src/core/okfLoader";
 import { GET_WORKFLOW_SPEC_TOOL, GET_WORKFLOW_SPEC_TOOL_NAME, handleGetWorkflowSpec } from "src/workflow/workflowSpec";
 import { DEFAULT_BUILTIN_SKILL_IDS, builtinFolderPath, getBuiltinSkillMetadata, isBuiltinSkillPath } from "src/core/builtinSkills";
 import { parseWorkflowFromMarkdown } from "src/workflow/parser";
@@ -173,6 +175,14 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 	const [availableSkills, setAvailableSkills] = useState<SkillMetadata[]>(getBuiltinSkillMetadata);
 	const [activeSkillPaths, setActiveSkillPaths] = useState<string[]>(
 		() => DEFAULT_BUILTIN_SKILL_IDS.map(builtinFolderPath)
+	);
+	const [knowledgeSources, setKnowledgeSources] = useState<KnowledgeSource[]>(
+		() => (plugin.settings.knowledgeSources || []).filter(source => source.enabled && source.path.trim())
+	);
+	const [activeKnowledgeSourceIds, setActiveKnowledgeSourceIds] = useState<string[]>(
+		() => (plugin.settings.knowledgeSources || [])
+			.filter(source => source.enabled && source.path.trim())
+			.map(source => source.id)
 	);
 
 	// Check if configuration is ready (API key set)
@@ -499,6 +509,27 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 			plugin.settingsEmitter.off("skills-changed", refreshSkills);
 		};
 	}, [plugin, refreshSkills]);
+
+	const refreshKnowledgeSources = useCallback(() => {
+		const enabledSources = (plugin.settings.knowledgeSources || []).filter(source => source.enabled && source.path.trim());
+		setKnowledgeSources(enabledSources);
+		setActiveKnowledgeSourceIds(prev => {
+			const availableIds = new Set(enabledSources.map(source => source.id));
+			const next = prev.filter(id => availableIds.has(id));
+			if (next.length > 0) return next;
+			return enabledSources.map(source => source.id);
+		});
+	}, [plugin]);
+
+	useEffect(() => {
+		refreshKnowledgeSources();
+		plugin.settingsEmitter.on("knowledge-sources-changed", refreshKnowledgeSources);
+		plugin.settingsEmitter.on("settings-updated", refreshKnowledgeSources);
+		return () => {
+			plugin.settingsEmitter.off("knowledge-sources-changed", refreshKnowledgeSources);
+			plugin.settingsEmitter.off("settings-updated", refreshKnowledgeSources);
+		};
+	}, [plugin, refreshKnowledgeSources]);
 
 	// Cleanup MCP executor on unmount
 	useEffect(() => {
@@ -1574,6 +1605,11 @@ Always be helpful and provide clear, concise responses. When working with vault 
 					}
 				}
 
+				const selectedKnowledgeSources = knowledgeSources.filter(source => activeKnowledgeSourceIds.includes(source.id));
+				if (selectedKnowledgeSources.length > 0) {
+					systemPrompt += await buildOkfSystemPrompt(plugin.app, selectedKnowledgeSources);
+				}
+
 				const allMessages = [...messages, userMessage];
 
 				// Use streaming with tools
@@ -2142,6 +2178,15 @@ Always be helpful and provide clear, concise responses. When working with vault 
 								prev.includes(folderPath)
 									? prev.filter(p => p !== folderPath)
 									: [...prev, folderPath]
+							);
+						}}
+						knowledgeSources={knowledgeSources}
+						activeKnowledgeSourceIds={activeKnowledgeSourceIds}
+						onToggleKnowledgeSource={(id) => {
+							setActiveKnowledgeSourceIds(prev =>
+								prev.includes(id)
+									? prev.filter(sourceId => sourceId !== id)
+									: [...prev, id]
 							);
 						}}
 						onCompact={() => { void handleCompact(); }}

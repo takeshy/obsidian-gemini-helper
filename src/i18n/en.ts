@@ -7,6 +7,7 @@ export const en = {
   "settings.slashCommands": "Slash commands",
   "settings.rag": "Semantic search (rag)",
   "settings.advancedSemanticSearch": "Advanced semantic search",
+  "settings.knowledge": "Knowledge sources",
 
   // Settings - API
   "settings.googleApiKey": "Google API key",
@@ -42,6 +43,26 @@ export const en = {
   "settings.aiVaultToolAllowedFolders.desc": "Optional: if there are directories you do not want the AI to read automatically, specify only the folders the AI may access.",
   "settings.aiVaultToolAllowedFolders.invalidPath": "Folders AI can access automatically must be vault-relative folders and cannot contain '.' or '..' segments.",
   "settings.aiVaultToolAllowedFolders.placeholder": "E.g., public, shared/docs",
+
+  // Settings - Knowledge sources
+  "settings.okfSources": "OKF sources",
+  "settings.okfSources.desc": "Register Open Knowledge Format directories. Vault-relative paths and desktop absolute paths are supported.",
+  "settings.addOkfSource": "Add OKF source",
+  "settings.okfSource": "OKF source",
+  "settings.okfSource.noPath": "No path configured",
+  "settings.okfSourceName": "Name",
+  "settings.okfSourcePath": "Directory",
+  "settings.okfSourcePath.desc": "Use a vault-relative directory, or an absolute directory on desktop Obsidian.",
+  "settings.externalSkillsSource": "External skills source",
+  "settings.externalSkillsSource.desc": "Directory containing a skills/ folder, or the skills/ folder itself. Import copies skills into the vault skills/ folder.",
+  "settings.externalSkillsRepository": "Skills repository",
+  "settings.externalSkillsRepository.desc": "GitHub repository containing a top-level skills/ folder. Import fetches selected skills and copies them into the vault skills/ folder.",
+  "settings.externalSkillIds": "Skill IDs to install",
+  "settings.externalSkillIds.desc": "Optional: install only these skill IDs from the source repository. Use one ID per line or comma-separated.",
+  "settings.importSkills": "Import skills",
+  "settings.importSkills.done": "Imported {{skills}} skill(s), {{files}} file(s)",
+  "settings.importSkills.failed": "Failed to import skills: {{error}}",
+  "knowledge.add": "Add knowledge source",
 
   // Settings - Tool limits
   "settings.maxToolCalls": "Max tool calls per request",

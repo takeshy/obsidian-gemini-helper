@@ -7,6 +7,7 @@ export const ja: Record<string, string> = {
   "settings.slashCommands": "スラッシュコマンド",
   "settings.rag": "セマンティック検索 (RAG)",
   "settings.advancedSemanticSearch": "セマンティック検索の詳細設定",
+  "settings.knowledge": "ナレッジソース",
 
   // Settings - API
   "settings.googleApiKey": "Google APIキー",
@@ -42,6 +43,26 @@ export const ja: Record<string, string> = {
   "settings.aiVaultToolAllowedFolders.desc": "任意設定: AIに自動的に読ませたくないディレクトリがある場合、AIがアクセスしてよいフォルダだけを指定します。",
   "settings.aiVaultToolAllowedFolders.invalidPath": "AIが自動アクセスできるフォルダはVault相対パスで指定し、'.' や '..' を含めないでください。",
   "settings.aiVaultToolAllowedFolders.placeholder": "例: Public, Shared/Docs",
+
+  // Settings - Knowledge sources
+  "settings.okfSources": "OKFソース",
+  "settings.okfSources.desc": "Open Knowledge Format のディレクトリを登録します。Vault相対パスと、デスクトップ版Obsidianの絶対パスに対応します。",
+  "settings.addOkfSource": "OKFソースを追加",
+  "settings.okfSource": "OKFソース",
+  "settings.okfSource.noPath": "パス未設定",
+  "settings.okfSourceName": "名前",
+  "settings.okfSourcePath": "ディレクトリ",
+  "settings.okfSourcePath.desc": "Vault相対ディレクトリ、またはデスクトップ版Obsidianでは絶対パスを指定できます。",
+  "settings.externalSkillsSource": "外部skillsソース",
+  "settings.externalSkillsSource.desc": "skills/ フォルダを含むディレクトリ、または skills/ フォルダ自体を指定します。取り込み時にVaultの skills/ へコピーします。",
+  "settings.externalSkillsRepository": "Skillsリポジトリ",
+  "settings.externalSkillsRepository.desc": "トップレベルに skills/ フォルダを持つGitHubリポジトリを指定します。選択したskillをfetchしてVaultの skills/ にコピーします。",
+  "settings.externalSkillIds": "インストールするSkill ID",
+  "settings.externalSkillIds.desc": "任意: ソースリポジトリから指定したSkill IDだけをインストールします。1行に1つ、またはカンマ区切りで指定します。",
+  "settings.importSkills": "skillsを取り込み",
+  "settings.importSkills.done": "{{skills}}個のskill、{{files}}個のファイルを取り込みました",
+  "settings.importSkills.failed": "skillsの取り込みに失敗しました: {{error}}",
+  "knowledge.add": "ナレッジソースを追加",
 
   // Settings - Tool limits
   "settings.maxToolCalls": "リクエストあたりの最大ツール呼び出し回数",

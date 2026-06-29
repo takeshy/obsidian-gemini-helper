@@ -1,5 +1,5 @@
 import { Notice, Setting } from "obsidian";
-import { importExternalSkills } from "src/core/externalSkills";
+import { importExternalSkills, OFFICIAL_SKILLS_REPO } from "src/core/externalSkills";
 import { t } from "src/i18n";
 import { formatError } from "src/utils/error";
 import type { SettingsContext } from "./settingsContext";
@@ -11,34 +11,19 @@ export function displayExternalSkillSettings(containerEl: HTMLElement, ctx: Sett
 
   new Setting(containerEl)
     .setName(t("settings.externalSkillsRepository"))
-    .setDesc(t("settings.externalSkillsRepository.desc"))
-    .addText((text) =>
-      text
-        .setValue(plugin.settings.externalSkillsSource?.repositoryUrl || "")
-        .setPlaceholder("takeshy/llm-hub-skills or https://github.com/takeshy/llm-hub-skills")
-        .onChange((value) => {
-          void (async () => {
-            plugin.settings.externalSkillsSource = {
-              ...(plugin.settings.externalSkillsSource || { path: "", enabled: false, skillIds: [] }),
-              repositoryUrl: value.trim(),
-            };
-            await plugin.saveSettings();
-          })();
-        })
-    )
+    .setDesc(t("settings.externalSkillsRepository.desc", { repo: OFFICIAL_SKILLS_REPO }))
     .addButton((button) =>
       button
         .setButtonText(t("settings.importSkills"))
+        .setCta()
         .onClick(() => {
           void (async () => {
             try {
               const result = await importExternalSkills(
                 plugin.app,
-                plugin.settings.externalSkillsSource?.path || "",
                 plugin.settings.externalSkillsSource?.skillIds || [],
                 plugin.manifest.id,
                 plugin.manifest.version,
-                plugin.settings.externalSkillsSource?.repositoryUrl || "",
               );
               plugin.settingsEmitter.emit("skills-changed");
               const skipped = result.skipped.length > 0
@@ -67,7 +52,7 @@ export function displayExternalSkillSettings(containerEl: HTMLElement, ctx: Sett
       .onChange((value) => {
         void (async () => {
           plugin.settings.externalSkillsSource = {
-            ...(plugin.settings.externalSkillsSource || { path: "", repositoryUrl: "", enabled: false }),
+            ...(plugin.settings.externalSkillsSource || {}),
             skillIds: value
               .split(/[\n,]/)
               .map(id => id.trim())

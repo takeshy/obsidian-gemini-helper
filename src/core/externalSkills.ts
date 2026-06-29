@@ -1,8 +1,8 @@
 import type { App } from "obsidian";
 import { SKILLS_FOLDER } from "src/types";
-import { getNodeFs, getNodePath, isAbsolutePath, normalizePathSeparators } from "./pathAccess";
+import { isAbsolutePath, normalizePathSeparators } from "./pathAccess";
 
-interface SourceFile {
+export interface SourceFile {
   relativePath: string;
   content: string;
 }
@@ -44,6 +44,11 @@ interface GitHubRepoRef {
 
 const SEMVER_RE = /^(\d+)\.(\d+)\.(\d+)(?:-([0-9A-Za-z.-]+))?(?:\+[0-9A-Za-z.-]+)?$/;
 
+// Skills are only imported from the official repository. Restricting the source
+// to a single trusted repo is the main mitigation against importing untrusted,
+// executable (workflow) skills.
+export const OFFICIAL_SKILLS_REPO = "takeshy/llm-hub-skills";
+
 function isUnsafePath(path: string): boolean {
   const normalized = normalizePathSeparators(path);
   return isAbsolutePath(normalized) || normalized.split("/").some(part => part === "." || part === "..");
@@ -56,70 +61,6 @@ async function ensureFolder(app: App, folderPath: string): Promise<void> {
   const parent = normalized.split("/").slice(0, -1).join("/");
   if (parent) await ensureFolder(app, parent);
   await app.vault.createFolder(normalized);
-}
-
-async function readVaultTree(app: App, sourcePath: string): Promise<SourceFile[]> {
-  const candidates = [
-    normalizePathSeparators(`${sourcePath}/skills`).replace(/^\/+|\/+$/g, ""),
-    normalizePathSeparators(sourcePath).replace(/^\/+|\/+$/g, ""),
-  ];
-  const root = (await app.vault.adapter.exists(candidates[0])) ? candidates[0] : candidates[1];
-  if (!(await app.vault.adapter.exists(root))) {
-    throw new Error(`Source path not found: ${sourcePath}`);
-  }
-
-  const files: SourceFile[] = [];
-  async function walk(dir: string): Promise<void> {
-    const listed = await app.vault.adapter.list(dir);
-    for (const childDir of listed.folders.sort()) {
-      await walk(childDir);
-    }
-    for (const filePath of listed.files.sort()) {
-      const relativePath = normalizePathSeparators(filePath.slice(root.length).replace(/^[/\\]+/, ""));
-      files.push({
-        relativePath,
-        content: await app.vault.adapter.read(filePath),
-      });
-    }
-  }
-
-  await walk(root);
-  return files;
-}
-
-async function readExternalTree(sourcePath: string): Promise<SourceFile[]> {
-  const fs = getNodeFs();
-  const path = getNodePath();
-  if (!fs || !path) throw new Error("External skills directories are only available on desktop Obsidian.");
-  const fsApi = fs;
-  const pathApi = path;
-
-  const normalized = sourcePath.replace(/[\\/]+$/, "");
-  const skillsPath = pathApi.join(normalized, "skills");
-  const root = fsApi.existsSync(skillsPath) ? skillsPath : normalized;
-  if (!fsApi.existsSync(root)) throw new Error(`Source path not found: ${sourcePath}`);
-
-  const files: SourceFile[] = [];
-  async function walk(dir: string): Promise<void> {
-    const entries = await fsApi.promises.readdir(dir, { withFileTypes: true });
-    entries.sort((a, b) => a.name.localeCompare(b.name));
-    for (const entry of entries) {
-      const fullPath = pathApi.join(dir, entry.name);
-      if (entry.isDirectory()) {
-        if (entry.name === ".git" || entry.name === "node_modules") continue;
-        await walk(fullPath);
-      } else if (entry.isFile()) {
-        const relativePath = normalizePathSeparators(pathApi.relative(root, fullPath));
-        files.push({
-          relativePath,
-          content: await fsApi.promises.readFile(fullPath, "utf8"),
-        });
-      }
-    }
-  }
-
-  await walk(root);
-  return files;
 }
 
 function parseGitHubRepo(input: string): GitHubRepoRef | null {
@@ -329,22 +270,21 @@ async function getInstalledManifest(app: App, skillId: string): Promise<SkillMan
 
 export async function importExternalSkills(
   app: App,
-  sourcePath: string,
   skillIds: string[] = [],
   pluginId = "gemini-helper",
   pluginVersion = "0.0.0",
-  repositoryUrl = "",
 ): Promise<ImportExternalSkillsResult> {
-  const trimmedRepo = repositoryUrl.trim();
-  const trimmed = sourcePath.trim();
-  if (!trimmedRepo && !trimmed) throw new Error("Source path or GitHub repository is empty.");
+  const files = await readGitHubTree(OFFICIAL_SKILLS_REPO);
+  return installSkillFiles(app, files, skillIds, pluginId, pluginVersion);
+}
 
-  const files = trimmedRepo
-    ? await readGitHubTree(trimmedRepo)
-    : isAbsolutePath(trimmed)
-      ? await readExternalTree(trimmed)
-      : await readVaultTree(app, trimmed);
-
+export async function installSkillFiles(
+  app: App,
+  files: SourceFile[],
+  skillIds: string[] = [],
+  pluginId = "gemini-helper",
+  pluginVersion = "0.0.0",
+): Promise<ImportExternalSkillsResult> {
   const grouped = groupFilesBySkill(files);
   const requestedIds = skillIds.map(id => id.trim()).filter(Boolean);
   const targetIds = requestedIds.length > 0 ? requestedIds : [...grouped.keys()].sort();
@@ -369,8 +309,17 @@ export async function importExternalSkills(
       continue;
     }
 
-    const sourceManifest = parseManifest(skillFiles.find(file => file.relativePath === `${skillId}/manifest.json`)?.content);
-    if (sourceManifest?.id && sourceManifest.id !== skillId) {
+    const manifestFile = skillFiles.find(file => file.relativePath === `${skillId}/manifest.json`);
+    if (!manifestFile) {
+      skipped.push({ id: skillId, reason: "manifest.json required" });
+      continue;
+    }
+    const sourceManifest = parseManifest(manifestFile.content);
+    if (!sourceManifest) {
+      skipped.push({ id: skillId, reason: "invalid manifest.json" });
+      continue;
+    }
+    if (sourceManifest.id && sourceManifest.id !== skillId) {
       skipped.push({ id: skillId, reason: `manifest id mismatch: ${sourceManifest.id}` });
       continue;
     }
@@ -378,8 +327,8 @@ export async function importExternalSkills(
       skipped.push({ id: skillId, reason: `not compatible with ${pluginId} ${pluginVersion}` });
       continue;
     }
-    if (sourceManifest?.version && !parseSemver(sourceManifest.version)) {
-      skipped.push({ id: skillId, reason: `invalid source version: ${sourceManifest.version}` });
+    if (!sourceManifest.version || !parseSemver(sourceManifest.version)) {
+      skipped.push({ id: skillId, reason: "missing or invalid manifest version" });
       continue;
     }
 

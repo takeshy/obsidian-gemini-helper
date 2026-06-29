@@ -1,6 +1,6 @@
 import type { App } from "obsidian";
 import { describe, expect, it } from "vitest";
-import { compareVersions, getSafeSkillTargetPath, importExternalSkills } from "./externalSkills";
+import { compareVersions, getSafeSkillTargetPath, installSkillFiles } from "./externalSkills";
 
 function makeApp(files: Record<string, string>) {
   const folders = new Set<string>();
@@ -76,29 +76,80 @@ describe("getSafeSkillTargetPath", () => {
   });
 });
 
-describe("importExternalSkills", () => {
+describe("installSkillFiles", () => {
   it("skips folders that do not contain SKILL.md", async () => {
-    const { app, written } = makeApp({
-      "Source/skills/no-skill/manifest.json": JSON.stringify({ id: "no-skill", version: "1.0.0" }),
-    });
+    const { app, written } = makeApp({});
 
-    const result = await importExternalSkills(app, "Source", [], "gemini-helper", "1.16.2");
+    const result = await installSkillFiles(
+      app,
+      [{ relativePath: "no-skill/manifest.json", content: JSON.stringify({ id: "no-skill", version: "1.0.0" }) }],
+      [],
+      "gemini-helper",
+      "1.16.2",
+    );
 
     expect(result.installed).toEqual([]);
     expect(result.skipped).toEqual([{ id: "no-skill", reason: "SKILL.md not found" }]);
     expect(written).toEqual({});
   });
 
-  it("skips the whole skill when a file would escape its target folder", async () => {
-    const { app, written } = makeApp({
-      "Source/skills/code-review/SKILL.md": "---\nname: Code review\n---\n",
-      "Source/skills/code-review/../escape.md": "nope",
-    });
+  it("skips a skill without a manifest.json", async () => {
+    const { app, written } = makeApp({});
 
-    const result = await importExternalSkills(app, "Source", [], "gemini-helper", "1.16.2");
+    const result = await installSkillFiles(
+      app,
+      [{ relativePath: "code-review/SKILL.md", content: "---\nname: Code review\n---\n" }],
+      [],
+      "gemini-helper",
+      "1.16.2",
+    );
+
+    expect(result.installed).toEqual([]);
+    expect(result.skipped).toEqual([{ id: "code-review", reason: "manifest.json required" }]);
+    expect(written).toEqual({});
+  });
+
+  it("skips the whole skill when a file would escape its target folder", async () => {
+    const { app, written } = makeApp({});
+
+    const result = await installSkillFiles(
+      app,
+      [
+        { relativePath: "code-review/SKILL.md", content: "---\nname: Code review\n---\n" },
+        { relativePath: "code-review/manifest.json", content: JSON.stringify({ id: "code-review", version: "1.0.0" }) },
+        { relativePath: "code-review/../escape.md", content: "nope" },
+      ],
+      [],
+      "gemini-helper",
+      "1.16.2",
+    );
 
     expect(result.installed).toEqual([]);
     expect(result.skipped).toEqual([{ id: "code-review", reason: "unsafe path: code-review/../escape.md" }]);
     expect(written).toEqual({});
+  });
+
+  it("installs a skill's files into the vault skills folder", async () => {
+    const { app, written } = makeApp({});
+
+    const manifest = JSON.stringify({ id: "code-review", version: "1.0.0" });
+    const result = await installSkillFiles(
+      app,
+      [
+        { relativePath: "code-review/SKILL.md", content: "---\nname: Code review\n---\n" },
+        { relativePath: "code-review/manifest.json", content: manifest },
+      ],
+      [],
+      "gemini-helper",
+      "1.16.2",
+    );
+
+    expect(result.installed).toEqual(["code-review"]);
+    expect(result.skillCount).toBe(1);
+    expect(result.fileCount).toBe(2);
+    expect(written).toEqual({
+      "skills/code-review/SKILL.md": "---\nname: Code review\n---\n",
+      "skills/code-review/manifest.json": manifest,
+    });
   });
 });

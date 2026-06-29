@@ -502,9 +502,6 @@ export class GeminiHelperPlugin extends Plugin {
         ? [...loaded.mcpServers]
         : [],
       externalSkillsSource: {
-        ...DEFAULT_SETTINGS.externalSkillsSource,
-        ...(loaded.externalSkillsSource ?? {}),
-        repositoryUrl: loaded.externalSkillsSource?.repositoryUrl ?? "",
         skillIds: loaded.externalSkillsSource?.skillIds
           ? [...loaded.externalSkillsSource.skillIds]
           : [],

@@ -1,12 +1,12 @@
 # Importing Skills
 
-Gemini Helper can fetch skills from a GitHub repository. This is useful for sharing reusable skills outside a single vault and for maintaining a community or team skill repository through pull requests.
+Gemini Helper imports skills from the official skills repository `takeshy/llm-hub-skills`. The source repository is fixed: skills can run workflows (commands, HTTP, MCP), so restricting imports to a single trusted repository is the main safeguard against running untrusted code. New and updated skills are distributed through pull requests to that repository.
 
 Imported skills are copied into the vault `skills/` folder. After import, they appear in the existing chat skill selector.
 
 ## Repository Layout
 
-Use a repository with a top-level `skills/` directory:
+The official repository uses a top-level `skills/` directory:
 
 ```text
 gemini-helper-skills/
@@ -23,11 +23,11 @@ gemini-helper-skills/
       SKILL.md
 ```
 
-Each skill must have a `SKILL.md` file in its own folder. Workflows and references should stay inside that same skill folder.
+Each skill must have a `SKILL.md` file and a `manifest.json` file in its own folder. Workflows and references should stay inside that same skill folder.
 
 ## Skill Manifest
 
-Each skill can include a `manifest.json` file. When present, the manifest is used for version and plugin compatibility checks.
+Each skill **must** include a `manifest.json` file. The manifest is required for version tracking and plugin compatibility checks; skills without a valid manifest are skipped during import.
 
 ```json
 {
@@ -58,7 +58,7 @@ Fields:
 
 - `id`: Skill ID. Must match the folder name under `skills/`.
 - `name`: Human-readable skill name.
-- `version`: Skill version. Used to decide whether an installed skill should be updated.
+- `version`: Skill version (required). Must be valid semver. Used to decide whether an installed skill should be updated.
 - `description`: Short summary for humans.
 - `compatibility.plugins`: List of plugin IDs and optional version ranges.
 
@@ -71,39 +71,30 @@ Compatibility entries support:
 ## Import From Settings
 
 1. Open Gemini Helper settings.
-2. Go to **Knowledge sources**.
-3. Set **Skills repository** to a GitHub repository, such as `takeshy/llm-hub-skills`.
-4. Set **Skill IDs to install** to one or more IDs, such as `code-review`.
-5. Click **Import skills**.
-6. Open chat and enable the imported skill from the skill selector.
+2. Go to **External skills**.
+3. Optionally set **Skill IDs to install** to one or more IDs, such as `code-review`. Leave empty to install every skill in the repository.
+4. Click **Import skills**.
+5. Open chat and enable the imported skill from the skill selector.
 
-Examples:
-
-```text
-takeshy/llm-hub-skills
-https://github.com/takeshy/llm-hub-skills
-```
-
-The repository must be public. Private repository token support is not currently included.
-Gemini Helper fetches from the repository's default branch.
+Skills are always fetched from the official repository `takeshy/llm-hub-skills`. The repository is public and Gemini Helper fetches from its default branch.
 
 ## Install and Update Rules
 
-When **Skill IDs to install** is set:
-
-- The installer looks for `skills/<id>/manifest.json`.
-- If `manifest.json` is missing, the skill is installed or overwritten without compatibility or version checks.
-- If `manifest.json` exists, its `id` must match the folder name.
-- If `manifest.json` exists, it must be compatible with the current plugin ID, such as `gemini-helper`.
+- The installer looks for `skills/<id>/SKILL.md` and `skills/<id>/manifest.json`.
+- If `SKILL.md` is missing, the skill is skipped.
+- If `manifest.json` is missing or invalid, the skill is skipped.
+- The manifest `id`, when present, must match the folder name.
+- The manifest must be compatible with the current plugin ID, such as `gemini-helper`.
+- The manifest must declare a valid semver `version`.
 - If the skill is not installed yet, it is installed.
-- If the skill is already installed and both manifests have `version`, the source skill is installed only when its version is higher.
+- If the skill is already installed, the source skill is installed only when its version is higher than the installed version.
 - If the installed version is current or newer, the skill is skipped.
 
-When **Skill IDs to install** is empty, the importer imports all skills from the repository. Manifests are used when present, and legacy skills without manifests are accepted.
+When **Skill IDs to install** is empty, the importer imports all skills in the repository (each must still meet the rules above).
 
 ## Pull Request Workflow
 
-1. Add or update a skill in the shared skills repository.
+1. Add or update a skill in the official skills repository (`takeshy/llm-hub-skills`).
 2. Open a pull request.
 3. Review the skill instructions, references, and workflow files.
 4. Merge the pull request.
@@ -124,6 +115,6 @@ If you need a clean re-import, delete the target skill folder from the vault fir
 
 ## Notes
 
-- External skills import is generic. Use it for any Gemini Helper skill.
+- Skills are imported only from the official repository `takeshy/llm-hub-skills`.
 - Imported skills use the same `SKILL.md` and `skill-capabilities` format as vault-authored skills.
-- The repository must be public.
+- The repository is public; no authentication token is required.

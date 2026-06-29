@@ -45,12 +45,10 @@ export const ja: Record<string, string> = {
   "settings.aiVaultToolAllowedFolders.placeholder": "例: Public, Shared/Docs",
 
   // Settings - External skills
-  "settings.externalSkillsSource": "外部skillsソース",
-  "settings.externalSkillsSource.desc": "skills/ フォルダを含むディレクトリ、または skills/ フォルダ自体を指定します。取り込み時にVaultの skills/ へコピーします。",
-  "settings.externalSkillsRepository": "Skillsリポジトリ",
-  "settings.externalSkillsRepository.desc": "トップレベルに skills/ フォルダを持つGitHubリポジトリを指定します。選択したskillをfetchしてVaultの skills/ にコピーします。",
+  "settings.externalSkillsRepository": "ソースリポジトリ",
+  "settings.externalSkillsRepository.desc": "skillは公式リポジトリ {{repo}} から取り込み、Vaultの skills/ にコピーします。各skillには manifest.json が必須です。",
   "settings.externalSkillIds": "インストールするSkill ID",
-  "settings.externalSkillIds.desc": "任意: ソースリポジトリから指定したSkill IDだけをインストールします。1行に1つ、またはカンマ区切りで指定します。",
+  "settings.externalSkillIds.desc": "任意: 指定したSkill IDだけをインストールします。空欄の場合はリポジトリ内の全skillをインストールします。1行に1つ、またはカンマ区切りで指定します。",
   "settings.importSkills": "skillsを取り込み",
   "settings.importSkills.done": "{{skills}}個のskill、{{files}}個のファイルを取り込みました",
   "settings.importSkills.failed": "skillsの取り込みに失敗しました: {{error}}",

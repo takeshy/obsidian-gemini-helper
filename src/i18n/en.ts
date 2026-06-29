@@ -45,12 +45,10 @@ export const en = {
   "settings.aiVaultToolAllowedFolders.placeholder": "E.g., public, shared/docs",
 
   // Settings - External skills
-  "settings.externalSkillsSource": "External skills source",
-  "settings.externalSkillsSource.desc": "Directory containing a skills/ folder, or the skills/ folder itself. Import copies skills into the vault skills/ folder.",
-  "settings.externalSkillsRepository": "Skills repository",
-  "settings.externalSkillsRepository.desc": "GitHub repository containing a top-level skills/ folder. Import fetches selected skills and copies them into the vault skills/ folder.",
+  "settings.externalSkillsRepository": "Source repository",
+  "settings.externalSkillsRepository.desc": "Skills are imported from the official repository {{repo}} and copied into the vault skills/ folder. Each skill must include a manifest.json.",
   "settings.externalSkillIds": "Skill IDs to install",
-  "settings.externalSkillIds.desc": "Optional: install only these skill IDs from the source repository. Use one ID per line or comma-separated.",
+  "settings.externalSkillIds.desc": "Optional: install only these skill IDs. Leave empty to install every skill in the repository. Use one ID per line or comma-separated.",
   "settings.importSkills": "Import skills",
   "settings.importSkills.done": "Imported {{skills}} skill(s), {{files}} file(s)",
   "settings.importSkills.failed": "Failed to import skills: {{error}}",

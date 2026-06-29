@@ -68,9 +68,8 @@ export interface WorkflowEventTrigger {
 }
 
 export interface ExternalSkillsSource {
-  path: string;
-  repositoryUrl: string;
-  enabled: boolean;
+  // Skills are always imported from the official repository (see OFFICIAL_SKILLS_REPO).
+  // Only the subset of skill IDs to install is user-configurable.
   skillIds: string[];
 }
 
@@ -606,9 +605,6 @@ export const DEFAULT_SETTINGS: GeminiHelperSettings = {
   systemPrompt: "",
   slashCommands: DEFAULT_SLASH_COMMANDS,
   externalSkillsSource: {
-    path: "",
-    repositoryUrl: "",
-    enabled: false,
     skillIds: [],
   },
   enabledWorkflowHotkeys: [],

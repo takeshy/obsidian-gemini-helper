@@ -8,6 +8,7 @@ export const en = {
   "settings.rag": "Semantic search (rag)",
   "settings.advancedSemanticSearch": "Advanced semantic search",
   "settings.externalSkills": "External skills",
+  "settings.knowledge": "Knowledge sources",
 
   // Settings - API
   "settings.googleApiKey": "Google API key",
@@ -66,6 +67,17 @@ export const en = {
   "settings.importSkills": "Import skills",
   "settings.importSkills.done": "Imported {{skills}} skill(s), {{files}} file(s)",
   "settings.importSkills.failed": "Failed to import skills: {{error}}",
+
+  // Settings - Knowledge sources
+  "settings.okfSources": "Okf sources",
+  "settings.okfSources.desc": "Register open knowledge format directories. Vault-relative paths and desktop absolute paths are supported.",
+  "settings.addOkfSource": "Add okf source",
+  "settings.okfSource": "Okf source",
+  "settings.okfSource.noPath": "No path configured",
+  "settings.okfSourceName": "Name",
+  "settings.okfSourcePath": "Directory",
+  "settings.okfSourcePath.desc": "Use a vault-relative directory, or an absolute directory on desktop Obsidian.",
+  "knowledge.add": "Add knowledge source",
 
   // Settings - Tool limits
   "settings.maxToolCalls": "Max tool calls per request",

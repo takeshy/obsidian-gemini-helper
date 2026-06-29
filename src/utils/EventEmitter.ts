@@ -8,6 +8,7 @@ export interface EventMap {
   "execution-history-saved": [workflowPath: string];
   "migration-data-modified": [data: unknown];
   "skills-changed": [];
+  "knowledge-sources-changed": [];
 }
 
 type EventName = keyof EventMap;

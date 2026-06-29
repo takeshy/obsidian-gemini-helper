@@ -1,9 +1,10 @@
 import { useState, useRef, useEffect, KeyboardEvent, ChangeEvent, forwardRef, useImperativeHandle } from "react";
 import { Send, Paperclip, StopCircle, Loader2, Eye, Database, ChevronUp, ChevronDown } from "lucide-react";
 import { Notice, Platform, type App } from "obsidian";
-import { isImageGenerationModel, type ModelInfo, type ModelType, type Attachment, type SlashCommand, type McpServerConfig, type VaultToolMode } from "src/types";
+import { isImageGenerationModel, type ModelInfo, type ModelType, type Attachment, type SlashCommand, type McpServerConfig, type VaultToolMode, type KnowledgeSource } from "src/types";
 import type { SkillMetadata } from "src/core/skillsLoader";
 import SkillSelector from "./SkillSelector";
+import KnowledgeSelector from "./KnowledgeSelector";
 import { t } from "src/i18n";
 
 // Built-in command definition (not user-configurable)
@@ -40,6 +41,9 @@ interface InputAreaProps {
   availableSkills: SkillMetadata[];
   activeSkillPaths: string[];
   onToggleSkill: (folderPath: string) => void;
+  knowledgeSources: KnowledgeSource[];
+  activeKnowledgeSourceIds: string[];
+  onToggleKnowledgeSource: (id: string) => void;
   onCompact?: () => void; // Built-in /compact command handler
   messageCount?: number; // Number of messages (to enable/disable /compact)
   isCompacting?: boolean; // Whether compact is in progress
@@ -98,6 +102,9 @@ const InputArea = forwardRef<InputAreaHandle, InputAreaProps>(function InputArea
   availableSkills,
   activeSkillPaths,
   onToggleSkill,
+  knowledgeSources,
+  activeKnowledgeSourceIds,
+  onToggleKnowledgeSource,
   onCompact,
   messageCount = 0,
   isCompacting = false,
@@ -829,6 +836,14 @@ const InputArea = forwardRef<InputAreaHandle, InputAreaProps>(function InputArea
           onToggleSkill={onToggleSkill}
           disabled={isLoading}
           app={app}
+        />
+      )}
+      {!isCollapsed && knowledgeSources.length > 0 && (
+        <KnowledgeSelector
+          sources={knowledgeSources}
+          activeSourceIds={activeKnowledgeSourceIds}
+          onToggleSource={onToggleKnowledgeSource}
+          disabled={isLoading}
         />
       )}
     </div>

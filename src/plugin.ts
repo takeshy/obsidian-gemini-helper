@@ -501,6 +501,9 @@ export class GeminiHelperPlugin extends Plugin {
       mcpServers: loaded.mcpServers
         ? [...loaded.mcpServers]
         : [],
+      knowledgeSources: loaded.knowledgeSources
+        ? loaded.knowledgeSources.map(source => ({ ...source }))
+        : [],
       // Deep copy workflow arrays
       enabledWorkflowHotkeys: loaded.enabledWorkflowHotkeys
         ? [...loaded.enabledWorkflowHotkeys]

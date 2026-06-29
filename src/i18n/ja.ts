@@ -8,6 +8,7 @@ export const ja: Record<string, string> = {
   "settings.rag": "セマンティック検索 (RAG)",
   "settings.advancedSemanticSearch": "セマンティック検索の詳細設定",
   "settings.externalSkills": "外部skills",
+  "settings.knowledge": "ナレッジソース",
 
   // Settings - API
   "settings.googleApiKey": "Google APIキー",
@@ -66,6 +67,17 @@ export const ja: Record<string, string> = {
   "settings.importSkills": "skillsを取り込み",
   "settings.importSkills.done": "{{skills}}個のskill、{{files}}個のファイルを取り込みました",
   "settings.importSkills.failed": "skillsの取り込みに失敗しました: {{error}}",
+
+  // Settings - Knowledge sources
+  "settings.okfSources": "OKFソース",
+  "settings.okfSources.desc": "Open Knowledge Format のディレクトリを登録します。Vault相対パスと、デスクトップ版Obsidianの絶対パスに対応します。",
+  "settings.addOkfSource": "OKFソースを追加",
+  "settings.okfSource": "OKFソース",
+  "settings.okfSource.noPath": "パス未設定",
+  "settings.okfSourceName": "名前",
+  "settings.okfSourcePath": "ディレクトリ",
+  "settings.okfSourcePath.desc": "Vault相対ディレクトリ、またはデスクトップ版Obsidianでは絶対パスを指定できます。",
+  "knowledge.add": "ナレッジソースを追加",
 
   // Settings - Tool limits
   "settings.maxToolCalls": "リクエストあたりの最大ツール呼び出し回数",

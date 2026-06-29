@@ -7,6 +7,7 @@ export const ja: Record<string, string> = {
   "settings.slashCommands": "スラッシュコマンド",
   "settings.rag": "セマンティック検索 (RAG)",
   "settings.advancedSemanticSearch": "セマンティック検索の詳細設定",
+  "settings.externalSkills": "外部skills",
 
   // Settings - API
   "settings.googleApiKey": "Google APIキー",
@@ -42,6 +43,29 @@ export const ja: Record<string, string> = {
   "settings.aiVaultToolAllowedFolders.desc": "任意設定: AIに自動的に読ませたくないディレクトリがある場合、AIがアクセスしてよいフォルダだけを指定します。",
   "settings.aiVaultToolAllowedFolders.invalidPath": "AIが自動アクセスできるフォルダはVault相対パスで指定し、'.' や '..' を含めないでください。",
   "settings.aiVaultToolAllowedFolders.placeholder": "例: Public, Shared/Docs",
+
+  // Settings - External skills
+  "settings.externalSkillsRepository": "ソースリポジトリ",
+  "settings.externalSkillsRepository.desc": "skillは公式リポジトリ {{repo}} から取り込み、Vaultの skills/ にコピーします。各skillには manifest.json が必須です。",
+  "settings.externalSkills.retry": "再試行",
+  "settings.externalSkills.loading": "利用可能なskillを読み込み中…",
+  "settings.externalSkills.loadFailed": "skillの読み込みに失敗しました: {{error}}",
+  "settings.externalSkills.noSkills": "公式リポジトリに対応するskillが見つかりませんでした。",
+  "settings.externalSkills.allInstalled": "利用可能なskillはすべてインストール済みです。",
+  "settings.externalSkills.install": "skillをインストール",
+  "settings.externalSkills.install.desc": "公式リポジトリからskillを選んでインストールします。",
+  "settings.externalSkills.installButton": "インストール",
+  "settings.externalSkills.installSkipped": "{{id}} をインストールできませんでした: {{reason}}",
+  "settings.externalSkills.installed": "インストール済みskill",
+  "settings.externalSkills.noVersion": "バージョン情報なし",
+  "settings.externalSkills.updateAvailable": "更新あり",
+  "settings.externalSkills.check": "更新を確認",
+  "settings.externalSkills.upToDate": "最新です (v{{version}})。",
+  "settings.externalSkills.notInCatalog": "このskillは公式リポジトリに存在しません。",
+  "settings.externalSkills.updateConfirm": "{{name}} を v{{from}} から v{{to}} に更新しますか？",
+  "settings.importSkills": "skillsを取り込み",
+  "settings.importSkills.done": "{{skills}}個のskill、{{files}}個のファイルを取り込みました",
+  "settings.importSkills.failed": "skillsの取り込みに失敗しました: {{error}}",
 
   // Settings - Tool limits
   "settings.maxToolCalls": "リクエストあたりの最大ツール呼び出し回数",

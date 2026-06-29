@@ -7,6 +7,7 @@ export const en = {
   "settings.slashCommands": "Slash commands",
   "settings.rag": "Semantic search (rag)",
   "settings.advancedSemanticSearch": "Advanced semantic search",
+  "settings.externalSkills": "External skills",
 
   // Settings - API
   "settings.googleApiKey": "Google API key",
@@ -42,6 +43,29 @@ export const en = {
   "settings.aiVaultToolAllowedFolders.desc": "Optional: if there are directories you do not want the AI to read automatically, specify only the folders the AI may access.",
   "settings.aiVaultToolAllowedFolders.invalidPath": "Folders AI can access automatically must be vault-relative folders and cannot contain '.' or '..' segments.",
   "settings.aiVaultToolAllowedFolders.placeholder": "E.g., public, shared/docs",
+
+  // Settings - External skills
+  "settings.externalSkillsRepository": "Source repository",
+  "settings.externalSkillsRepository.desc": "Skills are imported from the official repository {{repo}} and copied into the vault skills/ folder. Each skill must include a manifest.json.",
+  "settings.externalSkills.retry": "Retry",
+  "settings.externalSkills.loading": "Loading available skills…",
+  "settings.externalSkills.loadFailed": "Failed to load skills: {{error}}",
+  "settings.externalSkills.noSkills": "No compatible skills found in the official repository.",
+  "settings.externalSkills.allInstalled": "All available skills are already installed.",
+  "settings.externalSkills.install": "Install a skill",
+  "settings.externalSkills.install.desc": "Select a skill from the official repository and install it.",
+  "settings.externalSkills.installButton": "Install",
+  "settings.externalSkills.installSkipped": "Could not install {{id}}: {{reason}}",
+  "settings.externalSkills.installed": "Installed skills",
+  "settings.externalSkills.noVersion": "No version",
+  "settings.externalSkills.updateAvailable": "Update available",
+  "settings.externalSkills.check": "Check for updates",
+  "settings.externalSkills.upToDate": "Already up to date (v{{version}}).",
+  "settings.externalSkills.notInCatalog": "This skill is not in the official repository.",
+  "settings.externalSkills.updateConfirm": "Update {{name}} from v{{from}} to v{{to}}?",
+  "settings.importSkills": "Import skills",
+  "settings.importSkills.done": "Imported {{skills}} skill(s), {{files}} file(s)",
+  "settings.importSkills.failed": "Failed to import skills: {{error}}",
 
   // Settings - Tool limits
   "settings.maxToolCalls": "Max tool calls per request",

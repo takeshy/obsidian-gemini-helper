@@ -921,6 +921,9 @@ export class GeminiClient {
     let contents = this.messagesToContents(messages);
     const generationTools = this.buildGenerateContentTools(tools, webSearchEnabled);
     const thinkingConfig = this.buildThinkingConfig(options?.enableThinking ?? true);
+    // Gemini rejects mixing a built-in/server-side tool (googleSearch) with
+    // function-calling declarations unless this flag is set.
+    const mixesBuiltInWithFunctionCalling = !options?.disableTools && tools.length > 0 && !!webSearchEnabled;
 
     try {
       while (true) {
@@ -931,6 +934,9 @@ export class GeminiClient {
           config: {
             systemInstruction: systemPrompt,
             tools: options?.disableTools ? undefined : generationTools,
+            toolConfig: mixesBuiltInWithFunctionCalling
+              ? { includeServerSideToolInvocations: true }
+              : undefined,
             safetySettings: DEFAULT_SAFETY_SETTINGS,
             thinkingConfig,
           },

@@ -1,10 +1,10 @@
 import { useState, useRef, useEffect, KeyboardEvent, ChangeEvent, forwardRef, useImperativeHandle } from "react";
 import { Send, Paperclip, StopCircle, Loader2, Eye, Database, ChevronUp, ChevronDown } from "lucide-react";
 import { Notice, Platform, type App } from "obsidian";
-import { isImageGenerationModel, type ModelInfo, type ModelType, type Attachment, type SlashCommand, type McpServerConfig, type VaultToolMode, type KnowledgeSource } from "src/types";
+import { isImageGenerationModel, type ModelInfo, type ModelType, type Attachment, type SlashCommand, type McpServerConfig, type VaultToolMode } from "src/types";
 import type { SkillMetadata } from "src/core/skillsLoader";
+import type { OkfBundle } from "src/core/okfLoader";
 import SkillSelector from "./SkillSelector";
-import KnowledgeSelector from "./KnowledgeSelector";
 import { t } from "src/i18n";
 
 // Built-in command definition (not user-configurable)
@@ -36,14 +36,15 @@ interface InputAreaProps {
   onThinkFlashLiteChange: (value: boolean) => void;
   mcpServers: McpServerConfig[]; // MCP server configurations
   onMcpServerToggle: (serverName: string, enabled: boolean) => void; // Per-server toggle handler
+  okfBundles: OkfBundle[]; // Discovered OKF knowledge bundles (empty when OKF is off)
+  activeOkfBundleIds: string[]; // Bundle ids active for this chat
+  onToggleOkfBundle: (id: string) => void; // Toggle a bundle on/off for this chat
+  onVaultToolMenuOpen?: () => void; // Called when the vault tool menu opens (refresh bundles)
   slashCommands: SlashCommand[];
   onSlashCommand: (command: SlashCommand) => string;
   availableSkills: SkillMetadata[];
   activeSkillPaths: string[];
   onToggleSkill: (folderPath: string) => void;
-  knowledgeSources: KnowledgeSource[];
-  activeKnowledgeSourceIds: string[];
-  onToggleKnowledgeSource: (id: string) => void;
   onCompact?: () => void; // Built-in /compact command handler
   messageCount?: number; // Number of messages (to enable/disable /compact)
   isCompacting?: boolean; // Whether compact is in progress
@@ -97,14 +98,15 @@ const InputArea = forwardRef<InputAreaHandle, InputAreaProps>(function InputArea
   onThinkFlashLiteChange,
   mcpServers,
   onMcpServerToggle,
+  okfBundles,
+  activeOkfBundleIds,
+  onToggleOkfBundle,
+  onVaultToolMenuOpen,
   slashCommands,
   onSlashCommand,
   availableSkills,
   activeSkillPaths,
   onToggleSkill,
-  knowledgeSources,
-  activeKnowledgeSourceIds,
-  onToggleKnowledgeSource,
   onCompact,
   messageCount = 0,
   isCompacting = false,
@@ -620,7 +622,11 @@ const InputArea = forwardRef<InputAreaHandle, InputAreaProps>(function InputArea
           <div className="gemini-helper-vault-tool-container" ref={vaultToolMenuRef}>
             <button
               className={`gemini-helper-vault-tool-btn ${vaultToolMode !== "all" || mcpServers.some(s => !s.enabled) ? "active" : ""}`}
-              onClick={() => setShowVaultToolMenu(!showVaultToolMenu)}
+              onClick={() => {
+                const next = !showVaultToolMenu;
+                setShowVaultToolMenu(next);
+                if (next) onVaultToolMenuOpen?.();
+              }}
               disabled={isLoading || isImageGenerationModel(model)}
               title={t("input.vaultToolTitle")}
             >
@@ -646,6 +652,22 @@ const InputArea = forwardRef<InputAreaHandle, InputAreaProps>(function InputArea
                 >
                   {t("input.vaultToolNone")}
                 </div>
+                {okfBundles.length > 0 && (
+                  <>
+                    <div className="gemini-helper-vault-tool-separator" />
+                    <div className="gemini-helper-vault-tool-section-label">{t("input.knowledgeLabel")}</div>
+                    {okfBundles.map((bundle) => (
+                      <label key={bundle.id} className="gemini-helper-vault-tool-checkbox" title={bundle.id || bundle.name}>
+                        <input
+                          type="checkbox"
+                          checked={activeOkfBundleIds.includes(bundle.id)}
+                          onChange={() => onToggleOkfBundle(bundle.id)}
+                        />
+                        <span>{bundle.name}</span>
+                      </label>
+                    ))}
+                  </>
+                )}
                 <div className="gemini-helper-vault-tool-separator" />
                 <div className="gemini-helper-vault-tool-section-label">{t("input.thinkingLabel")}</div>
                 <label className="gemini-helper-vault-tool-checkbox">
@@ -701,6 +723,23 @@ const InputArea = forwardRef<InputAreaHandle, InputAreaProps>(function InputArea
                       })}
                     </div>
                   </div>
+                  {okfBundles.length > 0 && (
+                    <div className="gemini-helper-tool-settings-row">
+                      <label>{t("input.knowledgeLabel")}</label>
+                      <div className="gemini-helper-mcp-server-list">
+                        {okfBundles.map((bundle) => (
+                          <label key={bundle.id} className="gemini-helper-mcp-server-item" title={bundle.id || bundle.name}>
+                            <input
+                              type="checkbox"
+                              checked={activeOkfBundleIds.includes(bundle.id)}
+                              onChange={() => onToggleOkfBundle(bundle.id)}
+                            />
+                            <span className="gemini-helper-mcp-server-name">{bundle.name}</span>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                   <div className="gemini-helper-tool-settings-row">
                     <label>{t("input.thinkingLabel")}</label>
                     <div className="gemini-helper-mcp-server-list">
@@ -836,14 +875,6 @@ const InputArea = forwardRef<InputAreaHandle, InputAreaProps>(function InputArea
           onToggleSkill={onToggleSkill}
           disabled={isLoading}
           app={app}
-        />
-      )}
-      {!isCollapsed && knowledgeSources.length > 0 && (
-        <KnowledgeSelector
-          sources={knowledgeSources}
-          activeSourceIds={activeKnowledgeSourceIds}
-          onToggleSource={onToggleKnowledgeSource}
-          disabled={isLoading}
         />
       )}
     </div>

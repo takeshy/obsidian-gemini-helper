@@ -502,7 +502,7 @@ export class GeminiHelperPlugin extends Plugin {
         ? [...loaded.mcpServers]
         : [],
       knowledgeSources: loaded.knowledgeSources
-        ? loaded.knowledgeSources.map(source => ({ ...source }))
+        ? loaded.knowledgeSources.slice(0, 1).map(source => ({ ...source, name: "OKF", type: "okf" as const }))
         : [],
       // Deep copy workflow arrays
       enabledWorkflowHotkeys: loaded.enabledWorkflowHotkeys

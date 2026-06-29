@@ -19,26 +19,27 @@ tags:
 MRR is calculated from active paid subscriptions...
 ```
 
-Gemini Helper reads registered OKF directories and injects a compact summary of the selected bundles into the chat system prompt. This gives Gemini curated domain context without requiring a separate server.
+Gemini Helper reads the configured OKF directory and injects a compact summary into the chat system prompt. This gives Gemini curated domain context without requiring a separate server.
 
-## Configure OKF Sources
+## Configure OKF
 
 1. Open Gemini Helper settings.
 2. Go to **Knowledge sources**.
-3. Under **OKF sources**, click **Add OKF source**.
-4. Enter a display name and a directory path.
-5. In chat, use the knowledge selector next to the skill selector to choose which OKF bundles are active.
+3. Turn **OKF** on.
+4. Set the OKF directory path.
 
 Paths can be:
 
-- Vault-relative, such as `Knowledge/okf`
-- Absolute desktop paths, such as `C:\repos\knowledge-catalog\okf`
+- `Knowledge` (default)
+- `.Knowledge` if you want Obsidian to hide the folder
+- Another vault-relative directory, such as `Knowledge/okf`
+- An absolute desktop path, such as `C:\repos\knowledge-catalog\okf`
 
 Absolute paths require desktop Obsidian because mobile Obsidian does not expose filesystem access outside the vault.
 
 ## What Gets Loaded
 
-For each active OKF source, Gemini Helper loads Markdown files from the directory recursively and includes:
+When OKF is enabled, Gemini Helper loads Markdown files from the configured directory recursively and includes:
 
 - `type`
 - `title`
@@ -83,10 +84,9 @@ Use normal Markdown links for relationships between OKF documents. If the OKF bu
 
 ## Suggested Workflow
 
-1. Maintain OKF bundles in the vault or in a local repository.
-2. Register each OKF bundle in Gemini Helper settings.
-3. In chat, activate the relevant OKF bundle for the task.
-4. Combine OKF with skills when the task needs both domain context and reusable actions.
+1. Maintain an OKF bundle in `Knowledge`, `.Knowledge`, or another directory.
+2. Enable OKF in Gemini Helper settings.
+3. Combine OKF with skills when the task needs both domain context and reusable actions.
 
 ## Limitations
 

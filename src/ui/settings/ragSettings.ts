@@ -1,4 +1,4 @@
-import { Setting, Notice } from "obsidian";
+import { Modal, Setting, Notice, type App } from "obsidian";
 import { getFileSearchManager } from "src/core/fileSearch";
 import { t } from "src/i18n";
 import { DEFAULT_SETTINGS } from "src/types";
@@ -8,6 +8,50 @@ import { formatError } from "src/utils/error";
 import { RagSettingNameModal } from "./RagSettingNameModal";
 import { RagFilesModal } from "./RagFilesModal";
 import type { SettingsContext } from "./settingsContext";
+
+class MetadataFilterHelpModal extends Modal {
+  constructor(app: App) {
+    super(app);
+  }
+
+  onOpen(): void {
+    const { contentEl } = this;
+    contentEl.empty();
+    contentEl.createEl("h2", { text: t("settings.metadataFilter.helpTitle") });
+
+    contentEl.createEl("p", { text: t("settings.metadataFilter.helpIntro") });
+
+    contentEl.createEl("h3", { text: t("settings.metadataFilter.helpKeys") });
+    const keysList = contentEl.createEl("ul");
+    [
+      ["path", t("settings.metadataFilter.helpKeyPath")],
+      ["extension", t("settings.metadataFilter.helpKeyExtension")],
+      ["basename", t("settings.metadataFilter.helpKeyBasename")],
+      ["folder", t("settings.metadataFilter.helpKeyFolder")],
+      ["modified", t("settings.metadataFilter.helpKeyModified")],
+      ["size", t("settings.metadataFilter.helpKeySize")],
+    ].forEach(([key, description]) => {
+      const item = keysList.createEl("li");
+      item.createEl("code", { text: key });
+      item.createSpan({ text: ` - ${description}` });
+    });
+
+    contentEl.createEl("h3", { text: t("settings.metadataFilter.helpExamples") });
+    const examples = contentEl.createEl("pre");
+    examples.createEl("code", {
+      text: [
+        'extension = "md"',
+        'folder = "Projects" AND extension = "md"',
+        'extension = "pdf" OR folder = "notes"',
+        "size < 100000",
+        "modified > 1719763200000",
+        'new Date("2024-07-01T00:00:00Z").getTime()',
+      ].join("\n"),
+    });
+
+    contentEl.createEl("p", { text: t("settings.metadataFilter.helpNote") });
+  }
+}
 
 export function displayRagSettings(containerEl: HTMLElement, ctx: SettingsContext): void {
   const { plugin, display } = ctx;
@@ -205,6 +249,15 @@ function displaySelectedRagSetting(
   const metadataFilterSetting = new Setting(containerEl)
     .setName(t("settings.metadataFilter"))
     .setDesc(t("settings.metadataFilter.desc"));
+
+  metadataFilterSetting.addExtraButton((button) => {
+    button
+      .setIcon("help-circle")
+      .setTooltip(t("settings.metadataFilter.help"))
+      .onClick(() => {
+        new MetadataFilterHelpModal(app).open();
+      });
+  });
 
   metadataFilterSetting.settingEl.addClass("gemini-helper-settings-textarea-container");
 

@@ -23,7 +23,6 @@ import {
 	type GeneratedImage,
 	type VaultToolNoneReason,
 	type McpAppInfo,
-	type KnowledgeSource,
 	isImageGenerationModel,
 	DEFAULT_WORKSPACE_FOLDER,
 } from "src/types";
@@ -71,7 +70,7 @@ import { cryptoCache } from "src/core/cryptoCache";
 import { formatError } from "src/utils/error";
 import { findFileMentionOccurrences } from "src/utils/mentionResolver";
 import { discoverSkills, loadSkill, buildSkillSystemPrompt, collectSkillWorkflows, type SkillMetadata, type LoadedSkill, type SkillWorkflowRef } from "src/core/skillsLoader";
-import { buildOkfSystemPrompt } from "src/core/okfLoader";
+import { buildOkfSystemPrompt, discoverOkfBundles, type OkfBundle } from "src/core/okfLoader";
 import { GET_WORKFLOW_SPEC_TOOL, GET_WORKFLOW_SPEC_TOOL_NAME, handleGetWorkflowSpec } from "src/workflow/workflowSpec";
 import { DEFAULT_BUILTIN_SKILL_IDS, builtinFolderPath, getBuiltinSkillMetadata, isBuiltinSkillPath } from "src/core/builtinSkills";
 import { parseWorkflowFromMarkdown } from "src/workflow/parser";
@@ -176,14 +175,12 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 	const [activeSkillPaths, setActiveSkillPaths] = useState<string[]>(
 		() => DEFAULT_BUILTIN_SKILL_IDS.map(builtinFolderPath)
 	);
-	const [knowledgeSources, setKnowledgeSources] = useState<KnowledgeSource[]>(
-		() => (plugin.settings.knowledgeSources || []).filter(source => source.enabled && source.path.trim())
-	);
-	const [activeKnowledgeSourceIds, setActiveKnowledgeSourceIds] = useState<string[]>(
-		() => (plugin.settings.knowledgeSources || [])
-			.filter(source => source.enabled && source.path.trim())
-			.map(source => source.id)
-	);
+	// OKF knowledge bundles discovered under the configured root directory.
+	const [okfBundles, setOkfBundles] = useState<OkfBundle[]>([]);
+	const [activeOkfBundleIds, setActiveOkfBundleIds] = useState<string[]>([]);
+	// Bundle ids seen at least once, so a bundle the user unchecked is not
+	// re-activated as if it were newly discovered on the next refresh.
+	const seenOkfBundleIdsRef = useRef<Set<string>>(new Set());
 
 	// Check if configuration is ready (API key set)
 	const isConfigReady = hasApiKey;
@@ -510,22 +507,42 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 		};
 	}, [plugin, refreshSkills]);
 
-	const refreshKnowledgeSources = useCallback(() => {
-		const enabledSources = (plugin.settings.knowledgeSources || []).filter(source => source.enabled && source.path.trim());
-		setKnowledgeSources(enabledSources);
-		setActiveKnowledgeSourceIds(prev => {
-			const availableIds = new Set(enabledSources.map(source => source.id));
-			return prev.filter(id => availableIds.has(id));
-		});
+	// Resolve the configured OKF root directory, if OKF is enabled in settings.
+	const getOkfRoot = useCallback((): string | null => {
+		const source = (plugin.settings.knowledgeSources || []).find(s => s.enabled && s.path.trim());
+		return source ? source.path.trim() : null;
 	}, [plugin]);
 
+	const refreshOkfBundles = useCallback(async () => {
+		const root = getOkfRoot();
+		if (!root) {
+			setOkfBundles([]);
+			setActiveOkfBundleIds([]);
+			return;
+		}
+		const bundles = await discoverOkfBundles(plugin.app, root).catch(() => [] as OkfBundle[]);
+		setOkfBundles(bundles);
+		setActiveOkfBundleIds(prev => {
+			const present = new Set(bundles.map(b => b.id));
+			const kept = prev.filter(id => present.has(id));
+			// Newly discovered bundles default to active; previously-seen ones the
+			// user unchecked stay unchecked.
+			const newlyAppeared = bundles
+				.map(b => b.id)
+				.filter(id => !seenOkfBundleIdsRef.current.has(id) && !kept.includes(id));
+			bundles.forEach(b => seenOkfBundleIdsRef.current.add(b.id));
+			return [...kept, ...newlyAppeared];
+		});
+	}, [plugin, getOkfRoot]);
+
 	useEffect(() => {
-		refreshKnowledgeSources();
-		plugin.settingsEmitter.on("settings-updated", refreshKnowledgeSources);
+		void refreshOkfBundles();
+		const handler = () => { void refreshOkfBundles(); };
+		plugin.settingsEmitter.on("settings-updated", handler);
 		return () => {
-			plugin.settingsEmitter.off("settings-updated", refreshKnowledgeSources);
+			plugin.settingsEmitter.off("settings-updated", handler);
 		};
-	}, [plugin, refreshKnowledgeSources]);
+	}, [plugin, refreshOkfBundles]);
 
 	// Cleanup MCP executor on unmount
 	useEffect(() => {
@@ -1601,9 +1618,9 @@ Always be helpful and provide clear, concise responses. When working with vault 
 					}
 				}
 
-				const selectedKnowledgeSources = knowledgeSources.filter(source => activeKnowledgeSourceIds.includes(source.id));
-				if (selectedKnowledgeSources.length > 0) {
-					systemPrompt += await buildOkfSystemPrompt(plugin.app, selectedKnowledgeSources);
+				const okfRoot = getOkfRoot();
+				if (okfRoot && activeOkfBundleIds.length > 0) {
+					systemPrompt += await buildOkfSystemPrompt(plugin.app, okfRoot, activeOkfBundleIds);
 				}
 
 				const allMessages = [...messages, userMessage];
@@ -2165,6 +2182,16 @@ Always be helpful and provide clear, concise responses. When working with vault 
 						onThinkFlashLiteChange={setThinkFlashLite}
 						mcpServers={mcpServers}
 						onMcpServerToggle={handleMcpServerToggle}
+						okfBundles={okfBundles}
+						activeOkfBundleIds={activeOkfBundleIds}
+						onToggleOkfBundle={(id) => {
+							setActiveOkfBundleIds(prev =>
+								prev.includes(id)
+									? prev.filter(b => b !== id)
+									: [...prev, id]
+							);
+						}}
+						onVaultToolMenuOpen={() => { void refreshOkfBundles(); }}
 						slashCommands={plugin.settings.slashCommands}
 						onSlashCommand={handleSlashCommand}
 						availableSkills={availableSkills}
@@ -2174,15 +2201,6 @@ Always be helpful and provide clear, concise responses. When working with vault 
 								prev.includes(folderPath)
 									? prev.filter(p => p !== folderPath)
 									: [...prev, folderPath]
-							);
-						}}
-						knowledgeSources={knowledgeSources}
-						activeKnowledgeSourceIds={activeKnowledgeSourceIds}
-						onToggleKnowledgeSource={(id) => {
-							setActiveKnowledgeSourceIds(prev =>
-								prev.includes(id)
-									? prev.filter(sourceId => sourceId !== id)
-									: [...prev, id]
 							);
 						}}
 						onCompact={() => { void handleCompact(); }}

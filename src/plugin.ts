@@ -501,11 +501,6 @@ export class GeminiHelperPlugin extends Plugin {
       mcpServers: loaded.mcpServers
         ? [...loaded.mcpServers]
         : [],
-      externalSkillsSource: {
-        skillIds: loaded.externalSkillsSource?.skillIds
-          ? [...loaded.externalSkillsSource.skillIds]
-          : [],
-      },
       // Deep copy workflow arrays
       enabledWorkflowHotkeys: loaded.enabledWorkflowHotkeys
         ? [...loaded.enabledWorkflowHotkeys]

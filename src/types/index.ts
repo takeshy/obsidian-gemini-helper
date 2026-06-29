@@ -67,12 +67,6 @@ export interface WorkflowEventTrigger {
   filePattern?: string;       // Optional glob pattern to filter files (e.g., "*.md", "folder/**")
 }
 
-export interface ExternalSkillsSource {
-  // Skills are always imported from the official repository (see OFFICIAL_SKILLS_REPO).
-  // Only the subset of skill IDs to install is user-configurable.
-  skillIds: string[];
-}
-
 // Vault tool mode type
 export type VaultToolMode = "all" | "noSearch" | "none";
 
@@ -110,9 +104,6 @@ export interface GeminiHelperSettings {
 
   // Slash commands
   slashCommands: SlashCommand[];
-
-  // External skill imports
-  externalSkillsSource: ExternalSkillsSource;
 
   // Workflow hotkeys
   enabledWorkflowHotkeys: string[];  // Workflow identifiers in format "path#name" (e.g., "folder/file.md#MyWorkflow")
@@ -604,9 +595,6 @@ export const DEFAULT_SETTINGS: GeminiHelperSettings = {
   saveChatHistory: true,
   systemPrompt: "",
   slashCommands: DEFAULT_SLASH_COMMANDS,
-  externalSkillsSource: {
-    skillIds: [],
-  },
   enabledWorkflowHotkeys: [],
   enabledWorkflowEventTriggers: [],
   mcpServers: [],

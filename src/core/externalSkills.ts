@@ -24,6 +24,7 @@ interface SkillManifest {
   id?: string;
   name?: string;
   version?: string;
+  description?: string;
   compatibility?: {
     plugins?: PluginCompatibility[];
   };
@@ -86,7 +87,18 @@ interface GitHubTreeItem {
   type?: string;
 }
 
-async function readGitHubTree(repositoryUrl: string): Promise<SourceFile[]> {
+function isSkillFile(path: string): boolean {
+  return path.startsWith("skills/") && path.split("/").length >= 3;
+}
+
+function isSkillManifestFile(path: string): boolean {
+  return /^skills\/[^/]+\/manifest\.json$/.test(path);
+}
+
+async function readGitHubTree(
+  repositoryUrl: string,
+  accept: (path: string) => boolean = isSkillFile,
+): Promise<SourceFile[]> {
   const repo = parseGitHubRepo(repositoryUrl);
   if (!repo) throw new Error(`Invalid GitHub repository: ${repositoryUrl}`);
 
@@ -117,7 +129,7 @@ async function readGitHubTree(repositoryUrl: string): Promise<SourceFile[]> {
   const filePaths = treeJson.tree
     .filter(item => item.type === "blob" && typeof item.path === "string")
     .map(item => item.path!)
-    .filter(path => path.startsWith("skills/") && path.split("/").length >= 3)
+    .filter(accept)
     .sort();
 
   const files: SourceFile[] = [];
@@ -276,6 +288,66 @@ export async function importExternalSkills(
 ): Promise<ImportExternalSkillsResult> {
   const files = await readGitHubTree(OFFICIAL_SKILLS_REPO);
   return installSkillFiles(app, files, skillIds, pluginId, pluginVersion);
+}
+
+export interface SkillCatalogEntry {
+  id: string;
+  name: string;
+  version: string;
+  description: string;
+}
+
+/**
+ * Fetch the list of skills available in the official repository that are
+ * compatible with the current plugin. Only manifest.json files are fetched,
+ * so this is much lighter than a full import.
+ */
+export async function fetchSkillCatalog(
+  pluginId = "gemini-helper",
+  pluginVersion = "0.0.0",
+): Promise<SkillCatalogEntry[]> {
+  const files = await readGitHubTree(OFFICIAL_SKILLS_REPO, isSkillManifestFile);
+  const entries: SkillCatalogEntry[] = [];
+  for (const file of files) {
+    const id = normalizePathSeparators(file.relativePath).split("/")[0];
+    if (!isSafeSkillId(id)) continue;
+    const manifest = parseManifest(file.content);
+    if (!manifest) continue;
+    if (manifest.id && manifest.id !== id) continue;
+    if (!manifest.version || !parseSemver(manifest.version)) continue;
+    if (!isPluginCompatible(manifest, pluginId, pluginVersion)) continue;
+    entries.push({
+      id,
+      name: manifest.name || id,
+      version: manifest.version,
+      description: manifest.description || "",
+    });
+  }
+  entries.sort((a, b) => a.id.localeCompare(b.id));
+  return entries;
+}
+
+export interface InstalledSkill {
+  id: string;
+  name: string;
+  version: string | null;
+}
+
+/** List skills already installed into the vault skills/ folder. */
+export async function listInstalledSkills(app: App): Promise<InstalledSkill[]> {
+  const result: InstalledSkill[] = [];
+  if (!(await app.vault.adapter.exists(SKILLS_FOLDER))) return result;
+
+  const listing = await app.vault.adapter.list(SKILLS_FOLDER);
+  for (const folder of listing.folders) {
+    const id = folder.split("/").filter(Boolean).pop() || "";
+    if (!isSafeSkillId(id)) continue;
+    if (!(await app.vault.adapter.exists(`${folder}/SKILL.md`))) continue;
+    const manifest = await getInstalledManifest(app, id);
+    result.push({ id, name: manifest?.name || id, version: manifest?.version ?? null });
+  }
+  result.sort((a, b) => a.id.localeCompare(b.id));
+  return result;
 }
 
 export async function installSkillFiles(

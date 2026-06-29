@@ -47,7 +47,6 @@ export function displayKnowledgeSettings(containerEl: HTMLElement, ctx: Settings
           void (async () => {
             source.enabled = value;
             await plugin.saveSettings();
-            plugin.settingsEmitter.emit("knowledge-sources-changed");
           })();
         })
       )
@@ -59,7 +58,6 @@ export function displayKnowledgeSettings(containerEl: HTMLElement, ctx: Settings
             void (async () => {
               plugin.settings.knowledgeSources = (plugin.settings.knowledgeSources || []).filter(s => s.id !== source.id);
               await plugin.saveSettings();
-              plugin.settingsEmitter.emit("knowledge-sources-changed");
               display();
             })();
           })
@@ -75,7 +73,6 @@ export function displayKnowledgeSettings(containerEl: HTMLElement, ctx: Settings
             void (async () => {
               source.name = value.trim() || "OKF";
               await plugin.saveSettings();
-              plugin.settingsEmitter.emit("knowledge-sources-changed");
             })();
           })
       );
@@ -90,7 +87,6 @@ export function displayKnowledgeSettings(containerEl: HTMLElement, ctx: Settings
             void (async () => {
               source.path = value.trim();
               await plugin.saveSettings();
-              plugin.settingsEmitter.emit("knowledge-sources-changed");
             })();
           })
       );

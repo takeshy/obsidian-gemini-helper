@@ -521,10 +521,8 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 
 	useEffect(() => {
 		refreshKnowledgeSources();
-		plugin.settingsEmitter.on("knowledge-sources-changed", refreshKnowledgeSources);
 		plugin.settingsEmitter.on("settings-updated", refreshKnowledgeSources);
 		return () => {
-			plugin.settingsEmitter.off("knowledge-sources-changed", refreshKnowledgeSources);
 			plugin.settingsEmitter.off("settings-updated", refreshKnowledgeSources);
 		};
 	}, [plugin, refreshKnowledgeSources]);

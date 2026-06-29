@@ -41,24 +41,24 @@ function asTags(value: unknown): string[] {
   return [];
 }
 
-async function listVaultMarkdown(app: App, root: string): Promise<Array<{ path: string; content: string }>> {
-  const normalizedRoot = normalizePathSeparators(root).replace(/^\/+|\/+$/g, "");
-  const files = app.vault.getMarkdownFiles()
-    .filter(file => file.path === normalizedRoot || file.path.startsWith(`${normalizedRoot}/`))
-    .sort((a, b) => a.path.localeCompare(b.path));
-
-  const docs: Array<{ path: string; content: string }> = [];
-  for (const file of files) {
-    docs.push({ path: file.path, content: await app.vault.cachedRead(file) });
-  }
-  return docs;
+interface MarkdownRef {
+  path: string;
+  read: () => Promise<string>;
 }
 
-async function listExternalMarkdown(root: string): Promise<Array<{ path: string; content: string }>> {
+function listVaultMarkdown(app: App, root: string): MarkdownRef[] {
+  const normalizedRoot = normalizePathSeparators(root).replace(/^\/+|\/+$/g, "");
+  return app.vault.getMarkdownFiles()
+    .filter(file => file.path === normalizedRoot || file.path.startsWith(`${normalizedRoot}/`))
+    .sort((a, b) => a.path.localeCompare(b.path))
+    .map(file => ({ path: file.path, read: () => app.vault.cachedRead(file) }));
+}
+
+async function listExternalMarkdown(root: string): Promise<MarkdownRef[]> {
   const fs = getNodeFs();
   if (!fs) throw new Error("External OKF directories are only available on desktop Obsidian.");
   const fsApi = fs;
-  const docs: Array<{ path: string; content: string }> = [];
+  const refs: MarkdownRef[] = [];
   const rootPath = root.replace(/[\\/]+$/, "");
 
   async function walk(dir: string): Promise<void> {
@@ -71,33 +71,41 @@ async function listExternalMarkdown(root: string): Promise<Array<{ path: string;
         await walk(fullPath);
       } else if (entry.isFile() && entry.name.toLowerCase().endsWith(".md")) {
         const rel = normalizePathSeparators(fullPath.slice(rootPath.length).replace(/^[/\\]+/, ""));
-        docs.push({ path: rel, content: await fsApi.promises.readFile(fullPath, "utf8") });
+        refs.push({ path: rel, read: () => fsApi.promises.readFile(fullPath, "utf8") });
       }
     }
   }
 
   await walk(rootPath);
-  return docs;
+  refs.sort((a, b) => a.path.localeCompare(b.path));
+  return refs;
+}
+
+function isLogFile(path: string): boolean {
+  return path === "log.md" || path.endsWith("/log.md");
 }
 
 async function loadOkfDocuments(app: App, source: KnowledgeSource): Promise<OkfDocument[]> {
-  const rawDocs = isAbsolutePath(source.path)
+  const refs = isAbsolutePath(source.path)
     ? await listExternalMarkdown(source.path)
-    : await listVaultMarkdown(app, source.path);
+    : listVaultMarkdown(app, source.path);
 
-  return rawDocs
-    .filter(doc => !doc.path.endsWith("/log.md"))
-    .map(doc => {
-      const { frontmatter, body } = parseFrontmatter(doc.content);
-      return {
-        path: doc.path,
-        title: asString(frontmatter.title) || doc.path.replace(/\.md$/i, ""),
-        type: asString(frontmatter.type) || (doc.path.endsWith("index.md") ? "Index" : "Concept"),
-        description: asString(frontmatter.description),
-        tags: asTags(frontmatter.tags),
-        body: body.trim().replace(/\s+/g, " ").slice(0, MAX_BODY_CHARS),
-      };
+  // Cap the number of files before reading content so large bundles stay bounded.
+  const selected = refs.filter(ref => !isLogFile(ref.path)).slice(0, MAX_DOCS_PER_SOURCE);
+
+  const docs: OkfDocument[] = [];
+  for (const ref of selected) {
+    const { frontmatter, body } = parseFrontmatter(await ref.read());
+    docs.push({
+      path: ref.path,
+      title: asString(frontmatter.title) || ref.path.replace(/\.md$/i, ""),
+      type: asString(frontmatter.type) || (ref.path.endsWith("index.md") ? "Index" : "Concept"),
+      description: asString(frontmatter.description),
+      tags: asTags(frontmatter.tags),
+      body: body.trim().replace(/\s+/g, " ").slice(0, MAX_BODY_CHARS),
     });
+  }
+  return docs;
 }
 
 export async function buildOkfSystemPrompt(app: App, sources: KnowledgeSource[]): Promise<string> {
@@ -110,7 +118,7 @@ export async function buildOkfSystemPrompt(app: App, sources: KnowledgeSource[])
 
   for (const source of activeSources) {
     try {
-      const docs = (await loadOkfDocuments(app, source)).slice(0, MAX_DOCS_PER_SOURCE);
+      const docs = await loadOkfDocuments(app, source);
       const lines = docs.map(doc => {
         const tags = doc.tags.length > 0 ? ` tags=${doc.tags.join(",")}` : "";
         const description = doc.description ? ` - ${doc.description}` : "";

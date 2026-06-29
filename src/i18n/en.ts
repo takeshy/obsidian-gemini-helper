@@ -69,10 +69,10 @@ export const en = {
   "settings.importSkills.failed": "Failed to import skills: {{error}}",
 
   // Settings - Knowledge sources
-  "settings.okfSources": "Okf sources",
-  "settings.okfSources.desc": "Register open knowledge format directories. Vault-relative paths and desktop absolute paths are supported.",
-  "settings.addOkfSource": "Add okf source",
-  "settings.okfSource": "Okf source",
+  "settings.okfSources": "OKF sources",
+  "settings.okfSources.desc": "Register OKF directories. Vault-relative paths and desktop absolute paths are supported.",
+  "settings.addOkfSource": "Add OKF source",
+  "settings.okfSource": "OKF source",
   "settings.okfSource.noPath": "No path configured",
   "settings.okfSourceName": "Name",
   "settings.okfSourcePath": "Directory",

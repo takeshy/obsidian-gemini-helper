@@ -11,9 +11,11 @@ Assistente AI **gratuito e open-source** per Obsidian con **Chat**, **Automazion
 - **Chat AI** - Risposte in streaming, allegati, operazioni sul vault, comandi slash
 - **Monitoraggio uso** - Mostra token API e costo approssimativo per ogni chat ed esecuzione workflow
 - **Agent Skills** - Skill riutilizzabili estendono la chat; lo skill Markdown per Obsidian basato su [kepano/obsidian-skills](https://github.com/kepano/obsidian-skills) e attivo per impostazione predefinita
+- **Skill esterni** - Installa skill versionati dal repository ufficiale `takeshy/llm-hub-skills`
 - **Workflow Builder** - Automatizza attività multi-step con editor visuale e 24 tipi di nodi
 - **Supporto MCP** - Usa strumenti MCP nei workflow e renderizza risorse MCP UI dentro Obsidian
 - **RAG** - Retrieval-Augmented Generation per ricerca intelligente nel tuo vault
+- **Fonti di conoscenza OKF** - Aggiungi bundle Open Knowledge Format come conoscenza di chat compatta
 - **Accesso AI alle cartelle** - Limita quali cartelle l'AI puo leggere automaticamente quando non vuoi accesso all'intero vault
 - **Crittografia** - Proteggi con password la cronologia chat e i log di esecuzione dei workflow
 - **Cronologia Modifiche** - Traccia e ripristina le modifiche fatte dall'AI con vista diff
@@ -255,6 +257,7 @@ Estendi le capacità dell'IA con istruzioni personalizzate, materiali di riferim
 - **Istruzioni personalizzate** - Definisci il comportamento specifico del dominio tramite file `SKILL.md`
 - **Materiali di riferimento** - Includi guide di stile, modelli e checklist in `references/`
 - **Integrazione dei workflow** - Gli skill possono esporre workflow come strumenti di Function Calling
+- **Skill esterni** - Installa skill compatibili dal repository ufficiale `takeshy/llm-hub-skills`
 - **Comando slash** - Digita `/folder-name` per invocare uno skill istantaneamente e inviare
 - **Attivazione selettiva** - Scegli quali skill sono attivi per conversazione
 - **Chip skill cliccabili** - I chip degli skill attivi nell'area di input e sui messaggi dell'assistente sono cliccabili e aprono il `SKILL.md` corrispondente (gli skill integrati sono mostrati come etichette statiche)
@@ -262,7 +265,24 @@ Estendi le capacità dell'IA con istruzioni personalizzate, materiali di riferim
 
 Crea gli skill allo stesso modo dei workflow — seleziona **+ New (AI)**, attiva **"Crea come agent skill"** e descrivi cosa vuoi. L'AI genera sia le istruzioni del `SKILL.md` che il workflow. Per modificare uno skill esistente, apri il suo `SKILL.md` e clicca **Modifica skill con AI** nella scheda Workflow / skill — l'AI aggiorna insieme il corpo delle istruzioni e il workflow referenziato.
 
-> **Per le istruzioni di configurazione e gli esempi, consulta [SKILLS.md](docs/SKILLS_it.md)**
+![Impostazioni skill esterni](docs/images/external_skill.png)
+
+Gli skill esterni vengono importati dal repository ufficiale e copiati nella cartella `skills/` del tuo vault. Il pannello delle impostazioni mostra gli skill installabili, le versioni installate e i controlli di aggiornamento per ogni skill. Gli skill importati usano lo stesso selettore, gli stessi comandi slash, riferimenti ed esecuzione dei workflow degli skill creati nel vault.
+
+> **Per le istruzioni di configurazione e gli esempi, consulta [SKILLS.md](docs/SKILLS_it.md)**  
+> **Per le regole del repository di skill esterni, consulta [import_skill.md](docs/import_skill.md)**
+
+## Fonti di conoscenza OKF
+
+Gemini Helper puo leggere bundle Open Knowledge Format (OKF) come conoscenza di chat. Abilita **OKF** in **Impostazioni → Fonti di conoscenza**, quindi puntalo a una directory relativa al vault come `Knowledge` o `.Knowledge`.
+
+![Impostazioni OKF](docs/images/okf.png)
+
+OKF e ideale per un contesto di dominio curato: concetti, metriche, dataset, glossari e playbook. Viene iniettato come contesto di prompt compatto, mentre gli skill restano il luogo per comportamenti riutilizzabili, riferimenti e workflow eseguibili.
+
+![Esempio OKF](docs/images/okf_sample.png)
+
+> **Per la struttura e i limiti di OKF, consulta [OKF.md](docs/OKF.md)**
 
 ---
 

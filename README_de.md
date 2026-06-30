@@ -11,9 +11,11 @@
 - **KI-Chat** - Streaming-Antworten, Dateianhänge, Vault-Operationen, Slash-Befehle
 - **Nutzungsverfolgung** - Zeigt ungefähre API-Token und Kosten pro Chat- und Workflow-Ausführung
 - **Agent-Skills** - Wiederverwendbare Skills erweitern den Chat; der Obsidian-Markdown-Skill basierend auf [kepano/obsidian-skills](https://github.com/kepano/obsidian-skills) ist standardmäßig aktiviert
+- **Externe Skills** - Versionierte Skills aus dem offiziellen Repository `takeshy/llm-hub-skills` installieren
 - **Workflow Builder** - Automatisieren Sie mehrstufige Aufgaben mit visuellem Node-Editor und 24 Node-Typen
 - **MCP-Unterstützung** - Nutzen Sie MCP-Tools in Workflows und rendern Sie MCP-UI-Ressourcen direkt in Obsidian
 - **RAG** - Retrieval-Augmented Generation für intelligente Suche in Ihrem Vault
+- **OKF-Wissensquellen** - Open-Knowledge-Format-Bundles als kompaktes Chat-Wissen hinzufügen
 - **KI-Ordnerzugriff** - Begrenzen Sie, welche Ordner die KI automatisch lesen darf, wenn kein Zugriff auf den gesamten Vault gewünscht ist
 - **Verschlüsselung** - Passwortschutz für Chat-Verlauf und Workflow-Ausführungsprotokolle
 - **Bearbeitungsverlauf** - Verfolgen und Wiederherstellen von KI-Änderungen mit Diff-Ansicht
@@ -255,6 +257,7 @@ Erweitern Sie die KI mit benutzerdefinierten Anweisungen, Referenzmaterialien un
 - **Benutzerdefinierte Anweisungen** - Definieren Sie domänenspezifisches Verhalten über `SKILL.md`-Dateien
 - **Referenzmaterialien** - Styleguides, Vorlagen und Checklisten in `references/` einbinden
 - **Workflow-Integration** - Skills können Workflows als Function-Calling-Werkzeuge bereitstellen
+- **Externe Skills** - Kompatible Skills aus dem offiziellen Repository `takeshy/llm-hub-skills` installieren
 - **Slash-Befehl** - Geben Sie `/folder-name` ein, um einen Skill sofort aufzurufen und zu senden
 - **Selektive Aktivierung** - Wählen Sie, welche Skills pro Konversation aktiv sind
 - **Klickbare Skill-Chips** - Aktive Skill-Chips im Eingabebereich und in Assistentennachrichten sind klickbar und öffnen die passende `SKILL.md` (integrierte Skills werden als statische Labels angezeigt)
@@ -262,7 +265,24 @@ Erweitern Sie die KI mit benutzerdefinierten Anweisungen, Referenzmaterialien un
 
 Erstellen Sie Skills genauso wie Workflows — wählen Sie **+ New (AI)**, aktivieren Sie **„Als Agent-Skill erstellen"** und beschreiben Sie, was Sie möchten. Die AI generiert sowohl die `SKILL.md`-Anweisungen als auch den Workflow. Um einen bestehenden Skill zu bearbeiten, öffnen Sie seine `SKILL.md` und klicken Sie auf **Skill mit KI ändern** im Workflow / skill-Tab — die KI aktualisiert sowohl den Anweisungstext als auch den referenzierten Workflow zusammen.
 
-> **Für Einrichtungsanleitungen und Beispiele siehe [SKILLS.md](docs/SKILLS_de.md)**
+![Einstellungen für externe Skills](docs/images/external_skill.png)
+
+Externe Skills werden aus dem offiziellen Repository importiert und in den `skills/`-Ordner Ihres Vaults kopiert. Das Einstellungsfeld zeigt installierbare Skills, installierte Versionen und Update-Prüfungen pro Skill. Importierte Skills verwenden denselben Selektor, dieselben Slash-Befehle, Referenzen und Workflow-Ausführung wie im Vault erstellte Skills.
+
+> **Für Einrichtungsanleitungen und Beispiele siehe [SKILLS.md](docs/SKILLS_de.md)**  
+> **Regeln für externe Skill-Repositories finden Sie unter [import_skill.md](docs/import_skill.md)**
+
+## OKF-Wissensquellen
+
+Gemini Helper kann Open-Knowledge-Format-(OKF)-Bundles als Chat-Wissen lesen. Aktivieren Sie **OKF** unter **Einstellungen → Wissensquellen** und verweisen Sie es dann auf ein vault-relatives Verzeichnis wie `Knowledge` oder `.Knowledge`.
+
+![OKF-Einstellungen](docs/images/okf.png)
+
+OKF eignet sich am besten für kuratierten Domänenkontext: Konzepte, Metriken, Datensätze, Glossare und Playbooks. Es wird als kompakter Prompt-Kontext eingefügt, während Skills der Ort für wiederverwendbares Verhalten, Referenzen und ausführbare Workflows bleiben.
+
+![OKF-Beispiel](docs/images/okf_sample.png)
+
+> **Zur OKF-Struktur und den Grenzen siehe [OKF.md](docs/OKF.md)**
 
 ---
 

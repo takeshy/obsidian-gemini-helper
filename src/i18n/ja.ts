@@ -398,6 +398,13 @@ export const ja: Record<string, string> = {
 
   // Workflow Panel - UI Strings
   "workflow.reloaded": "ワークフローをファイルから再読み込みしました",
+  "workflow.generation.outputPathTaken": "{{path}} には既にワークフローがあります。別の出力パスを選択してください。",
+  "workflow.multipleBlocksInFile": "1つのファイル内に複数のワークフローブロックが見つかりました。各ファイルに含められるワークフローは1つだけです。ファイルを手動で分割するか、移行アクションを使用してください。",
+  "workflow.noCodeBlockFound": "ワークフローのコードブロックが見つかりません",
+  "workflow.migrate": "個別のファイルに分割",
+  "workflow.migrateConfirm": "このファイルには複数のワークフローブロックが含まれています。そのうち{{count}}個を新しい兄弟ファイルに分割しますか？\n\n{{files}}\n\n元のファイルには最初のワークフローが残ります。元のファイルパスを参照していたスキル機能、ホットキー、イベントトリガーは最初のワークフローに紐づいたままになります。必要に応じて手動で新しいファイルを指すよう設定してください。",
+  "workflow.migrateNothingToDo": "このファイルには複数のワークフローブロックは含まれていません。",
+  "workflow.migrateSuccess": "移行が完了しました: {{count}}個のワークフローを兄弟ファイルに分割しました。",
   "workflow.appendedTo": "ワークフロー「{{name}}」を{{path}}に追加しました",
   "workflow.createdAt": "ワークフロー「{{name}}」を{{path}}に作成しました",
   "workflow.noWorkflowToModify": "修正するワークフローがありません",

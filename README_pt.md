@@ -11,9 +11,11 @@ Assistente de IA **gratuito e open-source** para Obsidian com **Chat**, **Automa
 - **Chat com IA** - Respostas em streaming, anexos de arquivos, operações no vault, comandos de barra
 - **Acompanhamento de uso** - Mostra tokens de API e custo aproximado por chat e execução de workflow
 - **Agent Skills** - Skills reutilizáveis expandem o chat; o skill Markdown para Obsidian baseado em [kepano/obsidian-skills](https://github.com/kepano/obsidian-skills) vem ativado por padrão
+- **Skills externos** - Instale skills versionados a partir do repositório oficial `takeshy/llm-hub-skills`
 - **Construtor de Workflows** - Automatize tarefas de múltiplas etapas com editor visual de nós e 24 tipos de nós
 - **Suporte MCP** - Use ferramentas MCP em workflows e renderize recursos MCP UI dentro do Obsidian
 - **RAG** - Geração Aumentada por Recuperação para busca inteligente em seu vault
+- **Fontes de conhecimento OKF** - Adicione pacotes Open Knowledge Format como conhecimento de chat compacto
 - **Acesso da IA a pastas** - Limite quais pastas a IA pode ler automaticamente quando você não quiser acesso ao vault inteiro
 - **Criptografia** - Proteja com senha o histórico de chat e logs de execução de workflows
 - **Histórico de Edições** - Rastreie e restaure alterações feitas pela IA com visualização de diff
@@ -256,6 +258,7 @@ Estenda as capacidades da IA com instruções personalizadas, materiais de refer
 - **Instruções personalizadas** - Defina comportamento específico do domínio através de arquivos `SKILL.md`
 - **Materiais de referência** - Inclua guias de estilo, modelos e checklists em `references/`
 - **Integração com fluxos de trabalho** - Skills podem expor fluxos de trabalho como ferramentas de Function Calling
+- **Skills externos** - Instale skills compatíveis a partir do repositório oficial `takeshy/llm-hub-skills`
 - **Comando slash** - Digite `/folder-name` para invocar um skill instantaneamente e enviar
 - **Ativação seletiva** - Escolha quais skills estão ativos por conversa
 - **Chips de skill clicáveis** - Os chips de skills ativos na área de entrada e nas mensagens do assistente são clicáveis e abrem o `SKILL.md` correspondente (skills integrados são exibidos como rótulos estáticos)
@@ -263,7 +266,24 @@ Estenda as capacidades da IA com instruções personalizadas, materiais de refer
 
 Crie skills da mesma forma que workflows — selecione **+ New (AI)**, marque **"Criar como agent skill"** e descreva o que deseja. A AI gera tanto as instruções do `SKILL.md` quanto o workflow. Para editar um skill existente, abra o seu `SKILL.md` e clique em **Modificar skill com IA** na aba Workflow / skill — a IA atualiza juntos o corpo das instruções e o workflow referenciado.
 
-> **Para instruções de configuração e exemplos, consulte [SKILLS.md](docs/SKILLS_pt.md)**
+![Configurações de skills externos](docs/images/external_skill.png)
+
+Os skills externos são importados do repositório oficial e copiados para a pasta `skills/` do seu vault. O painel de configurações mostra os skills instaláveis, as versões instaladas e as verificações de atualização por skill. Os skills importados usam o mesmo seletor, comandos de barra, referências e execução de fluxos de trabalho que os skills criados no vault.
+
+> **Para instruções de configuração e exemplos, consulte [SKILLS.md](docs/SKILLS_pt.md)**  
+> **Para as regras do repositório de skills externos, consulte [import_skill.md](docs/import_skill.md)**
+
+## Fontes de conhecimento OKF
+
+O Gemini Helper pode ler pacotes Open Knowledge Format (OKF) como conhecimento de chat. Ative **OKF** em **Configurações → Fontes de conhecimento** e aponte-o para um diretório relativo ao vault como `Knowledge` ou `.Knowledge`.
+
+![Configurações de OKF](docs/images/okf.png)
+
+OKF é ideal para contexto de domínio curado: conceitos, métricas, conjuntos de dados, glossários e manuais. Ele é injetado como contexto de prompt compacto, enquanto os skills continuam sendo o lugar para comportamento reutilizável, referências e fluxos de trabalho executáveis.
+
+![Exemplo de OKF](docs/images/okf_sample.png)
+
+> **Para a estrutura e os limites do OKF, consulte [OKF.md](docs/OKF.md)**
 
 ---
 

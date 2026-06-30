@@ -11,9 +11,11 @@ Assistant IA **gratuit et open-source** pour Obsidian avec **Chat**, **Automatis
 - **Chat IA** - Reponses en streaming, pieces jointes, operations sur le coffre, commandes slash
 - **Suivi d'utilisation** - Affiche les tokens API et le cout approximatif de chaque chat et execution de workflow
 - **Skills d'agent** - Des skills reutilisables etendent le chat ; le skill Markdown Obsidian base sur [kepano/obsidian-skills](https://github.com/kepano/obsidian-skills) est active par defaut
+- **Skills externes** - Installez des skills versionnes depuis le depot officiel `takeshy/llm-hub-skills`
 - **Constructeur de Workflows** - Automatisez des taches multi-etapes avec l'editeur visuel de noeuds et 24 types de noeuds
 - **Support MCP** - Utilisez des outils MCP dans les workflows et affichez les ressources MCP UI dans Obsidian
 - **RAG** - Generation Augmentee par Recuperation pour une recherche intelligente dans votre coffre
+- **Sources de connaissances OKF** - Ajoutez des bundles Open Knowledge Format comme connaissance de chat compacte
 - **Acces aux dossiers par l'IA** - Limitez les dossiers que l'IA peut lire automatiquement quand vous ne voulez pas d'acces a tout le coffre
 - **Chiffrement** - Protection par mot de passe de l'historique de chat et des journaux d'execution des workflows
 - **Historique d'Edition** - Suivez et restaurez les modifications faites par l'IA avec vue des differences
@@ -255,6 +257,7 @@ Etendez les capacites de l'IA avec des instructions personnalisees, des document
 - **Instructions personnalisees** - Definissez un comportement specifique au domaine via des fichiers `SKILL.md`
 - **Documents de reference** - Incluez des guides de style, modeles et listes de controle dans `references/`
 - **Integration des workflows** - Les skills peuvent exposer des workflows comme outils de Function Calling
+- **Skills externes** - Installez des skills compatibles depuis le depot officiel `takeshy/llm-hub-skills`
 - **Commande slash** - Tapez `/folder-name` pour invoquer un skill instantanement et envoyer
 - **Activation selective** - Choisissez quels skills sont actifs par conversation
 - **Puces de skill cliquables** - Les puces des skills actifs dans la zone de saisie et sur les messages de l'assistant sont cliquables et ouvrent le `SKILL.md` correspondant (les skills integres sont affiches comme etiquettes statiques)
@@ -262,7 +265,24 @@ Etendez les capacites de l'IA avec des instructions personnalisees, des document
 
 Creez des skills de la meme maniere que les workflows -- selectionnez **+ New (AI)**, cochez **"Creer en tant qu'agent skill"** et decrivez ce que vous souhaitez. L'AI genere a la fois les instructions du `SKILL.md` et le workflow. Pour editer un skill existant, ouvrez son `SKILL.md` et cliquez sur **Modifier le skill avec l'IA** dans l'onglet Workflow / skill -- l'IA met a jour ensemble le corps des instructions et le workflow reference.
 
-> **Pour les instructions de configuration et des exemples, consultez [SKILLS.md](docs/SKILLS_fr.md)**
+![Parametres des skills externes](docs/images/external_skill.png)
+
+Les skills externes sont importes depuis le depot officiel et copies dans le dossier `skills/` de votre coffre. Le panneau de parametres affiche les skills installables, les versions installees et les verifications de mise a jour par skill. Les skills importes utilisent le meme selecteur, les memes commandes slash, references et execution de workflow que les skills crees dans le coffre.
+
+> **Pour les instructions de configuration et des exemples, consultez [SKILLS.md](docs/SKILLS_fr.md)**  
+> **Pour les regles du depot de skills externes, consultez [import_skill.md](docs/import_skill.md)**
+
+## Sources de connaissances OKF
+
+Gemini Helper peut lire des bundles Open Knowledge Format (OKF) comme connaissance de chat. Activez **OKF** dans **Parametres → Sources de connaissances**, puis pointez-le vers un repertoire relatif au coffre tel que `Knowledge` ou `.Knowledge`.
+
+![Parametres OKF](docs/images/okf.png)
+
+OKF est ideal pour un contexte de domaine soigne : concepts, metriques, jeux de donnees, glossaires et playbooks. Il est injecte comme contexte de prompt compact, tandis que les skills restent l'endroit pour le comportement reutilisable, les references et les workflows executables.
+
+![Exemple OKF](docs/images/okf_sample.png)
+
+> **Pour la structure et les limites d'OKF, consultez [OKF.md](docs/OKF.md)**
 
 ---
 

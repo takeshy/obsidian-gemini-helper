@@ -11,9 +11,11 @@
 - **AI 聊天** - 流式响应、文件附件、仓库操作、斜杠命令
 - **用量追踪** - 显示每次聊天和工作流运行的 API token 数与预估费用
 - **Agent Skills** - 可用技能扩展聊天；基于 [kepano/obsidian-skills](https://github.com/kepano/obsidian-skills) 的 Obsidian Markdown 技能默认启用
+- **外部技能** - 从官方 `takeshy/llm-hub-skills` 仓库安装受版本管理的技能
 - **工作流构建器** - 使用可视化节点编辑器和 24 种节点类型自动化多步骤任务
 - **MCP 支持** - 在工作流中使用 MCP 工具，并在 Obsidian 内渲染 MCP UI 资源
 - **RAG** - 检索增强生成，在您的仓库中进行智能搜索
+- **OKF 知识来源** - 将 Open Knowledge Format 捆绑包添加为简洁的聊天知识
 - **AI 文件夹访问** - 当您不希望 AI 访问整个仓库时，限制 AI 可自动读取的文件夹
 - **加密** - 使用密码保护聊天历史和工作流执行日志
 - **编辑历史** - 使用差异视图追踪和恢复 AI 所做的更改
@@ -255,6 +257,7 @@ MCP（Model Context Protocol）服务器提供额外的工具，扩展 AI 在 Va
 - **自定义指令** - 通过 `SKILL.md` 文件定义特定领域的行为
 - **参考资料** - 在 `references/` 中包含风格指南、模板和检查清单
 - **工作流集成** - 技能可以将工作流作为 Function Calling 工具公开
+- **外部技能** - 从官方 `takeshy/llm-hub-skills` 仓库安装兼容的技能
 - **斜杠命令** - 输入 `/folder-name` 即可立即调用技能并发送
 - **选择性激活** - 按对话选择哪些技能处于活动状态
 - **可点击的技能标签** - 输入区和助手消息中显示的已激活技能标签可以点击打开对应的 `SKILL.md`（内置技能显示为静态标签）
@@ -262,7 +265,24 @@ MCP（Model Context Protocol）服务器提供额外的工具，扩展 AI 在 Va
 
 创建技能的方式与工作流相同 — 选择 **+ New (AI)**，勾选 **"作为代理技能创建"**，然后描述您想要的功能。AI 会同时生成 `SKILL.md` 指令和工作流。若要编辑现有技能，请打开其 `SKILL.md` 并在 Workflow / skill 选项卡中点击 **使用 AI 修改技能** — AI 会同时更新指令正文和引用的工作流。
 
-> **有关设置说明和示例，请参阅 [SKILLS.md](docs/SKILLS_zh.md)**
+![外部技能设置](docs/images/external_skill.png)
+
+外部技能从官方仓库导入并复制到您仓库的 `skills/` 文件夹。设置面板会显示可安装的技能、已安装的版本以及每个技能的更新检查。导入的技能使用与在仓库中创建的技能相同的选择器、斜杠命令、引用和工作流执行。
+
+> **有关设置说明和示例，请参阅 [SKILLS.md](docs/SKILLS_zh.md)**  
+> **有关外部技能仓库规则，请参阅 [import_skill.md](docs/import_skill.md)**
+
+## OKF 知识来源
+
+Gemini Helper 可以将 Open Knowledge Format (OKF) 捆绑包作为聊天知识读取。在 **设置 → 知识来源** 中启用 **OKF**，然后将其指向仓库相对目录（如 `Knowledge` 或 `.Knowledge`）。
+
+![OKF 设置](docs/images/okf.png)
+
+OKF 最适合用于精心整理的领域上下文：概念、指标、数据集、术语表和操作手册。它会作为简洁的提示上下文注入，而技能仍然是可复用行为、引用和可执行工作流的场所。
+
+![OKF 示例](docs/images/okf_sample.png)
+
+> **有关 OKF 结构和限制，请参阅 [OKF.md](docs/OKF.md)**
 
 ---
 

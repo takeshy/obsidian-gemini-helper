@@ -8,6 +8,7 @@ import { ensureVaultFolder } from "../dashboardFile";
 import ObsidianMarkdown from "./ObsidianMarkdown";
 import { TimelineLinkPreviewModal } from "./TimelineLinkPreviewModal";
 import { TimelineAiRewriteModal } from "./TimelineAiRewriteModal";
+import { ConfirmModal } from "src/ui/components/ConfirmModal";
 
 interface TimelineConfig {
   name?: string;
@@ -574,7 +575,7 @@ export default function TimelineWidget({
       skipNextScrollToLatestRef.current = false;
       return;
     }
-    requestAnimationFrame(scrollToLatest);
+    window.requestAnimationFrame(scrollToLatest);
     const timers = [80, 240, 600].map((delay) => window.setTimeout(scrollToLatest, delay));
     return () => timers.forEach((timer) => window.clearTimeout(timer));
   }, [name, posts.length, loading, editingPostId, scrollToLatest]);
@@ -592,7 +593,7 @@ export default function TimelineWidget({
       setLoadedCount(nextCount);
       setPosts(loaded.posts);
       setHasOlderPosts(loaded.hasMore);
-      requestAnimationFrame(() => {
+      window.requestAnimationFrame(() => {
         const nextEl = listRef.current;
         if (!nextEl) return;
         nextEl.scrollTop = nextEl.scrollHeight - prevHeight + nextEl.scrollTop;
@@ -809,7 +810,9 @@ export default function TimelineWidget({
   };
 
   const deletePost = async (post: TimelinePost) => {
-    if (!ctx || !confirm(t("dashboard.timelineDeleteConfirm"))) return;
+    if (!ctx) return;
+    const confirmed = await new ConfirmModal(ctx.app, t("dashboard.timelineDeleteConfirm")).openAndWait();
+    if (!confirmed) return;
     const current = await ctx.app.vault.read(post.sourceFile);
     const next = deletePostContent(current, post.sourceFile, post.id);
     if (next == null) return;
@@ -1060,7 +1063,7 @@ export default function TimelineWidget({
             className={`llm-hub-db-timeline-composer${Platform.isMobile ? " is-mobile-modal" : ""}${composerFocused ? " is-keyboard-focused" : ""}`}
             onFocus={() => setComposerFocused(true)}
             onBlur={(e) => {
-              if (!e.currentTarget.contains(e.relatedTarget as Node | null)) {
+              if (!e.currentTarget.contains(e.relatedTarget)) {
                 setComposerFocused(false);
               }
             }}

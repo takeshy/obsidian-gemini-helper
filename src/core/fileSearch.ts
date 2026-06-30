@@ -239,7 +239,7 @@ export class FileSearchManager {
     let current = operation;
     while (!current.done) {
       await new Promise((resolve) => window.setTimeout(resolve, 5000));
-      current = await this.ai.operations.get({ operation: current }) as UploadOperation;
+      current = await this.ai.operations.get({ operation: current });
     }
 
     if (current.error) {

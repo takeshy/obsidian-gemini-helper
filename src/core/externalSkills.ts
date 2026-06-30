@@ -1,4 +1,4 @@
-import type { App } from "obsidian";
+import { requestUrl, type App } from "obsidian";
 import { SKILLS_FOLDER } from "src/types";
 import { isAbsolutePath, normalizePathSeparators } from "./pathAccess";
 
@@ -102,23 +102,27 @@ async function readGitHubTree(
   const repo = parseGitHubRepo(repositoryUrl);
   if (!repo) throw new Error(`Invalid GitHub repository: ${repositoryUrl}`);
 
-  const repoResponse = await fetch(`https://api.github.com/repos/${repo.owner}/${repo.repo}`, {
+  const repoResponse = await requestUrl({
+    url: `https://api.github.com/repos/${repo.owner}/${repo.repo}`,
     headers: { Accept: "application/vnd.github+json" },
+    throw: false,
   });
-  if (!repoResponse.ok) {
-    throw new Error(`Failed to fetch GitHub repository: ${repoResponse.status} ${repoResponse.statusText}`);
+  if (repoResponse.status < 200 || repoResponse.status >= 300) {
+    throw new Error(`Failed to fetch GitHub repository: ${repoResponse.status}`);
   }
-  const repoJson = await repoResponse.json() as { default_branch?: string };
+  const repoJson = repoResponse.json as { default_branch?: string };
   const defaultBranch = repoJson.default_branch || "main";
 
   const treeUrl = `https://api.github.com/repos/${repo.owner}/${repo.repo}/git/trees/${encodeURIComponent(defaultBranch)}?recursive=1`;
-  const treeResponse = await fetch(treeUrl, {
+  const treeResponse = await requestUrl({
+    url: treeUrl,
     headers: { Accept: "application/vnd.github+json" },
+    throw: false,
   });
-  if (!treeResponse.ok) {
-    throw new Error(`Failed to fetch GitHub tree: ${treeResponse.status} ${treeResponse.statusText}`);
+  if (treeResponse.status < 200 || treeResponse.status >= 300) {
+    throw new Error(`Failed to fetch GitHub tree: ${treeResponse.status}`);
   }
-  const treeJson = await treeResponse.json() as { tree?: GitHubTreeItem[]; truncated?: boolean };
+  const treeJson = treeResponse.json as { tree?: GitHubTreeItem[]; truncated?: boolean };
   if (!Array.isArray(treeJson.tree)) {
     throw new Error("GitHub tree response did not include files.");
   }
@@ -136,13 +140,13 @@ async function readGitHubTree(
   for (const filePath of filePaths) {
     const rawPath = filePath.split("/").map(encodeURIComponent).join("/");
     const rawUrl = `https://raw.githubusercontent.com/${repo.owner}/${repo.repo}/${encodeURIComponent(defaultBranch)}/${rawPath}`;
-    const rawResponse = await fetch(rawUrl);
-    if (!rawResponse.ok) {
-      throw new Error(`Failed to fetch ${filePath}: ${rawResponse.status} ${rawResponse.statusText}`);
+    const rawResponse = await requestUrl({ url: rawUrl, throw: false });
+    if (rawResponse.status < 200 || rawResponse.status >= 300) {
+      throw new Error(`Failed to fetch ${filePath}: ${rawResponse.status}`);
     }
     files.push({
       relativePath: normalizePathSeparators(filePath.slice("skills/".length)),
-      content: await rawResponse.text(),
+      content: rawResponse.text,
     });
   }
 
@@ -203,7 +207,7 @@ function parseManifest(content: string | undefined): SkillManifest | null {
   try {
     const parsed = JSON.parse(content) as unknown;
     if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
-      return parsed as SkillManifest;
+      return parsed;
     }
   } catch {
     return null;

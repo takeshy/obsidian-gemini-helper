@@ -168,7 +168,7 @@ export function parseMarkdownToMessages(content: string): { messages: Message[];
 						if (meta.skillsUsed) message.skillsUsed = meta.skillsUsed as string[];
 						if (meta.mcpApps) message.mcpApps = meta.mcpApps as Message["mcpApps"];
 						if (meta.pendingRename) message.pendingRename = meta.pendingRename as Message["pendingRename"];
-						if (meta.usage) message.usage = meta.usage as Message["usage"];
+						if (meta.usage) message.usage = meta.usage;
 						if (meta.elapsedMs) message.elapsedMs = meta.elapsedMs as number;
 						if (meta.interactionId) message.interactionId = meta.interactionId as string;
 						if (meta.timestamp) message.timestamp = meta.timestamp as number;

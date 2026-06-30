@@ -546,7 +546,8 @@ function ManualBaseEditor({
     if (trimmed) {
       next[id] = { ...next[id], displayName: trimmed };
     } else if (next[id]) {
-      const { displayName: _drop, ...rest } = next[id];
+      const rest: PropertyConfig = { ...next[id] };
+      delete rest.displayName;
       if (Object.keys(rest).length > 0) next[id] = rest;
       else delete next[id];
     }
@@ -1012,7 +1013,7 @@ function serializeBaseFilter(combinator: Combinator, terms: BaseTerm[]): FilterN
   const nodes = terms.map(termToNode);
   if (nodes.length === 0) return undefined;
   if (nodes.length === 1) return nodes[0];
-  return { [combinator]: nodes } as FilterNode;
+  return { [combinator]: nodes };
 }
 
 function rawNodeToText(node: FilterNode): string {

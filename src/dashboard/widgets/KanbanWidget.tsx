@@ -83,7 +83,7 @@ function getFileTags(app: App, file: TFile): string[] {
   const cache = app.metadataCache.getFileCache(file);
   if (!cache) return [];
   const tags: string[] = [];
-  const frontmatter = asFrontmatterRecord(cache.frontmatter as unknown);
+  const frontmatter = asFrontmatterRecord(cache.frontmatter);
   const fmTags = frontmatter.tags;
   if (fmTags) {
     if (Array.isArray(fmTags)) {
@@ -179,7 +179,7 @@ export default function KanbanWidget({
         }
         return files.map((file) => {
           const cache = app.metadataCache.getFileCache(file);
-          const fm = asFrontmatterRecord(cache?.frontmatter as unknown);
+          const fm = asFrontmatterRecord(cache?.frontmatter);
           const rawStatus = fm?.[statusProp];
           const status = formatScalar(rawStatus);
           let title = file.basename;
@@ -276,7 +276,7 @@ export default function KanbanWidget({
     const column = hitTestColumn(clientX, clientY);
     const cardEl = activeDocument
       .elementsFromPoint(clientX, clientY)
-      .find((el) => el instanceof HTMLElement && el.dataset.kanbanCardPath) as HTMLElement | undefined;
+      .find((el) => el.instanceOf(HTMLElement) && el.dataset.kanbanCardPath) as HTMLElement | undefined;
     const path = cardEl?.dataset.kanbanCardPath;
     const cardColumn = cardEl?.dataset.kanbanColumn;
     if (!column || !path || !cardColumn || cardColumn !== column) return { column, target: null };

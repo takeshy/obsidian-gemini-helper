@@ -1674,6 +1674,25 @@ Always be helpful and provide clear, concise responses. When working with vault 
 							functionCallLimits: {
 								maxFunctionCalls: settings.maxFunctionCalls,
 								functionCallWarningThreshold: settings.functionCallWarningThreshold,
+								requestLimitExtension: async ({ used, currentLimit, extensionAmount, remaining }) => {
+									if (!isActive() || abortController.signal.aborted) return false;
+									const confirmLabel = t("chat.extendToolLimitConfirm", { extensionAmount });
+									const result = await promptForDialog(
+										plugin.app,
+										t("chat.extendToolLimitTitle"),
+										t("chat.extendToolLimitMessage", { used, currentLimit, extensionAmount, remaining }),
+										[],
+										false,
+										confirmLabel,
+										t("common.cancel"),
+										false,
+										t("chat.extendToolLimitInput"),
+										{ input: String(extensionAmount) }
+									);
+									if (result?.button !== confirmLabel) return false;
+									const requested = Number.parseInt(result.input ?? "", 10);
+									return Number.isFinite(requested) && requested > 0 ? requested : false;
+								},
 							},
 							disableTools: !toolsEnabled,
 							enableThinking: getThinkingToggle(allowedModel),

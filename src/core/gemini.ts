@@ -305,6 +305,13 @@ function checkFinishReason(candidates: Array<{ finishReason?: string }> | undefi
 export interface FunctionCallLimitOptions {
   maxFunctionCalls?: number;           // 最大function call回数 (default: 20)
   functionCallWarningThreshold?: number; // 残りこの回数で警告 (default: 5)
+  requestLimitExtension?: (details: {
+    used: number;
+    currentLimit: number;
+    extensionAmount: number;
+    pendingCalls: number;
+    remaining: number;
+  }) => Promise<boolean | number>;
 }
 
 export interface ChatWithToolsOptions {
@@ -345,6 +352,31 @@ function serializeFunctionResult(value: unknown): string {
     // safe constant rather than Object's "[object Object]" stringification.
     return "null";
   }
+}
+
+async function maybeExtendFunctionCallLimit(
+  options: FunctionCallLimitOptions | undefined,
+  functionCallCount: number,
+  currentLimit: number,
+  pendingCalls: number,
+  remaining: number,
+): Promise<number> {
+  const defaultExtensionAmount = options?.maxFunctionCalls ?? DEFAULT_SETTINGS.maxFunctionCalls;
+  if (!options?.requestLimitExtension || defaultExtensionAmount <= 0) {
+    return currentLimit;
+  }
+
+  const requestedExtension = await options.requestLimitExtension({
+    used: functionCallCount,
+    currentLimit,
+    extensionAmount: defaultExtensionAmount,
+    pendingCalls,
+    remaining,
+  });
+  const extensionAmount = typeof requestedExtension === "number"
+    ? Math.max(0, Math.floor(requestedExtension))
+    : requestedExtension ? defaultExtensionAmount : 0;
+  return extensionAmount > 0 ? currentLimit + extensionAmount : currentLimit;
 }
 
 // Interactions API usage → TracingUsage converter
@@ -900,6 +932,7 @@ export class GeminiClient {
     options?: ChatWithToolsOptions,
   ): AsyncGenerator<StreamChunk> {
     const maxFunctionCalls = options?.functionCallLimits?.maxFunctionCalls ?? DEFAULT_SETTINGS.maxFunctionCalls;
+    let currentFunctionCallLimit = maxFunctionCalls;
     const warningThreshold = Math.min(
       options?.functionCallLimits?.functionCallWarningThreshold ?? DEFAULT_SETTINGS.functionCallWarningThreshold,
       maxFunctionCalls,
@@ -1008,7 +1041,7 @@ export class GeminiClient {
           return;
         }
 
-        const remainingBefore = maxFunctionCalls - functionCallCount;
+        let remainingBefore = currentFunctionCallLimit - functionCallCount;
         if (remainingBefore <= 0) {
           contents = [...contents, {
             role: "user",
@@ -1017,12 +1050,23 @@ export class GeminiClient {
           continue;
         }
 
-        const callsToExecute = functionCalls.slice(0, remainingBefore);
-        const remainingAfter = remainingBefore - callsToExecute.length;
-        if (!warningEmitted && remainingAfter <= warningThreshold) {
+        if (!warningEmitted && remainingBefore <= warningThreshold) {
           warningEmitted = true;
-          yield { type: "text", content: `\n\n[Note: ${remainingAfter} function calls remaining. Please work efficiently.]` };
+          const extendedLimit = await maybeExtendFunctionCallLimit(
+            options?.functionCallLimits,
+            functionCallCount,
+            currentFunctionCallLimit,
+            functionCalls.length,
+            remainingBefore,
+          );
+          if (extendedLimit > currentFunctionCallLimit) {
+            currentFunctionCallLimit = extendedLimit;
+            remainingBefore = currentFunctionCallLimit - functionCallCount;
+          }
+          yield { type: "text", content: `\n\n[Note: ${remainingBefore} function calls remaining. Please work efficiently.]` };
         }
+
+        const callsToExecute = functionCalls.slice(0, remainingBefore);
 
         const functionResponseParts: Part[] = [];
         for (const fc of callsToExecute) {
@@ -1055,7 +1099,7 @@ export class GeminiClient {
         }
         functionCallCount += callsToExecute.length;
 
-        if (functionCalls.length > callsToExecute.length || functionCallCount >= maxFunctionCalls) {
+        if (functionCalls.length > callsToExecute.length || functionCallCount >= currentFunctionCallLimit) {
           functionResponseParts.push({
             text: "Function call limit reached. Please provide a final answer based on the information gathered so far.",
           });
@@ -1208,6 +1252,7 @@ export class GeminiClient {
 
     // Function call limit settings
     const maxFunctionCalls = options?.functionCallLimits?.maxFunctionCalls ?? DEFAULT_SETTINGS.maxFunctionCalls;
+    let currentFunctionCallLimit = maxFunctionCalls;
     const warningThreshold = Math.min(
       options?.functionCallLimits?.functionCallWarningThreshold ?? DEFAULT_SETTINGS.functionCallWarningThreshold,
       maxFunctionCalls
@@ -1593,7 +1638,7 @@ export class GeminiClient {
 
         // Process function calls
         if (functionCallsToProcess.length > 0 && executeToolCall) {
-          const remainingBefore = maxFunctionCalls - functionCallCount;
+          let remainingBefore = currentFunctionCallLimit - functionCallCount;
 
           if (remainingBefore <= 0) {
             yield {
@@ -1633,17 +1678,27 @@ export class GeminiClient {
             continue;
           }
 
-          const callsToExecute = functionCallsToProcess.slice(0, remainingBefore);
-          const skippedCount = functionCallsToProcess.length - callsToExecute.length;
-
-          const remainingAfter = remainingBefore - callsToExecute.length;
-          if (!warningEmitted && remainingAfter <= warningThreshold) {
+          if (!warningEmitted && remainingBefore <= warningThreshold) {
             warningEmitted = true;
+            const extendedLimit = await maybeExtendFunctionCallLimit(
+              options?.functionCallLimits,
+              functionCallCount,
+              currentFunctionCallLimit,
+              functionCallsToProcess.length,
+              remainingBefore,
+            );
+            if (extendedLimit > currentFunctionCallLimit) {
+              currentFunctionCallLimit = extendedLimit;
+              remainingBefore = currentFunctionCallLimit - functionCallCount;
+            }
             yield {
               type: "text",
-              content: `\n\n[Note: ${remainingAfter} function calls remaining. Please work efficiently.]`,
+              content: `\n\n[Note: ${remainingBefore} function calls remaining. Please work efficiently.]`,
             };
           }
+
+          const callsToExecute = functionCallsToProcess.slice(0, remainingBefore);
+          const skippedCount = functionCallsToProcess.length - callsToExecute.length;
 
           // Execute function calls and build FunctionResultStep inputs (v2 steps schema)
           const functionResults: Interactions.Step[] = [];
@@ -1693,7 +1748,7 @@ export class GeminiClient {
 
           functionCallCount += callsToExecute.length;
 
-          if (skippedCount > 0 || functionCallCount >= maxFunctionCalls) {
+          if (skippedCount > 0 || functionCallCount >= currentFunctionCallLimit) {
             const skippedMsg = skippedCount > 0
               ? ` (${skippedCount} additional calls were skipped)`
               : "";
@@ -1742,10 +1797,11 @@ export class GeminiClient {
           }
 
           // Add warning if approaching limit (v2: as a user_input step)
-          if (warningEmitted && remainingAfter <= warningThreshold) {
+          const remainingForNextRound = currentFunctionCallLimit - functionCallCount;
+          if (warningEmitted && remainingForNextRound <= warningThreshold) {
             functionResults.push({
               type: "user_input",
-              content: [{ type: "text", text: `[System: You have ${remainingAfter} function calls remaining. Please complete your task efficiently or provide a summary.]` }],
+              content: [{ type: "text", text: `[System: You have ${remainingForNextRound} function calls remaining. Please complete your task efficiently or provide a summary.]` }],
             } as Interactions.Step);
           }
 

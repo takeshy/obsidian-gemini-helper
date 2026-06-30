@@ -16,6 +16,26 @@ Built-in skills appear in the skill selector dropdown with a **built-in** badge.
 
 With **obsidian-markdown** enabled (default), the AI will use wikilinks instead of standard Markdown links, format callouts correctly, and follow Obsidian's frontmatter conventions when creating or editing notes.
 
+## External Skills
+
+External skills are installable skill packages published through the official `takeshy/llm-hub-skills` repository. They are copied into your vault `skills/` folder, then behave like any other custom skill: they appear in the chat skill selector, can be invoked with slash commands, can load references, and can expose workflows through `run_skill_workflow`.
+
+![External Skills Settings](images/external_skill.png)
+
+To install one:
+
+1. Open Gemini Helper settings.
+2. Go to **External skills**.
+3. Select a compatible skill from **Install a skill**.
+4. Click **Install**.
+5. Open chat and enable the installed skill from the skill selector.
+
+Installed external skills show their current version. If a compatible newer version exists in the official repository, the settings panel can check and install the update for that skill.
+
+External skills must include both `SKILL.md` and `manifest.json`. The manifest records the skill ID, version, description, and plugin compatibility, so Gemini Helper can skip incompatible or outdated packages safely.
+
+For repository layout, manifest fields, update rules, and pull request workflow, see [Importing Skills](import_skill.md).
+
 ## Custom Skills
 
 ### Folder Structure

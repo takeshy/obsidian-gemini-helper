@@ -2,7 +2,29 @@
 
 Gemini Helper can use Open Knowledge Format (OKF) bundles as chat knowledge sources.
 
-OKF is a Markdown-based knowledge bundle format. Each concept is usually a Markdown file with YAML frontmatter, for example:
+OKF is separate from Agent Skills. Skills define reusable behavior, references, and optional workflows. OKF provides curated domain knowledge, such as concepts, metrics, datasets, glossaries, and playbooks, that should be available to chat across conversations.
+
+## Configure OKF
+
+1. Open Gemini Helper settings.
+2. Go to **Knowledge sources**.
+3. Turn **OKF** on.
+4. Set the OKF directory path.
+
+![OKF Settings](images/okf.png)
+
+Paths can be:
+
+- `Knowledge` (default)
+- `.Knowledge` if you want Obsidian to hide the folder
+- Another vault-relative directory, such as `Knowledge/okf`
+- An absolute desktop path, such as `C:\repos\knowledge-catalog\okf`
+
+Absolute paths require desktop Obsidian because mobile Obsidian does not expose filesystem access outside the vault.
+
+## OKF Format
+
+OKF is a Markdown-based knowledge bundle format. Each concept is usually a Markdown file with YAML frontmatter:
 
 ```markdown
 ---
@@ -19,27 +41,13 @@ tags:
 MRR is calculated from active paid subscriptions...
 ```
 
-Gemini Helper reads the configured OKF directory and injects a compact summary into the chat system prompt. This gives Gemini curated domain context without requiring a separate server.
-
-## Configure OKF
-
-1. Open Gemini Helper settings.
-2. Go to **Knowledge sources**.
-3. Turn **OKF** on.
-4. Set the OKF directory path.
-
-Paths can be:
-
-- `Knowledge` (default)
-- `.Knowledge` if you want Obsidian to hide the folder
-- Another vault-relative directory, such as `Knowledge/okf`
-- An absolute desktop path, such as `C:\repos\knowledge-catalog\okf`
-
-Absolute paths require desktop Obsidian because mobile Obsidian does not expose filesystem access outside the vault.
+![OKF Sample](images/okf_sample.png)
 
 ## What Gets Loaded
 
-When OKF is enabled, Gemini Helper loads Markdown files from the configured directory recursively and includes:
+When OKF is enabled, Gemini Helper reads Markdown files from the configured directory recursively and injects a compact summary into the chat system prompt. This gives Gemini curated domain context without requiring a separate server.
+
+The loader includes:
 
 - `type`
 - `title`
@@ -50,10 +58,10 @@ When OKF is enabled, Gemini Helper loads Markdown files from the configured dire
 
 `log.md` is skipped. `index.md` is treated as an index document. The loader uses conservative limits so large OKF bundles do not overwhelm the model context.
 
-## Recommended OKF Layout
+## Recommended Layout
 
 ```text
-okf/
+Knowledge/
   index.md
   metrics/
     mrr.md
@@ -81,6 +89,18 @@ timestamp: 2026-06-29
 ```
 
 Use normal Markdown links for relationships between OKF documents. If the OKF bundle lives inside the vault, Obsidian wikilinks are also usable, but plain Markdown links are more portable.
+
+## OKF With Skills
+
+Use OKF when you want Gemini to understand a domain consistently. Use a skill when you want Gemini to follow a specific process or run an action. Use both when the AI needs domain context and repeatable behavior.
+
+![OKF with Skills](images/okf_skill.png)
+
+Example:
+
+1. Maintain product metrics, dataset definitions, and incident playbooks in `Knowledge/`.
+2. Enable OKF in **Settings -> Knowledge sources**.
+3. Install or create a skill that knows when to use that knowledge and which workflow to run.
 
 ## Suggested Workflow
 

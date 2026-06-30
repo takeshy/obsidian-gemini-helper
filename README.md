@@ -11,9 +11,11 @@
 - **AI Chat** - Streaming responses, file attachments, vault operations, slash commands
 - **Usage Tracking** - Shows approximate API tokens and cost for each chat and workflow run
 - **Agent Skills** - Reusable skills extend the chat; the Obsidian Markdown skill based on [kepano/obsidian-skills](https://github.com/kepano/obsidian-skills) is enabled by default
+- **External Skills** - Install versioned skills from the official `takeshy/llm-hub-skills` repository
 - **Workflow Builder** - Automate multi-step tasks with visual node editor and 24 node types
 - **MCP Support** - Use MCP tools in workflows and render MCP UI resources inside Obsidian
 - **RAG** - Retrieval-Augmented Generation for intelligent search across your vault
+- **OKF Knowledge Sources** - Add Open Knowledge Format bundles as compact chat knowledge
 - **AI Folder Access** - Limit which folders AI can read automatically when you do not want whole-vault access
 - **Encryption** - Password-protect chat history and workflow execution logs
 - **Edit History** - Track and restore AI-made changes with diff view
@@ -255,6 +257,7 @@ Extend the AI with custom instructions, reference materials, and executable work
 - **Custom instructions** - Define domain-specific behavior via `SKILL.md` files
 - **Reference materials** - Include style guides, templates, and checklists in `references/`
 - **Workflow integration** - Skills can expose workflows as function calling tools
+- **External skills** - Install compatible skills from the official `takeshy/llm-hub-skills` repository
 - **Slash command** - Type `/folder-name` to instantly invoke a skill and send
 - **Selective activation** - Choose which skills are active per conversation
 - **Clickable skill chips** - Active skill chips in the input area and on assistant messages are clickable and jump to the matching `SKILL.md` (built-in skills are shown as static labels)
@@ -262,7 +265,24 @@ Extend the AI with custom instructions, reference materials, and executable work
 
 Create skills the same way as workflows — select **+ New (AI)**, check **"Create as agent skill"**, and describe what you want. The AI generates both the `SKILL.md` instructions and the workflow. To edit an existing skill, open its `SKILL.md` and click **Modify skill with AI** in the Workflow / skill tab — the AI updates both the instructions body and the referenced workflow together.
 
-> **For setup instructions and examples, see [SKILLS.md](docs/SKILLS.md)**
+![External Skills Settings](docs/images/external_skill.png)
+
+External skills are imported from the official repository and copied into your vault `skills/` folder. The settings panel shows installable skills, installed versions, and per-skill update checks. Imported skills use the same selector, slash commands, references, and workflow execution as vault-authored skills.
+
+> **For setup instructions and examples, see [SKILLS.md](docs/SKILLS.md)**  
+> **For external skill repository rules, see [import_skill.md](docs/import_skill.md)**
+
+## OKF Knowledge Sources
+
+Gemini Helper can read Open Knowledge Format (OKF) bundles as chat knowledge. Enable **OKF** in **Settings → Knowledge sources**, then point it at a vault-relative directory such as `Knowledge` or `.Knowledge`.
+
+![OKF Settings](docs/images/okf.png)
+
+OKF is best for curated domain context: concepts, metrics, datasets, glossaries, and playbooks. It is injected as compact prompt context, while skills remain the place for reusable behavior, references, and executable workflows.
+
+![OKF Sample](docs/images/okf_sample.png)
+
+> **For OKF structure and limits, see [OKF.md](docs/OKF.md)**
 
 ---
 

@@ -23,6 +23,7 @@ import {
 	type GeneratedImage,
 	type VaultToolNoneReason,
 	type McpAppInfo,
+	type KnowledgeSource,
 	isImageGenerationModel,
 	DEFAULT_WORKSPACE_FOLDER,
 } from "src/types";
@@ -178,9 +179,6 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 	// OKF knowledge bundles discovered under the configured root directory.
 	const [okfBundles, setOkfBundles] = useState<OkfBundle[]>([]);
 	const [activeOkfBundleIds, setActiveOkfBundleIds] = useState<string[]>([]);
-	// Bundle ids seen at least once, so a bundle the user unchecked is not
-	// re-activated as if it were newly discovered on the next refresh.
-	const seenOkfBundleIdsRef = useRef<Set<string>>(new Set());
 
 	// Check if configuration is ready (API key set)
 	const isConfigReady = hasApiKey;
@@ -507,33 +505,50 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 		};
 	}, [plugin, refreshSkills]);
 
-	// Resolve the configured OKF root directory, if OKF is enabled in settings.
-	const getOkfRoot = useCallback((): string | null => {
+	// Resolve the enabled OKF knowledge source from settings, if any.
+	const getOkfSource = useCallback((): KnowledgeSource | null => {
 		const source = (plugin.settings.knowledgeSources || []).find(s => s.enabled && s.path.trim());
-		return source ? source.path.trim() : null;
+		return source ?? null;
 	}, [plugin]);
 
+	// Resolve the configured OKF root directory, if OKF is enabled in settings.
+	const getOkfRoot = useCallback((): string | null => {
+		return getOkfSource()?.path.trim() || null;
+	}, [getOkfSource]);
+
+	// Persist the active bundle selection onto the OKF source so it survives restarts.
+	const saveActiveOkfBundleIds = useCallback((activeBundleIds: string[]) => {
+		const source = getOkfSource();
+		if (!source) return;
+		plugin.settings.knowledgeSources = (plugin.settings.knowledgeSources || []).map(item =>
+			item.id === source.id ? { ...item, activeBundleIds } : item
+		);
+		void plugin.saveSettings();
+	}, [getOkfSource, plugin]);
+
 	const refreshOkfBundles = useCallback(async () => {
-		const root = getOkfRoot();
-		if (!root) {
+		const source = getOkfSource();
+		if (!source) {
 			setOkfBundles([]);
 			setActiveOkfBundleIds([]);
 			return;
 		}
+		const root = source.path.trim();
+		const savedActiveBundleIds = source.activeBundleIds;
 		const bundles = await discoverOkfBundles(plugin.app, root).catch(() => [] as OkfBundle[]);
 		setOkfBundles(bundles);
 		setActiveOkfBundleIds(prev => {
-			const present = new Set(bundles.map(b => b.id));
-			const kept = prev.filter(id => present.has(id));
-			// Newly discovered bundles default to active; previously-seen ones the
-			// user unchecked stay unchecked.
-			const newlyAppeared = bundles
-				.map(b => b.id)
-				.filter(id => !seenOkfBundleIdsRef.current.has(id) && !kept.includes(id));
-			bundles.forEach(b => seenOkfBundleIdsRef.current.add(b.id));
-			return [...kept, ...newlyAppeared];
+			const validIds = new Set(bundles.map(b => b.id));
+			// Restore the persisted selection when the user has chosen before
+			// (even an empty selection); only default to all bundles on the very
+			// first time this source is seen.
+			if (savedActiveBundleIds) {
+				return savedActiveBundleIds.filter(id => validIds.has(id));
+			}
+			const kept = prev.filter(id => validIds.has(id));
+			return kept.length > 0 ? kept : bundles.map(b => b.id);
 		});
-	}, [plugin, getOkfRoot]);
+	}, [plugin, getOkfSource]);
 
 	useEffect(() => {
 		void refreshOkfBundles();
@@ -2204,11 +2219,13 @@ Always be helpful and provide clear, concise responses. When working with vault 
 						okfBundles={okfBundles}
 						activeOkfBundleIds={activeOkfBundleIds}
 						onToggleOkfBundle={(id) => {
-							setActiveOkfBundleIds(prev =>
-								prev.includes(id)
+							setActiveOkfBundleIds(prev => {
+								const next = prev.includes(id)
 									? prev.filter(b => b !== id)
-									: [...prev, id]
-							);
+									: [...prev, id];
+								saveActiveOkfBundleIds(next);
+								return next;
+							});
 						}}
 						onVaultToolMenuOpen={() => { void refreshOkfBundles(); }}
 						slashCommands={plugin.settings.slashCommands}

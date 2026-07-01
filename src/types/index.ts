@@ -73,6 +73,9 @@ export interface KnowledgeSource {
   path: string;
   type: "okf";
   enabled: boolean;
+  // Bundle ids active for this source. Persisted so the selection survives
+  // restarts. Undefined means "never chosen" and defaults to all bundles on.
+  activeBundleIds?: string[];
 }
 
 // Vault tool mode type

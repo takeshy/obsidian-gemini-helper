@@ -33,20 +33,28 @@ const ISO_DATE_LINE_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/;
 const META_LINE_RE = /^([A-Za-z][A-Za-z0-9-]*):[ \t]*(.*)$/;
 const ENTRY_SEPARATOR_RE = /\n[ \t]*\n---[ \t]*\n[ \t]*\n/;
 
-export function encodeMemoPath(sourcePath: string): string {
-  return encodeURIComponent(sourcePath).replace(/\./g, "%2E");
-}
+const ILLEGAL_FILENAME_CHARS_RE = /[\\/:*?"<>|\u0000-\u001f]/g;
+const MAX_MEMO_BASENAME_LENGTH = 100;
 
-export function decodeMemoPath(encoded: string): string | null {
-  try {
-    return decodeURIComponent(encoded);
-  } catch {
-    return null;
-  }
+function sanitizeMemoBaseName(sourcePath: string): string {
+  const cleaned = sourcePath.replace(ILLEGAL_FILENAME_CHARS_RE, "_").replace(/\.+$/, "").trim() || "memo";
+  return cleaned.length > MAX_MEMO_BASENAME_LENGTH ? cleaned.slice(0, MAX_MEMO_BASENAME_LENGTH).trim() : cleaned;
 }
 
 export function memoPathFor(sourcePath: string): string {
-  return normalizePath(`${MEMO_FOLDER}/${encodeMemoPath(sourcePath)}.md`);
+  return normalizePath(`${MEMO_FOLDER}/${sanitizeMemoBaseName(sourcePath)}.md`);
+}
+
+async function resolveMemoFilePath(app: App, sourcePath: string): Promise<string> {
+  const baseName = sanitizeMemoBaseName(sourcePath);
+  for (let counter = 0; ; counter++) {
+    const candidateName = counter === 0 ? baseName : `${baseName} (${counter})`;
+    const candidatePath = normalizePath(`${MEMO_FOLDER}/${candidateName}.md`);
+    const existing = app.vault.getAbstractFileByPath(candidatePath);
+    if (!(existing instanceof TFile)) return candidatePath;
+    const content = await app.vault.cachedRead(existing);
+    if (parseMemoFile(content).source === sourcePath) return candidatePath;
+  }
 }
 
 function normalizeNewlines(value: string): string {
@@ -170,7 +178,7 @@ async function ensureFolder(app: App, folder: string): Promise<void> {
 }
 
 export async function readMemos(app: App, sourcePath: string): Promise<DocumentMemo[]> {
-  const path = memoPathFor(sourcePath);
+  const path = await resolveMemoFilePath(app, sourcePath);
   const file = app.vault.getAbstractFileByPath(path);
   if (!(file instanceof TFile)) return [];
   const parsed = parseMemoFile(await app.vault.cachedRead(file), sourcePath);
@@ -179,7 +187,7 @@ export async function readMemos(app: App, sourcePath: string): Promise<DocumentM
 
 export async function writeMemos(app: App, sourcePath: string, memos: DocumentMemo[]): Promise<void> {
   await ensureFolder(app, MEMO_FOLDER);
-  const path = memoPathFor(sourcePath);
+  const path = await resolveMemoFilePath(app, sourcePath);
   const content = serializeMemoFile(sourcePath, memos);
   const file = app.vault.getAbstractFileByPath(path);
   if (file instanceof TFile) {
@@ -200,7 +208,7 @@ export async function listMemoFiles(app: App): Promise<Array<{ file: TFile; sour
   for (const file of files) {
     const content = await app.vault.cachedRead(file);
     const name = file.basename;
-    const parsed = parseMemoFile(content, decodeMemoPath(name) ?? "");
+    const parsed = parseMemoFile(content, name);
     rows.push({ file, source: parsed.source, memos: parsed.memos });
   }
   return rows;

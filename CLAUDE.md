@@ -28,6 +28,16 @@ npm version major   # 1.2.3 -> 2.0.0
 
 This runs `version-bump.mjs` which updates `package.json`, `manifest.json`, and `versions.json` together.
 
+## Releasing
+
+After bumping, push **master only** — do NOT push the version tag manually:
+
+```bash
+git push origin master
+```
+
+The Release workflow (`.github/workflows/release.yml`) runs on push to master, creates the tag from `manifest.json`'s version, builds, and opens a **draft** GitHub release with `main.js`/`manifest.json`/`styles.css` attached. The maintainer edits the notes and publishes the draft manually. If the tag already exists (e.g. it was pushed by hand), the workflow **skips release creation entirely** — delete the remote tag and re-run the workflow to recover.
+
 ## Architecture
 
 ### Core Layer (`src/core/`)

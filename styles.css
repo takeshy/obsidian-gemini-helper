@@ -8137,7 +8137,7 @@
   opacity: 1;
 }
 .llm-hub-db-cell[data-widget-type="file"] > .llm-hub-db-actions {
-  right: 36px;
+  right: 64px;
 }
 .llm-hub-db-iconbtn {
   display: inline-flex;

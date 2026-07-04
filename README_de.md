@@ -558,6 +558,8 @@ Das **File**-Widget ist die Lesefläche für Notizen und Dokumente. Markdown-/Te
 
 Das **MemoList**-Widget listet Memo-Dateien über das gesamte Dashboard hinweg auf. Ein Klick auf eine Zeile navigiert nicht weg; er maximiert dieses Widget und öffnet die ausgewählte Datei mit ihrem Memo-Panel. Beim Wiederherstellen des Widgets kehren Sie zur MemoList zurück.
 
+![MemoList-Widget](docs/images/memolist.png)
+
 **Base**- und **Workflow**-Widgets enthalten eine Schaltfläche **Mit KI erstellen**, um die zugrunde liegende `.base`-Datei oder den Workflow zu erstellen, ohne das Einstellungs-Panel zu verlassen. Base-Widgets können außerdem `.base`-Dateien erstellen/auswählen und den Anzeigetyp, die Reihenfolge, Sortierung, Begrenzung, Filter, das Kartenbild, die Listeneinrückung und rohes YAML der ausgewählten Ansicht direkt im Dashboard-Einstellungs-Panel bearbeiten. Bei KI-Bearbeitungen wird die vorgeschlagene `.base`-Änderung vor dem Anwenden als Diff angezeigt.
 
 ## Timeline

@@ -559,6 +559,8 @@ O widget **File** é a superfície de leitura para notas e documentos. Arquivos 
 
 O widget **MemoList** lista os arquivos de memo do painel. Clicar em uma linha não navega para fora; ele maximiza aquele widget e abre o arquivo selecionado com seu painel de memos. Restaurar o widget volta para o MemoList.
 
+![Widget MemoList](docs/images/memolist.png)
+
 Os widgets **Base** e **Workflow** incluem um botao **Criar com IA** para criar o arquivo `.base` ou o workflow subjacente sem sair do painel de configuracoes. Para uma base, a IA pode inspecionar suas notas com ferramentas somente leitura antes de criar, e **Editar com IA** mostra um diff com uma caixa de instrucoes adicionais para refinar antes de aplicar.
 
 ## Timeline

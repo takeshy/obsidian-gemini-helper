@@ -525,6 +525,8 @@ The **File** widget is the reading surface for notes and documents. Markdown/tex
 
 The **MemoList** widget lists memo files across the dashboard. Clicking a row does not navigate away; it maximizes that widget and opens the selected file with its memo panel. Restoring the widget returns to the MemoList.
 
+![MemoList widget](docs/images/memolist.png)
+
 **Base** and **Workflow** widgets include a **Create with AI** button to author the backing `.base` file or workflow without leaving the settings panel. Base widgets can also create/select `.base` files and edit the selected view's display type, order, sort, limit, filters, card image, list indentation, and raw YAML directly from the dashboard settings panel. For AI edits, the proposed `.base` change is shown as a diff before applying.
 
 Timeline composers include an **Edit with AI** button next to image attachment. It sends only the current draft text plus your instruction to the model, shows a diff in a modal, and applies the result back to the textarea only when you approve it.

@@ -558,6 +558,8 @@ Il widget **File** è la superficie di lettura per note e documenti. I file Mark
 
 Il widget **MemoList** elenca i file di memo in tutta la dashboard. Cliccare su una riga non porta via dalla pagina; massimizza quel widget e apre il file selezionato con il suo pannello memo. Ripristinare il widget torna al MemoList.
 
+![Widget MemoList](docs/images/memolist.png)
+
 I widget **Base** e **Workflow** includono un pulsante **Crea con l'IA** per creare il file `.base` o il workflow sottostante senza lasciare il pannello delle impostazioni. Per una base, l'IA può ispezionare le note con strumenti di sola lettura prima della creazione, e **Modifica con l'IA** mostra un diff con un campo per istruzioni aggiuntive per rifinire prima di applicare.
 
 ## Timeline

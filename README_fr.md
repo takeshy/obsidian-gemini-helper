@@ -558,6 +558,8 @@ Le widget **File** est la surface de lecture pour les notes et documents. Les fi
 
 Le widget **MemoList** liste les fichiers de mémos de l'ensemble du tableau de bord. Cliquer sur une ligne ne change pas de page ; cela agrandit ce widget et ouvre le fichier sélectionné avec son panneau de mémos. Restaurer le widget revient à la MemoList.
 
+![Widget MemoList](docs/images/memolist.png)
+
 Les widgets **Base** et **Workflow** incluent un bouton **Créer avec l'IA** pour créer le fichier `.base` ou le workflow sous-jacent sans quitter le panneau de paramètres. Pour une base, l'IA peut inspecter vos notes avec des outils en lecture seule avant la création, et **Modifier avec l'IA** affiche un diff avec un champ d'instructions supplémentaires pour affiner avant d'appliquer.
 
 ## Timeline

@@ -558,6 +558,8 @@ El widget **File** es la superficie de lectura para notas y documentos. Los arch
 
 El widget **MemoList** lista los archivos de memos de todo el panel. Hacer clic en una fila no navega fuera del panel; maximiza ese widget y abre el archivo seleccionado con su panel de memos. Restaurar el widget vuelve a la MemoList.
 
+![Widget MemoList](docs/images/memolist.png)
+
 Los widgets **Base** y **Workflow** incluyen un botón **Crear con IA** para crear el archivo `.base` o el workflow subyacente sin salir del panel de ajustes. Para una base, la IA puede inspeccionar tus notas con herramientas de solo lectura antes de crearla, y **Editar con IA** muestra un diff con un cuadro de instrucciones adicionales para refinarla antes de aplicar.
 
 ## Timeline

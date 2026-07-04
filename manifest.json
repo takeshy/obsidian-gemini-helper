@@ -2,7 +2,7 @@
 	"id": "gemini-helper",
 	"name": "Gemini Helper",
 	"minAppVersion": "1.10.0",
-	"description": "AI chat, workflow automation, and semantic search powered by Google Gemini. Works on both desktop and mobile.",
+	"description": "AI chat, workflow automation, semantic search (RAG), LLM Wiki (OKF), and dashboards with reading memos powered by Google Gemini. Works on both desktop and mobile.",
 	"author": "takeshy",
 	"authorUrl": "https://github.com/takeshy",
 	"fundingUrl": "https://buymeacoffee.com/takeshy",

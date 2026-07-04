@@ -710,15 +710,20 @@ export class GeminiHelperPlugin extends Plugin {
 
   /**
    * Create a new empty `.dashboard` file under `Dashboards/` and open it.
-   * Picks a unique "Dashboard", "Dashboard 2", … name.
+   * Picks a unique name by appending " 2", " 3", ... when needed.
    */
-  async createDashboard(): Promise<void> {
+  async createDashboard(requestedName = "Dashboard"): Promise<TFile | null> {
     const { vault, workspace } = this.app;
 
-    let name = "Dashboard";
+    const baseName = requestedName
+      .trim()
+      .replace(/[\\/:*?"<>|#^[\]]/g, " ")
+      .replace(/\s+/g, " ")
+      .trim() || "Dashboard";
+    let name = baseName;
     let path = dashboardPath(name);
     for (let i = 2; vault.getAbstractFileByPath(path); i++) {
-      name = `Dashboard ${i}`;
+      name = `${baseName} ${i}`;
       path = dashboardPath(name);
     }
 
@@ -728,11 +733,12 @@ export class GeminiHelperPlugin extends Plugin {
       file = await vault.create(path, serializeDashboard(createEmptyDashboard()));
     } catch (error) {
       new Notice(`Failed to create dashboard: ${String(error)}`);
-      return;
+      return null;
     }
 
     const leaf = workspace.getLeaf(true);
     await leaf.openFile(file);
+    return file;
   }
 
   async activateChatView(): Promise<void> {

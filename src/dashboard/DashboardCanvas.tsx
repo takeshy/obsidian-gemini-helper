@@ -189,6 +189,7 @@ export function DashboardCanvas({
       };
       commit({ ...data, widgets: [...data.widgets, newWidget] });
       setShowPalette(false);
+      setMaximizedWidgetId(null);
       setEditingWidgetId(newWidget.id);
       setPendingNewWidgetId(newWidget.id);
     },

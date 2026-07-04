@@ -229,7 +229,7 @@ export default function WorkflowWidget({
             title={t("dashboard.refresh")}
           >
             <RefreshCw size={11} className={executing ? "is-spinning" : ""} />
-            {executing ? t("dashboard.executing") : t("dashboard.refresh")}
+            <span>{executing ? t("dashboard.executing") : t("dashboard.refresh")}</span>
           </button>
           {executing && (
             <button

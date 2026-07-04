@@ -5,6 +5,7 @@ import { isImageGenerationModel, type ModelInfo, type ModelType, type Attachment
 import type { SkillMetadata } from "src/core/skillsLoader";
 import type { OkfBundle } from "src/core/okfLoader";
 import SkillSelector from "./SkillSelector";
+import OkfSelector from "./OkfSelector";
 import { t } from "src/i18n";
 
 // Built-in command definition (not user-configurable)
@@ -652,22 +653,6 @@ const InputArea = forwardRef<InputAreaHandle, InputAreaProps>(function InputArea
                 >
                   {t("input.vaultToolNone")}
                 </div>
-                {okfBundles.length > 0 && (
-                  <>
-                    <div className="gemini-helper-vault-tool-separator" />
-                    <div className="gemini-helper-vault-tool-section-label">{t("input.knowledgeLabel")}</div>
-                    {okfBundles.map((bundle) => (
-                      <label key={bundle.id} className="gemini-helper-vault-tool-checkbox" title={bundle.id || bundle.name}>
-                        <input
-                          type="checkbox"
-                          checked={activeOkfBundleIds.includes(bundle.id)}
-                          onChange={() => onToggleOkfBundle(bundle.id)}
-                        />
-                        <span>{bundle.name}</span>
-                      </label>
-                    ))}
-                  </>
-                )}
                 <div className="gemini-helper-vault-tool-separator" />
                 <div className="gemini-helper-vault-tool-section-label">{t("input.thinkingLabel")}</div>
                 <label className="gemini-helper-vault-tool-checkbox">
@@ -723,23 +708,6 @@ const InputArea = forwardRef<InputAreaHandle, InputAreaProps>(function InputArea
                       })}
                     </div>
                   </div>
-                  {okfBundles.length > 0 && (
-                    <div className="gemini-helper-tool-settings-row">
-                      <label>{t("input.knowledgeLabel")}</label>
-                      <div className="gemini-helper-mcp-server-list">
-                        {okfBundles.map((bundle) => (
-                          <label key={bundle.id} className="gemini-helper-mcp-server-item" title={bundle.id || bundle.name}>
-                            <input
-                              type="checkbox"
-                              checked={activeOkfBundleIds.includes(bundle.id)}
-                              onChange={() => onToggleOkfBundle(bundle.id)}
-                            />
-                            <span className="gemini-helper-mcp-server-name">{bundle.name}</span>
-                          </label>
-                        ))}
-                      </div>
-                    </div>
-                  )}
                   <div className="gemini-helper-tool-settings-row">
                     <label>{t("input.thinkingLabel")}</label>
                     <div className="gemini-helper-mcp-server-list">
@@ -875,6 +843,14 @@ const InputArea = forwardRef<InputAreaHandle, InputAreaProps>(function InputArea
           onToggleSkill={onToggleSkill}
           disabled={isLoading}
           app={app}
+        />
+      )}
+      {!isCollapsed && okfBundles.length > 0 && (
+        <OkfSelector
+          bundles={okfBundles}
+          activeBundleIds={activeOkfBundleIds}
+          onToggleBundle={onToggleOkfBundle}
+          disabled={isLoading}
         />
       )}
     </div>

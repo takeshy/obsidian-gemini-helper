@@ -72,7 +72,7 @@ import { cryptoCache } from "src/core/cryptoCache";
 import { formatError } from "src/utils/error";
 import { findFileMentionOccurrences } from "src/utils/mentionResolver";
 import { discoverSkills, loadSkill, buildSkillSystemPrompt, collectSkillWorkflows, type SkillMetadata, type LoadedSkill, type SkillWorkflowRef } from "src/core/skillsLoader";
-import { buildOkfSystemPrompt, discoverOkfBundles, type OkfBundle } from "src/core/okfLoader";
+import { buildBuiltinOkfSystemPrompt, buildOkfSystemPrompt, discoverOkfBundles, getBuiltinOkfBundle, isBuiltinOkfBundleId, type OkfBundle } from "src/core/okfLoader";
 import { GET_WORKFLOW_SPEC_TOOL, GET_WORKFLOW_SPEC_TOOL_NAME, handleGetWorkflowSpec } from "src/workflow/workflowSpec";
 import { DEFAULT_BUILTIN_SKILL_IDS, builtinFolderPath, getBuiltinSkillMetadata, isBuiltinSkillPath } from "src/core/builtinSkills";
 import { parseWorkflowFromMarkdown } from "src/workflow/parser";
@@ -558,33 +558,33 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 	const saveActiveOkfBundleIds = useCallback((activeBundleIds: string[]) => {
 		const source = getOkfSource();
 		if (!source) return;
+		const externalBundleIds = activeBundleIds.filter(id => !isBuiltinOkfBundleId(id));
 		plugin.settings.knowledgeSources = (plugin.settings.knowledgeSources || []).map(item =>
-			item.id === source.id ? { ...item, activeBundleIds } : item
+			item.id === source.id ? { ...item, activeBundleIds: externalBundleIds } : item
 		);
 		void plugin.saveSettings();
 	}, [getOkfSource, plugin]);
 
 	const refreshOkfBundles = useCallback(async () => {
+		const builtinBundle = getBuiltinOkfBundle();
 		const source = getOkfSource();
 		if (!source) {
-			setOkfBundles([]);
-			setActiveOkfBundleIds([]);
+			setOkfBundles([builtinBundle]);
+			setActiveOkfBundleIds(prev => prev.filter(id => isBuiltinOkfBundleId(id)));
 			return;
 		}
 		const root = source.path.trim();
 		const savedActiveBundleIds = source.activeBundleIds;
 		const bundles = await discoverOkfBundles(plugin.app, root).catch(() => [] as OkfBundle[]);
-		setOkfBundles(bundles);
+		const allBundles = [builtinBundle, ...bundles];
+		setOkfBundles(allBundles);
 		setActiveOkfBundleIds(prev => {
-			const validIds = new Set(bundles.map(b => b.id));
-			// Restore the persisted selection when the user has chosen before
-			// (even an empty selection); only default to all bundles on the very
-			// first time this source is seen.
+			const validIds = new Set(allBundles.map(b => b.id));
 			if (savedActiveBundleIds) {
-				return savedActiveBundleIds.filter(id => validIds.has(id));
+				const builtinSelection = prev.filter(id => isBuiltinOkfBundleId(id));
+				return [...builtinSelection, ...savedActiveBundleIds.filter(id => validIds.has(id))];
 			}
-			const kept = prev.filter(id => validIds.has(id));
-			return kept.length > 0 ? kept : bundles.map(b => b.id);
+			return prev.filter(id => validIds.has(id));
 		});
 	}, [plugin, getOkfSource]);
 
@@ -1755,9 +1755,15 @@ Always be helpful and provide clear, concise responses. When working with vault 
 					}
 				}
 
+				const builtinOkfActive = activeOkfBundleIds.some(id => isBuiltinOkfBundleId(id));
+				if (builtinOkfActive) {
+					systemPrompt += buildBuiltinOkfSystemPrompt();
+				}
+
 				const okfRoot = getOkfRoot();
-				if (okfRoot && activeOkfBundleIds.length > 0) {
-					systemPrompt += await buildOkfSystemPrompt(plugin.app, okfRoot, activeOkfBundleIds);
+				const externalOkfBundleIds = activeOkfBundleIds.filter(id => !isBuiltinOkfBundleId(id));
+				if (okfRoot && externalOkfBundleIds.length > 0) {
+					systemPrompt += await buildOkfSystemPrompt(plugin.app, okfRoot, externalOkfBundleIds);
 				}
 
 				const allMessages = [...messages, userMessage];
@@ -2199,16 +2205,33 @@ Always be helpful and provide clear, concise responses. When working with vault 
 	}, [plugin, currentDashboard]);
 
 	const handleCreateDashboard = useCallback(() => {
-		void plugin.createDashboard().then(() => {
-			window.setTimeout(() => {
-				const activeFile = plugin.app.workspace.getActiveFile();
-				if (activeFile?.extension === "dashboard") {
-					setCurrentDashboard(activeFile);
+		void promptForValue(plugin.app, t("dashboard.createNamePrompt"), "Dashboard", false).then((name) => {
+			if (name === null) return;
+			void plugin.createDashboard(name).then((file) => {
+				if (file) {
+					setCurrentDashboard(file);
 					setActiveContextSkillPath(DASHBOARD_SKILL_PATH);
+					return;
 				}
-			}, 100);
+				window.setTimeout(() => {
+					const activeFile = plugin.app.workspace.getActiveFile();
+					if (activeFile?.extension === "dashboard") {
+						setCurrentDashboard(activeFile);
+						setActiveContextSkillPath(DASHBOARD_SKILL_PATH);
+					}
+				}, 100);
+			});
 		});
 	}, [plugin]);
+
+	const handleAskGeminiHelperHelp = useCallback(() => {
+		const builtinOkfBundle = getBuiltinOkfBundle();
+		setActiveOkfBundleIds(prev =>
+			prev.includes(builtinOkfBundle.id) ? prev : [...prev, builtinOkfBundle.id]
+		);
+		inputAreaRef.current?.setInputValue(t("chat.helpQuestionDraft"));
+		inputAreaRef.current?.focus();
+	}, []);
 
 	const chatClassName = `gemini-helper-chat${isKeyboardVisible ? " keyboard-visible" : ""}${isDecryptInputFocused ? " decrypt-input-focused" : ""}`;
 
@@ -2335,6 +2358,7 @@ Always be helpful and provide clear, concise responses. When working with vault 
 						} : null}
 						onOpenDashboard={currentDashboard ? handleOpenDashboard : undefined}
 						onCreateDashboard={handleCreateDashboard}
+						onAskGeminiHelperHelp={handleAskGeminiHelperHelp}
 					/>
 
 					<InputArea

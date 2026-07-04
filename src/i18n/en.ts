@@ -260,6 +260,10 @@ export const en = {
   "chat.welcomeImage": "Use \"generate image\" or \"create image\" to auto-switch to image model",
   "chat.welcomeCompact": "Type /compact to compress a long conversation into a new chat",
   "chat.welcomeNewChat": "Gemini has no memory, so the entire chat history is sent each time. Always click + to start a new chat when changing topics",
+  "chat.helpTitle": "Gemini helper help",
+  "chat.helpDescription": "Enable the built-in help knowledge bundle and ask about gemini helper features, settings, workflows, search, dashboards, and troubleshooting.",
+  "chat.askGeminiHelperHelp": "Ask about gemini helper",
+  "chat.helpQuestionDraft": "What can gemini helper do?",
   "chat.dashboardTitle": "Dashboards",
   "chat.dashboardDescription": "Dashboards collect notes, files, workflows, and reading memos into one editable workspace.",
   "chat.openCurrentDashboard": "Open current dashboard",
@@ -282,6 +286,8 @@ export const en = {
   "input.webSearch": "Web search",
   "input.rag": "Semantic search: {{name}}",
   "input.vaultToolTitle": "Vault tool settings",
+  "okf.add": "Add OKF knowledge",
+  "okf.builtinHelpDescription": "Built-in gemini helper feature reference",
   "input.vaultToolLabel": "Vault tools",
   "input.vaultToolAll": "Vault: all",
   "input.vaultToolNoSearch": "Vault: no search",
@@ -1060,6 +1066,7 @@ export const en = {
 
   // Dashboard
   "command.createDashboard": "Create dashboard",
+  "dashboard.createNamePrompt": "Dashboard name",
   "dashboard.edit": "Edit",
   "dashboard.done": "Done",
   "dashboard.undo": "Undo",

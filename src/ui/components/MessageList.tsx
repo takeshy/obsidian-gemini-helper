@@ -1,6 +1,6 @@
 import { forwardRef } from "react";
 import type { App } from "obsidian";
-import { LayoutDashboard, Plus } from "lucide-react";
+import { BookOpen, LayoutDashboard, Plus } from "lucide-react";
 import type { Message } from "src/types";
 import MessageBubble from "./MessageBubble";
 import { t } from "src/i18n";
@@ -22,6 +22,7 @@ interface MessageListProps {
   currentDashboard?: DashboardLink | null;
   onOpenDashboard?: () => void;
   onCreateDashboard?: () => void;
+  onAskGeminiHelperHelp?: () => void;
 }
 
 // Extract source file name from user message (e.g., From "xxx.md":)
@@ -48,6 +49,7 @@ const MessageList = forwardRef<HTMLDivElement, MessageListProps>(({
   currentDashboard,
   onOpenDashboard,
   onCreateDashboard,
+  onAskGeminiHelperHelp,
 }, ref) => {
   // Get source file name for assistant message (from previous user message)
   const getSourceFileForIndex = (index: number): string | null => {
@@ -69,6 +71,27 @@ const MessageList = forwardRef<HTMLDivElement, MessageListProps>(({
           <p className="gemini-helper-empty-hint">
             {t("chat.welcomeHint")}
           </p>
+          {onAskGeminiHelperHelp && (
+            <div className="gemini-helper-empty-dashboard">
+              <div className="gemini-helper-empty-dashboard-heading">
+                <BookOpen size={16} aria-hidden="true" />
+                <span>{t("chat.helpTitle")}</span>
+              </div>
+              <p className="gemini-helper-empty-dashboard-description">
+                {t("chat.helpDescription")}
+              </p>
+              <div className="gemini-helper-empty-dashboard-actions">
+                <button
+                  type="button"
+                  className="gemini-helper-empty-dashboard-create"
+                  onClick={onAskGeminiHelperHelp}
+                >
+                  <BookOpen size={14} aria-hidden="true" />
+                  <span>{t("chat.askGeminiHelperHelp")}</span>
+                </button>
+              </div>
+            </div>
+          )}
           <div className="gemini-helper-empty-dashboard">
             <div className="gemini-helper-empty-dashboard-heading">
               <LayoutDashboard size={16} aria-hidden="true" />

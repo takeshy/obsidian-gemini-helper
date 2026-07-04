@@ -270,8 +270,7 @@ Create skills the same way as workflows — select **+ New (AI)**, check **"Crea
 
 External skills are imported from the official repository and copied into your vault `skills/` folder. The settings panel shows installable skills, installed versions, and per-skill update checks. Imported skills use the same selector, slash commands, references, and workflow execution as vault-authored skills.
 
-> **For setup instructions and examples, see [SKILLS.md](docs/SKILLS.md)**  
-> **For external skill repository rules, see [import_skill.md](docs/import_skill.md)**
+> **For setup instructions and examples, ask Gemini Helper chat. The built-in OKF knowledge source contains the current Agent Skills reference.**
 
 ## OKF Knowledge Sources
 
@@ -281,9 +280,11 @@ Gemini Helper can read Open Knowledge Format (OKF) bundles as chat knowledge. En
 
 OKF is best for curated domain context: concepts, metrics, datasets, glossaries, and playbooks. It is injected as compact prompt context, while skills remain the place for reusable behavior, references, and executable workflows.
 
+Gemini Helper also ships a built-in OKF bundle about its own features. Chat can use this built-in knowledge to answer questions about plugin setup, chat tools, skills, workflows, RAG, OKF, MCP, dashboards, security, and troubleshooting without requiring a separate OKF directory.
+
 ![OKF Sample](docs/images/okf_sample.png)
 
-> **For OKF structure and limits, see [OKF.md](docs/OKF.md)**
+> **For OKF structure and limits, ask Gemini Helper chat or browse the English OKF bundle in [`docs/okf/gemini-helper-help/`](docs/okf/gemini-helper-help/index.md).**
 
 ---
 
@@ -432,7 +433,7 @@ Edit workflows directly in the visual node editor with drag-and-drop interface.
 | External | `mcp`, `obsidian-command` |
 | Utility | `sleep` |
 
-> **For detailed node specifications and examples, see [WORKFLOW_NODES.md](docs/WORKFLOW_NODES.md)**
+> **For detailed node specifications and examples, ask Gemini Helper chat. The built-in OKF knowledge source contains the current workflow reference.**
 
 ## Hotkey Mode
 
@@ -553,7 +554,7 @@ Configure everything from the widget settings:
 > [!NOTE]
 > **Workflow widgets read from a cache, not live.** A workflow widget runs only on the **Run** button, the config editor's test-run, or once on open when its cached result is older than the **Auto-refresh interval** (minutes; `0` = manual only). Results are stored as normal vault files under `Dashboards/Data/<encoded dashboard path>.json`, so they sync/version like other files and are included in push/pull workflows. The workflow must store its Markdown/HTML output in a variable (default `result`).
 
-> **For the `.dashboard` file format, the full YAML schema, and AI-generation tips, see [Dashboard Documentation](docs/DASHBOARD.md)**
+> **For the `.dashboard` file format, the YAML schema, and AI-generation tips, ask Gemini Helper chat. The built-in OKF knowledge source contains the current dashboard reference.**
 
 ---
 
@@ -750,7 +751,7 @@ Requires: `pip install cryptography`
 
 > **Warning:** If you forget your password, encrypted files cannot be recovered. Keep your password safe.
 
-> **Tip:** To encrypt all files in a directory at once, use a workflow. See the "Encrypt all files in a directory" example in [WORKFLOW_NODES.md](docs/WORKFLOW_NODES.md#obsidian-command).
+> **Tip:** To encrypt all files in a directory at once, use a workflow. Ask Gemini Helper chat for the current `obsidian-command` workflow example.
 
 ![File Encryption Workflow](docs/images/enc.png)
 

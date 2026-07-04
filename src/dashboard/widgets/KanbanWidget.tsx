@@ -512,7 +512,7 @@ export default function KanbanWidget({
           title={t("dashboard.kanbanNewCard")}
         >
           <Plus size={13} />
-          {t("dashboard.kanbanNewCard")}
+          <span>{t("dashboard.kanbanNewCard")}</span>
         </button>
       </div>
       {allColumns.length === 0 ? (

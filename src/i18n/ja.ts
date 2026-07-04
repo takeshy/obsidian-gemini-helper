@@ -260,6 +260,10 @@ export const ja: Record<string, string> = {
   "chat.welcomeImage": "「画像を生成」「generate image」で自動的に画像モデルに切り替わります",
   "chat.welcomeCompact": "/compact で長い会話を要約して新しいチャットに引き継げます",
   "chat.welcomeNewChat": "Geminiは記憶ができないため、毎回このチャットの全会話を送信します。話題を変える時は必ず + ボタンで新しいチャットを始めてください",
+  "chat.helpTitle": "Gemini Helper ヘルプ",
+  "chat.helpDescription": "組み込みのヘルプOKFを有効にして、Gemini Helperの機能、設定、ワークフロー、RAG、OKF、ダッシュボード、トラブルシュートについて質問できます。",
+  "chat.askGeminiHelperHelp": "Gemini Helperについて質問",
+  "chat.helpQuestionDraft": "Gemini Helperでは何ができますか？",
   "chat.dashboardTitle": "ダッシュボード",
   "chat.dashboardDescription": "ダッシュボードはノート、ファイル、ワークフロー、読書メモを1つの編集できる作業場所にまとめます。",
   "chat.openCurrentDashboard": "現在のダッシュボードを開く",
@@ -282,6 +286,8 @@ export const ja: Record<string, string> = {
   "input.webSearch": "ウェブ検索",
   "input.rag": "セマンティック検索: {{name}}",
   "input.vaultToolTitle": "Vaultツール設定",
+  "okf.add": "OKFナレッジを追加",
+  "okf.builtinHelpDescription": "組み込みのGemini Helper機能リファレンス",
   "input.vaultToolLabel": "Vaultツール",
   "input.vaultToolAll": "Vault: 全て",
   "input.vaultToolNoSearch": "Vault: 検索なし",
@@ -1060,6 +1066,7 @@ export const ja: Record<string, string> = {
 
   // Dashboard
   "command.createDashboard": "ダッシュボードを作成",
+  "dashboard.createNamePrompt": "ダッシュボード名",
   "dashboard.edit": "編集",
   "dashboard.done": "完了",
   "dashboard.undo": "元に戻す",

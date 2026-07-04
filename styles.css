@@ -8920,7 +8920,7 @@
 .llm-hub-db-panel-overlay {
   position: fixed;
   inset: 0;
-  z-index: var(--layer-modal, 100);
+  z-index: 1000;
   display: flex;
   justify-content: flex-end;
   background: rgba(0, 0, 0, 0.3);
@@ -9350,6 +9350,9 @@
   padding: 3px 8px;
   border-bottom: 1px solid var(--background-modifier-border);
 }
+.llm-hub-db-cell[data-widget-type="workflow"] .llm-hub-db-wf-header {
+  padding-right: 72px;
+}
 .llm-hub-db-wf-meta {
   display: flex;
   align-items: center;
@@ -9370,11 +9373,13 @@
   display: flex;
   align-items: center;
   gap: 4px;
+  min-width: 0;
 }
 .llm-hub-db-wf-btn {
   display: inline-flex;
   align-items: center;
   gap: 4px;
+  min-width: 0;
   padding: 2px 7px;
   font-size: 10px;
   border-radius: 5px;
@@ -9383,6 +9388,11 @@
   color: var(--text-muted);
   cursor: pointer;
   box-shadow: none;
+  white-space: nowrap;
+}
+.llm-hub-db-wf-btn span {
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .llm-hub-db-wf-btn:hover:not(:disabled) {
   background: var(--background-modifier-hover);
@@ -9433,6 +9443,9 @@
   padding: 4px 8px;
   flex: 0 0 auto;
 }
+.llm-hub-db-cell[data-widget-type="kanban"] .llm-hub-db-kanban-header {
+  padding-right: 72px;
+}
 .llm-hub-db-kanban-board-title {
   font-weight: 600;
   font-size: var(--font-ui-medium);
@@ -9449,6 +9462,7 @@
   display: inline-flex;
   align-items: center;
   gap: 4px;
+  min-width: 0;
   padding: 3px 10px;
   font-size: var(--font-ui-smaller);
   font-weight: 500;
@@ -9679,6 +9693,11 @@
   align-items: center;
   gap: 6px;
   cursor: pointer;
+  white-space: nowrap;
+}
+.llm-hub-db-kanban-new span {
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .llm-hub-db-kanban-checkbox input[type="checkbox"] {
   width: var(--checkbox-size, 16px);
@@ -9873,6 +9892,9 @@
   gap: 6px;
   padding: 5px 8px;
   border-bottom: 1px solid var(--background-modifier-border);
+}
+.llm-hub-db-cell[data-widget-type="timeline"] .llm-hub-db-timeline-header {
+  padding-right: 64px;
 }
 .llm-hub-db-timeline-title {
   flex: 1;

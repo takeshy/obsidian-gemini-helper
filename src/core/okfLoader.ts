@@ -1,4 +1,5 @@
 import { parseYaml, type App } from "obsidian";
+import { BUILTIN_OKF_BUNDLE_ID, BUILTIN_OKF_BUNDLE_NAME, BUILTIN_OKF_DOCUMENTS } from "./builtinOkf";
 import { getNodeFs, isAbsolutePath, normalizePathSeparators } from "./pathAccess";
 
 interface OkfDocument {
@@ -6,7 +7,7 @@ interface OkfDocument {
   title: string;
   type: string;
   description: string;
-  tags: string[];
+  tags: readonly string[];
   body: string;
 }
 
@@ -16,10 +17,25 @@ export interface OkfBundle {
   id: string;
   /** Display name: index.md `title`, falling back to the bundle folder name. */
   name: string;
+  /** True for the generated Gemini Helper help bundle shipped with the plugin. */
+  builtin?: boolean;
 }
 
 const MAX_DOCS_PER_BUNDLE = 24;
 const MAX_BODY_CHARS = 1400;
+const OKF_SYSTEM_PROMPT_INTRO = "The following Open Knowledge Format (OKF) knowledge bundles are active. Treat them as curated domain context. Prefer their definitions, relationships, and documented procedures when answering domain questions. If a relevant concept may exist but is not included below, use vault tools or semantic search when available before guessing.";
+
+export function getBuiltinOkfBundle(): OkfBundle {
+  return {
+    id: BUILTIN_OKF_BUNDLE_ID,
+    name: BUILTIN_OKF_BUNDLE_NAME,
+    builtin: true,
+  };
+}
+
+export function isBuiltinOkfBundleId(id: string): boolean {
+  return id === BUILTIN_OKF_BUNDLE_ID;
+}
 
 function parseFrontmatter(content: string): { frontmatter: Record<string, unknown>; body: string } {
   const match = content.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n?([\s\S]*)$/);
@@ -152,6 +168,26 @@ function toDocument(refPath: string, content: string): OkfDocument {
   };
 }
 
+function formatOkfBundleSection(bundleName: string, docs: readonly OkfDocument[]): string {
+  const lines = docs.map(doc => {
+    const tags = doc.tags.length > 0 ? ` tags=${doc.tags.join(",")}` : "";
+    const description = doc.description ? ` - ${doc.description}` : "";
+    const body = doc.body ? `\n  Excerpt: ${doc.body}` : "";
+    return `- [${doc.type}] ${doc.title} (${doc.path})${tags}${description}${body}`;
+  });
+  return `\n## OKF bundle: ${bundleName}\n${lines.join("\n")}`;
+}
+
+/** Build the bundled product knowledge prompt shipped with Gemini Helper. */
+export function buildBuiltinOkfSystemPrompt(): string {
+  const docs = BUILTIN_OKF_DOCUMENTS.map(doc => ({
+    ...doc,
+    path: `gemini-helper-help/${doc.path}`,
+    body: doc.body.trim().replace(/\s+/g, " ").slice(0, MAX_BODY_CHARS),
+  }));
+  return `\n\n${OKF_SYSTEM_PROMPT_INTRO}\n${formatOkfBundleSection(`${BUILTIN_OKF_BUNDLE_NAME} (${BUILTIN_OKF_BUNDLE_ID})`, docs)}`;
+}
+
 /**
  * Build a system prompt fragment for the selected OKF bundles under `root`.
  * Only documents belonging to a selected bundle are included.
@@ -160,7 +196,7 @@ export async function buildOkfSystemPrompt(app: App, root: string, selectedBundl
   if (selectedBundleIds.length === 0) return "";
 
   const sections: string[] = [
-    "The following Open Knowledge Format (OKF) knowledge bundles are active. Treat them as curated domain context. Prefer their definitions, relationships, and documented procedures when answering domain questions. If a relevant concept may exist but is not included below, use vault tools or semantic search when available before guessing.",
+    OKF_SYSTEM_PROMPT_INTRO,
   ];
 
   let refs: MarkdownRef[];
@@ -180,13 +216,7 @@ export async function buildOkfSystemPrompt(app: App, root: string, selectedBundl
     for (const ref of bundleRefs) {
       docs.push(toDocument(ref.path, await ref.read()));
     }
-    const lines = docs.map(doc => {
-      const tags = doc.tags.length > 0 ? ` tags=${doc.tags.join(",")}` : "";
-      const description = doc.description ? ` - ${doc.description}` : "";
-      const body = doc.body ? `\n  Excerpt: ${doc.body}` : "";
-      return `- [${doc.type}] ${doc.title} (${doc.path})${tags}${description}${body}`;
-    });
-    sections.push(`\n## OKF bundle: ${bundleId || rootBasename(root)}\n${lines.join("\n")}`);
+    sections.push(formatOkfBundleSection(bundleId || rootBasename(root), docs));
   }
 
   return `\n\n${sections.join("\n")}`;

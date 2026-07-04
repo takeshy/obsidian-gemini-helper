@@ -1,22 +1,23 @@
 # Dashboard
 
 Build a personal **home / overview page** from a responsive grid of widgets. A
-dashboard is a `.dashboard` file that arranges **Bases views**, **notes**, **web
-pages**, **timelines**, **kanban boards**, and **workflow output** in a
+dashboard is a `.dashboard` file that arranges **Bases views**, **files**,
+**reading memos**, **web pages**, **timelines**, **kanban boards**, and **workflow output** in a
 drag-and-resize grid. Open it like any note to get a live, editable board.
 
 ![Dashboard](images/dashboard.png)
 
 - [Dashboard vs Canvas](#dashboard-vs-canvas)
 - [Creating a Dashboard](#creating-a-dashboard)
-- [Edit Mode](#edit-mode)
+- [Editing Dashboards](#editing-dashboards)
 - [Widget Types](#widget-types)
   - [Base](#base--embed-a-bases-view)
-  - [Markdown](#markdown--embed-a-note)
+  - [File](#file--read-and-annotate-vault-files)
   - [Web Embed](#web-embed--embed-a-web-page)
   - [Workflow](#workflow--render-workflow-output)
   - [Kanban](#kanban--drag-cards-to-change-status)
   - [Timeline](#timeline--capture-dated-posts)
+  - [MemoList](#memolist--browse-reading-memos)
 - [Responsive Layout](#responsive-layout)
 - [Creating Widgets with AI](#creating-widgets-with-ai)
 - [The `.dashboard` File Format](#the-dashboard-file-format)
@@ -30,11 +31,11 @@ Obsidian's **Canvas** and a Dashboard look similar but solve different problems:
 
 | | Dashboard | Canvas |
 |---|-----------|--------|
-| **Content** | **Live** — Bases views, timelines, kanban boards, workflow output, and notes update on their own | **Static** — cards are snapshots placed by hand |
+| **Content** | **Live** — Bases views, files, reading memos, timelines, kanban boards, and workflow output update on their own | **Static** — cards are snapshots placed by hand |
 | **Layout** | Responsive grid (12 columns; reflows to a single column on narrow screens) | Free-form infinite plane with absolute positions |
 | **Purpose** | A structured **home / overview** page you open to check status | A space to **think** — arrange ideas and connect them with arrows |
 | **AI** | Authored from chat (the `dashboard` skill builds the file and its backing `.base` data) | Manual placement |
-| **Viewing** | A read-only view mode that can't be disturbed | Always editable |
+| **Interaction** | Direct widget controls with a structured grid | Always editable |
 
 In short: use a **Dashboard** for a live, at-a-glance overview (tasks, generated digests, embedded pages); use a **Canvas** for free-form, spatial thinking and relationships. The key trade-offs are **dynamic vs static** and **responsive grid vs free placement**.
 
@@ -58,16 +59,17 @@ version like any other note. Workflow widget results are stored separately under
 
 ---
 
-## Edit Mode
+## Editing Dashboards
 
-Each dashboard opens in **view mode**. Use the toolbar to switch:
+Dashboards are directly editable; there is no separate edit toggle.
 
-- **Edit** — enter edit mode: drag widgets to move them, drag a widget's
-  bottom-right corner to resize, click the **gear** to configure a widget, and
-  click the **trash** to delete one.
-- **+ Add widget** — open the widget palette (edit mode only).
+- **Drag / resize** — drag a widget to move it, or drag its bottom-right corner
+  to resize it.
+- **Gear** — configure a widget. The settings panel also contains the delete
+  action.
+- **Maximize / restore** — show only one widget, then return to the normal grid.
+- **+ Add widget** — open the widget palette.
 - **Undo / Redo** — step through layout changes made this session.
-- **Done** — return to view mode.
 
 > All edits **save automatically** — there is no separate save button.
 
@@ -75,7 +77,7 @@ Each dashboard opens in **view mode**. Use the toolbar to switch:
 
 ## Widget Types
 
-In edit mode, click **+ Add widget** to choose a widget type:
+Click **+ Add widget** to choose a widget type:
 
 ![Add widget palette](images/dashboard_widgets.png)
 
@@ -100,16 +102,29 @@ one widget per view (Active / Done / Backlog). If the `.base` file changes
 outside the settings panel, the editor reloads it before saving so it does not
 overwrite newer content with stale state.
 
-### Markdown — embed a note
+### File — read and annotate vault files
 
-Renders an existing markdown note inline as a read-only embed (with a link to
-open the full note).
+Renders an existing vault file inline. It supports Markdown/text/HTML, images,
+PDF, EPUB, and a fallback open button for other file types.
 
-![Markdown widget settings](images/dashboard_markdown.png)
+![File widget settings](images/dashboard_markdown.png)
 
 | Setting | Description |
 |---------|-------------|
-| **Markdown note** | Vault path to the note to embed (searchable picker) |
+| **File** | Vault path to the file to embed (searchable picker) |
+| **Show header** | Show a compact header with the file path, open button, and memo button |
+
+For document reading, select text and right-click:
+
+- **Copy** — copy the selected text.
+- **Ask AI** — prefill Chat with the selected text without sending immediately.
+- **Add to memo** — open the memo panel and attach the selected quote to a memo.
+
+Memos are stored under `Dashboards/Memos/` using the source file path. Quote
+anchors include context where possible, so memo links can jump back to repeated
+text more reliably. While the memo panel is open, saved memo ranges are
+highlighted in the document. Empty memo text is allowed when a quote link is
+attached.
 
 ### Web Embed — embed a web page
 
@@ -166,8 +181,7 @@ columns by a frontmatter **status property**. Drag a card to another column to
 update that note's status (written via `processFrontMatter`). Drag a card
 up/down within a column to persist a manual order for that board. Click a card
 to preview its note in a modal; the modal's open icon navigates to the note in a
-new tab. The board is interactive in **view mode** — no need to enter edit mode
-to drag cards.
+new tab. The board is interactive directly on the dashboard.
 
 ![Kanban board](images/dashboard_kanban.png)
 
@@ -178,7 +192,7 @@ filters — placed in the configured folder, tagged with the configured tag, and
 set to the chosen column's status. The new card appears on the board (you stay
 on the dashboard); click it when you want to open the note.
 
-Configure the board from the widget settings in edit mode:
+Configure the board from the widget settings:
 
 ![Kanban settings](images/dashboard_kanban_edit.png)
 
@@ -231,6 +245,15 @@ as a diff before it is applied back to the textarea.
 
 ![Timeline AI rewrite](images/timeline_ai.png)
 
+### MemoList — browse reading memos
+
+Lists File-widget memo files stored under `Dashboards/Memos/`. Use it as an
+index for reading notes across PDFs, EPUBs, Markdown notes, and other files.
+
+Clicking a row does not navigate away from the dashboard. Instead, the MemoList
+widget maximizes and temporarily shows the selected source file with its memo
+panel open. Restoring the widget returns to the MemoList.
+
 Unknown widget types (e.g. from a newer plugin version) are **preserved on
 save** and render as a placeholder, so editing an unfamiliar dashboard never
 drops data.
@@ -243,7 +266,7 @@ The grid has two breakpoints, switched by the container width:
 
 | Breakpoint | When | Layout |
 |------------|------|--------|
-| **`lg`** (wide) | ≥ 768px | The layout you arrange in edit mode (default 12 columns) |
+| **`lg`** (wide) | ≥ 768px | The layout you arrange on the wide grid (default 12 columns) |
 | **`sm`** (narrow) | < 768px | Widgets reflow into a **single full-width column**, stacked top-to-bottom |
 
 By default the `sm` layout is **derived automatically** from the wide layout
@@ -290,7 +313,7 @@ grid:
   gap: 8          # pixels between cells
 widgets:
   - id: <uuid>                            # unique id (UUID-like string)
-    type: base | markdown | web | workflow | kanban | timeline
+    type: base | file | web | workflow | kanban | timeline | memo-list
     layout:
       lg: { x: 0, y: 0, w: 6, h: 4 }      # required: position on the wide grid
       sm: { x: 0, y: 0, w: 12, h: 4 }     # optional: auto-derived (stacked) if omitted
@@ -311,9 +334,10 @@ config:
   base: Dashboards/Bases/Tasks.base   # vault path to the .base file
   view: Active                     # view name; omit/empty = first view
 
-# markdown
+# file
 config:
-  path: Home.md                    # vault path to a markdown note
+  path: Research/report.pdf        # vault path to a supported file
+  showHeader: true                 # optional; false hides the path/open/memo header
 
 # web
 config:
@@ -350,6 +374,9 @@ config:
   latestCount: 20
   collapseLineLimit: 8
   collapseCharLimit: 440
+
+# memo-list
+config: {}                             # reads Dashboards/Memos/
 ```
 
 ### Complete example
@@ -368,7 +395,7 @@ widgets:
       base: Dashboards/Bases/Tasks.base
       view: Active
   - id: readme
-    type: markdown
+    type: file
     layout: { lg: { x: 8, y: 0, w: 4, h: 6 } }
     config:
       path: Home.md
@@ -386,6 +413,10 @@ widgets:
       latestCount: 20
       collapseLineLimit: 8
       collapseCharLimit: 440
+  - id: memos
+    type: memo-list
+    layout: { lg: { x: 6, y: 10, w: 6, h: 6 } }
+    config: {}
 ```
 
 ---
@@ -400,11 +431,15 @@ widgets:
 - **Keep workflow widgets cheap.** They cache results; set a sensible
   **Auto-refresh interval** instead of running them on every open, and store the
   output in `result`.
+- **Use MemoList as a reading index.** File widgets create memo files under
+  `Dashboards/Memos/`; MemoList gives you a dashboard-level entry point back to
+  those annotated documents.
 - **Desktop only.** Dashboards (like the rest of the plugin) run on Obsidian
   desktop.
 - **Files live in your vault.** Dashboards are stored under `Dashboards/` as
-  `.dashboard` files, workflow results under `Dashboards/Data/`, timeline posts
-  under `Dashboards/Timeline/`, and generated Bases under `Dashboards/Bases/`.
-  They are normal vault files and sync/version with your notes.
+  `.dashboard` files, workflow results under `Dashboards/Data/`, reading memos
+  under `Dashboards/Memos/`, timeline posts under `Dashboards/Timeline/`, and
+  generated Bases under `Dashboards/Bases/`. They are normal vault files and
+  sync/version with your notes.
 
 > See also: [Workflow Nodes](WORKFLOW_NODES.md) · [Agent Skills](SKILLS.md)

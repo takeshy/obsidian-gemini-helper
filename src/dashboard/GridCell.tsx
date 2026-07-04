@@ -1,5 +1,5 @@
 import { useRef, useState, useEffect, useCallback } from "react";
-import { GripVertical, Maximize2, Settings, Trash2 } from "lucide-react";
+import { GripVertical, Maximize2, Minimize2, Settings } from "lucide-react";
 import { t } from "src/i18n";
 import type { Widget, LayoutPos, GridLayout, WidgetContext } from "./types";
 import WidgetRenderer from "./WidgetRenderer";
@@ -20,7 +20,8 @@ interface GridCellProps {
   computeDragPos: (widgetId: string, dxPx: number, dyPx: number) => LayoutPos;
   computeResizePos: (widgetId: string, dxPx: number, dyPx: number) => LayoutPos;
   onSettings?: () => void;
-  onDelete?: () => void;
+  isMaximized?: boolean;
+  onToggleMaximize?: () => void;
 }
 
 export default function GridCell({
@@ -37,7 +38,8 @@ export default function GridCell({
   computeDragPos,
   computeResizePos,
   onSettings,
-  onDelete,
+  isMaximized,
+  onToggleMaximize,
 }: GridCellProps) {
   const [interactionMode, setInteractionMode] = useState<InteractionMode>(null);
   const [transform, setTransform] = useState<{ dx: number; dy: number } | null>(null);
@@ -47,6 +49,7 @@ export default function GridCell({
   const [snapPreview, setSnapPreview] = useState<LayoutPos | null>(null);
 
   const isActive = interactionMode !== null;
+  const layoutHandlesEnabled = !isMaximized && !(widget.type === "file" && (widget.config as { memoPanelOpen?: unknown }).memoPanelOpen === true);
 
   // A single effect keyed on `interactionMode` so listeners are added once per
   // interaction, not re-bound on every pointermove frame.
@@ -114,7 +117,6 @@ export default function GridCell({
 
   const handleDragPointerDown = useCallback(
     (e: React.PointerEvent) => {
-      if (!editMode) return;
       e.preventDefault();
       e.stopPropagation();
       const target = e.currentTarget as HTMLElement;
@@ -125,12 +127,11 @@ export default function GridCell({
       setTransform({ dx: 0, dy: 0 });
       onDragStart?.();
     },
-    [editMode, onDragStart],
+    [onDragStart],
   );
 
   const handleResizePointerDown = useCallback(
     (e: React.PointerEvent) => {
-      if (!editMode) return;
       e.preventDefault();
       e.stopPropagation();
       const target = e.currentTarget as HTMLElement;
@@ -146,7 +147,7 @@ export default function GridCell({
         });
       }
     },
-    [editMode, cellW, cellH, pos, grid.gap],
+    [cellW, cellH, pos, grid.gap],
   );
 
   const transformStyle = transform
@@ -169,7 +170,8 @@ export default function GridCell({
       )}
 
       <div
-        className={`llm-hub-db-cell${editMode ? " is-edit" : ""}${isActive ? " is-active" : ""}`}
+        className={`llm-hub-db-cell${editMode ? " is-edit" : ""}${isActive ? " is-active" : ""}${isMaximized ? " is-maximized" : ""}`}
+        data-widget-type={widget.type}
         style={{
           gridColumn: `${pos.x + 1} / span ${pos.w}`,
           gridRow: `${pos.y + 1} / span ${pos.h}`,
@@ -183,7 +185,7 @@ export default function GridCell({
           <WidgetRenderer widget={widget} ctx={ctx} />
         </div>
 
-        {editMode && (
+        {layoutHandlesEnabled && (
           <div
             onPointerDown={handleDragPointerDown}
             className="llm-hub-db-drag"
@@ -194,38 +196,36 @@ export default function GridCell({
           </div>
         )}
 
-        {editMode && (
-          <div className="llm-hub-db-actions">
-            {onSettings && (
+        <div className="llm-hub-db-actions">
+            {onToggleMaximize && (
               <button
                 onPointerDown={(e) => e.stopPropagation()}
                 onClick={(e) => {
                   e.stopPropagation();
-                  onSettings();
+                  onToggleMaximize();
                 }}
                 className="llm-hub-db-iconbtn"
-                title={t("dashboard.settings")}
+                title={isMaximized ? t("dashboard.restoreWidget") : t("dashboard.maximizeWidget")}
               >
-                <Settings size={12} />
+                {isMaximized ? <Minimize2 size={12} /> : <Maximize2 size={12} />}
               </button>
             )}
-            {onDelete && (
-              <button
-                onPointerDown={(e) => e.stopPropagation()}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onDelete();
-                }}
-                className="llm-hub-db-iconbtn is-danger"
-                title={t("dashboard.deleteWidget")}
-              >
-                <Trash2 size={12} />
-              </button>
-            )}
-          </div>
-        )}
+          {onSettings && (
+            <button
+              onPointerDown={(e) => e.stopPropagation()}
+              onClick={(e) => {
+                e.stopPropagation();
+                onSettings();
+              }}
+              className="llm-hub-db-iconbtn"
+              title={t("dashboard.settings")}
+            >
+              <Settings size={12} />
+            </button>
+          )}
+        </div>
 
-        {editMode && (
+        {layoutHandlesEnabled && (
           <div
             onPointerDown={handleResizePointerDown}
             className="llm-hub-db-resize"

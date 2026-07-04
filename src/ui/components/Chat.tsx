@@ -5,6 +5,7 @@ import {
 	useImperativeHandle,
 	forwardRef,
 	useCallback,
+	useMemo,
 } from "react";
 import { TFile, Notice, MarkdownView, Platform } from "obsidian";
 import { Plus, History, ChevronDown, Lock, FileText, Loader2, Check } from "lucide-react";
@@ -101,9 +102,26 @@ import {
 export interface ChatRef {
 	getActiveChat: () => TFile | null;
 	setActiveChat: (chat: TFile | null) => void;
+	askSelection: (selection: { text: string; sourcePath?: string }) => void;
+	setDraft: (content: string) => void;
 }
 
 const MAX_BACKGROUND_STREAMS = 3;
+const MARKDOWN_SKILL_PATH = builtinFolderPath("obsidian-markdown");
+const DASHBOARD_SKILL_PATH = builtinFolderPath("dashboard");
+const CANVAS_SKILL_PATH = builtinFolderPath("json-canvas");
+const BASE_SKILL_PATH = builtinFolderPath("base");
+const CONTEXT_SKILL_BY_EXTENSION: Record<string, string> = {
+	dashboard: DASHBOARD_SKILL_PATH,
+	canvas: CANVAS_SKILL_PATH,
+	base: BASE_SKILL_PATH,
+};
+const CONTEXT_BUILTIN_SKILL_PATHS = new Set([
+	MARKDOWN_SKILL_PATH,
+	DASHBOARD_SKILL_PATH,
+	CANVAS_SKILL_PATH,
+	BASE_SKILL_PATH,
+]);
 
 interface ChatProps {
 	plugin: GeminiHelperPlugin;
@@ -146,6 +164,7 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 	const messagesContainerRef = useRef<HTMLDivElement>(null);
 	const abortControllerRef = useRef<AbortController | null>(null);
 	const inputAreaRef = useRef<InputAreaHandle>(null);
+	const pendingExternalSelectionRef = useRef<{ text: string; sourcePath?: string } | null>(null);
 	const currentSlashCommandRef = useRef<SlashCommand | null>(null);
 	const mcpExecutorRef = useRef<McpToolExecutor | null>(null);
 	// Session ID to track which chat session owns the UI; incremented on startNewChat/loadChat
@@ -161,6 +180,8 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 	const initialLastActiveChatIdRef = useRef<string | null>(plugin.lastActiveChatId);
 	const hasCompletedInitialRestoreRef = useRef(false);
 	const [vaultFiles, setVaultFiles] = useState<string[]>([]);
+	const [currentDashboard, setCurrentDashboard] = useState<TFile | null>(null);
+	const [activeContextSkillPath, setActiveContextSkillPath] = useState<string | null>(null);
 	const [hasSelection, setHasSelection] = useState(false);
 	const [hasApiKey, setHasApiKey] = useState(!!plugin.settings.googleApiKey);
 	const [decryptingChatId, setDecryptingChatId] = useState<string | null>(null);
@@ -176,6 +197,13 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 	const [activeSkillPaths, setActiveSkillPaths] = useState<string[]>(
 		() => DEFAULT_BUILTIN_SKILL_IDS.map(builtinFolderPath)
 	);
+	const effectiveActiveSkillPaths = useMemo(() => {
+		if (!activeContextSkillPath) {
+			return activeSkillPaths;
+		}
+		const withoutContextBuiltins = activeSkillPaths.filter(path => !CONTEXT_BUILTIN_SKILL_PATHS.has(path));
+		return [activeContextSkillPath, ...withoutContextBuiltins];
+	}, [activeSkillPaths, activeContextSkillPath]);
 	// OKF knowledge bundles discovered under the configured root directory.
 	const [okfBundles, setOkfBundles] = useState<OkfBundle[]>([]);
 	const [activeOkfBundleIds, setActiveOkfBundleIds] = useState<string[]>([]);
@@ -200,6 +228,16 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 	useImperativeHandle(ref, () => ({
 		getActiveChat: () => activeChat,
 		setActiveChat: (chat: TFile | null) => setActiveChat(chat),
+		askSelection: (selection: { text: string; sourcePath?: string }) => {
+			const text = selection.text.trim();
+			if (!text) return;
+			pendingExternalSelectionRef.current = { text, sourcePath: selection.sourcePath };
+			inputAreaRef.current?.setInputValue("{selection}");
+		},
+		setDraft: (content: string) => {
+			inputAreaRef.current?.setInputValue(content);
+			inputAreaRef.current?.focus();
+		},
 	}));
 
 	// Generate chat ID
@@ -590,6 +628,68 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 		};
 	}, [plugin]);
 
+	useEffect(() => {
+		const readLeafFile = (leaf: { view?: unknown }): TFile | null => {
+			const file = (leaf.view as { file?: TFile | null } | undefined)?.file;
+			return file instanceof TFile ? file : null;
+		};
+
+		const findContext = (): { dashboardFile: TFile | null; skillPath: string | null } => {
+			let dashboardFile: TFile | null = null;
+			let skillPath: string | null = null;
+
+			const considerOpenFile = (file: TFile | null) => {
+				if (!file) return;
+				if (file.extension === "dashboard" && !dashboardFile) {
+					dashboardFile = file;
+				}
+				const contextSkill = CONTEXT_SKILL_BY_EXTENSION[file.extension];
+				if (contextSkill && !skillPath) {
+					skillPath = contextSkill;
+				}
+			};
+
+			const activeFile = plugin.app.workspace.getActiveFile();
+			considerOpenFile(activeFile);
+
+			plugin.app.workspace.iterateAllLeaves((leaf) => {
+				considerOpenFile(readLeafFile(leaf));
+			});
+
+			if (!dashboardFile) {
+				const dashboards = plugin.app.vault
+					.getFiles()
+					.filter(file => file.extension === "dashboard")
+					.sort((a, b) => b.stat.mtime - a.stat.mtime);
+				dashboardFile = dashboards[0] ?? null;
+			}
+
+			return { dashboardFile, skillPath };
+		};
+
+		const refreshContext = () => {
+			const context = findContext();
+			setCurrentDashboard(context.dashboardFile);
+			setActiveContextSkillPath(context.skillPath);
+		};
+
+		refreshContext();
+
+		const onVaultChange = () => refreshContext();
+		const onLeafChange = () => refreshContext();
+		plugin.app.vault.on("create", onVaultChange);
+		plugin.app.vault.on("delete", onVaultChange);
+		plugin.app.vault.on("rename", onVaultChange);
+		plugin.app.workspace.on("active-leaf-change", onLeafChange);
+
+		return () => {
+			plugin.app.vault.off("create", onVaultChange);
+			plugin.app.vault.off("delete", onVaultChange);
+			plugin.app.vault.off("rename", onVaultChange);
+			plugin.app.workspace.off("active-leaf-change", onLeafChange);
+		};
+	}, [plugin]);
+
 	// Update hasSelection and focus input when chat gains focus
 	useEffect(() => {
 		const handleLeafChange = () => {
@@ -834,9 +934,22 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 		if (result.includes("{selection}")) {
 			let selection = "";
 			let locationInfo: { filePath: string; startLine: number; endLine: number } | null = null;
+			const externalSelection = pendingExternalSelectionRef.current;
+			pendingExternalSelectionRef.current = null;
+
+			if (externalSelection?.text) {
+				selection = externalSelection.text;
+				if (externalSelection.sourcePath) {
+					locationInfo = {
+						filePath: externalSelection.sourcePath,
+						startLine: 0,
+						endLine: 0,
+					};
+				}
+			}
 
 			// First try to get selection from current active view
-			const activeView = plugin.app.workspace.getActiveViewOfType(MarkdownView);
+			const activeView = selection ? null : plugin.app.workspace.getActiveViewOfType(MarkdownView);
 			if (activeView) {
 				const editor = activeView.editor;
 				selection = editor.getSelection();
@@ -860,12 +973,17 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 			// Build selection text with location info
 			let selectionText: string;
 			if (selection && locationInfo) {
-				const lineInfo = locationInfo.startLine === locationInfo.endLine
-					? `Line ${locationInfo.startLine}`
-					: `Lines ${locationInfo.startLine}-${locationInfo.endLine}`;
+				const lineInfo = locationInfo.startLine > 0
+					? (locationInfo.startLine === locationInfo.endLine
+						? ` (Line ${locationInfo.startLine})`
+						: ` (Lines ${locationInfo.startLine}-${locationInfo.endLine})`)
+					: "";
 				// Format as quote block for clear boundary
 				const quotedSelection = selection.split("\n").map(line => `> ${line}`).join("\n");
-				selectionText = `From "${locationInfo.filePath}" (${lineInfo}):\n${quotedSelection}`;
+				selectionText = `From "${locationInfo.filePath}"${lineInfo}:\n${quotedSelection}`;
+			} else if (selection) {
+				const quotedSelection = selection.split("\n").map(line => `> ${line}`).join("\n");
+				selectionText = `Selected text:\n${quotedSelection}`;
 			} else {
 				// Fallback to active note content if no selection
 				const activeFile = plugin.app.workspace.getActiveFile();
@@ -1191,10 +1309,14 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 				}) : [];
 
 				// Activate skill if invoked via slash command
-				let effectiveSkillPaths = activeSkillPaths;
+				let effectiveSkillPaths = effectiveActiveSkillPaths;
 				if (skillPath && !effectiveSkillPaths.includes(skillPath)) {
 					effectiveSkillPaths = [...effectiveSkillPaths, skillPath];
 					setActiveSkillPaths(effectiveSkillPaths);
+				}
+				if (activeContextSkillPath) {
+					effectiveSkillPaths = effectiveSkillPaths.filter(path => !CONTEXT_BUILTIN_SKILL_PATHS.has(path));
+					effectiveSkillPaths = [activeContextSkillPath, ...effectiveSkillPaths];
 				}
 
 				// Load active skills (needed for both workflow tools and system prompt).
@@ -2071,6 +2193,23 @@ Always be helpful and provide clear, concise responses. When working with vault 
 		}
 	};
 
+	const handleOpenDashboard = useCallback(() => {
+		if (!currentDashboard) return;
+		void plugin.app.workspace.getLeaf(true).openFile(currentDashboard);
+	}, [plugin, currentDashboard]);
+
+	const handleCreateDashboard = useCallback(() => {
+		void plugin.createDashboard().then(() => {
+			window.setTimeout(() => {
+				const activeFile = plugin.app.workspace.getActiveFile();
+				if (activeFile?.extension === "dashboard") {
+					setCurrentDashboard(activeFile);
+					setActiveContextSkillPath(DASHBOARD_SKILL_PATH);
+				}
+			}, 100);
+		});
+	}, [plugin]);
+
 	const chatClassName = `gemini-helper-chat${isKeyboardVisible ? " keyboard-visible" : ""}${isDecryptInputFocused ? " decrypt-input-focused" : ""}`;
 
 	return (
@@ -2190,6 +2329,12 @@ Always be helpful and provide clear, concise responses. When working with vault 
 						onDiscardEdit={handleDiscardEdit}
 						alwaysThink={getThinkingToggle(currentModel) === true}
 						app={plugin.app}
+						currentDashboard={currentDashboard ? {
+							basename: currentDashboard.basename,
+							path: currentDashboard.path,
+						} : null}
+						onOpenDashboard={currentDashboard ? handleOpenDashboard : undefined}
+						onCreateDashboard={handleCreateDashboard}
 					/>
 
 					<InputArea
@@ -2231,8 +2376,11 @@ Always be helpful and provide clear, concise responses. When working with vault 
 						slashCommands={plugin.settings.slashCommands}
 						onSlashCommand={handleSlashCommand}
 						availableSkills={availableSkills}
-						activeSkillPaths={activeSkillPaths}
+						activeSkillPaths={effectiveActiveSkillPaths}
 						onToggleSkill={(folderPath) => {
+							if (activeContextSkillPath && CONTEXT_BUILTIN_SKILL_PATHS.has(folderPath)) {
+								return;
+							}
 							setActiveSkillPaths(prev =>
 								prev.includes(folderPath)
 									? prev.filter(p => p !== folderPath)

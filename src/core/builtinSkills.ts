@@ -1026,11 +1026,11 @@ Sort direction depends on property type:
 const DASHBOARD: BuiltinSkillDefinition = {
   id: "dashboard",
   name: "dashboard",
-  description: "Create Obsidian Gemini Helper Dashboards (.dashboard files): a grid of widgets that embed Bases views, notes, and web pages. Use when the user asks for a dashboard, a home/overview page, or to arrange .base views, notes, or web embeds in a grid.",
+  description: "Create Obsidian Gemini Helper Dashboards (.dashboard files): a grid of widgets that embed Bases views, files, memos, and web pages. Use when the user asks for a dashboard, a home/overview page, or to arrange .base views, notes/files, memos, or web embeds in a grid.",
   instructions: `# Dashboard Skill
 
 Create \`.dashboard\` files for the Gemini Helper plugin: a grid of widgets that embed
-Obsidian **Bases** views, markdown notes, and web pages. Opening a \`.dashboard\`
+Obsidian **Bases** views, vault files, memos, and web pages. Opening a \`.dashboard\`
 file shows an editable widget grid (drag/resize in edit mode).
 
 ## Workflow
@@ -1056,7 +1056,7 @@ grid:
   gap: 8          # pixels between cells
 widgets:
   - id: <uuid>
-    type: base | markdown | web | workflow | kanban
+    type: base | file | web | workflow | kanban | timeline | memo-list
     layout:
       lg: { x: 0, y: 0, w: 6, h: 4 }   # required: position on the wide grid
       sm: { x: 0, y: 0, w: 12, h: 4 }  # optional: auto-derived (stacked) if omitted
@@ -1086,16 +1086,30 @@ do not reimplement those; create a \`.base\` and point a \`base\` widget at it.
     view: Active                     # view name; omit/empty = the base's first view
 \`\`\`
 
-### \`markdown\` — embed an existing note
+### \`file\` — embed an existing vault file
 
-Renders an existing markdown note inline (read-only embed with a link to open).
+Renders an existing vault file inline with a link to open it. Markdown notes are
+rendered with Obsidian Markdown; text files are editable; HTML, images, and PDFs
+are previewed when supported. A memo panel can be toggled per file.
 
 \`\`\`yaml
 - id: notes-1
-  type: markdown
+  type: file
   layout: { lg: { x: 8, y: 0, w: 4, h: 6 } }
   config:
-    path: Welcome.md              # vault path to a markdown note
+    path: Welcome.md              # vault path to a supported file
+    showHeader: true              # optional; default true
+\`\`\`
+
+### \`memo-list\` — browse document memos
+
+Lists memo sidecar files created by file widgets under \`Dashboards/Memos/\`.
+
+\`\`\`yaml
+- id: memos-1
+  type: memo-list
+  layout: { lg: { x: 8, y: 0, w: 4, h: 5 } }
+  config: {}
 \`\`\`
 
 ### \`web\` — embed a web page
@@ -1188,7 +1202,7 @@ widgets:
       base: Dashboards/Bases/Tasks.base
       view: Active
   - id: readme
-    type: markdown
+    type: file
     layout: { lg: { x: 8, y: 0, w: 4, h: 6 } }
     config:
       path: Home.md
@@ -1204,9 +1218,9 @@ widgets:
 - [ ] Valid YAML (no tabs, consistent indentation)
 - [ ] \`version: 1\`, and \`grid\` with \`cols\`/\`rowHeight\`/\`gap\`
 - [ ] Every widget has a unique \`id\`, a \`type\`, and \`layout.lg\`
-- [ ] \`type\` is one of \`base\`, \`markdown\`, \`web\`, \`workflow\`, \`kanban\`
+- [ ] \`type\` is one of \`base\`, \`file\`, \`web\`, \`workflow\`, \`kanban\`, \`timeline\`, \`memo-list\`
 - [ ] \`base\` widgets point at an existing \`.base\` path; \`view\` matches a view name
-- [ ] \`markdown\` widgets point at an existing note path
+- [ ] \`file\` widgets point at an existing supported vault file path
 - [ ] \`kanban\` widgets define \`statusProperty\` and at least one column with \`value\` and \`label\`
 - [ ] Widgets don't overlap (increase \`y\` to stack)`,
   // Fold the full Bases authoring guide in as references so the `dashboard`

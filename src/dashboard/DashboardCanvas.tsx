@@ -1,11 +1,12 @@
 import { useState, useRef, useEffect, useCallback, useMemo, type ReactNode } from "react";
-import { Plus, Pencil, Check, Undo2, Redo2 } from "lucide-react";
+import { Plus, Undo2, Redo2, Columns3, Rows3 } from "lucide-react";
 import type { App } from "obsidian";
 import { t } from "src/i18n";
 import type { GeminiHelperPlugin } from "src/plugin";
 import { ConfirmModal } from "src/ui/components/ConfirmModal";
 import { useBreakpoint } from "./useBreakpoint";
 import { useGridLayout } from "./useGridLayout";
+import { buildEqualizedLayout, type EqualizeDirection } from "./equalizeLayout";
 import GridCell from "./GridCell";
 import { WidgetPalette } from "./WidgetPalette";
 import { WidgetSettingsPanel } from "./WidgetSettingsPanel";
@@ -15,8 +16,6 @@ interface DashboardCanvasProps {
   data: DashboardData;
   /** Called with the next data on every mutation (add/update/delete/move/resize). */
   onChange: (next: DashboardData) => void;
-  editMode: boolean;
-  onEditModeChange: (v: boolean) => void;
   app: App;
   plugin: GeminiHelperPlugin;
   /** Path of the backing `.dashboard` file (link-resolution source path). */
@@ -39,8 +38,10 @@ function isWidgetConfigured(widget: Widget): boolean {
   switch (widget.type) {
     case "base":
       return str("base").length > 0;
-    case "markdown":
+    case "file":
       return str("path").length > 0;
+    case "memo-list":
+      return true;
     case "web":
       return str("url").length > 0;
     case "workflow":
@@ -62,8 +63,6 @@ function isWidgetConfigured(widget: Widget): boolean {
 export function DashboardCanvas({
   data,
   onChange,
-  editMode,
-  onEditModeChange,
   app,
   plugin,
   sourcePath,
@@ -72,6 +71,8 @@ export function DashboardCanvas({
   const containerRef = useRef<HTMLDivElement>(null);
   const [showPalette, setShowPalette] = useState(false);
   const [editingWidgetId, setEditingWidgetId] = useState<string | null>(null);
+  const [maximizedWidgetId, setMaximizedWidgetId] = useState<string | null>(null);
+  const maximizeRestoreCallbacksRef = useRef<Map<string, () => void>>(new Map());
   // Id of a widget that was just added from the palette and hasn't been
   // configured yet. If its settings panel is closed without a selection, the
   // widget is discarded rather than left empty on the grid.
@@ -159,6 +160,20 @@ export function DashboardCanvas({
     onCommit: commit,
   });
 
+  const handleEqualize = useCallback(
+    (direction: EqualizeDirection) => {
+      if (!data.widgets.length) return;
+      const scrollArea = containerRef.current?.parentElement;
+      const areaHeight = scrollArea?.clientHeight ?? 600;
+      const targetRows = Math.max(6, Math.floor(areaHeight / (data.grid.rowHeight + data.grid.gap)));
+      commit({
+        ...data,
+        widgets: buildEqualizedLayout(data.widgets, direction, data.grid.cols, targetRows),
+      });
+    },
+    [data, commit],
+  );
+
   const handleAddWidget = useCallback(
     (def: WidgetDef) => {
       const maxY = data.widgets.reduce(
@@ -174,11 +189,10 @@ export function DashboardCanvas({
       };
       commit({ ...data, widgets: [...data.widgets, newWidget] });
       setShowPalette(false);
-      onEditModeChange(true);
       setEditingWidgetId(newWidget.id);
       setPendingNewWidgetId(newWidget.id);
     },
-    [data, commit, onEditModeChange],
+    [data, commit],
   );
 
   // Close the settings panel. If the widget was just added and still has no
@@ -229,6 +243,35 @@ export function DashboardCanvas({
     [data, editingWidgetId],
   );
 
+  useEffect(() => {
+    if (maximizedWidgetId && !data.widgets.some((w) => w.id === maximizedWidgetId)) {
+      const restore = maximizeRestoreCallbacksRef.current.get(maximizedWidgetId);
+      maximizeRestoreCallbacksRef.current.delete(maximizedWidgetId);
+      setMaximizedWidgetId(null);
+      restore?.();
+    }
+  }, [data.widgets, maximizedWidgetId]);
+
+  const restoreMaximizedWidget = useCallback((widgetId: string) => {
+    const restore = maximizeRestoreCallbacksRef.current.get(widgetId);
+    maximizeRestoreCallbacksRef.current.delete(widgetId);
+    setMaximizedWidgetId((current) => (current === widgetId ? null : current));
+    restore?.();
+  }, []);
+
+  const requestWidgetMaximize = useCallback((widgetId: string, onRestore?: () => void) => {
+    setMaximizedWidgetId((current) => {
+      if (current && current !== widgetId) {
+        const restore = maximizeRestoreCallbacksRef.current.get(current);
+        maximizeRestoreCallbacksRef.current.delete(current);
+        restore?.();
+      }
+      if (onRestore) maximizeRestoreCallbacksRef.current.set(widgetId, onRestore);
+      else maximizeRestoreCallbacksRef.current.delete(widgetId);
+      return widgetId;
+    });
+  }, []);
+
   const grid = data.grid;
   const gridStyle = useMemo(
     () => ({
@@ -246,11 +289,13 @@ export function DashboardCanvas({
       plugin,
       sourcePath,
       size: { w: pos.w, h: pos.h },
-      editMode,
+      editMode: false,
       widgetId: widget.id,
       onConfigChange: (config) => handleUpdateWidgetConfig(widget.id, config),
+      requestMaximize: (onRestore) => requestWidgetMaximize(widget.id, onRestore),
+      restoreMaximized: () => restoreMaximizedWidget(widget.id),
     }),
-    [app, plugin, sourcePath, editMode, handleUpdateWidgetConfig],
+    [app, plugin, sourcePath, handleUpdateWidgetConfig, requestWidgetMaximize, restoreMaximizedWidget],
   );
 
   return (
@@ -258,39 +303,44 @@ export function DashboardCanvas({
       <div className="llm-hub-db-toolbar">
         <div className="llm-hub-db-toolbar-left">{toolbarLeft}</div>
         <div className="llm-hub-db-toolbar-right">
-          {editMode && (
-            <>
-              <button
-                onClick={undo}
-                disabled={!canUndo}
-                title={t("dashboard.undo")}
-                className="llm-hub-db-toolbtn"
-              >
-                <Undo2 size={14} />
-              </button>
-              <button
-                onClick={redo}
-                disabled={!canRedo}
-                title={t("dashboard.redo")}
-                className="llm-hub-db-toolbtn"
-              >
-                <Redo2 size={14} />
-              </button>
-              <button
-                onClick={() => setShowPalette(true)}
-                className="llm-hub-db-toolbtn is-accent"
-              >
-                <Plus size={14} />
-                {t("dashboard.addWidget")}
-              </button>
-            </>
-          )}
           <button
-            onClick={() => onEditModeChange(!editMode)}
-            className={`llm-hub-db-toolbtn${editMode ? " is-active" : ""}`}
+            onClick={undo}
+            disabled={!canUndo}
+            title={t("dashboard.undo")}
+            className="llm-hub-db-toolbtn"
           >
-            {editMode ? <Check size={14} /> : <Pencil size={14} />}
-            {editMode ? t("dashboard.done") : t("dashboard.edit")}
+            <Undo2 size={14} />
+          </button>
+          <button
+            onClick={redo}
+            disabled={!canRedo}
+            title={t("dashboard.redo")}
+            className="llm-hub-db-toolbtn"
+          >
+            <Redo2 size={14} />
+          </button>
+          <button
+            onClick={() => handleEqualize("horizontal")}
+            disabled={data.widgets.length === 0}
+            title={t("dashboard.alignHorizontal")}
+            className="llm-hub-db-toolbtn"
+          >
+            <Columns3 size={14} />
+          </button>
+          <button
+            onClick={() => handleEqualize("vertical")}
+            disabled={data.widgets.length === 0}
+            title={t("dashboard.alignVertical")}
+            className="llm-hub-db-toolbtn"
+          >
+            <Rows3 size={14} />
+          </button>
+          <button
+            onClick={() => setShowPalette(true)}
+            className="llm-hub-db-toolbtn is-accent"
+          >
+            <Plus size={14} />
+            {t("dashboard.addWidget")}
           </button>
         </div>
       </div>
@@ -301,7 +351,7 @@ export function DashboardCanvas({
       <div className="llm-hub-db-scroll">
         <div
           ref={containerRef}
-          className="llm-hub-db-grid"
+          className={`llm-hub-db-grid${maximizedWidgetId ? " is-maximized" : ""}`}
           style={data.widgets.length > 0 ? gridStyle : undefined}
         >
           {data.widgets.length === 0 ? (
@@ -317,24 +367,36 @@ export function DashboardCanvas({
               </button>
             </div>
           ) : (
-            gridLayout.layout.map(({ widget, pos }) => (
-              <GridCell
-                key={widget.id}
-                widget={widget}
-                pos={pos}
-                grid={grid}
-                cellW={gridLayout.cellW}
-                cellH={gridLayout.cellH}
-                editMode={editMode}
-                ctx={makeCtx(widget, pos)}
-                onDragEnd={(newPos) => gridLayout.commitPos(widget.id, newPos)}
-                onResizeEnd={(newPos) => gridLayout.commitPos(widget.id, newPos)}
-                computeDragPos={gridLayout.computeDragPos}
-                computeResizePos={gridLayout.computeResizePos}
-                onSettings={editMode ? () => setEditingWidgetId(widget.id) : undefined}
-                onDelete={editMode ? () => handleDeleteWidget(widget.id) : undefined}
-              />
-            ))
+            gridLayout.layout
+              .filter(({ widget }) => !maximizedWidgetId || widget.id === maximizedWidgetId)
+              .map(({ widget, pos }) => {
+                const isMaximized = widget.id === maximizedWidgetId;
+                const renderPos = isMaximized
+                  ? { ...pos, x: 0, y: 0, w: grid.cols, h: Math.max(pos.h, 8) }
+                  : pos;
+                return (
+                  <GridCell
+                    key={widget.id}
+                    widget={widget}
+                    pos={renderPos}
+                    grid={grid}
+                    cellW={gridLayout.cellW}
+                    cellH={gridLayout.cellH}
+                    editMode={false}
+                    ctx={makeCtx(widget, renderPos)}
+                    onDragEnd={(newPos) => gridLayout.commitPos(widget.id, newPos)}
+                    onResizeEnd={(newPos) => gridLayout.commitPos(widget.id, newPos)}
+                    computeDragPos={gridLayout.computeDragPos}
+                    computeResizePos={gridLayout.computeResizePos}
+                    onSettings={() => setEditingWidgetId(widget.id)}
+                    isMaximized={isMaximized}
+                    onToggleMaximize={() => {
+                      if (isMaximized) restoreMaximizedWidget(widget.id);
+                      else requestWidgetMaximize(widget.id);
+                    }}
+                  />
+                );
+              })
           )}
         </div>
       </div>

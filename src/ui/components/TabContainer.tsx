@@ -11,6 +11,8 @@ export interface TabContainerRef {
   getActiveChat: () => TFile | null;
   setActiveChat: (chat: TFile | null) => void;
   setActiveTab: (tab: TabType) => void;
+  askSelection: (selection: { text: string; sourcePath?: string }) => void;
+  setChatDraft: (content: string) => void;
 }
 
 interface TabContainerProps {
@@ -26,6 +28,14 @@ const TabContainer = forwardRef<TabContainerRef, TabContainerProps>(
       getActiveChat: () => chatRef.current?.getActiveChat() ?? null,
       setActiveChat: (chat: TFile | null) => chatRef.current?.setActiveChat(chat),
       setActiveTab: (tab: TabType) => setActiveTab(tab),
+      askSelection: (selection) => {
+        setActiveTab("chat");
+        chatRef.current?.askSelection(selection);
+      },
+      setChatDraft: (content) => {
+        setActiveTab("chat");
+        chatRef.current?.setDraft(content);
+      },
     }));
 
     return (

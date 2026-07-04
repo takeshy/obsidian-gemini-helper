@@ -64,10 +64,21 @@ export function parseDashboard(content: string): DashboardData | null {
       };
     }
     if (!Array.isArray(data.widgets)) data.widgets = [];
+    data.widgets = migrateDashboardWidgets(data.widgets);
     return data;
   } catch {
     return null;
   }
+}
+
+/** Migrate dashboard widget records from older schema names to current types. */
+export function migrateDashboardWidgets(widgets: DashboardData["widgets"]): DashboardData["widgets"] {
+  return widgets.map((widget) => {
+    if (widget.type === "markdown") {
+      return { ...widget, type: "file" };
+    }
+    return widget;
+  });
 }
 
 /**

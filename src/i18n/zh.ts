@@ -1077,7 +1077,6 @@ export const zh: Record<string, string> = {
   "dashboard.noUrl": "未配置 URL。",
   "dashboard.url": "URL",
   "dashboard.urlInvalid": "请输入有效的 http(s) URL。",
-  "dashboard.markdownSelectFile": "选择一个 markdown 笔记",
   "dashboard.fileNotFound": "未找到文件",
   "dashboard.baseSelectFile": "选择一个 .base 文件",
   "dashboard.baseFile": "Base 文件",

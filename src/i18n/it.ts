@@ -1078,7 +1078,6 @@ export const it: Record<string, string> = {
   "dashboard.noUrl": "Nessun URL configurato.",
   "dashboard.url": "URL",
   "dashboard.urlInvalid": "Inserisci un URL http(s) valido.",
-  "dashboard.markdownSelectFile": "Seleziona una nota markdown",
   "dashboard.fileNotFound": "File non trovato",
   "dashboard.baseSelectFile": "Seleziona un file .base",
   "dashboard.baseFile": "File base",

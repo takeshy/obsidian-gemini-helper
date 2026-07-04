@@ -3,17 +3,18 @@
 // registerWidget.
 
 import React from "react";
-import { Clock3, Database, FileText, Globe, Kanban, Puzzle, Workflow } from "lucide-react";
+import { Clock3, Database, Files, Globe, Kanban, NotebookTabs, Puzzle, Workflow } from "lucide-react";
 import type { WidgetDef } from "../types";
 import BaseWidget from "./BaseWidget";
-import MarkdownWidget from "./MarkdownWidget";
+import FileWidget from "./FileWidget";
+import MemoListWidget from "./MemoListWidget";
 import WebWidget from "./WebWidget";
 import WorkflowWidget from "./WorkflowWidget";
 import KanbanWidget from "./KanbanWidget";
 import TimelineWidget from "./TimelineWidget";
 import UnknownWidget from "./UnknownWidget";
 import { BaseConfigEditor } from "./config-editors/BaseConfigEditor";
-import { MarkdownConfigEditor } from "./config-editors/MarkdownConfigEditor";
+import { FileConfigEditor } from "./config-editors/FileConfigEditor";
 import { WebConfigEditor } from "./config-editors/WebConfigEditor";
 import { WorkflowConfigEditor } from "./config-editors/WorkflowConfigEditor";
 import { KanbanConfigEditor } from "./config-editors/KanbanConfigEditor";
@@ -74,13 +75,13 @@ export function registerCoreWidgets(): void {
   });
 
   registerWidget({
-    type: "markdown",
-    label: "Markdown",
-    icon: React.createElement(FileText, { size: 16 }),
-    defaultConfig: { path: "" },
-    render: (config, ctx) => React.createElement(MarkdownWidget, { config, ctx }),
-    defaultSize: { w: 6, h: 3 },
-    ConfigEditor: MarkdownConfigEditor,
+    type: "file",
+    label: "File",
+    icon: React.createElement(Files, { size: 16 }),
+    defaultConfig: { path: "", showHeader: true },
+    render: (config, ctx) => React.createElement(FileWidget, { config, ctx }),
+    defaultSize: { w: 6, h: 5 },
+    ConfigEditor: FileConfigEditor,
   });
 
   registerWidget({
@@ -134,5 +135,14 @@ export function registerCoreWidgets(): void {
     render: (config, ctx) => React.createElement(TimelineWidget, { config, ctx }),
     defaultSize: { w: 6, h: 6 },
     ConfigEditor: TimelineConfigEditor,
+  });
+
+  registerWidget({
+    type: "memo-list",
+    label: "MemoList",
+    icon: React.createElement(NotebookTabs, { size: 16 }),
+    defaultConfig: {},
+    render: (_config, ctx) => React.createElement(MemoListWidget, { ctx }),
+    defaultSize: { w: 6, h: 5 },
   });
 }

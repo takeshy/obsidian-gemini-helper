@@ -7,7 +7,7 @@ const ACRONYMS = [...DEFAULT_ACRONYMS, 'OKF'];
 
 export default tseslint.config(
   {
-    ignores: ['main.js', 'node_modules/**', '*.js', '*.mjs', 'vitest.config.ts', 'src/**/*.test.ts'],
+    ignores: ['main.js', 'node_modules/**', 'pdfjs/**', 'scripts/*.mjs', '*.js', '*.mjs', 'vitest.config.ts', 'src/**/*.test.ts'],
   },
   ...tseslint.configs.recommendedTypeChecked,
   {

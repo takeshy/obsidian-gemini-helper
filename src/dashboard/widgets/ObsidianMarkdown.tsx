@@ -24,11 +24,12 @@ export default function ObsidianMarkdown({
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
+    let cancelled = false;
     el.innerHTML = "";
     const component = new Component();
     component.load();
     void MarkdownRenderer.render(app, markdown, el, sourcePath, component).then(() => {
-      if (!onInternalLinkClick) return;
+      if (cancelled || !onInternalLinkClick || !el.isConnected) return;
       el.querySelectorAll("a.internal-link").forEach((link) => {
         link.addEventListener("click", (e) => {
           e.preventDefault();
@@ -38,10 +39,11 @@ export default function ObsidianMarkdown({
       });
     });
     return () => {
+      cancelled = true;
       component.unload();
       el.innerHTML = "";
     };
   }, [app, markdown, sourcePath, onInternalLinkClick]);
 
-  return <div ref={ref} className={className} />;
+  return <div className={className}><div ref={ref} /></div>;
 }

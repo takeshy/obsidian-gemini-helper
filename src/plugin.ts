@@ -760,6 +760,64 @@ export class GeminiHelperPlugin extends Plugin {
     }
   }
 
+  async askChatAboutSelection(selection: { text: string; sourcePath?: string }): Promise<void> {
+    const text = selection.text.trim();
+    if (!text) return;
+
+    const { workspace } = this.app;
+    let leaf: WorkspaceLeaf | null = workspace.getLeavesOfType(VIEW_TYPE_GEMINI_CHAT)[0] ?? null;
+    if (!leaf) {
+      leaf = workspace.getRightLeaf(false);
+      if (leaf) {
+        await leaf.setViewState({
+          type: VIEW_TYPE_GEMINI_CHAT,
+          active: true,
+        });
+      }
+    }
+    if (!leaf) return;
+
+    await workspace.revealLeaf(leaf);
+    for (let i = 0; i < 10; i++) {
+      await new Promise((resolve) => window.setTimeout(resolve, 30));
+      const view = leaf.view instanceof ChatView ? leaf.view : null;
+      if (view) {
+        view.askSelection({ text, sourcePath: selection.sourcePath });
+        this.settingsEmitter.emit("chat-activated");
+        return;
+      }
+    }
+  }
+
+  async openChatWithDraft(content: string): Promise<void> {
+    const draft = content.trim();
+    if (!draft) return;
+
+    const { workspace } = this.app;
+    let leaf: WorkspaceLeaf | null = workspace.getLeavesOfType(VIEW_TYPE_GEMINI_CHAT)[0] ?? null;
+    if (!leaf) {
+      leaf = workspace.getRightLeaf(false);
+      if (leaf) {
+        await leaf.setViewState({
+          type: VIEW_TYPE_GEMINI_CHAT,
+          active: true,
+        });
+      }
+    }
+    if (!leaf) return;
+
+    await workspace.revealLeaf(leaf);
+    for (let i = 0; i < 10; i++) {
+      await new Promise((resolve) => window.setTimeout(resolve, 30));
+      const view = leaf.view instanceof ChatView ? leaf.view : null;
+      if (view) {
+        view.setChatDraft(draft);
+        this.settingsEmitter.emit("chat-activated");
+        return;
+      }
+    }
+  }
+
   // Toggle between chat view and last active markdown view
   private toggleChatView(): void {
     const chatLeaves = this.app.workspace.getLeavesOfType(VIEW_TYPE_GEMINI_CHAT);

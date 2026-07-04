@@ -15,8 +15,8 @@ interface DashboardEditorProps {
 
 /**
  * React bridge between the `.dashboard` TextFileView and the controlled
- * DashboardCanvas. Owns the in-memory DashboardData and edit-mode state, and
- * serializes back on every mutation.
+ * DashboardCanvas. Owns the in-memory DashboardData and serializes back on
+ * every mutation.
  */
 export function DashboardEditor({
   plugin,
@@ -30,15 +30,10 @@ export function DashboardEditor({
     [yamlContent],
   );
   const [data, setData] = useState<DashboardData>(initial);
-  const [editMode, setEditMode] = useState(false);
 
   // External content change (new file content from Obsidian) resets state.
-  // Drop edit mode too so a reload while editing doesn't leave a stale edit UI
-  // over freshly loaded data. (Our own edits don't change `initial`, so this
-  // never fires mid-edit — see DashboardView.setViewData.)
   useEffect(() => {
     setData(initial);
-    setEditMode(false);
   }, [initial]);
 
   const handleChange = (next: DashboardData) => {
@@ -50,8 +45,6 @@ export function DashboardEditor({
     <DashboardCanvas
       data={data}
       onChange={handleChange}
-      editMode={editMode}
-      onEditModeChange={setEditMode}
       app={plugin.app}
       plugin={plugin}
       sourcePath={sourcePath}

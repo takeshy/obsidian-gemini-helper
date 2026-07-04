@@ -10,7 +10,7 @@
 
 - **AI Chat** - Streaming responses, file attachments, vault operations, slash commands
 - **Usage Tracking** - Shows approximate API tokens and cost for each chat and workflow run
-- **Agent Skills** - Reusable skills extend the chat; the Obsidian Markdown skill based on [kepano/obsidian-skills](https://github.com/kepano/obsidian-skills) is enabled by default
+- **Agent Skills** - Reusable skills extend the chat; Obsidian Markdown, Canvas, Bases, and Dashboard skills are built in
 - **External Skills** - Install versioned skills from the official `takeshy/llm-hub-skills` repository
 - **Workflow Builder** - Automate multi-step tasks with visual node editor and 24 node types
 - **MCP Support** - Use MCP tools in workflows and render MCP UI resources inside Obsidian
@@ -19,7 +19,7 @@
 - **AI Folder Access** - Limit which folders AI can read automatically when you do not want whole-vault access
 - **Encryption** - Password-protect chat history and workflow execution logs
 - **Edit History** - Track and restore AI-made changes with diff view
-- **Dashboard** - Arrange Bases views, notes, web pages, timelines, kanban boards, and workflow output in a responsive widget grid
+- **Dashboard** - Arrange Bases views, files, reading memos, web pages, timelines, kanban boards, and workflow output in a responsive widget grid
 
 ![Chat Interface](docs/images/chat.png)
 
@@ -260,6 +260,7 @@ Extend the AI with custom instructions, reference materials, and executable work
 - **External skills** - Install compatible skills from the official `takeshy/llm-hub-skills` repository
 - **Slash command** - Type `/folder-name` to instantly invoke a skill and send
 - **Selective activation** - Choose which skills are active per conversation
+- **Context-aware built-ins** - When a Dashboard, Canvas, or Base file is open, chat automatically uses the matching built-in skill instead of the generic Markdown skill
 - **Clickable skill chips** - Active skill chips in the input area and on assistant messages are clickable and jump to the matching `SKILL.md` (built-in skills are shown as static labels)
 - **Workflow error recovery** - If a skill workflow fails during a chat, the failing tool call shows an **Open workflow** button that opens the file *and* switches the Gemini view to the Workflow / skill tab so you can immediately edit and re-run
 
@@ -489,7 +490,7 @@ Workflows can be automatically triggered by Obsidian events:
 
 # Dashboard
 
-Build a personal **home / overview page** from a responsive grid of widgets. A dashboard is a `.dashboard` file that arranges **Bases views**, **notes**, **web pages**, **timelines**, **workflow output**, and **kanban boards** in a drag-and-resize grid — open it like any note to see a live, editable board.
+Build a personal **home / overview page** from a responsive grid of widgets. A dashboard is a `.dashboard` file that arranges **Bases views**, **files**, **reading memos**, **web pages**, **timelines**, **workflow output**, and **kanban boards** in a drag-and-resize grid — open it like any note to see a live, editable board.
 
 ![Dashboard](docs/images/dashboard.png)
 
@@ -497,22 +498,27 @@ Build a personal **home / overview page** from a responsive grid of widgets. A d
 - Command: **"Gemini Helper: Create dashboard"** — creates a new board under `Dashboards/` and opens it
 - Or ask the AI in chat (the built-in **dashboard** agent skill authors `.dashboard` files, and the backing `.base` files, for you)
 
-**Edit mode:** Click **Edit** to drag, resize, add, and configure widgets; **Done** to view. The grid is responsive — widgets reflow into a single column on narrow screens. All edits save automatically.
+**Editing:** Dashboards no longer require a separate edit mode. Drag widgets to move them, drag the bottom-right handle to resize, use the gear on each widget for settings, and use **+ Add widget** in the toolbar to add more. Each widget also has a maximize button; clicking it shows only that widget, and the restore icon returns to the normal grid. All edits save automatically.
 
 ## Widget Types
 
-Click **+ Add widget** in edit mode to choose a type:
+Click **+ Add widget** to choose a type:
 
 ![Add widget](docs/images/dashboard_widgets.png)
 
 | Widget | Shows | Key config |
 |--------|-------|------------|
 | **Base** | A named view of a `.base` file via Obsidian's native Bases UI (table / cards / list) | `base` path, `view` name |
-| **Markdown** | An existing note, rendered inline | `path` to the note |
+| **File** | A vault file rendered inline: Markdown/text/HTML, images, PDF, EPUB, and other files with an open button | `path`, `showHeader` |
 | **Web Embed** | A web page in an iframe, with an optional header and browser-open button | `url`, `showHeader` |
 | **Workflow** | The output of a workflow, run headlessly and rendered as Markdown or HTML | `workflow` path, `output`, `refreshInterval` |
 | **Kanban** | Notes as draggable cards grouped into status columns | `tag`/`folder` filter, `statusProperty`, `columns`, `displayFields` |
 | **Timeline** | Date-based microblog posts with tags, image attachments, pinning, filters, collapsible long posts, and AI-assisted draft rewriting | `name`, `latestCount`, collapse limits |
+| **MemoList** | An index of File-widget reading memo files under `Dashboards/Memos/` | none |
+
+The **File** widget is the reading surface for notes and documents. Markdown/text/HTML files render inline, images render directly, and PDFs/EPUBs use continuous reading views. Select text and right-click to **Copy**, **Ask AI**, or **Add to memo**. Memos are stored beside the dashboard data under `Dashboards/Memos/`, keep links back to the quoted text when possible, and can be edited or deleted from the memo panel. Clicking a memo quote jumps back to the source location; while the memo panel is open, memo ranges are highlighted in the document.
+
+The **MemoList** widget lists memo files across the dashboard. Clicking a row does not navigate away; it maximizes that widget and opens the selected file with its memo panel. Restoring the widget returns to the MemoList.
 
 **Base** and **Workflow** widgets include a **Create with AI** button to author the backing `.base` file or workflow without leaving the settings panel. Base widgets can also create/select `.base` files and edit the selected view's display type, order, sort, limit, filters, card image, list indentation, and raw YAML directly from the dashboard settings panel. For AI edits, the proposed `.base` change is shown as a diff before applying.
 
@@ -530,7 +536,7 @@ Use **Edit with AI** from the composer or inline editor to rewrite a draft witho
 
 ## Kanban Board
 
-Turn notes into a drag-and-drop board. Cards are notes that match a **tag** and/or **folder** filter, grouped into columns by a frontmatter **status property**. Drag a card to another column to update that note's status — written straight back to the note's frontmatter. The board is fully interactive in **view mode**; no need to enter edit mode to move cards.
+Turn notes into a drag-and-drop board. Cards are notes that match a **tag** and/or **folder** filter, grouped into columns by a frontmatter **status property**. Drag a card to another column to update that note's status — written straight back to the note's frontmatter. The board is fully interactive directly on the dashboard.
 
 ![Kanban board](docs/images/dashboard_kanban.png)
 
@@ -540,7 +546,7 @@ Turn notes into a drag-and-drop board. Cards are notes that match a **tag** and/
 - **Manual order** — drag cards up/down within a column to persist a custom order for the board.
 - **Display fields** — list extra frontmatter properties (e.g. `priority`, `due`) to show on each card below the title.
 
-Configure everything from the widget settings in edit mode:
+Configure everything from the widget settings:
 
 ![Kanban settings](docs/images/dashboard_kanban_edit.png)
 

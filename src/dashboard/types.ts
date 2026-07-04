@@ -72,6 +72,10 @@ export interface WidgetContext {
    * view mode too (not just the settings panel).
    */
   onConfigChange?: (config: unknown) => void;
+  /** Request temporary maximized display for this widget. */
+  requestMaximize?: (onRestore?: () => void) => void;
+  /** Restore this widget from temporary maximized display. */
+  restoreMaximized?: () => void;
 }
 
 export interface ConfigEditorProps {

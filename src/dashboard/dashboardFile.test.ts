@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { TFolder, type Vault } from "obsidian";
-import { ensureVaultFolder } from "./dashboardFile";
+import { ensureVaultFolder, migrateDashboardWidgets } from "./dashboardFile";
 
 function folder(path: string): TFolder {
   const f = new TFolder();
@@ -75,5 +75,19 @@ describe("ensureVaultFolder", () => {
 
     await expect(ensureVaultFolder(vault, "Dashboards/Data")).resolves.toBeUndefined();
     expect(created).toEqual(["Dashboards/Data"]);
+  });
+});
+
+describe("dashboard widget migrations", () => {
+  it("migrates legacy markdown widgets to file widgets", () => {
+    const widgets = migrateDashboardWidgets([{
+      id: "readme",
+      type: "markdown",
+      layout: { lg: { x: 0, y: 0, w: 6, h: 4 } },
+      config: { path: "Home.md" },
+    }]);
+
+    expect(widgets[0].type).toBe("file");
+    expect(widgets[0].config).toEqual({ path: "Home.md" });
   });
 });

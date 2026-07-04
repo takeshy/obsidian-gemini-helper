@@ -1078,7 +1078,6 @@ export const ko: Record<string, string> = {
   "dashboard.noUrl": "URL이 설정되지 않았습니다.",
   "dashboard.url": "URL",
   "dashboard.urlInvalid": "유효한 http(s) URL을 입력하세요.",
-  "dashboard.markdownSelectFile": "마크다운 노트 선택",
   "dashboard.fileNotFound": "파일을 찾을 수 없음",
   "dashboard.baseSelectFile": ".base 파일 선택",
   "dashboard.baseFile": "Base 파일",

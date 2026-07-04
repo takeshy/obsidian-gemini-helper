@@ -1299,13 +1299,30 @@
   height: 44px;
 }
 
-.is-mobile .gemini-helper-input-buttons {
-  gap: 6px;
+/* Mobile: give the textarea the full row; buttons move to a second row
+   (attach/vault-tool left, send/collapse right) so typing space isn't
+   squeezed between two 44px button columns. */
+.is-mobile .gemini-helper-input-area {
+  flex-wrap: wrap;
 }
 
 .is-mobile .gemini-helper-input {
+  flex: 1 1 100%;
+  order: -1;
   min-height: 44px;
   font-size: 16px; /* Prevent iOS zoom on focus */
+}
+
+.is-mobile .gemini-helper-input-buttons {
+  flex-direction: row;
+  align-self: center;
+  gap: 6px;
+}
+
+.is-mobile .gemini-helper-send-buttons {
+  flex-direction: row;
+  align-self: center;
+  margin-left: auto;
 }
 
 .is-mobile .gemini-helper-model-selector {

@@ -33,7 +33,7 @@ const ISO_DATE_LINE_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/;
 const META_LINE_RE = /^([A-Za-z][A-Za-z0-9-]*):[ \t]*(.*)$/;
 const ENTRY_SEPARATOR_RE = /\n[ \t]*\n---[ \t]*\n[ \t]*\n/;
 
-const ILLEGAL_FILENAME_CHARS_RE = /[\\/:*?"<>|\u0000-\u001f]/g;
+const ILLEGAL_FILENAME_CHARS_RE = /[\\/:*?"<>|]/g;
 const MAX_MEMO_BASENAME_LENGTH = 100;
 
 function sanitizeMemoBaseName(sourcePath: string): string {

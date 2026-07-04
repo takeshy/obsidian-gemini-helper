@@ -5,6 +5,7 @@ import { Component, MarkdownRenderer, TFile } from "obsidian";
 import { t } from "src/i18n";
 import type { WidgetContext } from "../types";
 import { memoPathFor, readMemos, writeMemos, type DocumentMemo } from "../memo";
+import { ConfirmModal } from "src/ui/components/ConfirmModal";
 import PdfFileViewer, { type PdfFileViewerHandle } from "./PdfFileViewer";
 
 export interface FileConfig {
@@ -47,7 +48,8 @@ function normalizeAnchorText(value: string): string {
 }
 
 function buildTextIndex(root: Node, mode: "collapse-space" | "ignore-space" = "collapse-space"): TextIndex {
-  const doc = root.ownerDocument ?? document;
+  // ownerDocument is null only when root itself is a Document.
+  const doc = root.ownerDocument ?? (root as Document);
   const walker = doc.createTreeWalker(root, NodeFilter.SHOW_TEXT);
   const nodes: Text[] = [];
   const nodeIndexes: number[] = [];
@@ -447,7 +449,7 @@ function MemoPanel({
 
   const deleteMemo = async (memoId: string) => {
     if (!memos) return;
-    if (!confirm(t("memo.deleteConfirm"))) return;
+    if (!(await new ConfirmModal(ctx.app, t("memo.deleteConfirm")).openAndWait())) return;
     const next = memos.filter((memo) => memo.id !== memoId);
     await writeMemos(ctx.app, sourcePath, next);
     onMemosChange(next);
@@ -803,12 +805,15 @@ export default function FileWidget({
   const findQuoteRange = useCallback((quote: string, anchor?: QuoteAnchorData): { range: Range; win: Window } | null => {
     for (const candidate of rootsForQuotes()) {
       const root = (() => {
-        if (!anchor?.anchor || !(candidate.root instanceof Element)) return candidate.root;
+        // nodeType check instead of instanceof: iframe nodes come from another
+        // realm, where the host window's Element constructor doesn't match.
+        if (!anchor?.anchor || candidate.root.nodeType !== Node.ELEMENT_NODE) return candidate.root;
+        const rootEl = candidate.root as Element;
         const page = anchor.anchor.match(/^page=(\d+)$/);
-        if (page) return candidate.root.querySelector(`[data-pdf-page="${page[1]}"]`) ?? candidate.root;
+        if (page) return rootEl.querySelector(`[data-pdf-page="${page[1]}"]`) ?? rootEl;
         const spine = anchor.anchor.match(/^spine=(\d+)$/);
-        if (spine) return candidate.root.querySelector(`#epub-chapter-${Number(spine[1]) + 1}`) ?? candidate.root;
-        return candidate.root;
+        if (spine) return rootEl.querySelector(`#epub-chapter-${Number(spine[1]) + 1}`) ?? rootEl;
+        return rootEl;
       })();
       const match = findQuoteMatch(root, quote, anchor?.quotePrefix, anchor?.quoteSuffix);
       if (match) return { range: match.range, win: candidate.win };
@@ -832,7 +837,8 @@ export default function FileWidget({
     const timer = window.setTimeout(() => {
       const hostRanges: Range[] = [];
       const frameRanges: Range[] = [];
-      ensureHighlightStyle(document, name);
+      const hostDoc = contentRef.current?.ownerDocument;
+      if (hostDoc) ensureHighlightStyle(hostDoc, name);
       const frameDoc = frameRef.current?.contentDocument;
       if (frameDoc) ensureHighlightStyle(frameDoc, name);
 
@@ -893,13 +899,13 @@ export default function FileWidget({
         ? contentRef.current
         : frameRef.current?.contentDocument?.scrollingElement;
     if (container && rect) {
-      const containerRect = container instanceof HTMLElement ? container.getBoundingClientRect() : null;
-      if (container instanceof HTMLElement && containerRect) {
-        container.scrollTo({
-          top: container.scrollTop + rect.top - containerRect.top - container.clientHeight / 3,
-          behavior: "smooth",
-        });
-      }
+      // Element (not HTMLElement) has every member used here, and an instanceof
+      // check would fail for the iframe's scrollingElement (cross-realm).
+      const containerRect = container.getBoundingClientRect();
+      container.scrollTo({
+        top: container.scrollTop + rect.top - containerRect.top - container.clientHeight / 3,
+        behavior: "smooth",
+      });
     }
     if (found.range.startContainer.parentElement) {
       found.range.startContainer.parentElement.scrollIntoView({ block: "center", behavior: "smooth" });

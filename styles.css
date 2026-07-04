@@ -8045,7 +8045,7 @@
   min-height: 100%;
 }
 .llm-hub-db-grid.is-maximized {
-  display: block !important;
+  display: block;
   height: 100%;
 }
 
@@ -8083,9 +8083,6 @@
 .llm-hub-db-cell.is-maximized {
   position: absolute;
   inset: 0;
-  width: auto !important;
-  height: auto !important;
-  transform: none !important;
   border-color: var(--background-modifier-border);
   box-shadow: var(--shadow-s);
   z-index: 40;

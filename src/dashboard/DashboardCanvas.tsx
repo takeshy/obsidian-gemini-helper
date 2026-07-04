@@ -353,7 +353,7 @@ export function DashboardCanvas({
         <div
           ref={containerRef}
           className={`llm-hub-db-grid${maximizedWidgetId ? " is-maximized" : ""}`}
-          style={data.widgets.length > 0 ? gridStyle : undefined}
+          style={data.widgets.length > 0 && !maximizedWidgetId ? gridStyle : undefined}
         >
           {data.widgets.length === 0 ? (
             <div className="llm-hub-db-empty">

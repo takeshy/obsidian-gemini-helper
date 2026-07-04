@@ -16,9 +16,10 @@ export interface BuiltinOkfDocument {
 }
 
 function base64ToBytes(base64: string): Uint8Array {
-  const decoder = globalThis.atob;
-  if (typeof decoder === "function") {
-    const binary = decoder(base64);
+  // atob exists in the renderer and in Node >= 16 (used by tests);
+  // the Buffer branch is a fallback for older Node environments.
+  if (typeof atob === "function") {
+    const binary = atob(base64);
     const bytes = new Uint8Array(binary.length);
     for (let i = 0; i < binary.length; i += 1) {
       bytes[i] = binary.charCodeAt(i);

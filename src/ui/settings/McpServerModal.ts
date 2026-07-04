@@ -134,7 +134,7 @@ export class McpServerModal extends Modal {
           // Parse headers
           if (this.headersText.trim()) {
             try {
-              this.server.headers = JSON.parse(this.headersText);
+              this.server.headers = JSON.parse(this.headersText) as Record<string, string>;
             } catch {
               new Notice(t("settings.mcpServerInvalidHeaders"));
               return;
@@ -162,7 +162,7 @@ export class McpServerModal extends Modal {
       let headers: Record<string, string> | undefined;
       if (this.headersText.trim()) {
         try {
-          headers = JSON.parse(this.headersText);
+          headers = JSON.parse(this.headersText) as Record<string, string>;
         } catch {
           statusEl.addClass("gemini-helper-mcp-status--error");
           statusEl.setText(t("settings.mcpServerInvalidHeaders"));

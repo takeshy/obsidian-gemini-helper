@@ -172,7 +172,7 @@ export default function GridCell({
       <div
         className={`llm-hub-db-cell${editMode ? " is-edit" : ""}${isActive ? " is-active" : ""}${isMaximized ? " is-maximized" : ""}`}
         data-widget-type={widget.type}
-        style={{
+        style={isMaximized ? undefined : {
           gridColumn: `${pos.x + 1} / span ${pos.w}`,
           gridRow: `${pos.y + 1} / span ${pos.h}`,
           transform: transformStyle,

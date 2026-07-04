@@ -238,10 +238,10 @@ const PdfFileViewer = forwardRef<PdfFileViewerHandle, {
     if (!rootRef.current.contains(range.commonAncestorContainer)) return { text: "" };
     const pageEl = range.startContainer.parentElement?.closest<HTMLElement>("[data-pdf-page]");
     if (!pageEl) return { text };
-    const beforeRange = document.createRange();
+    const beforeRange = pageEl.ownerDocument.createRange();
     beforeRange.setStart(pageEl, 0);
     beforeRange.setEnd(range.startContainer, range.startOffset);
-    const afterRange = document.createRange();
+    const afterRange = pageEl.ownerDocument.createRange();
     afterRange.setStart(range.endContainer, range.endOffset);
     afterRange.setEnd(pageEl, pageEl.childNodes.length);
     const prefix = beforeRange.toString().replace(/\s+/g, " ").trim().slice(-30);

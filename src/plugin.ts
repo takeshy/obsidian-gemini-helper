@@ -75,6 +75,20 @@ export class GeminiHelperPlugin extends Plugin {
   }
 
   onload(): void {
+    try {
+      this.onloadImpl();
+    } catch (e) {
+      // Mobile has no readable console: surface startup failures via a
+      // persistent Notice and a log file in the vault.
+      // JavaScriptCore's error.stack omits the message, so include both explicitly.
+      const msg = `Gemini Helper: onload failed: ${String(e)}\n${e instanceof Error ? e.stack ?? "" : ""}`;
+      new Notice(msg, 0);
+      void this.app.vault.adapter.write("gemini-helper-load-error.log", msg).catch(() => {});
+      throw e;
+    }
+  }
+
+  private onloadImpl(): void {
     // Initialize i18n locale
     initLocale();
 

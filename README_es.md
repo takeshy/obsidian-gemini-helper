@@ -10,7 +10,7 @@ Asistente de IA **gratuito y de codigo abierto** para Obsidian con **Chat**, **A
 
 - **Chat con IA** - Respuestas en streaming, archivos adjuntos, operaciones en el vault, comandos slash
 - **Seguimiento de uso** - Muestra tokens de API y coste aproximado por cada chat y ejecucion de workflow
-- **Agent Skills** - Los skills reutilizables amplian el chat; el skill Markdown para Obsidian basado en [kepano/obsidian-skills](https://github.com/kepano/obsidian-skills) esta activado por defecto
+- **Agent Skills** - Los skills reutilizables amplian el chat; los skills de Obsidian Markdown, Canvas, Bases y Dashboard vienen integrados
 - **Skills externos** - Instala skills versionados desde el repositorio oficial `takeshy/llm-hub-skills`
 - **Constructor de Flujos de Trabajo** - Automatiza tareas de multiples pasos con editor visual de nodos y 24 tipos de nodos
 - **Soporte MCP** - Usa herramientas MCP en workflows y renderiza recursos MCP UI dentro de Obsidian
@@ -19,7 +19,7 @@ Asistente de IA **gratuito y de codigo abierto** para Obsidian con **Chat**, **A
 - **Acceso a carpetas por IA** - Limita que carpetas puede leer automaticamente la IA cuando no quieras acceso a todo el vault
 - **Cifrado** - Protege con contrasena el historial de chat y los registros de ejecucion de workflows
 - **Historial de Edicion** - Rastrea y restaura cambios hechos por IA con vista de diferencias
-- **Panel** - Organiza vistas de Bases, notas, páginas web, timelines, tableros Kanban y la salida de workflows en una cuadrícula de widgets adaptable
+- **Panel** - Organiza vistas de Bases, archivos, memos de lectura, páginas web, timelines, tableros Kanban y la salida de workflows en una cuadrícula de widgets adaptable
 
 ![Interfaz de Chat](docs/images/chat.png)
 
@@ -260,6 +260,7 @@ Extienda las capacidades de la IA con instrucciones personalizadas, materiales d
 - **Skills externos** - Instala skills compatibles desde el repositorio oficial `takeshy/llm-hub-skills`
 - **Comando slash** - Escriba `/folder-name` para invocar un skill al instante y enviar
 - **Activacion selectiva** - Elija que skills estan activos por conversacion
+- **Integrados sensibles al contexto** - Cuando esta abierto un archivo Dashboard, Canvas o Base, el chat usa automaticamente el skill integrado correspondiente en lugar del skill generico de Markdown
 - **Chips de skill cliqueables** - Los chips de skill activos en el area de entrada y en los mensajes del asistente son cliqueables y abren el `SKILL.md` correspondiente (los skills integrados se muestran como etiquetas estaticas)
 - **Recuperacion ante errores de workflow** - Si un workflow de skill falla durante un chat, la llamada a la herramienta fallida muestra un boton **Abrir workflow** que abre el archivo *y* cambia la vista de Gemini a la pestana Workflow / skill para que pueda editar y volver a ejecutar inmediatamente
 
@@ -269,8 +270,7 @@ Cree skills de la misma manera que los workflows -- seleccione **+ New (AI)**, m
 
 Los skills externos se importan desde el repositorio oficial y se copian en la carpeta `skills/` de tu vault. El panel de configuracion muestra los skills instalables, las versiones instaladas y las comprobaciones de actualizacion por skill. Los skills importados usan el mismo selector, comandos de barra, referencias y ejecucion de flujos de trabajo que los skills creados en el vault.
 
-> **Para instrucciones de configuracion y ejemplos, consulte [SKILLS.md](docs/SKILLS_es.md)**  
-> **Para las reglas del repositorio de skills externos, consulta [import_skill.md](docs/import_skill.md)**
+> **Para instrucciones de configuracion y ejemplos, pregunta al chat de Gemini Helper. La fuente de conocimiento OKF integrada contiene la referencia actual de Agent Skills.**
 
 ## Fuentes de conocimiento OKF
 
@@ -280,9 +280,11 @@ Gemini Helper puede leer paquetes de Open Knowledge Format (OKF) como conocimien
 
 OKF es ideal para contexto de dominio curado: conceptos, metricas, conjuntos de datos, glosarios y manuales. Se inyecta como contexto de prompt compacto, mientras que los skills siguen siendo el lugar para el comportamiento reutilizable, las referencias y los flujos de trabajo ejecutables.
 
+Gemini Helper tambien incluye un paquete OKF integrado sobre sus propias funciones. El chat puede usar este conocimiento integrado para responder preguntas sobre la configuracion del plugin, las herramientas de chat, los skills, los workflows, RAG, OKF, MCP, los paneles, la seguridad y la resolucion de problemas, sin necesidad de un directorio OKF separado.
+
 ![Ejemplo de OKF](docs/images/okf_sample.png)
 
-> **Para la estructura y los limites de OKF, consulta [OKF.md](docs/OKF.md)**
+> **Para la estructura y los limites de OKF, pregunta al chat de Gemini Helper o explora el paquete OKF en ingles en [`docs/okf/gemini-helper-help/`](docs/okf/gemini-helper-help/index.md).**
 
 ---
 
@@ -462,7 +464,7 @@ Hay 24 tipos de nodos disponibles para construir flujos de trabajo:
 | Externos | `mcp`, `obsidian-command` |
 | Utilidad | `sleep` |
 
-> **Para especificaciones detalladas de nodos y ejemplos, consulta [WORKFLOW_NODES_es.md](docs/WORKFLOW_NODES_es.md)**
+> **Para especificaciones detalladas de nodos y ejemplos, pregunta al chat de Gemini Helper. La fuente de conocimiento OKF integrada contiene la referencia actual de workflows.**
 
 ## Modo de Atajo de Teclado
 
@@ -522,7 +524,7 @@ Los flujos de trabajo pueden activarse automaticamente por eventos de Obsidian:
 
 # Panel
 
-Construye una **página de inicio / resumen** personal desde una cuadrícula adaptable de widgets. Un panel es un archivo `.dashboard` que organiza **vistas de Bases**, **notas**, **páginas web**, **timelines**, **salida de workflow** y **tableros Kanban** en una cuadrícula que se puede arrastrar y redimensionar — ábrelo como cualquier nota para ver un tablero vivo y editable.
+Construye una **página de inicio / resumen** personal desde una cuadrícula adaptable de widgets. Un panel es un archivo `.dashboard` que organiza **vistas de Bases**, **archivos**, **memos de lectura**, **páginas web**, **timelines**, **salida de workflow** y **tableros Kanban** en una cuadrícula que se puede arrastrar y redimensionar — ábrelo como cualquier nota para ver un tablero vivo y editable.
 
 ![Panel](docs/images/dashboard.png)
 
@@ -530,22 +532,31 @@ Construye una **página de inicio / resumen** personal desde una cuadrícula ada
 - Comando: **«Gemini Helper: Crear panel»** — crea un nuevo tablero en `Dashboards/` y lo abre
 - O pídelo a la IA en el chat (la skill de agente integrada **dashboard** crea los archivos `.dashboard` y los archivos `.base` subyacentes por ti)
 
-**Modo de edición:** Haz clic en **Editar** para mover, redimensionar, agregar y configurar widgets; **Listo** para verlo. La cuadrícula es adaptable — en pantallas estrechas los widgets se reorganizan en una sola columna. Todos los cambios se guardan automáticamente.
+**Edición:** Los paneles ya no requieren un modo de edición independiente. Arrastra los widgets para moverlos, arrastra el tirador de la esquina inferior derecha para redimensionar, usa el icono de engranaje de cada widget para su configuración, y usa **+ Agregar widget** en la barra de herramientas para añadir más. Cada widget también tiene un botón de maximizar; al hacer clic se muestra solo ese widget, y el icono de restaurar vuelve a la cuadrícula normal. Todos los cambios se guardan automáticamente.
+
+![Organizar widgets](docs/images/dashboard_arrange.gif)
 
 ## Tipos de widget
 
-Haz clic en **+ Agregar widget** en el modo de edición para elegir un tipo:
+Haz clic en **+ Agregar widget** para elegir un tipo:
 
 ![Agregar widget](docs/images/dashboard_widgets.png)
 
 | Widget | Muestra | Configuración clave |
 |--------|-------|------------|
 | **Base** | Una vista con nombre de un archivo `.base` mediante la UI nativa de Bases de Obsidian (tabla / tarjetas / lista) | ruta `base`, nombre de `view` |
-| **Markdown** | Una nota existente, renderizada en línea | `path` a la nota |
+| **File** | Un archivo del vault renderizado en línea: Markdown/texto/HTML, imágenes, PDF, EPUB y otros archivos con un botón para abrir | `path`, `showHeader` |
 | **Web Embed** | Una página web en un iframe, con encabezado opcional y botón para abrir en el navegador | `url`, `showHeader` |
 | **Workflow** | La salida de un workflow, ejecutado headless y renderizado como Markdown o HTML | ruta `workflow`, `output`, `refreshInterval` |
 | **Kanban** | Notas como tarjetas arrastrables agrupadas en columnas de estado | filtro `tag`/`folder`, `statusProperty`, `columns`, `displayFields` |
 | **Timeline** | Publicaciones fechadas con etiquetas, imágenes adjuntas, fijado, filtros, publicaciones largas contraíbles y reescritura de borradores con IA | `name`, `latestCount`, límites de contracción |
+| **MemoList** | Un índice de los archivos de memos de lectura del widget File bajo `Dashboards/Memos/` | ninguno |
+
+El widget **File** es la superficie de lectura para notas y documentos. Los archivos Markdown/texto/HTML se renderizan en línea, las imágenes se muestran directamente, y los PDF/EPUB usan vistas de lectura continua. Selecciona texto y haz clic derecho para **Copiar**, **Preguntar a la IA** o **Añadir a memo**. Los memos se guardan junto a los datos del panel en `Dashboards/Memos/`, mantienen enlaces al texto citado cuando es posible, y pueden editarse o eliminarse desde el panel de memos. Hacer clic en una cita de memo salta de vuelta a la ubicación de origen; mientras el panel de memos está abierto, los rangos de memo se resaltan en el documento.
+
+![Memo del widget File](docs/images/dashboard_memo.gif)
+
+El widget **MemoList** lista los archivos de memos de todo el panel. Hacer clic en una fila no navega fuera del panel; maximiza ese widget y abre el archivo seleccionado con su panel de memos. Restaurar el widget vuelve a la MemoList.
 
 Los widgets **Base** y **Workflow** incluyen un botón **Crear con IA** para crear el archivo `.base` o el workflow subyacente sin salir del panel de ajustes. Para una base, la IA puede inspeccionar tus notas con herramientas de solo lectura antes de crearla, y **Editar con IA** muestra un diff con un cuadro de instrucciones adicionales para refinarla antes de aplicar.
 
@@ -561,7 +572,7 @@ Usa **Editar con IA** desde el composer o el editor en línea para reescribir un
 
 ## Tablero Kanban
 
-Convierte notas en un tablero de arrastrar y soltar. Las tarjetas son notas que coinciden con un filtro de **etiqueta** y/o **carpeta**, agrupadas en columnas por una **propiedad de estado** del frontmatter. Arrastra una tarjeta a otra columna para actualizar el estado de esa nota, escrito directamente en el frontmatter de la nota. El tablero es totalmente interactivo en **modo de visualización**; no es necesario entrar en modo de edición para mover tarjetas.
+Convierte notas en un tablero de arrastrar y soltar. Las tarjetas son notas que coinciden con un filtro de **etiqueta** y/o **carpeta**, agrupadas en columnas por una **propiedad de estado** del frontmatter. Arrastra una tarjeta a otra columna para actualizar el estado de esa nota, escrito directamente en el frontmatter de la nota. El tablero es totalmente interactivo directamente en el panel.
 
 ![Tablero Kanban](docs/images/dashboard_kanban.png)
 
@@ -571,14 +582,14 @@ Convierte notas en un tablero de arrastrar y soltar. Las tarjetas son notas que 
 - **Orden manual** — arrastra tarjetas arriba/abajo dentro de una columna para guardar un orden personalizado para el tablero.
 - **Campos visibles** — lista propiedades adicionales del frontmatter (p. ej. `priority`, `due`) para mostrarlas en cada tarjeta debajo del título.
 
-Configura todo desde los ajustes del widget en modo de edición:
+Configura todo desde los ajustes del widget:
 
 ![Ajustes de Kanban](docs/images/dashboard_kanban_edit.png)
 
 > [!NOTE]
 > **Los widgets de workflow leen de una caché, no en vivo.** Un widget de workflow solo se ejecuta con el botón **Ejecutar**, la ejecución de prueba del editor de configuración, o una vez al abrir cuando su resultado en caché es más antiguo que el **intervalo de actualización automática** (minutos; `0` = solo manual). Los resultados se almacenan como archivos normales de la bóveda en `Dashboards/Data/<encoded dashboard path>.json`, por lo que se sincronizan/versionan como otros archivos y se incluyen en workflows push/pull. El workflow debe almacenar su salida Markdown/HTML en una variable (predeterminado `result`).
 
-> **Para el formato del archivo `.dashboard`, el esquema YAML completo y consejos de generación con IA, consulta la [Documentación del panel](docs/DASHBOARD.md)**
+> **Para el formato del archivo `.dashboard`, el esquema YAML y consejos de generación con IA, pregunta al chat de Gemini Helper. La fuente de conocimiento OKF integrada contiene la referencia actual del panel.**
 
 ---
 
@@ -769,7 +780,7 @@ Requiere: `pip install cryptography`
 
 > **Advertencia:** Si olvidas tu contrasena, los archivos cifrados no se pueden recuperar. Guarda tu contrasena de forma segura.
 
-> **Consejo:** Para cifrar todos los archivos de un directorio a la vez, usa un workflow. Consulta el ejemplo "Cifrar todos los archivos de un directorio" en [WORKFLOW_NODES_es.md](docs/WORKFLOW_NODES_es.md#obsidian-command).
+> **Consejo:** Para cifrar todos los archivos de un directorio a la vez, usa un workflow. Pregunta al chat de Gemini Helper por el ejemplo actual de workflow con `obsidian-command`.
 
 ![Flujo de Cifrado de Archivos](docs/images/enc.png)
 

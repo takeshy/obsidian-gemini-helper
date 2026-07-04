@@ -501,6 +501,8 @@ Build a personal **home / overview page** from a responsive grid of widgets. A d
 
 **Editing:** Dashboards no longer require a separate edit mode. Drag widgets to move them, drag the bottom-right handle to resize, use the gear on each widget for settings, and use **+ Add widget** in the toolbar to add more. Each widget also has a maximize button; clicking it shows only that widget, and the restore icon returns to the normal grid. All edits save automatically.
 
+![Arrange widgets](docs/images/dashboard_arrange.gif)
+
 ## Widget Types
 
 Click **+ Add widget** to choose a type:
@@ -518,6 +520,8 @@ Click **+ Add widget** to choose a type:
 | **MemoList** | An index of File-widget reading memo files under `Dashboards/Memos/` | none |
 
 The **File** widget is the reading surface for notes and documents. Markdown/text/HTML files render inline, images render directly, and PDFs/EPUBs use continuous reading views. Select text and right-click to **Copy**, **Ask AI**, or **Add to memo**. Memos are stored beside the dashboard data under `Dashboards/Memos/`, keep links back to the quoted text when possible, and can be edited or deleted from the memo panel. Clicking a memo quote jumps back to the source location; while the memo panel is open, memo ranges are highlighted in the document.
+
+![File widget memo](docs/images/dashboard_memo.gif)
 
 The **MemoList** widget lists memo files across the dashboard. Clicking a row does not navigate away; it maximizes that widget and opens the selected file with its memo panel. Restoring the widget returns to the MemoList.
 

@@ -77,6 +77,7 @@ export class DashboardView extends TextFileView {
           this.currentData = yaml;
           this.requestSave();
         }}
+        onOpenDashboard={(file) => this.leaf.openFile(file)}
       />
     );
     this.reactRoot = root;

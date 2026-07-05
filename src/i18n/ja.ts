@@ -1067,6 +1067,7 @@ export const ja: Record<string, string> = {
   // Dashboard
   "command.createDashboard": "ダッシュボードを作成",
   "dashboard.createNamePrompt": "ダッシュボード名",
+  "dashboard.switchDashboard": "ダッシュボードを切り替え",
   "dashboard.edit": "編集",
   "dashboard.done": "完了",
   "dashboard.undo": "元に戻す",

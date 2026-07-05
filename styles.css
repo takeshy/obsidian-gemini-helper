@@ -8004,6 +8004,32 @@
   font-weight: 600;
   color: var(--text-normal);
 }
+.llm-hub-db-title-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  max-width: min(360px, 45vw);
+  padding: 3px 6px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-muted);
+  box-shadow: none;
+  cursor: pointer;
+}
+.llm-hub-db-title-btn:hover,
+.llm-hub-db-title-btn:focus-visible {
+  background: var(--background-modifier-hover);
+  color: var(--text-normal);
+}
+.llm-hub-db-title-btn .llm-hub-db-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.llm-hub-db-title-btn svg {
+  flex: 0 0 auto;
+}
 .llm-hub-db-toolbtn {
   display: inline-flex;
   align-items: center;

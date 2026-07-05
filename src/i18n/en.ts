@@ -1067,6 +1067,7 @@ export const en = {
   // Dashboard
   "command.createDashboard": "Create dashboard",
   "dashboard.createNamePrompt": "Dashboard name",
+  "dashboard.switchDashboard": "Switch dashboard",
   "dashboard.edit": "Edit",
   "dashboard.done": "Done",
   "dashboard.undo": "Undo",

@@ -1,5 +1,6 @@
 import { useRef, useState, useEffect, useCallback } from "react";
 import { GripVertical, Maximize2, Minimize2, Settings } from "lucide-react";
+import { Platform } from "obsidian";
 import { t } from "src/i18n";
 import type { Widget, LayoutPos, GridLayout, WidgetContext } from "./types";
 import WidgetRenderer from "./WidgetRenderer";
@@ -49,7 +50,8 @@ export default function GridCell({
   const [snapPreview, setSnapPreview] = useState<LayoutPos | null>(null);
 
   const isActive = interactionMode !== null;
-  const layoutHandlesEnabled = !isMaximized && !(widget.type === "file" && (widget.config as { memoPanelOpen?: unknown }).memoPanelOpen === true);
+  const fileMemoPanelOpen = widget.type === "file" && (widget.config as { memoPanelOpen?: unknown }).memoPanelOpen === true;
+  const layoutHandlesEnabled = !isMaximized && (!fileMemoPanelOpen || Platform.isMobile);
 
   // A single effect keyed on `interactionMode` so listeners are added once per
   // interaction, not re-bound on every pointermove frame.

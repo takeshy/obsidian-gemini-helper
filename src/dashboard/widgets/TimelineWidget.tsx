@@ -433,6 +433,15 @@ export default function TimelineWidget({
   const [draft, setDraft] = useState("");
   const [editingPostId, setEditingPostId] = useState<string | null>(null);
   const [editDraft, setEditDraft] = useState("");
+  const [editKeyboardFocused, setEditKeyboardFocused] = useState(false);
+  const editContainerRef = useRef<HTMLDivElement | null>(null);
+  const editBlurTimerRef = useRef(0);
+  // Keep the textarea focused (and the pinned edit form in place) when
+  // tapping an action button — on iOS the blur otherwise lands mid-tap and
+  // the repositioned button misses its click.
+  const keepFocusProps = {
+    onPointerDown: (e: React.PointerEvent) => e.preventDefault(),
+  };
   const [savingPostId, setSavingPostId] = useState<string | null>(null);
   const [images, setImages] = useState<PendingImage[]>([]);
   const [editImages, setEditImages] = useState<PendingImage[]>([]);
@@ -561,6 +570,35 @@ export default function TimelineWidget({
   useEffect(() => {
     resizeTextarea(editTextareaRef.current);
   }, [editDraft, editingPostId]);
+
+  // Same keyboard handling as the composer, but for the inline edit form:
+  // while focused on mobile, pin it above the on-screen keyboard instead of
+  // letting iOS scroll the whole app out of view.
+  useEffect(() => {
+    if (!Platform.isMobile || !editingPostId || !editKeyboardFocused) return;
+    const editEl = editContainerRef.current;
+    if (!editEl) return;
+    const win = editEl.ownerDocument.defaultView ?? window;
+    const viewport = win.visualViewport;
+
+    const updateKeyboardInset = () => {
+      const inset = viewport
+        ? Math.max(0, win.innerHeight - viewport.height - viewport.offsetTop)
+        : 0;
+      editEl.style.setProperty("--llm-hub-db-timeline-keyboard-inset", `${inset}px`);
+    };
+
+    updateKeyboardInset();
+    viewport?.addEventListener("resize", updateKeyboardInset);
+    viewport?.addEventListener("scroll", updateKeyboardInset);
+    win.addEventListener("resize", updateKeyboardInset);
+    return () => {
+      viewport?.removeEventListener("resize", updateKeyboardInset);
+      viewport?.removeEventListener("scroll", updateKeyboardInset);
+      win.removeEventListener("resize", updateKeyboardInset);
+      editEl.style.removeProperty("--llm-hub-db-timeline-keyboard-inset");
+    };
+  }, [editingPostId, editKeyboardFocused]);
 
   useEffect(() => {
     return () => {
@@ -771,6 +809,7 @@ export default function TimelineWidget({
   const cancelEditing = () => {
     setEditingPostId(null);
     setEditDraft("");
+    setEditKeyboardFocused(false);
     setWikiTarget(null);
     setWikiPosition(null);
     clearImages(true);
@@ -951,7 +990,21 @@ export default function TimelineWidget({
                   </button>
                 </div>
                 {editing ? (
-                  <div className="llm-hub-db-timeline-edit">
+                  <div
+                    ref={editContainerRef}
+                    className={`llm-hub-db-timeline-edit${editKeyboardFocused ? " is-keyboard-focused" : ""}`}
+                    onFocusCapture={() => {
+                      window.clearTimeout(editBlurTimerRef.current);
+                      setEditKeyboardFocused(true);
+                    }}
+                    onBlurCapture={(e) => {
+                      if (e.currentTarget.contains(e.relatedTarget as Node | null)) return;
+                      window.clearTimeout(editBlurTimerRef.current);
+                      editBlurTimerRef.current = window.setTimeout(() => {
+                        setEditKeyboardFocused(false);
+                      }, 250);
+                    }}
+                  >
                     <div className="llm-hub-db-timeline-textarea-wrap is-editor">
                       <textarea
                         ref={editTextareaRef}
@@ -970,17 +1023,17 @@ export default function TimelineWidget({
                     {renderImages(editImages, true)}
                     <div className="llm-hub-db-timeline-composer-actions">
                       <input ref={editInputRef} type="file" accept="image/*" multiple onChange={(e) => addImages(e.target.files, true)} />
-                      <button type="button" className="llm-hub-db-timeline-iconbtn" onClick={cancelEditing} title={t("dashboard.cancel")}>
+                      <button type="button" className="llm-hub-db-timeline-iconbtn" {...keepFocusProps} onClick={cancelEditing} title={t("dashboard.cancel")}>
                         <X size={14} />
                       </button>
                       <div className="llm-hub-db-timeline-composer-primary-actions">
-                        <button type="button" className="llm-hub-db-timeline-iconbtn" onClick={() => openAiRewrite("edit")} title={t("dashboard.timelineAiEdit")}>
+                        <button type="button" className="llm-hub-db-timeline-iconbtn" {...keepFocusProps} onClick={() => openAiRewrite("edit")} title={t("dashboard.timelineAiEdit")}>
                           <Sparkles size={14} />
                         </button>
-                        <button type="button" className="llm-hub-db-timeline-iconbtn" onClick={() => editInputRef.current?.click()} title={t("dashboard.timelineAttachImage")}>
+                        <button type="button" className="llm-hub-db-timeline-iconbtn" {...keepFocusProps} onClick={() => editInputRef.current?.click()} title={t("dashboard.timelineAttachImage")}>
                           <Image size={14} />
                         </button>
-                        <button type="button" className="llm-hub-db-timeline-post" disabled={savingPostId === post.id || (!editDraft.trim() && editImages.length === 0)} onClick={() => void saveEdit(post)}>
+                        <button type="button" className="llm-hub-db-timeline-post" {...keepFocusProps} disabled={savingPostId === post.id || (!editDraft.trim() && editImages.length === 0)} onClick={() => void saveEdit(post)}>
                           {savingPostId === post.id ? <Loader2 size={13} className="is-spinning" /> : <Send size={13} />}
                           {t("dashboard.save")}
                         </button>

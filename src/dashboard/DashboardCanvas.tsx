@@ -4,6 +4,7 @@ import type { App } from "obsidian";
 import { t } from "src/i18n";
 import type { GeminiHelperPlugin } from "src/plugin";
 import { ConfirmModal } from "src/ui/components/ConfirmModal";
+import { generateId } from "src/utils/id";
 import { useBreakpoint } from "./useBreakpoint";
 import { useGridLayout } from "./useGridLayout";
 import { buildEqualizedLayout, type EqualizeDirection } from "./equalizeLayout";
@@ -182,7 +183,7 @@ export function DashboardCanvas({
       );
       const defaultSize = def.defaultSize ?? { w: 4, h: 3 };
       const newWidget: Widget = {
-        id: crypto.randomUUID(),
+        id: generateId(),
         type: def.type,
         layout: { lg: { x: 0, y: maxY, w: defaultSize.w, h: defaultSize.h } },
         config: { ...(def.defaultConfig as Record<string, unknown>) },
@@ -229,11 +230,12 @@ export function DashboardCanvas({
   const handleDeleteWidget = useCallback(
     (widgetId: string) => {
       void (async () => {
+        setEditingWidgetId(null);
+        setPendingNewWidgetId(null);
+        await new Promise<void>((resolve) => window.requestAnimationFrame(() => resolve()));
         const confirmed = await new ConfirmModal(app, t("dashboard.deleteWidgetConfirm")).openAndWait();
         if (!confirmed) return;
         commit({ ...data, widgets: data.widgets.filter((w) => w.id !== widgetId) });
-        setEditingWidgetId(null);
-        setPendingNewWidgetId(null);
       })();
     },
     [app, data, commit],

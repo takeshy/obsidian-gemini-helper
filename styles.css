@@ -8040,6 +8040,9 @@
   padding: 12px;
   position: relative;
 }
+.is-mobile .llm-hub-db-scroll {
+  padding-bottom: calc(env(safe-area-inset-bottom) + 96px);
+}
 .llm-hub-db-grid {
   position: relative;
   min-height: 100%;
@@ -8096,6 +8099,25 @@
   user-select: text;
   -webkit-user-select: text;
 }
+/* Mobile: iOS long-press selection keeps expanding until it hits a
+   user-select: none boundary, so a selectable dashboard chrome means one
+   long-press can select the whole board. Obsidian's own styles (e.g. the
+   native Bases table) re-enable selection at the element level inside
+   widgets, so this needs !important on both sides: everything under the
+   dashboard is non-selectable, then reading surfaces and text inputs are
+   switched back on (the later rule wins the equal-importance tie). */
+.is-mobile .llm-hub-db-root,
+.is-mobile .llm-hub-db-root * {
+  user-select: none !important;
+  -webkit-user-select: none !important;
+}
+.is-mobile .llm-hub-db-file-content,
+.is-mobile .llm-hub-db-file-content *,
+.is-mobile .llm-hub-db-root textarea,
+.is-mobile .llm-hub-db-root input {
+  user-select: text !important;
+  -webkit-user-select: text !important;
+}
 
 /* Snap preview */
 .llm-hub-db-snap {
@@ -8140,6 +8162,10 @@
   opacity: 0;
   pointer-events: none;
 }
+.is-mobile .llm-hub-db-cell[data-widget-type="file"]:focus-within .llm-hub-db-drag {
+  opacity: 1;
+  pointer-events: auto;
+}
 .llm-hub-db-actions {
   position: absolute;
   top: 2px;
@@ -8149,9 +8175,6 @@
   gap: 2px;
   z-index: 10;
   opacity: 1;
-}
-.llm-hub-db-cell[data-widget-type="file"] > .llm-hub-db-actions {
-  right: 64px;
 }
 .llm-hub-db-iconbtn {
   display: inline-flex;
@@ -8309,7 +8332,9 @@
   align-items: center;
   gap: 6px;
   flex: 0 0 auto;
-  padding: 4px 8px;
+  /* Right padding reserves room for the cell's maximize/settings buttons,
+     which are absolutely positioned at the cell's top-right corner. */
+  padding: 4px 64px 4px 8px;
   border-bottom: 1px solid var(--background-modifier-border);
 }
 .llm-hub-db-file-main {
@@ -8684,6 +8709,90 @@
   padding: 8px;
   border-top: 1px solid var(--background-modifier-border);
 }
+/* Mobile: while a memo input is focused, pin it above the on-screen
+   keyboard (same approach as the timeline composer) — otherwise iOS
+   scrolls the whole app out of view to reveal the input. */
+.is-mobile .llm-hub-db-memo-compose.is-keyboard-focused,
+.is-mobile .llm-hub-db-memo-edit.is-keyboard-focused {
+  position: fixed;
+  left: 12px;
+  right: 12px;
+  bottom: calc(var(--llm-hub-db-memo-keyboard-inset, 0px) + env(safe-area-inset-bottom) + 12px);
+  z-index: 1000;
+  max-height: min(420px, calc(100vh - var(--llm-hub-db-memo-keyboard-inset, 0px) - 40px));
+  overflow-y: auto;
+  padding: 12px;
+  background: var(--background-primary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 18px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.22);
+}
+.is-mobile .llm-hub-db-memo-compose.is-mobile-hidden {
+  display: none;
+}
+.llm-hub-db-memo-compose-launcher {
+  display: none;
+}
+.is-mobile .llm-hub-db-memo-compose-launcher {
+  display: flex;
+  flex: 0 0 auto;
+  padding: 8px;
+  border-top: 1px solid var(--background-modifier-border);
+  background: var(--background-secondary);
+}
+.is-mobile .llm-hub-db-memo-compose-launcher .llm-hub-db-primary-btn {
+  width: 100%;
+  justify-content: center;
+  min-height: 36px;
+  border-radius: 6px;
+  background: var(--interactive-accent);
+  color: var(--text-on-accent);
+  font-weight: 600;
+}
+.is-mobile .llm-hub-db-memo-compose-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 999;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  background: rgba(0, 0, 0, 0.24);
+  box-shadow: none;
+}
+.is-mobile .llm-hub-db-memo-compose.is-mobile-modal {
+  position: fixed;
+  left: 12px;
+  right: 12px;
+  bottom: calc(var(--llm-hub-db-memo-keyboard-inset, 0px) + env(safe-area-inset-bottom) + 12px);
+  z-index: 1000;
+  max-height: min(420px, calc(100vh - var(--llm-hub-db-memo-keyboard-inset, 0px) - 40px));
+  overflow-y: auto;
+  padding: 12px;
+  background: var(--background-primary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 18px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.22);
+}
+.is-mobile .llm-hub-db-memo-compose.is-mobile-modal > .llm-hub-db-primary-btn {
+  width: 100%;
+  justify-content: center;
+  min-height: 38px;
+  background: var(--interactive-accent);
+  color: var(--text-on-accent);
+  font-weight: 600;
+  box-shadow: 0 2px 10px hsla(var(--interactive-accent-hsl), 0.28);
+}
+.is-mobile .llm-hub-db-memo-compose.is-mobile-modal > .llm-hub-db-primary-btn:hover {
+  background: var(--interactive-accent-hover);
+}
+.is-mobile .llm-hub-db-memo-compose.is-mobile-modal textarea {
+  min-height: 120px;
+  max-height: 260px;
+  resize: none;
+}
 .llm-hub-db-memo-relation {
   display: flex;
   align-items: flex-start;
@@ -8725,6 +8834,11 @@
   border-radius: 6px;
   background: var(--background-primary);
   box-shadow: var(--shadow-l);
+}
+/* Mobile: the menu floats without a backdrop so the selection handles stay
+   usable; it needs its own stacking level. */
+.llm-hub-db-selection-menu-floating .llm-hub-db-selection-menu {
+  z-index: var(--layer-popover, 1000);
 }
 .llm-hub-db-selection-menu-quote {
   max-height: 96px;
@@ -10426,6 +10540,21 @@
   bottom: calc(var(--llm-hub-db-timeline-keyboard-inset, 0px) + env(safe-area-inset-bottom) + 12px);
   z-index: 1000;
   max-height: min(420px, calc(100vh - var(--llm-hub-db-timeline-keyboard-inset, 0px) - 40px));
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 18px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.22);
+}
+/* Same keyboard handling for the inline edit form. */
+.is-mobile .llm-hub-db-timeline-edit.is-keyboard-focused {
+  position: fixed;
+  left: 12px;
+  right: 12px;
+  bottom: calc(var(--llm-hub-db-timeline-keyboard-inset, 0px) + env(safe-area-inset-bottom) + 12px);
+  z-index: 1000;
+  max-height: min(420px, calc(100vh - var(--llm-hub-db-timeline-keyboard-inset, 0px) - 40px));
+  overflow-y: auto;
+  padding: 12px;
+  background: var(--background-primary);
   border: 1px solid var(--background-modifier-border);
   border-radius: 18px;
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.22);

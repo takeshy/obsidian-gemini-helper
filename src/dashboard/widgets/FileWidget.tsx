@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Bot, ChevronsLeft, ChevronsRight, Copy, ExternalLink, FileText, Loader2, NotebookPen, Save, SquarePen, Trash2, X } from "lucide-react";
-import { Component, MarkdownRenderer, TFile } from "obsidian";
+import { Component, MarkdownRenderer, Notice, Platform, TFile } from "obsidian";
 import { t } from "src/i18n";
 import type { WidgetContext } from "../types";
 import { memoPathFor, readMemos, writeMemos, type DocumentMemo } from "../memo";
 import { ConfirmModal } from "src/ui/components/ConfirmModal";
+import { generateId } from "src/utils/id";
 import PdfFileViewer, { type PdfFileViewerHandle } from "./PdfFileViewer";
 
 export interface FileConfig {
@@ -254,6 +255,7 @@ function HtmlFrame({
   html,
   title,
   onSelectionContextMenu,
+  onSelectionClear,
   frameRef,
   onLoad,
   anchorKind = "html",
@@ -261,51 +263,81 @@ function HtmlFrame({
   html: string;
   title: string;
   onSelectionContextMenu?: (text: string, x: number, y: number, anchor?: QuoteAnchorData) => void;
+  onSelectionClear?: () => void;
   frameRef: React.RefObject<HTMLIFrameElement>;
   onLoad?: () => void;
   anchorKind?: "html" | "epub";
 }) {
   const [loadTick, setLoadTick] = useState(0);
 
-  const selectedText = useCallback(() => {
-    const selection = frameRef.current?.contentWindow?.getSelection();
-    return selection?.toString().trim() ?? "";
-  }, []);
-
   useEffect(() => {
     const doc = frameRef.current?.contentDocument;
     if (!doc) return;
-    const onContextMenu = (event: MouseEvent) => {
+
+    const readFrameSelection = (): { text: string; anchor?: QuoteAnchorData; range?: Range } => {
       const selection = frameRef.current?.contentWindow?.getSelection();
-      const text = selectedText();
-      if (!text) return;
+      const text = selection?.toString().trim() ?? "";
+      if (!text || !selection || selection.rangeCount === 0) return { text: "" };
+      const range = selection.getRangeAt(0);
       let anchor: QuoteAnchorData | undefined;
-      if (selection && selection.rangeCount) {
-        const range = selection.getRangeAt(0);
-        const element = range.startContainer.nodeType === Node.ELEMENT_NODE
-          ? range.startContainer as Element
-          : range.startContainer.parentElement;
-        const section = anchorKind === "epub" ? element?.closest("section.epub-chapter") : null;
-        const root = section ?? doc.body;
-        if (root?.contains(range.startContainer) && root.contains(range.endContainer)) {
-          const context = selectionContextFor(buildTextIndex(root), text, range);
-          const match = section?.id.match(/^epub-chapter-(\d+)$/);
-          anchor = {
-            anchor: match ? `spine=${Number(match[1]) - 1}` : "text",
-            ...(context.prefix ? { quotePrefix: context.prefix } : {}),
-            ...(context.suffix ? { quoteSuffix: context.suffix } : {}),
-          };
-        }
+      const element = range.startContainer.nodeType === Node.ELEMENT_NODE
+        ? range.startContainer as Element
+        : range.startContainer.parentElement;
+      const section = anchorKind === "epub" ? element?.closest("section.epub-chapter") : null;
+      const root = section ?? doc.body;
+      if (root?.contains(range.startContainer) && root.contains(range.endContainer)) {
+        const context = selectionContextFor(buildTextIndex(root), text, range);
+        const match = section?.id.match(/^epub-chapter-(\d+)$/);
+        anchor = {
+          anchor: match ? `spine=${Number(match[1]) - 1}` : "text",
+          ...(context.prefix ? { quotePrefix: context.prefix } : {}),
+          ...(context.suffix ? { quoteSuffix: context.suffix } : {}),
+        };
       }
+      return { text, anchor, range };
+    };
+
+    const onContextMenu = (event: MouseEvent) => {
+      const { text, anchor } = readFrameSelection();
+      if (!text) return;
       event.preventDefault();
       const rect = frameRef.current?.getBoundingClientRect();
       onSelectionContextMenu?.(text, event.clientX + (rect?.left ?? 0), event.clientY + (rect?.top ?? 0), anchor);
     };
     doc.addEventListener("contextmenu", onContextMenu);
+
+    // Mobile has no reliable contextmenu on long-press, so open the menu once
+    // the selection settles (debounced against handle-drag adjustments).
+    let timer = 0;
+    const onSelectionChange = () => {
+      window.clearTimeout(timer);
+      timer = window.setTimeout(() => {
+        const { text, anchor, range } = readFrameSelection();
+        if (!text || !range) {
+          onSelectionClear?.();
+          return;
+        }
+        const rangeRect = range.getBoundingClientRect();
+        const frameRect = frameRef.current?.getBoundingClientRect();
+        onSelectionContextMenu?.(
+          text,
+          rangeRect.left + rangeRect.width / 2 + (frameRect?.left ?? 0),
+          // +28px keeps the menu clear of the bottom selection handle.
+          rangeRect.bottom + 28 + (frameRect?.top ?? 0),
+          anchor,
+        );
+      }, 900);
+    };
+    if (Platform.isMobile) doc.addEventListener("selectionchange", onSelectionChange);
+
     return () => {
       doc.removeEventListener("contextmenu", onContextMenu);
+      if (Platform.isMobile) {
+        window.clearTimeout(timer);
+        doc.removeEventListener("selectionchange", onSelectionChange);
+      }
     };
-  }, [anchorKind, html, loadTick, onSelectionContextMenu, selectedText]);
+  }, [anchorKind, html, loadTick, onSelectionClear, onSelectionContextMenu]);
 
   return (
     <iframe
@@ -339,28 +371,35 @@ function SelectionMenu({
   onAskAi: () => void;
   onAddToMemo: () => void;
 }) {
-  const menu = (
+  const inner = (
+    <div
+      className="llm-hub-db-selection-menu"
+      style={{ left: x, top: y }}
+      onMouseDown={(e) => e.stopPropagation()}
+      onContextMenu={(e) => e.preventDefault()}
+    >
+      <div className="llm-hub-db-selection-menu-quote">{quote}</div>
+      <button type="button" onClick={onCopy}>
+        <Copy size={13} />
+        {t("message.copy")}
+      </button>
+      <button type="button" onClick={onAskAi}>
+        <Bot size={13} />
+        {t("memo.askAi")}
+      </button>
+      <button type="button" onClick={onAddToMemo}>
+        <SquarePen size={13} />
+        {t("memo.addToMemo")}
+      </button>
+    </div>
+  );
+  // Mobile: no backdrop, so the user can keep adjusting the native selection
+  // handles while the menu is visible; it closes when the selection clears.
+  const menu = Platform.isMobile ? (
+    <div className="llm-hub-db-selection-menu-floating">{inner}</div>
+  ) : (
     <div className="llm-hub-db-selection-menu-backdrop" onMouseDown={onClose}>
-      <div
-        className="llm-hub-db-selection-menu"
-        style={{ left: x, top: y }}
-        onMouseDown={(e) => e.stopPropagation()}
-        onContextMenu={(e) => e.preventDefault()}
-      >
-        <div className="llm-hub-db-selection-menu-quote">{quote}</div>
-        <button type="button" onClick={onCopy}>
-          <Copy size={13} />
-          {t("message.copy")}
-        </button>
-        <button type="button" onClick={onAskAi}>
-          <Bot size={13} />
-          {t("memo.askAi")}
-        </button>
-        <button type="button" onClick={onAddToMemo}>
-          <SquarePen size={13} />
-          {t("memo.addToMemo")}
-        </button>
-      </div>
+      {inner}
     </div>
   );
   return createPortal(menu, activeDocument.body);
@@ -393,27 +432,106 @@ function MemoPanel({
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editText, setEditText] = useState("");
   const [editQuote, setEditQuote] = useState("");
+  const [keyboardTarget, setKeyboardTarget] = useState<"compose" | "edit" | null>(null);
+  // Mobile: the inline compose box is unusable in the panel (cramped, and
+  // hidden behind Obsidian's floating nav), so it only renders as a modal
+  // opened from a launcher button.
+  const [composeOpen, setComposeOpen] = useState(false);
+  const composeRef = useRef<HTMLDivElement>(null);
+  const composeTextareaRef = useRef<HTMLTextAreaElement>(null);
+  const editRef = useRef<HTMLDivElement>(null);
+
+  const resizeComposeTextarea = useCallback((textarea: HTMLTextAreaElement | null) => {
+    if (!textarea) return;
+    textarea.setCssProps({ height: "auto" });
+    textarea.setCssProps({ height: `${Math.min(textarea.scrollHeight, Platform.isMobile ? 260 : 140)}px` });
+  }, []);
+
+  useEffect(() => {
+    if (Platform.isMobile && selectedQuote.trim()) setComposeOpen(true);
+  }, [selectedQuote]);
+
+  useEffect(() => {
+    resizeComposeTextarea(composeTextareaRef.current);
+  }, [composeOpen, draft, resizeComposeTextarea]);
+
+  // Same fix as the timeline composer: while a memo input is focused on
+  // mobile, pin its container above the on-screen keyboard — otherwise iOS
+  // scrolls the whole app out of view (blank screen) to reveal the input.
+  useEffect(() => {
+    if (!Platform.isMobile || !keyboardTarget) return;
+    const el = keyboardTarget === "compose" ? composeRef.current : editRef.current;
+    if (!el) return;
+    const win = el.ownerDocument.defaultView ?? window;
+    const viewport = win.visualViewport;
+
+    const updateKeyboardInset = () => {
+      const inset = viewport
+        ? Math.max(0, win.innerHeight - viewport.height - viewport.offsetTop)
+        : 0;
+      el.style.setProperty("--llm-hub-db-memo-keyboard-inset", `${inset}px`);
+    };
+
+    updateKeyboardInset();
+    viewport?.addEventListener("resize", updateKeyboardInset);
+    viewport?.addEventListener("scroll", updateKeyboardInset);
+    win.addEventListener("resize", updateKeyboardInset);
+    return () => {
+      viewport?.removeEventListener("resize", updateKeyboardInset);
+      viewport?.removeEventListener("scroll", updateKeyboardInset);
+      win.removeEventListener("resize", updateKeyboardInset);
+      el.style.removeProperty("--llm-hub-db-memo-keyboard-inset");
+    };
+  }, [keyboardTarget]);
+
+  const keyboardBlurTimer = useRef(0);
+  const keyboardFocusProps = (target: "compose" | "edit") => ({
+    onFocusCapture: () => {
+      window.clearTimeout(keyboardBlurTimer.current);
+      setKeyboardTarget(target);
+    },
+    onBlurCapture: (e: React.FocusEvent<HTMLDivElement>) => {
+      if (e.currentTarget.contains(e.relatedTarget as Node | null)) return;
+      // Delay unpinning: on iOS the blur lands between touch and click, and
+      // moving the container mid-tap makes the tapped button miss its click.
+      window.clearTimeout(keyboardBlurTimer.current);
+      keyboardBlurTimer.current = window.setTimeout(() => {
+        setKeyboardTarget((current) => (current === target ? null : current));
+      }, 250);
+    },
+  });
+
+  // Keep the textarea focused (and the container pinned) when tapping an
+  // action button inside the pinned container.
+  const keepFocusProps = {
+    onPointerDown: (e: React.PointerEvent) => e.preventDefault(),
+  };
 
   const addMemo = async () => {
     const text = draft.trim();
     const quote = selectedQuote.trim();
     if (!text && !quote) return;
-    const next = [
-      ...(memos ?? []),
-      {
-        id: crypto.randomUUID(),
-        createdAt: new Date().toISOString(),
-        text,
-        ...(quote ? { quote } : {}),
-        ...(quote && selectedAnchor?.anchor ? { quoteAnchor: selectedAnchor.anchor } : {}),
-        ...(quote && selectedAnchor?.quotePrefix ? { quotePrefix: selectedAnchor.quotePrefix } : {}),
-        ...(quote && selectedAnchor?.quoteSuffix ? { quoteSuffix: selectedAnchor.quoteSuffix } : {}),
-      },
-    ];
-    await writeMemos(ctx.app, sourcePath, next);
-    setDraft("");
-    onClearSelectedQuote();
-    onMemosChange(next);
+    try {
+      const next = [
+        ...(memos ?? []),
+        {
+          id: generateId(),
+          createdAt: new Date().toISOString(),
+          text,
+          ...(quote ? { quote } : {}),
+          ...(quote && selectedAnchor?.anchor ? { quoteAnchor: selectedAnchor.anchor } : {}),
+          ...(quote && selectedAnchor?.quotePrefix ? { quotePrefix: selectedAnchor.quotePrefix } : {}),
+          ...(quote && selectedAnchor?.quoteSuffix ? { quoteSuffix: selectedAnchor.quoteSuffix } : {}),
+        },
+      ];
+      await writeMemos(ctx.app, sourcePath, next);
+      setDraft("");
+      onClearSelectedQuote();
+      onMemosChange(next);
+      if (Platform.isMobile) setComposeOpen(false);
+    } catch (e) {
+      new Notice(`${t("memo.add")}: ${e instanceof Error ? e.message : String(e)}`);
+    }
   };
 
   const startEdit = (memo: DocumentMemo) => {
@@ -442,16 +560,25 @@ function MemoPanel({
           }
         : memo,
     );
-    await writeMemos(ctx.app, sourcePath, next);
-    onMemosChange(next);
-    cancelEdit();
+    try {
+      await writeMemos(ctx.app, sourcePath, next);
+      onMemosChange(next);
+      cancelEdit();
+    } catch (e) {
+      new Notice(`${t("common.save")}: ${e instanceof Error ? e.message : String(e)}`);
+    }
   };
 
   const deleteMemo = async (memoId: string) => {
     if (!memos) return;
     if (!(await new ConfirmModal(ctx.app, t("memo.deleteConfirm")).openAndWait())) return;
     const next = memos.filter((memo) => memo.id !== memoId);
-    await writeMemos(ctx.app, sourcePath, next);
+    try {
+      await writeMemos(ctx.app, sourcePath, next);
+    } catch (e) {
+      new Notice(`${t("common.delete")}: ${e instanceof Error ? e.message : String(e)}`);
+      return;
+    }
     onMemosChange(next);
     if (editingId === memoId) cancelEdit();
   };
@@ -462,6 +589,40 @@ function MemoPanel({
       `Memo file:\n${memoPath}\n\nSource file:\n${sourcePath}`,
     );
   };
+
+  const closeCompose = () => {
+    setComposeOpen(false);
+    setKeyboardTarget((current) => (current === "compose" ? null : current));
+  };
+
+  const compose = (
+    <div
+      ref={composeRef}
+      className={`llm-hub-db-memo-compose${keyboardTarget === "compose" ? " is-keyboard-focused" : ""}${Platform.isMobile ? composeOpen ? " is-mobile-modal" : " is-mobile-hidden" : ""}`}
+      {...keyboardFocusProps("compose")}
+    >
+      {selectedQuote && (
+        <div className="llm-hub-db-memo-relation">
+          <blockquote>{selectedQuote}</blockquote>
+          <button type="button" className="llm-hub-db-iconbtn" {...keepFocusProps} onClick={onClearSelectedQuote} title={t("common.delete")}>
+            <X size={12} />
+          </button>
+        </div>
+      )}
+      <textarea
+        ref={composeTextareaRef}
+        value={draft}
+        onChange={(e) => {
+          setDraft(e.target.value);
+          resizeComposeTextarea(e.target);
+        }}
+        placeholder={t("memo.addPlaceholder")}
+      />
+      <button type="button" className="llm-hub-db-primary-btn" {...keepFocusProps} onClick={() => void addMemo()}>
+        {t("memo.add")}
+      </button>
+    </div>
+  );
 
   return (
     <aside className="llm-hub-db-memo-panel">
@@ -511,7 +672,11 @@ function MemoPanel({
                 )}
               </div>
               {editingId === memo.id ? (
-                <div className="llm-hub-db-memo-edit">
+                <div
+                  ref={editRef}
+                  className={`llm-hub-db-memo-edit${keyboardTarget === "edit" ? " is-keyboard-focused" : ""}`}
+                  {...keyboardFocusProps("edit")}
+                >
                   <textarea
                     className="llm-hub-db-memo-edit-quote"
                     value={editQuote}
@@ -524,10 +689,10 @@ function MemoPanel({
                     placeholder={t("memo.addPlaceholder")}
                   />
                   <div className="llm-hub-db-memo-edit-actions">
-                    <button type="button" className="llm-hub-db-toolbtn" onClick={cancelEdit}>
+                    <button type="button" className="llm-hub-db-toolbtn" {...keepFocusProps} onClick={cancelEdit}>
                       {t("common.cancel")}
                     </button>
-                    <button type="button" className="llm-hub-db-primary-btn" onClick={() => void saveEdit()}>
+                    <button type="button" className="llm-hub-db-primary-btn" {...keepFocusProps} onClick={() => void saveEdit()}>
                       {t("common.save")}
                     </button>
                   </div>
@@ -551,24 +716,24 @@ function MemoPanel({
           ))
         )}
       </div>
-      <div className="llm-hub-db-memo-compose">
-        {selectedQuote && (
-          <div className="llm-hub-db-memo-relation">
-            <blockquote>{selectedQuote}</blockquote>
-            <button type="button" className="llm-hub-db-iconbtn" onClick={onClearSelectedQuote} title={t("common.delete")}>
-              <X size={12} />
+      {Platform.isMobile ? (
+        <>
+          <div className="llm-hub-db-memo-compose-launcher">
+            <button type="button" className="llm-hub-db-primary-btn" onClick={() => setComposeOpen(true)}>
+              {t("memo.add")}
             </button>
           </div>
-        )}
-        <textarea
-          value={draft}
-          onChange={(e) => setDraft(e.target.value)}
-          placeholder={t("memo.addPlaceholder")}
-        />
-        <button type="button" className="llm-hub-db-primary-btn" onClick={() => void addMemo()}>
-          {t("memo.add")}
-        </button>
-      </div>
+          {composeOpen && (
+            <button
+              type="button"
+              className="llm-hub-db-memo-compose-backdrop"
+              aria-label={t("dashboard.cancel")}
+              onClick={closeCompose}
+            />
+          )}
+          {compose}
+        </>
+      ) : compose}
     </aside>
   );
 }
@@ -772,6 +937,41 @@ export default function FileWidget({
     };
   }, [openHostSelectionMenu]);
 
+  // Mobile has no reliable contextmenu on long-press, so open the menu once
+  // the selection settles (debounced against handle-drag adjustments). The
+  // menu has no backdrop on mobile, so it also closes here when the
+  // selection is cleared.
+  useEffect(() => {
+    if (!Platform.isMobile) return;
+    const doc = contentRef.current?.ownerDocument;
+    if (!doc) return;
+    let timer = 0;
+    const onSelectionChange = () => {
+      window.clearTimeout(timer);
+      timer = window.setTimeout(() => {
+        const { text, anchor } = readHostSelection();
+        const selection = doc.getSelection();
+        if (!text || !selection || selection.rangeCount === 0) {
+          setSelectionMenu((current) => {
+            if (!current) return current;
+            const hostSelected = (doc.getSelection()?.toString().trim() ?? "").length > 0;
+            const frameSelected = (frameRef.current?.contentWindow?.getSelection()?.toString().trim() ?? "").length > 0;
+            return hostSelected || frameSelected ? current : null;
+          });
+          return;
+        }
+        const rect = selection.getRangeAt(0).getBoundingClientRect();
+        // +28px keeps the menu clear of the bottom selection handle.
+        openSelectionMenu(text, rect.left + rect.width / 2, rect.bottom + 28, anchor);
+      }, 900);
+    };
+    doc.addEventListener("selectionchange", onSelectionChange);
+    return () => {
+      window.clearTimeout(timer);
+      doc.removeEventListener("selectionchange", onSelectionChange);
+    };
+  }, [openSelectionMenu, readHostSelection]);
+
   const copySelection = useCallback(async () => {
     if (!selectionMenu) return;
     await navigator.clipboard.writeText(selectionMenu.quote);
@@ -957,12 +1157,12 @@ export default function FileWidget({
     }
     if (kind === "html") {
       if (content === null) return <div className="llm-hub-db-widget-empty">{t("dashboard.fileNotFound")}</div>;
-      return <HtmlFrame html={content} title={path} onSelectionContextMenu={openSelectionMenu} frameRef={frameRef} onLoad={() => setFrameLoadTick((value) => value + 1)} />;
+      return <HtmlFrame html={content} title={path} onSelectionContextMenu={openSelectionMenu} onSelectionClear={() => setSelectionMenu(null)} frameRef={frameRef} onLoad={() => setFrameLoadTick((value) => value + 1)} />;
     }
     if (kind === "epub") {
       if (epubError) return <div className="llm-hub-db-widget-empty">{epubError}</div>;
       if (!epubHtml) return <div className="llm-hub-db-widget-empty"><Loader2 size={16} />{t("dashboard.loading")}</div>;
-      return <HtmlFrame html={epubHtml} title={path} anchorKind="epub" onSelectionContextMenu={openSelectionMenu} frameRef={frameRef} onLoad={() => setFrameLoadTick((value) => value + 1)} />;
+      return <HtmlFrame html={epubHtml} title={path} anchorKind="epub" onSelectionContextMenu={openSelectionMenu} onSelectionClear={() => setSelectionMenu(null)} frameRef={frameRef} onLoad={() => setFrameLoadTick((value) => value + 1)} />;
     }
     if (kind === "image") {
       return (

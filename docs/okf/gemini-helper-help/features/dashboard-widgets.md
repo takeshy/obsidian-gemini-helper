@@ -2,13 +2,13 @@
 type: Feature Reference
 title: Dashboard Widgets
 description: Detailed behavior, settings, storage, and caveats for every built-in dashboard widget type.
-tags: [dashboard, widgets, base, kanban, timeline]
+tags: [dashboard, widgets, base, kanban, secret-manager, timeline]
 timestamp: 2026-07-04T00:00:00Z
 ---
 
 # Dashboard Widgets
 
-Dashboard widgets are selected from the Add widget palette. Built-in types are `base`, `file`, `web`, `workflow`, `kanban`, `timeline`, and `memo-list`. Unknown widget types are preserved and shown as placeholders.
+Dashboard widgets are selected from the Add widget palette. Built-in types are `base`, `file`, `web`, `workflow`, `kanban`, `secret-manager`, `timeline`, and `memo-list`. Unknown widget types are preserved and shown as placeholders.
 
 Widgets share common dashboard controls: drag to move, resize from the corner, open settings with the gear button, maximize/restore, delete from settings, and use toolbar undo/redo. The toolbar's horizontal and vertical align actions redistribute all widgets into balanced columns or rows.
 
@@ -85,6 +85,20 @@ Settings:
 - Show unmatched cards column - shows an "Unspecified" column for notes whose status matches no configured column.
 
 The New button creates a note matching the board filters: folder, tag, and selected column status are written into the new note.
+
+Kanban definitions are stored as reusable `.kanban` files under `Dashboards/Kanbans/`. Legacy inline widget definitions are migrated there when a dashboard is opened. The shared board definition stores filters, columns, title/display fields, and public board settings; per-widget card order remains in the `.dashboard` file.
+
+# Secret Manager Widget
+
+The Secret Manager widget lists `.encrypted` vault files and lets the user create, search, unlock, copy, edit, and open encrypted secrets from a dashboard. It uses the plugin encryption keys configured in Settings -> Encryption; chat-history and workflow-log encryption toggles do not need to be enabled.
+
+Settings and behavior:
+
+- Folder - optional root folder for `.encrypted` files; default is `Secrets`.
+- Search - matches secret name, description, and public metadata without decrypting values.
+- Detail modal - shows modified time instead of the vault path, includes an open-file action, and can unlock/copy/edit the secret.
+- Public metadata - stored outside the ciphertext for search/listing and edited as frontmatter-style `key: value` pairs.
+- Secret value - decrypted only in memory while unlocked and saved back encrypted.
 
 # Timeline Widget
 

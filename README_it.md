@@ -579,7 +579,7 @@ Trasforma le note in una board drag-and-drop. Le schede sono note che corrispond
 
 ![Board Kanban](docs/images/dashboard_kanban.png)
 
-Le definizioni delle board possono essere salvate come file YAML `.kanban` riutilizzabili in `Dashboards/Kanbans/`. Seleziona un file esistente oppure usa **Crea file .kanban da queste impostazioni**. Più dashboard possono condividere la stessa definizione; l'ordine delle schede resta locale a ciascun widget.
+Le definizioni delle board vengono salvate come file YAML `.kanban` riutilizzabili in `Dashboards/Kanbans/`. Le definizioni inline esistenti vengono migrate lì automaticamente. Più dashboard possono condividere la stessa definizione; l'ordine delle schede resta locale a ciascun widget.
 
 - **Titolo e Nuova** — l'intestazione mostra un titolo della board opzionale (utile quando una dashboard contiene più board) e un pulsante **Nuova** che apre una finestra di dialogo per inserire un titolo e scegliere una colonna, quindi crea una nota che corrisponde già ai filtri della board (cartella, tag, stato).
 - **Anteprima e apertura** — clicca su una scheda per visualizzarne l'anteprima della nota in una finestra di dialogo; l'icona di apertura della finestra apre la nota in una nuova scheda.
@@ -595,10 +595,15 @@ Configura tutto dalle impostazioni del widget:
 
 Secret Manager salva ogni valore come file `.encrypted` separato nel vault. Configura prima una password in **Impostazioni → Crittografia**; non è necessario attivare gli interruttori di cifratura di chat o workflow.
 
+![Secret Manager](docs/images/secret_manager.png)
+
 - Crea e organizza segreti in una cartella radice opzionale (`Secrets` per impostazione predefinita).
 - Cerca per nome file, descrizione o metadati pubblici senza decifrare i valori segreti.
 - Sblocca i valori per visualizzarli, modificarli o copiarli; la password viene memorizzata per la sessione corrente.
+- Modifica valore, descrizione e metadati pubblici dalla finestra di dettaglio; il file resta cifrato.
 - I valori in chiaro vengono usati solo in memoria e non vengono mai salvati senza cifratura nel vault.
+
+![Modifica Secret Manager](docs/images/secret_manager_edit.png)
 
 > [!WARNING]
 > Nomi, descrizioni, metadati pubblici e percorsi del vault sono memorizzati fuori dal testo cifrato. Inserisci password e token esclusivamente nel valore segreto.

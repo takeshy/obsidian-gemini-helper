@@ -8,10 +8,17 @@ import {
   type GridLayout,
   type LayoutPos,
   type Breakpoint,
+  type Widget,
   DEFAULT_GRID,
   DASHBOARD_FOLDER,
   DASHBOARD_EXT,
 } from "./types";
+import {
+  kanbanDefinitionFromConfig,
+  KANBAN_EXT,
+  KANBAN_FOLDER,
+  serializeKanbanFile,
+} from "./kanbanFile";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -79,6 +86,64 @@ export function migrateDashboardWidgets(widgets: DashboardData["widgets"]): Dash
     }
     return widget;
   });
+}
+
+function trimString(value: unknown): string {
+  return typeof value === "string" ? value.trim() : "";
+}
+
+function sanitizeFileBase(name: string): string {
+  return name
+    .replace(/[\\/:*?"<>|#[\]]/g, "-")
+    .replace(/\s+/g, " ")
+    .replace(/^\.+/, "")
+    .trim() || "Board";
+}
+
+async function uniqueKanbanPath(vault: Vault, baseName: string): Promise<string> {
+  const base = sanitizeFileBase(baseName);
+  let path = `${KANBAN_FOLDER}/${base}${KANBAN_EXT}`;
+  let index = 2;
+  while (vault.getAbstractFileByPath(path) || await vault.adapter.exists(path)) {
+    path = `${KANBAN_FOLDER}/${base} ${index++}${KANBAN_EXT}`;
+  }
+  return path;
+}
+
+export async function createKanbanFileFromConfig(
+  vault: Vault,
+  config: Record<string, unknown>,
+  fallbackName: string,
+): Promise<string> {
+  await ensureVaultFolder(vault, KANBAN_FOLDER);
+  const path = await uniqueKanbanPath(vault, trimString(config.title) || fallbackName);
+  await vault.create(path, serializeKanbanFile(kanbanDefinitionFromConfig(config)));
+  return path;
+}
+
+/** Move legacy inline kanban widget definitions into reusable `.kanban` files. */
+export async function migrateDashboardKanbanWidgetsToFiles(
+  vault: Vault,
+  data: DashboardData,
+): Promise<DashboardData | null> {
+  const migratedWidgets: Widget[] = [];
+  let changed = false;
+
+  for (const widget of data.widgets) {
+    if (widget.type !== "kanban" || trimString(widget.config?.kanban)) {
+      migratedWidgets.push(widget);
+      continue;
+    }
+
+    const config = widget.config ?? {};
+    const path = await createKanbanFileFromConfig(vault, config, widget.id || "Board");
+    const nextConfig: Record<string, unknown> = { kanban: path };
+    if (Array.isArray(config.cardOrder)) nextConfig.cardOrder = config.cardOrder;
+    migratedWidgets.push({ ...widget, config: nextConfig });
+    changed = true;
+  }
+
+  return changed ? { ...data, widgets: migratedWidgets } : null;
 }
 
 /**

@@ -48,7 +48,7 @@ function isWidgetConfigured(widget: Widget): boolean {
     case "workflow":
       return str("workflow").length > 0;
     case "kanban":
-      return str("title").length > 0;
+      return str("kanban").length > 0 || str("title").length > 0;
     default:
       return true;
   }

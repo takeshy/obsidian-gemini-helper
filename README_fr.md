@@ -579,7 +579,7 @@ Transformez des notes en un tableau par glisser-déposer. Les cartes sont des no
 
 ![Tableau Kanban](docs/images/dashboard_kanban.png)
 
-Les définitions de tableau peuvent être enregistrées comme fichiers YAML `.kanban` réutilisables sous `Dashboards/Kanbans/`. Sélectionnez un fichier existant ou utilisez **Créer un fichier .kanban à partir de ces paramètres**. Plusieurs dashboards peuvent partager la même définition ; l'ordre des cartes reste propre à chaque widget.
+Les définitions de tableau sont enregistrées comme fichiers YAML `.kanban` réutilisables sous `Dashboards/Kanbans/`. Les définitions inline existantes y sont migrées automatiquement. Plusieurs dashboards peuvent partager la même définition ; l'ordre des cartes reste propre à chaque widget.
 
 - **Titre & Nouveau** — l'en-tête affiche un titre de tableau optionnel (pratique lorsqu'un tableau de bord contient plusieurs tableaux) et un bouton **Nouveau** qui ouvre une boîte de dialogue pour saisir un titre et choisir une colonne, puis crée une note correspondant déjà aux filtres du tableau (dossier, tag, statut).
 - **Aperçu & ouverture** — cliquez sur une carte pour prévisualiser sa note dans une boîte de dialogue ; l'icône d'ouverture de la boîte de dialogue ouvre la note dans un nouvel onglet.
@@ -595,10 +595,15 @@ Configurez tout depuis les paramètres du widget :
 
 Secret Manager stocke chaque valeur dans un fichier `.encrypted` distinct du vault. Configurez d'abord un mot de passe dans **Paramètres → Chiffrement** ; les options de chiffrement du chat et des workflows n'ont pas besoin d'être activées.
 
+![Secret Manager](docs/images/secret_manager.png)
+
 - Créez et organisez les secrets dans un dossier racine facultatif (`Secrets` par défaut).
 - Recherchez par nom, description ou métadonnées publiques sans déchiffrer les valeurs secrètes.
 - Déverrouillez une valeur pour l'afficher, la modifier ou la copier ; le mot de passe est mis en cache pour la session.
+- Modifiez la valeur, la description et les métadonnées publiques depuis le détail ; le fichier reste chiffré.
 - Les valeurs en clair ne sont utilisées qu'en mémoire et ne sont jamais enregistrées sans chiffrement dans le vault.
+
+![Modifier Secret Manager](docs/images/secret_manager_edit.png)
 
 > [!WARNING]
 > Les noms, descriptions, métadonnées publiques et chemins du vault sont stockés hors du texte chiffré. Placez les mots de passe et jetons uniquement dans la valeur secrète.

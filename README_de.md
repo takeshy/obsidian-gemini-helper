@@ -579,7 +579,7 @@ Verwandeln Sie Notizen in ein Drag-and-Drop-Board. Karten sind Notizen, die eine
 
 ![Kanban-Board](docs/images/dashboard_kanban.png)
 
-Board-Definitionen können als wiederverwendbare `.kanban`-YAML-Dateien unter `Dashboards/Kanbans/` gespeichert werden. Wählen Sie eine vorhandene Datei oder erstellen Sie über **.kanban-Datei aus diesen Einstellungen erstellen** eine neue. Mehrere Dashboards können dieselbe Definition verwenden; die Kartenreihenfolge bleibt für jedes Dashboard-Widget lokal.
+Board-Definitionen werden als wiederverwendbare `.kanban`-YAML-Dateien unter `Dashboards/Kanbans/` gespeichert. Vorhandene Inline-Definitionen werden automatisch dorthin migriert. Mehrere Dashboards können dieselbe Definition verwenden; die Kartenreihenfolge bleibt für jedes Dashboard-Widget lokal.
 
 - **Titel & Neu** — die Kopfzeile zeigt einen optionalen Board-Titel (praktisch, wenn ein Dashboard mehrere Boards enthält) und eine Schaltfläche **Neu**, die ein Dialogfenster öffnet, in dem Sie einen Titel eingeben und eine Spalte auswählen, und dann eine Notiz erstellt, die bereits den Filtern des Boards entspricht (Ordner, Tag, Status).
 - **Vorschau & Öffnen** — klicken Sie auf eine Karte, um ihre Notiz in einem Dialogfenster anzuzeigen; das Öffnen-Symbol des Dialogs springt in einem neuen Tab zur Notiz.
@@ -595,10 +595,15 @@ Konfigurieren Sie alles über die Widget-Einstellungen:
 
 Der Secret Manager speichert jeden Wert als separate `.encrypted`-Vault-Datei. Richten Sie zuerst unter **Einstellungen → Verschlüsselung** ein Passwort ein; die Schalter für Chat- und Workflow-Protokolle müssen nicht aktiviert sein.
 
+![Secret Manager](docs/images/secret_manager.png)
+
 - Erstellen und organisieren Sie Geheimnisse in einem optionalen Stammordner (Standard: `Secrets`).
 - Suchen Sie nach Dateiname, Beschreibung oder öffentlichen Metadaten, ohne geheime Werte zu entschlüsseln.
 - Entsperren Sie Werte zum Anzeigen, Bearbeiten oder Kopieren; das Passwort wird für die aktuelle Sitzung zwischengespeichert.
+- Bearbeiten Sie Wert, Beschreibung und öffentliche Metadaten im Detaildialog; die Datei bleibt verschlüsselt.
 - Klartextwerte werden nur im Arbeitsspeicher verwendet und niemals unverschlüsselt im Vault gespeichert.
+
+![Secret Manager bearbeiten](docs/images/secret_manager_edit.png)
 
 > [!WARNING]
 > Namen, Beschreibungen, öffentliche Metadaten und Vault-Pfade liegen außerhalb des Chiffretexts. Speichern Sie Passwörter und Token ausschließlich im geheimen Wert.

@@ -1300,8 +1300,7 @@ export const ja: Record<string, string> = {
   "dashboard.kanbanDisplayLabel": "別名（空欄なら項目名を非表示）",
   "dashboard.kanbanDisplayMaxLength": "最大文字数",
   "dashboard.kanbanFile": "Kanban ファイル",
-  "dashboard.kanbanFileHint": "このボードを再利用可能な .kanban ファイルに保存します。以下の変更はそのファイルへ保存されます。",
-  "dashboard.kanbanCreateFile": "現在の設定から .kanban ファイルを作成",
+  "dashboard.kanbanFileHint": "ボードは Dashboards/Kanbans 配下に保存されます。以下の変更は選択中のファイルへ保存されます。",
   "dashboard.kanbanFileError": "Kanban ファイルが見つからないか、内容が不正です。",
   "dashboard.kanbanFileNameTitle": "ファイル名（既定）",
 };

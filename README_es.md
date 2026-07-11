@@ -579,7 +579,7 @@ Convierte notas en un tablero de arrastrar y soltar. Las tarjetas son notas que 
 
 ![Tablero Kanban](docs/images/dashboard_kanban.png)
 
-Las definiciones de tablero pueden guardarse como archivos YAML `.kanban` reutilizables en `Dashboards/Kanbans/`. Selecciona un archivo existente o usa **Crear archivo .kanban con esta configuración**. Varios paneles pueden compartir la misma definición; el orden de las tarjetas permanece local a cada widget del panel.
+Las definiciones de tablero se guardan como archivos YAML `.kanban` reutilizables en `Dashboards/Kanbans/`. Las definiciones inline existentes se migran allí automáticamente. Varios paneles pueden compartir la misma definición; el orden de las tarjetas permanece local a cada widget del panel.
 
 - **Título y Nueva** — el encabezado muestra un título de tablero opcional (útil cuando un panel contiene varios tableros) y un botón **Nueva** que abre un diálogo para introducir un título y elegir una columna, y luego crea una nota que ya coincide con los filtros del tablero (carpeta, etiqueta, estado).
 - **Previsualizar y abrir** — haz clic en una tarjeta para previsualizar su nota en un diálogo; el icono de apertura del diálogo salta a la nota en una pestaña nueva.
@@ -595,10 +595,15 @@ Configura todo desde los ajustes del widget:
 
 Secret Manager guarda cada valor como un archivo `.encrypted` independiente en el vault. Primero configura una contraseña en **Ajustes → Cifrado**; no es necesario activar los interruptores de cifrado del chat ni de los workflows.
 
+![Secret Manager](docs/images/secret_manager.png)
+
 - Crea y organiza secretos en una carpeta raíz opcional (`Secrets` por defecto).
 - Busca por nombre de archivo, descripción o metadatos públicos sin descifrar los valores secretos.
 - Desbloquea valores para verlos, editarlos o copiarlos; la contraseña se almacena en caché durante la sesión actual.
+- Edita el valor, la descripción y los metadatos públicos desde el diálogo de detalle; el archivo permanece cifrado.
 - Los valores en texto plano solo se usan en memoria y nunca se guardan sin cifrar en el vault.
+
+![Editar Secret Manager](docs/images/secret_manager_edit.png)
 
 > [!WARNING]
 > Los nombres, descripciones, metadatos públicos y rutas del vault se almacenan fuera del texto cifrado. Guarda contraseñas y tokens únicamente en el valor secreto.

@@ -548,7 +548,7 @@ Turn notes into a drag-and-drop board. Cards are notes that match a **tag** and/
 
 ![Kanban board](docs/images/dashboard_kanban.png)
 
-Board definitions can be stored as reusable `.kanban` YAML files under `Dashboards/Kanbans/`. Select an existing file in the widget settings, or configure an inline board and click **Create .kanban file from these settings**. Multiple dashboards can reference the same definition, and changes made in one widget's settings update the shared file. Card order remains local to each dashboard widget. The board header also provides a temporary tag filter.
+Board definitions are stored as reusable `.kanban` YAML files under `Dashboards/Kanbans/`. Existing inline widget definitions are migrated there automatically. Multiple dashboards can reference the same definition, and changes made in one widget's settings update the shared file. Card order remains local to each dashboard widget. The board header also provides a temporary tag filter.
 
 Optional display fields are selected from detected frontmatter properties and support custom or hidden labels. The computed fields `file.path`, `file.name`, `file.content`, `file.mtime`, and `file.ctime` appear only when explicitly selected; `file.content` can also be truncated to a configured character limit.
 
@@ -566,10 +566,15 @@ Configure everything from the widget settings:
 
 The Secret Manager widget stores each value as a separate `.encrypted` vault file using the plugin's existing encryption keys. Set up an encryption password in **Settings → Encryption** first; the chat-history and workflow-log encryption toggles do not need to be enabled.
 
+![Secret Manager](docs/images/secret_manager.png)
+
 - **Create and organize** — choose an optional root folder (the default is `Secrets`); nested folders are preserved in the widget.
 - **Search** — filter by file name, description, or custom public metadata without decrypting secret values.
 - **Unlock and copy** — enter the encryption password to view, edit, or copy a value. The password is cached for the current session.
+- **Edit secrets** — update the secret value, description, and public metadata from the detail modal; the file remains encrypted.
 - **Encrypted at rest** — plaintext values are used only in memory while unlocked and are never saved back to the vault unencrypted.
+
+![Secret Manager edit](docs/images/secret_manager_edit.png)
 
 > [!WARNING]
 > Secret names, descriptions, custom public metadata, and vault paths are stored outside the ciphertext so they can be listed and searched. Do not put passwords, tokens, or other sensitive values in those fields. Put sensitive data only in the secret value.

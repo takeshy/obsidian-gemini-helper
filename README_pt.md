@@ -580,7 +580,7 @@ Transforme notas em um quadro de arrastar e soltar. Os cartoes sao notas que cor
 
 ![Quadro Kanban](docs/images/dashboard_kanban.png)
 
-As definições do quadro podem ser salvas como arquivos YAML `.kanban` reutilizáveis em `Dashboards/Kanbans/`. Selecione um arquivo existente ou use **Criar arquivo .kanban com estas configurações**. Vários dashboards podem compartilhar a mesma definição; a ordem dos cartões permanece local a cada widget.
+As definições do quadro são salvas como arquivos YAML `.kanban` reutilizáveis em `Dashboards/Kanbans/`. Definições inline existentes são migradas para lá automaticamente. Vários dashboards podem compartilhar a mesma definição; a ordem dos cartões permanece local a cada widget.
 
 - **Titulo e Novo** — o cabecalho mostra um titulo de quadro opcional (util quando um painel contem varios quadros) e um botao **Novo** que abre uma caixa de dialogo para inserir um titulo e escolher uma coluna, e entao cria uma nota que ja corresponde aos filtros do quadro (pasta, tag, status).
 - **Previsualizar e abrir** — clique em um cartao para previsualizar sua nota em uma caixa de dialogo; o icone de abertura da caixa de dialogo salta para a nota em uma nova aba.
@@ -596,10 +596,15 @@ Configure tudo nas configuracoes do widget:
 
 O Secret Manager salva cada valor como um arquivo `.encrypted` separado no vault. Primeiro configure uma senha em **Configurações → Criptografia**; não é necessário ativar a criptografia dos logs de chat ou workflow.
 
+![Secret Manager](docs/images/secret_manager.png)
+
 - Crie e organize segredos em uma pasta raiz opcional (`Secrets` por padrão).
 - Pesquise por nome, descrição ou metadados públicos sem descriptografar os valores secretos.
 - Desbloqueie valores para visualizar, editar ou copiar; a senha fica em cache durante a sessão atual.
+- Edite o valor, a descrição e os metadados públicos no diálogo de detalhes; o arquivo permanece criptografado.
 - Valores em texto simples são usados apenas na memória e nunca são salvos sem criptografia no vault.
+
+![Editar Secret Manager](docs/images/secret_manager_edit.png)
 
 > [!WARNING]
 > Nomes, descrições, metadados públicos e caminhos do vault ficam fora do texto cifrado. Coloque senhas e tokens somente no valor secreto.

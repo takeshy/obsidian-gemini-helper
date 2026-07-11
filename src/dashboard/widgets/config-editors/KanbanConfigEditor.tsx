@@ -3,8 +3,7 @@ import { Plus, Trash2, ChevronUp, ChevronDown } from "lucide-react";
 import { TFile } from "obsidian";
 import { t } from "src/i18n";
 import type { ConfigEditorProps } from "../../types";
-import { ensureVaultFolder } from "../../dashboardFile";
-import { kanbanDefinitionFromConfig, KANBAN_FOLDER, parseKanbanFile, serializeKanbanFile } from "../../kanbanFile";
+import { kanbanDefinitionFromConfig, parseKanbanFile, serializeKanbanFile } from "../../kanbanFile";
 import { FilePicker } from "./FilePicker";
 
 interface KanbanColumn {
@@ -62,11 +61,10 @@ function fieldNamesFromVault(app: ConfigEditorProps["app"], folder: string, tag:
   return [...names].sort((a, b) => a.localeCompare(b));
 }
 
-export function KanbanConfigEditor({ config, onChange, app, widgetId }: ConfigEditorProps) {
+export function KanbanConfigEditor({ config, onChange, app }: ConfigEditorProps) {
   const rawCfg = (config ?? {}) as KanbanConfig;
   const [fileCfg, setFileCfg] = useState<KanbanConfig | null>(null);
   const [fileMissing, setFileMissing] = useState(false);
-  const [creatingFile, setCreatingFile] = useState(false);
   const writeQueue = useRef<Promise<void>>(Promise.resolve());
   const kanbanPaths = useMemo(() => app.vault.getFiles()
     .filter((file) => file.extension.toLocaleLowerCase() === "kanban")
@@ -120,19 +118,6 @@ export function KanbanConfigEditor({ config, onChange, app, widgetId }: ConfigEd
     } else onChange(next);
   };
 
-  const createFile = async () => {
-    setCreatingFile(true);
-    try {
-      await ensureVaultFolder(app.vault, KANBAN_FOLDER);
-      const base = (cfg.title || widgetId || "Board").replace(/[\\/:*?"<>|#[\]]/g, "-");
-      let path = `${KANBAN_FOLDER}/${base}.kanban`;
-      let index = 2;
-      while (app.vault.getAbstractFileByPath(path)) path = `${KANBAN_FOLDER}/${base} ${index++}.kanban`;
-      await app.vault.create(path, serializeKanbanFile(kanbanDefinitionFromConfig(cfg)));
-      onChange({ kanban: path, cardOrder: rawCfg.cardOrder });
-    } finally { setCreatingFile(false); }
-  };
-
   const updateField = (index: number, patch: Partial<KanbanDisplayField>) => {
     update({ displayFields: displayFields.map((f, i) => (i === index ? { ...f, ...patch } : f)) });
   };
@@ -181,7 +166,6 @@ export function KanbanConfigEditor({ config, onChange, app, widgetId }: ConfigEd
           onChange={(kanban) => onChange(kanban ? { kanban, cardOrder: rawCfg.cardOrder } : { cardOrder: rawCfg.cardOrder })}
           placeholder="Dashboards/Kanbans/Tasks.kanban"
         />
-        {!rawCfg.kanban && <button type="button" className="llm-hub-db-ai-btn" disabled={creatingFile} onClick={() => void createFile()}>{t("dashboard.kanbanCreateFile")}</button>}
         <p className="llm-hub-db-hint">{t("dashboard.kanbanFileHint")}</p>
         {fileMissing && <p className="llm-hub-db-secret-error">{t("dashboard.kanbanFileError")}</p>}
       </div>

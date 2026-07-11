@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
-import { ChevronDown, ChevronRight, Copy, Eye, FileKey2, Folder, KeyRound, Loader2, Pencil, Plus, Search, X } from "lucide-react";
+import { ChevronDown, ChevronRight, Copy, Eye, ExternalLink, FileKey2, Folder, KeyRound, Loader2, Pencil, Plus, Search, X } from "lucide-react";
 import { Notice, TFile } from "obsidian";
 import { t } from "src/i18n";
 import type { WidgetContext } from "../types";
@@ -9,9 +9,12 @@ import { ensureVaultFolder } from "../dashboardFile";
 import {
   decryptFileContent,
   decryptWithPrivateKey,
+  encryptData,
   encryptPlaintextFileContent,
   getEncryptedFileMetadata,
   isEncryptedFile,
+  unwrapEncryptedFile,
+  wrapEncryptedFile,
 } from "src/core/crypto";
 import { cryptoCache } from "src/core/cryptoCache";
 
@@ -34,7 +37,7 @@ const EMPTY_DRAFT: SecretDraft = { name: "", description: "", metadata: "", valu
 function parseMetadata(value: string): Record<string, string> {
   const result: Record<string, string> = {};
   for (const line of value.split("\n")) {
-    const separator = line.indexOf("=");
+    const separator = line.indexOf(":");
     if (separator < 1) continue;
     const key = line.slice(0, separator).trim();
     if (key && !["description", "__proto__", "prototype", "constructor"].includes(key)) {
@@ -45,7 +48,7 @@ function parseMetadata(value: string): Record<string, string> {
 }
 
 function formatMetadata(value: Record<string, string>): string {
-  return Object.entries(value).map(([key, item]) => `${key}=${item}`).join("\n");
+  return Object.entries(value).map(([key, item]) => `${key}: ${item}`).join("\n");
 }
 
 interface MetadataRow {
@@ -55,17 +58,17 @@ interface MetadataRow {
 
 function metadataRows(value: string): MetadataRow[] {
   const rows = value.split("\n").filter(Boolean).map((line) => {
-    const separator = line.indexOf("=");
+    const separator = line.indexOf(":");
     return separator < 0
-      ? { key: line, value: "" }
-      : { key: line.slice(0, separator), value: line.slice(separator + 1) };
+      ? { key: line.trim(), value: "" }
+      : { key: line.slice(0, separator).trim(), value: line.slice(separator + 1).trimStart() };
   });
   return rows.length > 0 ? rows : [{ key: "", value: "" }];
 }
 
 function MetadataEditor({ value, onChange }: { value: string; onChange: (value: string) => void }) {
   const rows = metadataRows(value);
-  const commit = (next: MetadataRow[]) => onChange(next.map((row) => `${row.key}=${row.value}`).join("\n"));
+  const commit = (next: MetadataRow[]) => onChange(next.map((row) => `${row.key}: ${row.value}`).join("\n"));
   const update = (index: number, patch: Partial<MetadataRow>) =>
     commit(rows.map((row, rowIndex) => rowIndex === index ? { ...row, ...patch } : row));
 
@@ -91,9 +94,9 @@ function MetadataEditor({ value, onChange }: { value: string; onChange: (value: 
               aria-label={t("dashboard.secretMetadataKey")}
               placeholder={t("dashboard.secretMetadataKey")}
               value={row.key}
-              onChange={(event) => update(index, { key: event.target.value.replace(/[=\n]/g, "") })}
+              onChange={(event) => update(index, { key: event.target.value.replace(/[:=\n]/g, "") })}
             />
-            <span>=</span>
+            <span>:</span>
             <input
               aria-label={t("dashboard.secretMetadataValue")}
               placeholder={t("dashboard.secretMetadataValue")}
@@ -133,6 +136,10 @@ function MetadataDisplay({ metadata }: { metadata: Record<string, string> }) {
 
 function displayName(file: TFile): string {
   return file.name.replace(/\.encrypted$/i, "");
+}
+
+function formatModifiedTime(file: TFile): string {
+  return new Date(file.stat.mtime).toLocaleString();
 }
 
 export default function SecretManagerWidget({ config, ctx }: { config: unknown; ctx?: WidgetContext }) {
@@ -275,7 +282,7 @@ export default function SecretManagerWidget({ config, ctx }: { config: unknown; 
         <strong>{entry.name}</strong>
         {entry.description && <span>{entry.description}</span>}
         {Object.keys(entry.publicMetadata).length > 0 && <small>{formatMetadata(entry.publicMetadata).replace(/\n/g, " · ")}</small>}
-        <small>{entry.file.path}</small>
+        <small>{formatModifiedTime(entry.file)}</small>
       </div>
       <button type="button" className="llm-hub-db-iconbtn" title={t("dashboard.secretCopy")} disabled={copying === entry.file.path} onClick={(event) => { event.stopPropagation(); void copyDecrypted(entry); }}>
         {copying === entry.file.path ? <Loader2 className="llm-hub-spin" size={14} /> : <Copy size={14} />}
@@ -411,9 +418,8 @@ function SecretViewDialog({
     value: "",
   });
   const encryption = ctx.plugin.settings.encryption;
-  const encryptionReady = Boolean(
-    encryption?.publicKey && encryption.encryptedPrivateKey && encryption.salt,
-  );
+  const canEncryptSecret = Boolean(encryption?.publicKey);
+  const openFile = () => void ctx.app.workspace.getLeaf(true).openFile(entry.file);
 
   useEffect(() => {
     let cancelled = false;
@@ -487,20 +493,19 @@ function SecretViewDialog({
 
   const save = async (event: FormEvent) => {
     event.preventDefault();
-    if (!encryption || !encryptionReady) {
+    const parsed = unwrapEncryptedFile(encryptedContent);
+    if (!encryption?.publicKey || !parsed) {
       setError(t("dashboard.secretEncryptionRequired"));
       return;
     }
     setBusy(true);
     setError("");
     try {
-      const content = await encryptPlaintextFileContent(
-        draft.value,
-        encryption.publicKey,
-        encryption.encryptedPrivateKey,
-        encryption.salt,
-        { description: draft.description, publicMetadata: parseMetadata(draft.metadata) },
-      );
+      const encryptedData = await encryptData(draft.value, encryption.publicKey);
+      const content = wrapEncryptedFile(encryptedData, parsed.key, parsed.salt, {
+        description: draft.description,
+        publicMetadata: parseMetadata(draft.metadata),
+      });
       await ctx.app.vault.modify(entry.file, content);
       await onSaved();
     } catch {
@@ -518,10 +523,13 @@ function SecretViewDialog({
             <span className="llm-hub-db-secret-dialog-icon"><FileKey2 size={18} /></span>
             <div>
               <strong>{entry.name}</strong>
-              <small>{entry.file.path}</small>
+              <small>{formatModifiedTime(entry.file)}</small>
             </div>
           </div>
-          <button type="button" className="llm-hub-db-iconbtn" onClick={onClose}><X size={16} /></button>
+          <div className="llm-hub-db-secret-dialog-title-actions">
+            <button type="button" className="llm-hub-db-iconbtn" onClick={openFile} title={t("dashboard.openFile")} aria-label={t("dashboard.openFile")}><ExternalLink size={16} /></button>
+            <button type="button" className="llm-hub-db-iconbtn" onClick={onClose} aria-label={t("dashboard.cancel")}><X size={16} /></button>
+          </div>
         </div>
         {loading ? <div className="llm-hub-db-widget-empty"><Loader2 className="llm-hub-spin" size={18} /></div> : editMode && secretValue !== null ? (
           <form className="llm-hub-db-secret-edit-form" onSubmit={(event) => void save(event)}>
@@ -531,7 +539,7 @@ function SecretViewDialog({
             {error && <p className="llm-hub-db-secret-error">{error}</p>}
             <div className="llm-hub-db-secret-actions">
               <button type="button" onClick={() => setEditMode(false)}>{t("common.cancel")}</button>
-              <button className="llm-hub-db-primary-btn" type="submit" disabled={busy || !encryptionReady}>{busy ? t("dashboard.secretSaving") : t("dashboard.save")}</button>
+              <button className="llm-hub-db-primary-btn" type="submit" disabled={busy || !canEncryptSecret}>{busy ? t("dashboard.secretSaving") : t("dashboard.save")}</button>
             </div>
           </form>
         ) : secretValue !== null ? (
@@ -550,7 +558,7 @@ function SecretViewDialog({
             {error && <p className="llm-hub-db-secret-error">{error}</p>}
             <div className="llm-hub-db-secret-actions">
               <button type="button" onClick={() => void copy()}><Copy size={13} /> {t("dashboard.secretCopy")}</button>
-              <button type="button" onClick={beginEdit} disabled={!encryptionReady}><Pencil size={13} /> {t("dashboard.secretEditValue")}</button>
+              <button type="button" onClick={beginEdit}><Pencil size={13} /> {t("dashboard.secretEditValue")}</button>
             </div>
           </div>
         ) : (

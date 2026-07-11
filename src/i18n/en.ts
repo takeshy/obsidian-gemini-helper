@@ -1300,8 +1300,7 @@ export const en = {
   "dashboard.kanbanDisplayLabel": "Alias (blank: hidden)",
   "dashboard.kanbanDisplayMaxLength": "Max chars",
   "dashboard.kanbanFile": "Kanban file",
-  "dashboard.kanbanFileHint": "Store this board in a reusable .kanban file. Changes below are saved to that file.",
-  "dashboard.kanbanCreateFile": "Create .kanban file from these settings",
+  "dashboard.kanbanFileHint": "Boards are stored in the dashboard kanban folder. Changes below are saved to the selected file.",
   "dashboard.kanbanFileError": "The kanban file is missing or invalid.",
   "dashboard.kanbanFileNameTitle": "File name (default)",
 };

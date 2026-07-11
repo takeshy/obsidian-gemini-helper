@@ -1,6 +1,11 @@
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Plus, Trash2, ChevronUp, ChevronDown } from "lucide-react";
+import { TFile } from "obsidian";
 import { t } from "src/i18n";
 import type { ConfigEditorProps } from "../../types";
+import { ensureVaultFolder } from "../../dashboardFile";
+import { kanbanDefinitionFromConfig, KANBAN_FOLDER, parseKanbanFile, serializeKanbanFile } from "../../kanbanFile";
+import { FilePicker } from "./FilePicker";
 
 interface KanbanColumn {
   value: string;
@@ -8,6 +13,7 @@ interface KanbanColumn {
 }
 
 interface KanbanConfig {
+  kanban?: string;
   title?: string;
   tag?: string;
   folder?: string;
@@ -15,22 +21,120 @@ interface KanbanConfig {
   titleProperty?: string;
   columns?: KanbanColumn[];
   showUnspecified?: boolean;
-  displayFields?: string[];
+  displayFields?: Array<string | KanbanDisplayField>;
   cardOrder?: string[];
 }
 
-export function KanbanConfigEditor({ config, onChange }: ConfigEditorProps) {
-  const cfg = (config ?? {}) as KanbanConfig;
+interface KanbanDisplayField {
+  field: string;
+  label?: string;
+  maxLength?: number;
+}
+
+function normalizeDisplayFields(value: KanbanConfig["displayFields"]): KanbanDisplayField[] {
+  if (!Array.isArray(value)) return [];
+  return value.map((item) => typeof item === "string" ? { field: item, label: "" } : item);
+}
+
+const FILE_FIELD_NAMES = ["file.path", "file.name", "file.content", "file.mtime", "file.ctime"];
+
+function fieldNamesFromVault(app: ConfigEditorProps["app"], folder: string, tag: string): string[] {
+  const normalizedFolder = folder.trim().replace(/[/\\]+$/, "").toLocaleLowerCase();
+  const folderPrefix = normalizedFolder ? `${normalizedFolder}/` : "";
+  const normalizedTag = tag.trim().replace(/^#/, "").toLocaleLowerCase();
+  const names = new Set<string>(FILE_FIELD_NAMES);
+  for (const file of app.vault.getMarkdownFiles()) {
+    if (folderPrefix && !file.path.toLocaleLowerCase().startsWith(folderPrefix)) continue;
+    const cache = app.metadataCache.getFileCache(file);
+    const frontmatter = cache?.frontmatter;
+    if (!frontmatter || typeof frontmatter !== "object") continue;
+    if (normalizedTag) {
+      const tags = [
+        ...(cache?.tags?.map((entry) => entry.tag) ?? []),
+        ...(Array.isArray(frontmatter.tags) ? frontmatter.tags : frontmatter.tags ? [frontmatter.tags] : []),
+      ].map((value) => String(value).replace(/^#/, "").toLocaleLowerCase());
+      if (!tags.includes(normalizedTag)) continue;
+    }
+    for (const name of Object.keys(frontmatter)) {
+      if (name !== "position") names.add(name);
+    }
+  }
+  return [...names].sort((a, b) => a.localeCompare(b));
+}
+
+export function KanbanConfigEditor({ config, onChange, app, widgetId }: ConfigEditorProps) {
+  const rawCfg = (config ?? {}) as KanbanConfig;
+  const [fileCfg, setFileCfg] = useState<KanbanConfig | null>(null);
+  const [fileMissing, setFileMissing] = useState(false);
+  const [creatingFile, setCreatingFile] = useState(false);
+  const writeQueue = useRef<Promise<void>>(Promise.resolve());
+  const kanbanPaths = useMemo(() => app.vault.getFiles()
+    .filter((file) => file.extension.toLocaleLowerCase() === "kanban")
+    .map((file) => file.path)
+    .sort(), [app, rawCfg.kanban]);
+  useEffect(() => {
+    const path = rawCfg.kanban?.trim();
+    if (!path) { setFileCfg(null); setFileMissing(false); return; }
+    let cancelled = false;
+    const load = async () => {
+      const file = app.vault.getAbstractFileByPath(path);
+      if (!(file instanceof TFile)) {
+        if (!cancelled) { setFileCfg(null); setFileMissing(true); }
+        return;
+      }
+      const parsed = parseKanbanFile(await app.vault.cachedRead(file)) as KanbanConfig | null;
+      if (!cancelled) { setFileCfg(parsed); setFileMissing(parsed === null); }
+    };
+    void load();
+    const refs = [
+      app.vault.on("modify", (file) => { if (file.path === path) void load(); }),
+      app.vault.on("delete", (file) => { if (file.path === path) void load(); }),
+      app.vault.on("rename", (file, oldPath) => { if (oldPath === path || file.path === path) void load(); }),
+    ];
+    return () => { cancelled = true; refs.forEach((ref) => app.vault.offref(ref)); };
+  }, [app, rawCfg.kanban]);
+  const cfg = fileCfg ?? rawCfg;
   const columns = Array.isArray(cfg.columns) ? cfg.columns : [];
-  const displayFields = Array.isArray(cfg.displayFields) ? cfg.displayFields : [];
+  const displayFields = normalizeDisplayFields(cfg.displayFields);
   const showUnspecified = cfg.showUnspecified !== false;
+  const fieldNames = useMemo(
+    () => fieldNamesFromVault(app, cfg.folder ?? "", cfg.tag ?? ""),
+    [app, cfg.folder, cfg.tag],
+  );
 
-  const update = (patch: Partial<KanbanConfig>) => onChange({ ...cfg, ...patch });
-
-  const updateField = (index: number, value: string) => {
-    update({ displayFields: displayFields.map((f, i) => (i === index ? value : f)) });
+  const update = (patch: Partial<KanbanConfig>) => {
+    const next = { ...cfg, ...patch };
+    if (rawCfg.kanban) {
+      setFileCfg(next);
+      const file = app.vault.getAbstractFileByPath(rawCfg.kanban);
+      if (file instanceof TFile) {
+        const content = serializeKanbanFile(kanbanDefinitionFromConfig(next));
+        writeQueue.current = writeQueue.current.then(() => app.vault.modify(file, content));
+      }
+    } else onChange(next);
   };
-  const addField = () => update({ displayFields: [...displayFields, ""] });
+
+  const createFile = async () => {
+    setCreatingFile(true);
+    try {
+      await ensureVaultFolder(app.vault, KANBAN_FOLDER);
+      const base = (cfg.title || widgetId || "Board").replace(/[\\/:*?"<>|#[\]]/g, "-");
+      let path = `${KANBAN_FOLDER}/${base}.kanban`;
+      let index = 2;
+      while (app.vault.getAbstractFileByPath(path)) path = `${KANBAN_FOLDER}/${base} ${index++}.kanban`;
+      await app.vault.create(path, serializeKanbanFile(kanbanDefinitionFromConfig(cfg)));
+      onChange({ kanban: path, cardOrder: rawCfg.cardOrder });
+    } finally { setCreatingFile(false); }
+  };
+
+  const updateField = (index: number, patch: Partial<KanbanDisplayField>) => {
+    update({ displayFields: displayFields.map((f, i) => (i === index ? { ...f, ...patch } : f)) });
+  };
+  const addField = () => {
+    const used = new Set(displayFields.map((item) => item.field));
+    const field = fieldNames.find((name) => !used.has(name));
+    if (field) update({ displayFields: [...displayFields, { field, label: "" }] });
+  };
   const removeField = (index: number) => update({ displayFields: displayFields.filter((_, i) => i !== index) });
   const moveField = (index: number, dir: -1 | 1) => {
     const target = index + dir;
@@ -63,6 +167,18 @@ export function KanbanConfigEditor({ config, onChange }: ConfigEditorProps) {
 
   return (
     <div className="llm-hub-db-fields">
+      <div className="llm-hub-db-field">
+        <label>{t("dashboard.kanbanFile")}</label>
+        <FilePicker
+          value={rawCfg.kanban ?? ""}
+          paths={kanbanPaths}
+          onChange={(kanban) => onChange(kanban ? { kanban, cardOrder: rawCfg.cardOrder } : { cardOrder: rawCfg.cardOrder })}
+          placeholder="Dashboards/Kanbans/Tasks.kanban"
+        />
+        {!rawCfg.kanban && <button type="button" className="llm-hub-db-ai-btn" disabled={creatingFile} onClick={() => void createFile()}>{t("dashboard.kanbanCreateFile")}</button>}
+        <p className="llm-hub-db-hint">{t("dashboard.kanbanFileHint")}</p>
+        {fileMissing && <p className="llm-hub-db-secret-error">{t("dashboard.kanbanFileError")}</p>}
+      </div>
       <div className="llm-hub-db-field">
         <label>{t("dashboard.kanbanBoardTitle")}</label>
         <input
@@ -98,23 +214,27 @@ export function KanbanConfigEditor({ config, onChange }: ConfigEditorProps) {
 
       <div className="llm-hub-db-field">
         <label>{t("dashboard.kanbanStatusProperty")}</label>
-        <input
-          type="text"
+        <select
           value={cfg.statusProperty ?? ""}
           onChange={(e) => update({ statusProperty: e.target.value })}
-          placeholder="status"
-        />
+        >
+          <option value="">status</option>
+          {cfg.statusProperty && cfg.statusProperty !== "status" && !fieldNames.includes(cfg.statusProperty) && <option value={cfg.statusProperty}>{cfg.statusProperty}</option>}
+          {fieldNames.filter((name) => !name.startsWith("file.")).map((name) => <option value={name} key={name}>{name}</option>)}
+        </select>
         <p className="llm-hub-db-hint">{t("dashboard.kanbanStatusPropertyHint")}</p>
       </div>
 
       <div className="llm-hub-db-field">
         <label>{t("dashboard.kanbanTitleProperty")}</label>
-        <input
-          type="text"
+        <select
           value={cfg.titleProperty ?? ""}
           onChange={(e) => update({ titleProperty: e.target.value })}
-          placeholder="title"
-        />
+        >
+          <option value="">{t("dashboard.kanbanFileNameTitle")}</option>
+          {cfg.titleProperty && !fieldNames.includes(cfg.titleProperty) && <option value={cfg.titleProperty}>{cfg.titleProperty}</option>}
+          {fieldNames.map((name) => <option value={name} key={name}>{name}</option>)}
+        </select>
         <p className="llm-hub-db-hint">{t("dashboard.kanbanTitlePropertyHint")}</p>
       </div>
 
@@ -155,12 +275,31 @@ export function KanbanConfigEditor({ config, onChange }: ConfigEditorProps) {
         <label>{t("dashboard.kanbanDisplayFields")}</label>
         {displayFields.map((field, i) => (
           <div className="llm-hub-db-kanban-config-col" key={i}>
+            <select
+              value={field.field}
+              onChange={(e) => updateField(i, {
+                field: e.target.value,
+                maxLength: e.target.value === "file.content" ? field.maxLength : undefined,
+              })}
+            >
+              {field.field && !fieldNames.includes(field.field) && <option value={field.field}>{field.field}</option>}
+              {fieldNames.map((name) => <option value={name} key={name}>{name}</option>)}
+            </select>
             <input
               type="text"
-              value={field}
-              onChange={(e) => updateField(i, e.target.value)}
-              placeholder={t("dashboard.kanbanDisplayFieldPlaceholder")}
+              value={field.label ?? ""}
+              onChange={(e) => updateField(i, { label: e.target.value })}
+              placeholder={t("dashboard.kanbanDisplayLabel")}
             />
+            {field.field === "file.content" && (
+              <input
+                type="number"
+                min={1}
+                value={field.maxLength ?? ""}
+                onChange={(e) => updateField(i, { maxLength: e.target.value ? Math.max(1, Number(e.target.value) || 1) : undefined })}
+                placeholder={t("dashboard.kanbanDisplayMaxLength")}
+              />
+            )}
             <button type="button" className="llm-hub-db-iconbtn" onClick={() => moveField(i, -1)} disabled={i === 0} title={t("dashboard.moveUp")}>
               <ChevronUp size={12} />
             </button>
@@ -172,7 +311,7 @@ export function KanbanConfigEditor({ config, onChange }: ConfigEditorProps) {
             </button>
           </div>
         ))}
-        <button type="button" className="llm-hub-db-ai-btn" onClick={addField}>
+        <button type="button" className="llm-hub-db-ai-btn" onClick={addField} disabled={fieldNames.every((name) => displayFields.some((field) => field.field === name))}>
           <Plus size={13} />
           {t("dashboard.kanbanAddDisplayField")}
         </button>

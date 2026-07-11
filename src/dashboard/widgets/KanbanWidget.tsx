@@ -3,20 +3,28 @@
 // processFrontMatter). Click a card to open the note. Works in view mode.
 
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
-import { Plus } from "lucide-react";
+import { Plus, X } from "lucide-react";
 import { Notice, TFile, type App } from "obsidian";
 import { t } from "src/i18n";
 import type { WidgetContext } from "../types";
 import { ensureVaultFolder } from "../dashboardFile";
 import { KanbanNewCardModal, type NewCardInput } from "./KanbanNewCardModal";
 import { KanbanCardModal } from "./KanbanCardModal";
+import { parseKanbanFile, type KanbanBoardDefinition } from "../kanbanFile";
 
 interface KanbanColumn {
   value: string;
   label: string;
 }
 
+interface KanbanDisplayField {
+  field: string;
+  label?: string;
+  maxLength?: number;
+}
+
 interface KanbanConfig {
+  kanban?: string;
   title?: string;
   tag?: string;
   folder?: string;
@@ -25,7 +33,7 @@ interface KanbanConfig {
   columns?: KanbanColumn[];
   showUnspecified?: boolean;
   /** Frontmatter property names shown on each card below the title. */
-  displayFields?: string[];
+  displayFields?: Array<string | KanbanDisplayField>;
   /** Stable card path order used for vertical ordering inside columns. */
   cardOrder?: string[];
 }
@@ -35,7 +43,8 @@ interface Card {
   title: string;
   status: string;
   path: string;
-  fields: { name: string; value: string }[];
+  fields: { field: string; label: string; value: string }[];
+  tags: string[];
 }
 
 type FrontmatterRecord = Record<string, unknown>;
@@ -60,6 +69,49 @@ function formatFieldValue(value: unknown): string {
     return value.map((v) => formatScalar(v)).filter((s) => s.length > 0).join(", ");
   }
   return formatScalar(value);
+}
+
+function contentWithoutFrontmatter(content: string): string {
+  return content.replace(/^---\r?\n[\s\S]*?\r?\n---(?:\r?\n|$)/, "").trim();
+}
+
+function cardFieldValue(
+  file: TFile,
+  frontmatter: FrontmatterRecord,
+  field: string,
+  fileContent?: string,
+): unknown {
+  if (field === "file.path") return file.path;
+  if (field === "file.name") return file.name;
+  if (field === "file.content") return fileContent;
+  if (field === "file.mtime") return new Date(file.stat.mtime).toLocaleString();
+  if (field === "file.ctime") return new Date(file.stat.ctime).toLocaleString();
+  return frontmatter[field];
+}
+
+function normalizeDisplayFields(value: KanbanConfig["displayFields"]): KanbanDisplayField[] {
+  if (!Array.isArray(value)) return [];
+  const seen = new Set<string>();
+  const fields: KanbanDisplayField[] = [];
+  for (const item of value) {
+    const field = (typeof item === "string" ? item : item?.field)?.trim() ?? "";
+    if (!field || seen.has(field)) continue;
+    const label = typeof item === "string" ? "" : item.label?.trim() ?? "";
+    const maxLength = typeof item === "string" ? undefined : item.maxLength;
+    fields.push({
+      field,
+      label,
+      maxLength: typeof maxLength === "number" && Number.isFinite(maxLength) && maxLength > 0
+        ? Math.floor(maxLength) : undefined,
+    });
+    seen.add(field);
+  }
+  return fields;
+}
+
+function truncate(value: string, maxLength?: number): string {
+  if (!maxLength || value.length <= maxLength) return value;
+  return `${value.slice(0, maxLength).trimEnd()}...`;
 }
 
 const DRAG_THRESHOLD = 4;
@@ -106,16 +158,35 @@ export default function KanbanWidget({
   ctx?: WidgetContext;
 }) {
   const cfg = (config ?? {}) as KanbanConfig;
-  const boardTitle = (cfg.title ?? "").trim();
-  const tagFilter = normTag(cfg.tag ?? "");
-  const folderFilter = (cfg.folder ?? "").trim();
-  const statusProp = (cfg.statusProperty ?? "status").trim() || "status";
-  const titleProp = (cfg.titleProperty ?? "").trim();
-  const displayFields = Array.isArray(cfg.displayFields)
-    ? cfg.displayFields.map((f) => (typeof f === "string" ? f.trim() : "")).filter((f) => f.length > 0)
-    : [];
-  const columns = Array.isArray(cfg.columns) ? cfg.columns.filter((c) => c && typeof c.value === "string") : [];
-  const showUnspecified = cfg.showUnspecified !== false;
+  const kanbanPath = (cfg.kanban ?? "").trim();
+  const [fileDefinition, setFileDefinition] = useState<KanbanBoardDefinition | null>(null);
+  const [fileError, setFileError] = useState(false);
+  useEffect(() => {
+    if (!ctx || !kanbanPath) { setFileDefinition(null); setFileError(false); return; }
+    const load = async () => {
+      const file = ctx.app.vault.getAbstractFileByPath(kanbanPath);
+      if (!(file instanceof TFile)) { setFileDefinition(null); setFileError(true); return; }
+      const parsed = parseKanbanFile(await ctx.app.vault.cachedRead(file));
+      setFileDefinition(parsed); setFileError(parsed === null);
+    };
+    void load();
+    const refs = [
+      ctx.app.vault.on("modify", (file) => { if (file.path === kanbanPath) void load(); }),
+      ctx.app.vault.on("delete", (file) => { if (file.path === kanbanPath) void load(); }),
+      ctx.app.vault.on("rename", (file, oldPath) => { if (oldPath === kanbanPath || file.path === kanbanPath) void load(); }),
+    ];
+    return () => refs.forEach((ref) => ctx.app.vault.offref(ref));
+  }, [ctx, kanbanPath]);
+  const def = (kanbanPath ? fileDefinition ?? {} : cfg) as KanbanConfig;
+  const boardTitle = (def.title ?? "").trim();
+  const tagFilter = normTag(def.tag ?? "");
+  const folderFilter = (def.folder ?? "").trim();
+  const statusProp = (def.statusProperty ?? "status").trim() || "status";
+  const titleProp = (def.titleProperty ?? "").trim();
+  const displayFields = normalizeDisplayFields(def.displayFields);
+  const needsFileContent = displayFields.some((field) => field.field === "file.content");
+  const columns = Array.isArray(def.columns) ? def.columns.filter((c) => c && typeof c.value === "string") : [];
+  const showUnspecified = def.showUnspecified !== false;
 
   const [, setTick] = useState(0);
   const rerender = useCallback(() => setTick((v) => v + 1), []);
@@ -166,12 +237,44 @@ export default function KanbanWidget({
     };
     }, [ctx, rerender, filterKey]);
 
+  const [fileContents, setFileContents] = useState<Record<string, string>>({});
+  useEffect(() => {
+    if (!ctx || !needsFileContent) {
+      setFileContents({});
+      return;
+    }
+    let cancelled = false;
+    const matchesBoard = (file: TFile) => {
+      if (file.extension.toLocaleLowerCase() !== "md") return false;
+      if (folderFilter) {
+        const folder = folderFilter.replace(/[/\\]+$/, "").toLocaleLowerCase();
+        if (!file.path.toLocaleLowerCase().startsWith(`${folder}/`)) return false;
+      }
+      return !tagFilter || getFileTags(ctx.app, file).some((tag) => normTag(tag) === tagFilter);
+    };
+    const load = async (file: TFile) => {
+      const content = contentWithoutFrontmatter(await ctx.app.vault.cachedRead(file));
+      if (!cancelled) setFileContents((previous) => ({ ...previous, [file.path]: content }));
+    };
+    const files = ctx.app.vault.getMarkdownFiles().filter(matchesBoard);
+    setFileContents({});
+    void Promise.all(files.map(load));
+    const ref = ctx.app.vault.on("modify", (file) => {
+      if (file instanceof TFile && matchesBoard(file)) void load(file);
+    });
+    return () => {
+      cancelled = true;
+      ctx.app.vault.offref(ref);
+    };
+  }, [ctx, needsFileContent, folderFilter, tagFilter]);
+
   const cards: Card[] = ctx
     ? (() => {
         const app = ctx.app;
         let files = app.vault.getMarkdownFiles();
         if (folderFilter) {
-          const prefix = folderFilter.toLowerCase();
+          const normalizedFolder = folderFilter.replace(/[/\\]+$/, "").toLowerCase();
+          const prefix = `${normalizedFolder}/`;
           files = files.filter((f) => f.path.toLowerCase().startsWith(prefix));
         }
         if (tagFilter) {
@@ -184,12 +287,16 @@ export default function KanbanWidget({
           const status = formatScalar(rawStatus);
           let title = file.basename;
           if (titleProp) {
-            title = formatScalar(fm[titleProp]) || title;
+            title = formatScalar(cardFieldValue(file, fm, titleProp, fileContents[file.path])) || title;
           }
+          const tags = getFileTags(app, file).map(normTag).filter(Boolean);
           const fields = displayFields
-            .map((name) => ({ name, value: formatFieldValue(fm?.[name]) }))
+            .map(({ field, label, maxLength }) => {
+              const raw = cardFieldValue(file, fm, field, fileContents[file.path]);
+              return { field, label: label ?? "", value: truncate(formatFieldValue(raw), maxLength) };
+            })
             .filter((f) => f.value.length > 0);
-          return { file, title, status, path: file.path, fields };
+          return { file, title, status, path: file.path, fields, tags };
         });
       })()
     : [];
@@ -214,9 +321,15 @@ export default function KanbanWidget({
   useEffect(() => {
     setCardOrder(Array.isArray(cfg.cardOrder) ? cfg.cardOrder.filter((id): id is string => typeof id === "string") : []);
   }, [cfg.cardOrder]);
+  const tagOptions = useMemo(() => Array.from(new Set(cards.flatMap((card) => card.tags))).sort(), [cards]);
+  const [selectedTag, setSelectedTag] = useState("");
+  useEffect(() => {
+    if (selectedTag && !tagOptions.includes(selectedTag)) setSelectedTag("");
+  }, [selectedTag, tagOptions]);
+  const visibleCards = selectedTag ? cards.filter((card) => card.tags.includes(selectedTag)) : cards;
   const orderedCards = useMemo(() => {
     const orderMap = new Map(cardOrder.map((path, index) => [path, index]));
-    return [...cards].sort((a, b) => {
+    return [...visibleCards].sort((a, b) => {
       const ai = orderMap.get(a.path);
       const bi = orderMap.get(b.path);
       if (ai == null && bi == null) return a.path.localeCompare(b.path);
@@ -224,7 +337,7 @@ export default function KanbanWidget({
       if (bi == null) return -1;
       return ai - bi;
     });
-  }, [cards, cardOrder]);
+  }, [visibleCards, cardOrder]);
   const grouped = new Map<string, Card[]>();
   for (const col of uniqueColumns) {
     grouped.set(col.value, []);
@@ -450,6 +563,7 @@ export default function KanbanWidget({
   if (!statusProp) {
     return <div className="llm-hub-db-widget-empty">{t("dashboard.kanbanNoStatusProperty")}</div>;
   }
+  if (fileError) return <div className="llm-hub-db-widget-empty">{t("dashboard.kanbanFileError")}</div>;
 
   const renderColumn = (value: string, label: string, cardsInCol: Card[]) => (
     <div
@@ -476,14 +590,11 @@ export default function KanbanWidget({
           >
             <div className="llm-hub-db-kanban-card-title">{card.title}</div>
             {card.fields.map((f) => (
-              <div className="llm-hub-db-kanban-card-field" key={f.name}>
-                <span className="llm-hub-db-kanban-card-field-name">{f.name}</span>
+              <div className="llm-hub-db-kanban-card-field" key={f.field}>
+                {f.label && <span className="llm-hub-db-kanban-card-field-name">{f.label}</span>}
                 <span className="llm-hub-db-kanban-card-field-value">{f.value}</span>
               </div>
             ))}
-            {card.path !== card.title && (
-              <div className="llm-hub-db-kanban-card-meta">{card.path}</div>
-            )}
           </div>
         ))}
         {cardsInCol.length === 0 && (
@@ -501,6 +612,15 @@ export default function KanbanWidget({
     <div className="llm-hub-db-kanban-wrap">
       <div className="llm-hub-db-kanban-header">
         {boardTitle && <span className="llm-hub-db-kanban-board-title">{boardTitle}</span>}
+        {tagOptions.length > 0 && (
+          <div className="llm-hub-db-kanban-tag-filter">
+            <select value={selectedTag} onChange={(event) => setSelectedTag(event.target.value)} title={t("dashboard.kanbanTagFilter")}>
+              <option value="">{t("dashboard.kanbanAllTags")}</option>
+              {tagOptions.map((tag) => <option value={tag} key={tag}>#{tag}</option>)}
+            </select>
+            {selectedTag && <button type="button" className="llm-hub-db-iconbtn" onClick={() => setSelectedTag("")} title={t("dashboard.kanbanClearTagFilter")}><X size={13} /></button>}
+          </div>
+        )}
         <button
           type="button"
           className="llm-hub-db-kanban-new"

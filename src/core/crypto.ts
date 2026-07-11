@@ -240,26 +240,113 @@ export function isEncryptedFile(content: string): boolean {
 }
 
 // Wrap encrypted data with YAML frontmatter format
-export function wrapEncryptedFile(data: string, key: string, salt: string): string {
-  return `---\nencrypted: true\nkey: ${key}\nsalt: ${salt}\n---\n${data}`;
+export interface EncryptedFileMetadata {
+  /** Searchable metadata. This is intentionally stored outside the ciphertext. */
+  description?: string;
+  publicMetadata?: Record<string, string>;
+}
+
+function normalizePublicMetadata(value: unknown): Record<string, string> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  const result: Record<string, string> = {};
+  for (const [key, entryValue] of Object.entries(value)) {
+    const normalizedKey = key.trim();
+    if (!normalizedKey || typeof entryValue !== "string" ||
+      ["description", "__proto__", "prototype", "constructor"].includes(normalizedKey)) continue;
+    result[normalizedKey] = entryValue;
+  }
+  return result;
+}
+
+function parseJsonStringField(frontmatter: string, field: string): string {
+  const match = frontmatter.match(new RegExp(`^${field}:\\s*(.*)$`, "m"));
+  if (!match) return "";
+  const raw = match[1].trim();
+  try {
+    const parsed: unknown = JSON.parse(raw);
+    return typeof parsed === "string" ? parsed : "";
+  } catch {
+    return raw;
+  }
+}
+
+function parsePublicMetadata(frontmatter: string): Record<string, string> {
+  const match = frontmatter.match(/^publicMetadata:\s*(.*)$/m);
+  if (!match) return {};
+  try {
+    return normalizePublicMetadata(JSON.parse(match[1].trim()));
+  } catch {
+    return {};
+  }
+}
+
+export function wrapEncryptedFile(
+  data: string,
+  key: string,
+  salt: string,
+  metadata: EncryptedFileMetadata = {},
+): string {
+  const description = metadata.description?.trim() ?? "";
+  const publicMetadata = normalizePublicMetadata(metadata.publicMetadata);
+  const metadataLines = [
+    description ? `description: ${JSON.stringify(description)}` : "",
+    Object.keys(publicMetadata).length > 0 ? `publicMetadata: ${JSON.stringify(publicMetadata)}` : "",
+  ].filter(Boolean);
+  const metadataBlock = metadataLines.length > 0 ? `${metadataLines.join("\n")}\n` : "";
+  return `---\nencrypted: true\n${metadataBlock}key: ${key}\nsalt: ${salt}\n---\n${data}`;
 }
 
 // Extract encryption info from YAML frontmatter format
-export function unwrapEncryptedFile(content: string): { data: string; key: string; salt: string } | null {
+export function unwrapEncryptedFile(content: string): {
+  data: string;
+  key: string;
+  salt: string;
+  description: string;
+  publicMetadata: Record<string, string>;
+} | null {
   // Normalize line endings to \n for reliable parsing
   const normalized = content.replace(/\r\n/g, "\n");
   const frontmatter = normalized.match(/^---\n([\s\S]*?)\n---\n([\s\S]*)$/);
   if (!frontmatter) return null;
 
-  const keyMatch = frontmatter[1].match(/key:\s*(.+)/);
-  const saltMatch = frontmatter[1].match(/salt:\s*(.+)/);
+  // Anchor these fields to their own frontmatter lines. Searchable descriptions
+  // may legitimately contain text such as "key: rotated" and must not be
+  // mistaken for the encrypted private key.
+  const keyMatch = frontmatter[1].match(/^key:\s*(.+)$/m);
+  const saltMatch = frontmatter[1].match(/^salt:\s*(.+)$/m);
   if (!keyMatch || !saltMatch) return null;
 
   return {
     key: keyMatch[1].trim(),
     salt: saltMatch[1].trim(),
-    data: frontmatter[2].trim()
+    data: frontmatter[2].trim(),
+    description: parseJsonStringField(frontmatter[1], "description"),
+    publicMetadata: parsePublicMetadata(frontmatter[1]),
   };
+}
+
+export function getEncryptedFileMetadata(content: string): EncryptedFileMetadata {
+  const parsed = unwrapEncryptedFile(content);
+  return parsed ? { description: parsed.description, publicMetadata: parsed.publicMetadata } : {};
+}
+
+/** Update searchable metadata without decrypting or modifying the ciphertext. */
+export function setEncryptedFileMetadata(content: string, metadata: EncryptedFileMetadata): string {
+  const normalized = content.replace(/\r\n/g, "\n");
+  const match = normalized.match(/^---\n([\s\S]*?)\n---\n([\s\S]*)$/);
+  if (!match || !/^encrypted:\s*true\s*$/m.test(match[1])) {
+    throw new Error("Invalid encrypted file format");
+  }
+  const lines = match[1].split("\n").filter((line) =>
+    !/^description\s*:/.test(line) && !/^publicMetadata\s*:/.test(line));
+  const additions: string[] = [];
+  const description = metadata.description?.trim() ?? "";
+  if (description) additions.push(`description: ${JSON.stringify(description)}`);
+  const publicMetadata = normalizePublicMetadata(metadata.publicMetadata);
+  if (Object.keys(publicMetadata).length > 0) additions.push(`publicMetadata: ${JSON.stringify(publicMetadata)}`);
+  const encryptedIndex = lines.findIndex((line) => /^encrypted\s*:/.test(line));
+  lines.splice(encryptedIndex + 1, 0, ...additions);
+  return `---\n${lines.join("\n")}\n---\n${match[2]}`;
 }
 
 // Encrypt file content and wrap with YAML frontmatter
@@ -267,14 +354,33 @@ export async function encryptFileContent(
   content: string,
   publicKey: string,
   encryptedPrivateKey: string,
-  salt: string
+  salt: string,
+  metadata: EncryptedFileMetadata = {},
 ): Promise<string> {
   // Prevent double-encryption
   if (isEncryptedFile(content)) {
     return content;
   }
+  return encryptPlaintextFileContent(content, publicKey, encryptedPrivateKey, salt, metadata);
+}
+
+/** Always encrypt plaintext, even when the value happens to resemble an encrypted file. */
+export async function encryptPlaintextFileContent(
+  content: string,
+  publicKey: string,
+  encryptedPrivateKey: string,
+  salt: string,
+  metadata: EncryptedFileMetadata = {},
+): Promise<string> {
   const encryptedData = await encryptData(content, publicKey);
-  return wrapEncryptedFile(encryptedData, encryptedPrivateKey, salt);
+  return wrapEncryptedFile(encryptedData, encryptedPrivateKey, salt, metadata);
+}
+
+/** Decrypt using a private key already unlocked for this session. */
+export async function decryptWithPrivateKey(fileContent: string, privateKey: string): Promise<string> {
+  const encrypted = unwrapEncryptedFile(fileContent);
+  if (!encrypted) throw new Error("Invalid encrypted file format");
+  return decryptData(encrypted.data, privateKey);
 }
 
 // Decrypt file content from YAML frontmatter format

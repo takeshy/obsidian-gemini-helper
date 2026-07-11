@@ -4,7 +4,8 @@ import type { GeminiHelperPlugin } from "src/plugin";
 import CryptEditor from "./components/CryptEditor";
 import {
   isEncryptedFile,
-  encryptFileContent,
+  encryptPlaintextFileContent,
+  type EncryptedFileMetadata,
 } from "src/core/crypto";
 import { formatError } from "src/utils/error";
 
@@ -88,8 +89,8 @@ export class CryptView extends TextFileView {
         plugin={this.plugin}
         filePath={filePath}
         encryptedContent={this.currentData}
-        onSave={async (newContent: string) => {
-          await this.saveEncrypted(newContent);
+        onSave={async (newContent: string, metadata: EncryptedFileMetadata) => {
+          await this.saveEncrypted(newContent, metadata);
         }}
         onDecrypt={async (decryptedContent: string) => {
           await this.saveDecrypted(decryptedContent);
@@ -104,7 +105,7 @@ export class CryptView extends TextFileView {
     await Promise.resolve();
   }
 
-  private async saveEncrypted(content: string): Promise<void> {
+  private async saveEncrypted(content: string, metadata: EncryptedFileMetadata): Promise<void> {
     if (!this.file) return;
 
     const encryption = this.plugin.settings.encryption;
@@ -114,11 +115,12 @@ export class CryptView extends TextFileView {
     }
 
     try {
-      const encryptedContent = await encryptFileContent(
+      const encryptedContent = await encryptPlaintextFileContent(
         content,
         encryption.publicKey,
         encryption.encryptedPrivateKey,
-        encryption.salt
+        encryption.salt,
+        metadata,
       );
       this.currentData = encryptedContent;
       this.requestSave();

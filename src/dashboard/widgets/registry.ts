@@ -3,7 +3,7 @@
 // registerWidget.
 
 import React from "react";
-import { Clock3, Database, Files, Globe, Kanban, NotebookTabs, Puzzle, Workflow } from "lucide-react";
+import { Clock3, Database, FileKey2, Files, Globe, Kanban, NotebookTabs, Puzzle, Workflow } from "lucide-react";
 import type { WidgetDef } from "../types";
 import BaseWidget from "./BaseWidget";
 import FileWidget from "./FileWidget";
@@ -19,6 +19,8 @@ import { WebConfigEditor } from "./config-editors/WebConfigEditor";
 import { WorkflowConfigEditor } from "./config-editors/WorkflowConfigEditor";
 import { KanbanConfigEditor } from "./config-editors/KanbanConfigEditor";
 import { TimelineConfigEditor } from "./config-editors/TimelineConfigEditor";
+import SecretManagerWidget from "./SecretManagerWidget";
+import { SecretManagerConfigEditor } from "./config-editors/SecretManagerConfigEditor";
 
 const registry = new Map<string, WidgetDef>();
 
@@ -125,6 +127,16 @@ export function registerCoreWidgets(): void {
     render: (config, ctx) => React.createElement(KanbanWidget, { config, ctx }),
     defaultSize: { w: 12, h: 6 },
     ConfigEditor: KanbanConfigEditor,
+  });
+
+  registerWidget({
+    type: "secret-manager",
+    label: "Secret Manager",
+    icon: React.createElement(FileKey2, { size: 16 }),
+    defaultConfig: { folder: "Secrets" },
+    render: (config, ctx) => React.createElement(SecretManagerWidget, { config, ctx }),
+    defaultSize: { w: 6, h: 5 },
+    ConfigEditor: SecretManagerConfigEditor,
   });
 
   registerWidget({

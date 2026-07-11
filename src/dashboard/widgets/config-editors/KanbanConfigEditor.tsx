@@ -109,7 +109,13 @@ export function KanbanConfigEditor({ config, onChange, app, widgetId }: ConfigEd
       const file = app.vault.getAbstractFileByPath(rawCfg.kanban);
       if (file instanceof TFile) {
         const content = serializeKanbanFile(kanbanDefinitionFromConfig(next));
-        writeQueue.current = writeQueue.current.then(() => app.vault.modify(file, content));
+        writeQueue.current = writeQueue.current
+          // A previous write failure must not permanently poison the queue.
+          .catch(() => undefined)
+          .then(() => app.vault.modify(file, content))
+          .catch((error: unknown) => {
+            console.error("Kanban: failed to save board file", error);
+          });
       }
     } else onChange(next);
   };

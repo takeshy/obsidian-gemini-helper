@@ -163,11 +163,19 @@ export default function KanbanWidget({
   const [fileError, setFileError] = useState(false);
   useEffect(() => {
     if (!ctx || !kanbanPath) { setFileDefinition(null); setFileError(false); return; }
+    let cancelled = false;
     const load = async () => {
       const file = ctx.app.vault.getAbstractFileByPath(kanbanPath);
-      if (!(file instanceof TFile)) { setFileDefinition(null); setFileError(true); return; }
-      const parsed = parseKanbanFile(await ctx.app.vault.cachedRead(file));
-      setFileDefinition(parsed); setFileError(parsed === null);
+      if (!(file instanceof TFile)) {
+        if (!cancelled) { setFileDefinition(null); setFileError(true); }
+        return;
+      }
+      try {
+        const parsed = parseKanbanFile(await ctx.app.vault.cachedRead(file));
+        if (!cancelled) { setFileDefinition(parsed); setFileError(parsed === null); }
+      } catch {
+        if (!cancelled) { setFileDefinition(null); setFileError(true); }
+      }
     };
     void load();
     const refs = [
@@ -175,7 +183,10 @@ export default function KanbanWidget({
       ctx.app.vault.on("delete", (file) => { if (file.path === kanbanPath) void load(); }),
       ctx.app.vault.on("rename", (file, oldPath) => { if (oldPath === kanbanPath || file.path === kanbanPath) void load(); }),
     ];
-    return () => refs.forEach((ref) => ctx.app.vault.offref(ref));
+    return () => {
+      cancelled = true;
+      refs.forEach((ref) => ctx.app.vault.offref(ref));
+    };
   }, [ctx, kanbanPath]);
   const def = (kanbanPath ? fileDefinition ?? {} : cfg) as KanbanConfig;
   const boardTitle = (def.title ?? "").trim();
@@ -184,7 +195,8 @@ export default function KanbanWidget({
   const statusProp = (def.statusProperty ?? "status").trim() || "status";
   const titleProp = (def.titleProperty ?? "").trim();
   const displayFields = normalizeDisplayFields(def.displayFields);
-  const needsFileContent = displayFields.some((field) => field.field === "file.content");
+  const needsFileContent = titleProp === "file.content" ||
+    displayFields.some((field) => field.field === "file.content");
   const columns = Array.isArray(def.columns) ? def.columns.filter((c) => c && typeof c.value === "string") : [];
   const showUnspecified = def.showUnspecified !== false;
 

@@ -202,11 +202,17 @@ export default function SecretManagerWidget({ config, ctx }: { config: unknown; 
       if (!isEncryptedFile(content)) throw new Error("Invalid encrypted file");
       const privateKey = cryptoCache.getPrivateKey();
       const availablePassword = submittedPassword ?? cryptoCache.getPassword();
-      const value = privateKey
-        ? await decryptWithPrivateKey(content, privateKey)
-        : availablePassword
-          ? await decryptFileContent(content, availablePassword)
-          : null;
+      // An explicitly submitted password must override a cached private key.
+      // The cached key may belong to a different key generation after rotation,
+      // while the encrypted file still contains everything needed to unlock it
+      // with the user's password.
+      const value = submittedPassword
+        ? await decryptFileContent(content, submittedPassword)
+        : privateKey
+          ? await decryptWithPrivateKey(content, privateKey)
+          : availablePassword
+            ? await decryptFileContent(content, availablePassword)
+            : null;
       if (value === null) {
         setPasswordEntry(entry);
         return;

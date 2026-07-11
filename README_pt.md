@@ -17,7 +17,7 @@ Assistente de IA **gratuito e open-source** para Obsidian com **Chat**, **Automa
 - **RAG** - Geração Aumentada por Recuperação para busca inteligente em seu vault
 - **Fontes de conhecimento OKF** - Adicione pacotes Open Knowledge Format como conhecimento de chat compacto
 - **Acesso da IA a pastas** - Limite quais pastas a IA pode ler automaticamente quando você não quiser acesso ao vault inteiro
-- **Criptografia** - Proteja com senha o histórico de chat e logs de execução de workflows
+- **Criptografia e Secret Manager** - Criptografe o histórico de chat e os logs de workflows e gerencie segredos criptografados no dashboard
 - **Histórico de Edições** - Rastreie e restaure alterações feitas pela IA com visualização de diff
 - **Painel** - Organize visualizações de Bases, arquivos, memos de leitura, páginas web, timelines, quadros Kanban e a saída de workflows em uma grade de widgets responsiva
 
@@ -549,7 +549,8 @@ Clique em **+ Adicionar widget** para escolher um tipo:
 | **File** | Um arquivo do vault renderizado inline: Markdown/texto/HTML, imagens, PDF, EPUB e outros arquivos com um botão para abrir | `path`, `showHeader` |
 | **Web Embed** | Uma pagina web em um iframe, com cabecalho opcional e botao para abrir no navegador | `url`, `showHeader` |
 | **Workflow** | A saida de um workflow, executado headless e renderizado como Markdown ou HTML | caminho `workflow`, `output`, `refreshInterval` |
-| **Kanban** | Notas como cartoes arrastaveis agrupados em colunas de status | filtro `tag`/`folder`, `statusProperty`, `columns`, `displayFields` |
+| **Kanban** | Notas como cartoes arrastaveis agrupados em colunas de status | arquivo `.kanban` opcional, filtro `tag`/`folder`, `statusProperty`, `columns`, `displayFields` |
+| **Secret Manager** | Cria, pesquisa, visualiza, edita e copia segredos criptografados do vault | pasta opcional com arquivos `.encrypted` |
 | **Timeline** | Publicacoes datadas com tags, imagens anexas, fixacao, filtros, posts longos recolhiveis e reescrita de rascunho com IA | `name`, `latestCount`, limites de recolhimento |
 | **MemoList** | Um índice dos arquivos de memo de leitura do widget File em `Dashboards/Memos/` | nenhuma |
 
@@ -579,6 +580,8 @@ Transforme notas em um quadro de arrastar e soltar. Os cartoes sao notas que cor
 
 ![Quadro Kanban](docs/images/dashboard_kanban.png)
 
+As definições do quadro podem ser salvas como arquivos YAML `.kanban` reutilizáveis em `Dashboards/Kanbans/`. Selecione um arquivo existente ou use **Criar arquivo .kanban com estas configurações**. Vários dashboards podem compartilhar a mesma definição; a ordem dos cartões permanece local a cada widget.
+
 - **Titulo e Novo** — o cabecalho mostra um titulo de quadro opcional (util quando um painel contem varios quadros) e um botao **Novo** que abre uma caixa de dialogo para inserir um titulo e escolher uma coluna, e entao cria uma nota que ja corresponde aos filtros do quadro (pasta, tag, status).
 - **Previsualizar e abrir** — clique em um cartao para previsualizar sua nota em uma caixa de dialogo; o icone de abertura da caixa de dialogo salta para a nota em uma nova aba.
 - **Colunas** — codificadas por cor e totalmente configuraveis; uma coluna opcional "Nao especificado" reune os cartoes cujo status nao corresponde a nenhuma coluna.
@@ -588,6 +591,18 @@ Transforme notas em um quadro de arrastar e soltar. Os cartoes sao notas que cor
 Configure tudo nas configuracoes do widget:
 
 ![Configuracoes do Kanban](docs/images/dashboard_kanban_edit.png)
+
+## Secret Manager
+
+O Secret Manager salva cada valor como um arquivo `.encrypted` separado no vault. Primeiro configure uma senha em **Configurações → Criptografia**; não é necessário ativar a criptografia dos logs de chat ou workflow.
+
+- Crie e organize segredos em uma pasta raiz opcional (`Secrets` por padrão).
+- Pesquise por nome, descrição ou metadados públicos sem descriptografar os valores secretos.
+- Desbloqueie valores para visualizar, editar ou copiar; a senha fica em cache durante a sessão atual.
+- Valores em texto simples são usados apenas na memória e nunca são salvos sem criptografia no vault.
+
+> [!WARNING]
+> Nomes, descrições, metadados públicos e caminhos do vault ficam fora do texto cifrado. Coloque senhas e tokens somente no valor secreto.
 
 > [!NOTE]
 > **Os widgets de workflow leem de um cache, nao ao vivo.** Um widget de workflow so e executado pelo botao **Executar**, pela execucao de teste do editor de configuracao, ou uma vez ao abrir quando seu resultado em cache e mais antigo que o **intervalo de atualizacao automatica** (minutos; `0` = somente manual). Os resultados sao armazenados como arquivos normais do vault em `Dashboards/Data/<encoded dashboard path>.json`, portanto sincronizam/versionam como outros arquivos e entram nos workflows de push/pull. O workflow deve armazenar sua saida Markdown/HTML em uma variavel (padrao `result`).
@@ -681,7 +696,7 @@ npm run build
 
 ### Criptografia
 
-Proteja seu histórico de chat e logs de execução de workflows com senha separadamente.
+Configure as chaves que protegem o histórico de chat, os logs de workflows, arquivos criptografados individuais e o Secret Manager.
 
 **Configuração:**
 
@@ -695,13 +710,14 @@ Proteja seu histórico de chat e logs de execução de workflows com senha separ
 
 ![Configurações de Criptografia](docs/images/setting_encryption.png)
 
-Cada configuração pode ser habilitada/desabilitada independentemente.
+Cada configuração de log pode ser ativada ou desativada separadamente. O editor de arquivos criptografados e o Secret Manager exigem apenas a configuração inicial de senha e chaves.
 
 **Recursos:**
 - **Controles separados** - Escolha quais logs criptografar (chat, workflow, ou ambos)
 - **Criptografia automática** - Novos arquivos são criptografados ao salvar com base nas configurações
 - **Cache de senha** - Digite a senha uma vez por sessão
 - **Visualizador dedicado** - Arquivos criptografados abrem em um editor seguro com pré-visualização
+- **Metadados pesquisáveis** - Adicione uma descrição e metadados chave/valor explicitamente públicos sem descriptografar o arquivo
 - **Opção de descriptografia** - Remova a criptografia de arquivos individuais quando necessário
 
 **Como funciona:**
@@ -743,8 +759,8 @@ def decrypt_file(filepath: str, password: str) -> str:
         raise ValueError("Formato de arquivo criptografado inválido")
 
     frontmatter, encrypted_data = match.groups()
-    key_match = re.search(r'key:\s*(.+)', frontmatter)
-    salt_match = re.search(r'salt:\s*(.+)', frontmatter)
+    key_match = re.search(r'^key:\s*(.+)$', frontmatter, re.MULTILINE)
+    salt_match = re.search(r'^salt:\s*(.+)$', frontmatter, re.MULTILINE)
     if not key_match or not salt_match:
         raise ValueError("Falta key ou salt no frontmatter")
 

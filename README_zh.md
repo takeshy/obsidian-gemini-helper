@@ -17,7 +17,7 @@
 - **RAG** - 检索增强生成，在您的仓库中进行智能搜索
 - **OKF 知识来源** - 将 Open Knowledge Format 捆绑包添加为简洁的聊天知识
 - **AI 文件夹访问** - 当您不希望 AI 访问整个仓库时，限制 AI 可自动读取的文件夹
-- **加密** - 使用密码保护聊天历史和工作流执行日志
+- **加密与 Secret Manager** - 加密聊天历史和工作流日志，并从仪表板管理加密密钥
 - **编辑历史** - 使用差异视图追踪和恢复 AI 所做的更改
 - **仪表板** - 在响应式小组件网格中排列 Bases 视图、文件、阅读批注、网页、时间线、看板和工作流输出
 
@@ -548,7 +548,8 @@ nodes:
 | **File** | 内联渲染仓库文件：Markdown/文本/HTML、图片、PDF、EPUB，以及带打开按钮的其他文件 | `path`, `showHeader` |
 | **Web Embed** | iframe 中的网页，可显示可选标题栏和浏览器打开按钮 | `url`, `showHeader` |
 | **Workflow** | 以无头方式运行工作流并将其输出渲染为 Markdown 或 HTML | `workflow` 路径、`output`、`refreshInterval` |
-| **Kanban** | 将笔记显示为可拖拽的卡片，按状态列分组 | `tag`/`folder` 筛选、`statusProperty`、`columns`、`displayFields` |
+| **Kanban** | 将笔记显示为可拖拽的卡片，按状态列分组 | 可选 `.kanban` 文件、`tag`/`folder` 筛选、`statusProperty`、`columns`、`displayFields` |
+| **Secret Manager** | 创建、搜索、查看、编辑和复制仓库中的加密密钥 | 包含 `.encrypted` 文件的可选文件夹 |
 | **Timeline** | 带标签、图片附件、置顶、筛选、长帖折叠和 AI 辅助草稿改写的日期短帖 | `name`, `latestCount`, 折叠限制 |
 | **MemoList** | `Dashboards/Memos/` 下 File 小组件阅读批注文件的索引 | 无 |
 
@@ -578,6 +579,8 @@ nodes:
 
 ![看板](docs/images/dashboard_kanban.png)
 
+看板定义可以保存为 `Dashboards/Kanbans/` 下可复用的 `.kanban` YAML 文件。选择现有文件，或使用**从当前设置创建 .kanban 文件**。多个仪表板可以共享同一定义；卡片顺序仍由每个仪表板小组件单独保存。
+
 - **标题与新建** — 顶部显示可选的看板标题（当一个仪表板包含多个看板时很有用）以及 **新建** 按钮。新建按钮会打开一个对话框，用于输入标题并选择一列，然后创建一条已匹配看板筛选条件（文件夹、标签、状态）的笔记。
 - **预览与打开** — 点击卡片可在对话框中预览其笔记；对话框中的打开图标会在新标签页中打开该笔记。
 - **列** — 带颜色区分且完全可配置；可选的“未指定”列会收集状态与任何列都不匹配的卡片。
@@ -587,6 +590,18 @@ nodes:
 通过小组件设置进行全部配置：
 
 ![看板设置](docs/images/dashboard_kanban_edit.png)
+
+## Secret Manager
+
+Secret Manager 将每个值保存为仓库中独立的 `.encrypted` 文件。请先在**设置 → 加密**中配置密码；无需启用聊天或工作流日志的加密开关。
+
+- 在可选的根文件夹（默认为 `Secrets`）中创建和整理密钥。
+- 无需解密秘密值，即可按文件名、说明或公开元数据搜索。
+- 解锁后可查看、编辑或复制值；密码会在当前会话中缓存。
+- 明文值仅在解锁时存在于内存中，绝不会以未加密形式保存到仓库。
+
+> [!WARNING]
+> 名称、说明、公开元数据和仓库路径存储在密文之外。密码和令牌只能填写在秘密值中。
 
 > [!NOTE]
 > **工作流小组件从缓存读取，而非实时运行。** 工作流小组件仅在以下情况运行：点击**运行**按钮、配置编辑器的测试运行，或在打开时缓存结果早于**自动刷新间隔**（分钟；`0` = 仅手动）时运行一次。结果作为普通仓库文件存储在 `Dashboards/Data/<encoded dashboard path>.json` 下，因此会像其他文件一样同步/版本管理，并包含在 push/pull 工作流中。工作流必须将其 Markdown/HTML 输出存储在一个变量中（默认 `result`）。
@@ -680,7 +695,7 @@ npm run build
 
 ### 加密
 
-分别使用密码保护您的聊天历史和工作流执行日志。
+设置用于保护聊天历史、工作流日志、单个加密文件和 Secret Manager 的加密密钥。
 
 **设置步骤：**
 
@@ -694,13 +709,14 @@ npm run build
 
 ![加密设置](docs/images/setting_encryption.png)
 
-每个设置可以独立启用/禁用。
+每个日志设置都可独立启用或禁用。加密文件编辑器和 Secret Manager 只需完成初始密码与密钥设置。
 
 **功能：**
 - **独立控制** - 选择要加密的日志（聊天、工作流或两者）
 - **自动加密** - 根据设置，新文件在保存时加密
 - **密码缓存** - 每个会话只需输入一次密码
 - **专用查看器** - 加密文件在带预览的安全编辑器中打开
+- **可搜索元数据** - 无需解密文件即可添加可选说明和明确公开的键值元数据
 - **解密选项** - 需要时可从单个文件移除加密
 
 **工作原理：**
@@ -742,8 +758,8 @@ def decrypt_file(filepath: str, password: str) -> str:
         raise ValueError("无效的加密文件格式")
 
     frontmatter, encrypted_data = match.groups()
-    key_match = re.search(r'key:\s*(.+)', frontmatter)
-    salt_match = re.search(r'salt:\s*(.+)', frontmatter)
+    key_match = re.search(r'^key:\s*(.+)$', frontmatter, re.MULTILINE)
+    salt_match = re.search(r'^salt:\s*(.+)$', frontmatter, re.MULTILINE)
     if not key_match or not salt_match:
         raise ValueError("frontmatter 中缺少 key 或 salt")
 

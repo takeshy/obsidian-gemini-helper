@@ -17,7 +17,7 @@
 - **RAG** - Retrieval-Augmented Generation für intelligente Suche in Ihrem Vault
 - **OKF-Wissensquellen** - Open-Knowledge-Format-Bundles als kompaktes Chat-Wissen hinzufügen
 - **KI-Ordnerzugriff** - Begrenzen Sie, welche Ordner die KI automatisch lesen darf, wenn kein Zugriff auf den gesamten Vault gewünscht ist
-- **Verschlüsselung** - Passwortschutz für Chat-Verlauf und Workflow-Ausführungsprotokolle
+- **Verschlüsselung & Secret Manager** - Chat-Verlauf und Workflow-Protokolle verschlüsseln und verschlüsselte Geheimnisse im Dashboard verwalten
 - **Bearbeitungsverlauf** - Verfolgen und Wiederherstellen von KI-Änderungen mit Diff-Ansicht
 - **Dashboard** - Ordnen Sie Bases-Ansichten, Dateien, Lesememos, Webseiten, Timelines, Kanban-Boards und Workflow-Ausgaben in einem responsiven Widget-Raster an
 
@@ -548,7 +548,8 @@ Klicken Sie auf **+ Widget hinzufügen**, um einen Typ auszuwählen:
 | **File** | Eine Vault-Datei, inline gerendert: Markdown/Text/HTML, Bilder, PDF, EPUB und andere Dateien mit einer Öffnen-Schaltfläche | `path`, `showHeader` |
 | **Web Embed** | Eine Webseite in einem iframe, mit optionaler Kopfzeile und Browser-Öffnen-Schaltfläche | `url`, `showHeader` |
 | **Workflow** | Die Ausgabe eines Workflows, headless ausgeführt und als Markdown oder HTML gerendert | `workflow`-Pfad, `output`, `refreshInterval` |
-| **Kanban** | Notizen als ziehbare Karten, gruppiert in Status-Spalten | `tag`/`folder`-Filter, `statusProperty`, `columns`, `displayFields` |
+| **Kanban** | Notizen als ziehbare Karten, gruppiert in Status-Spalten | optionale `.kanban`-Datei, `tag`/`folder`-Filter, `statusProperty`, `columns`, `displayFields` |
+| **Secret Manager** | Verschlüsselte Vault-Geheimnisse erstellen, suchen, anzeigen, bearbeiten und kopieren | optionaler Ordner mit `.encrypted`-Dateien |
 | **Timeline** | Datierte Kurzbeiträge mit Tags, Bildanhängen, Anheften, Filtern, einklappbaren langen Beiträgen und KI-gestützter Entwurfsbearbeitung | `name`, `latestCount`, Einklappgrenzen |
 | **MemoList** | Ein Index von Lesememo-Dateien des File-Widgets unter `Dashboards/Memos/` | keine |
 
@@ -578,6 +579,8 @@ Verwandeln Sie Notizen in ein Drag-and-Drop-Board. Karten sind Notizen, die eine
 
 ![Kanban-Board](docs/images/dashboard_kanban.png)
 
+Board-Definitionen können als wiederverwendbare `.kanban`-YAML-Dateien unter `Dashboards/Kanbans/` gespeichert werden. Wählen Sie eine vorhandene Datei oder erstellen Sie über **.kanban-Datei aus diesen Einstellungen erstellen** eine neue. Mehrere Dashboards können dieselbe Definition verwenden; die Kartenreihenfolge bleibt für jedes Dashboard-Widget lokal.
+
 - **Titel & Neu** — die Kopfzeile zeigt einen optionalen Board-Titel (praktisch, wenn ein Dashboard mehrere Boards enthält) und eine Schaltfläche **Neu**, die ein Dialogfenster öffnet, in dem Sie einen Titel eingeben und eine Spalte auswählen, und dann eine Notiz erstellt, die bereits den Filtern des Boards entspricht (Ordner, Tag, Status).
 - **Vorschau & Öffnen** — klicken Sie auf eine Karte, um ihre Notiz in einem Dialogfenster anzuzeigen; das Öffnen-Symbol des Dialogs springt in einem neuen Tab zur Notiz.
 - **Spalten** — farbcodiert und vollständig konfigurierbar; eine optionale Spalte „Nicht angegeben" sammelt Karten, deren Status zu keiner Spalte passt.
@@ -587,6 +590,18 @@ Verwandeln Sie Notizen in ein Drag-and-Drop-Board. Karten sind Notizen, die eine
 Konfigurieren Sie alles über die Widget-Einstellungen:
 
 ![Kanban-Einstellungen](docs/images/dashboard_kanban_edit.png)
+
+## Secret Manager
+
+Der Secret Manager speichert jeden Wert als separate `.encrypted`-Vault-Datei. Richten Sie zuerst unter **Einstellungen → Verschlüsselung** ein Passwort ein; die Schalter für Chat- und Workflow-Protokolle müssen nicht aktiviert sein.
+
+- Erstellen und organisieren Sie Geheimnisse in einem optionalen Stammordner (Standard: `Secrets`).
+- Suchen Sie nach Dateiname, Beschreibung oder öffentlichen Metadaten, ohne geheime Werte zu entschlüsseln.
+- Entsperren Sie Werte zum Anzeigen, Bearbeiten oder Kopieren; das Passwort wird für die aktuelle Sitzung zwischengespeichert.
+- Klartextwerte werden nur im Arbeitsspeicher verwendet und niemals unverschlüsselt im Vault gespeichert.
+
+> [!WARNING]
+> Namen, Beschreibungen, öffentliche Metadaten und Vault-Pfade liegen außerhalb des Chiffretexts. Speichern Sie Passwörter und Token ausschließlich im geheimen Wert.
 
 > [!NOTE]
 > **Workflow-Widgets lesen aus einem Cache, nicht live.** Ein Workflow-Widget wird nur über die Schaltfläche **Ausführen**, den Testlauf im Konfigurationseditor oder einmalig beim Öffnen ausgeführt, wenn sein zwischengespeichertes Ergebnis älter als das **Aktualisierungsintervall** ist (Minuten; `0` = nur manuell). Ergebnisse werden als normale Vault-Dateien unter `Dashboards/Data/<encoded dashboard path>.json` gespeichert, synchronisieren/versionieren wie andere Dateien und sind in Push/Pull-Workflows enthalten. Der Workflow muss seine Markdown-/HTML-Ausgabe in einer Variable speichern (Standard `result`).
@@ -680,7 +695,7 @@ npm run build
 
 ### Verschlüsselung
 
-Schützen Sie Ihren Chat-Verlauf und Workflow-Ausführungsprotokolle separat mit Passwort.
+Richten Sie die Schlüssel für Chat-Verlauf, Workflow-Protokolle, einzelne verschlüsselte Dateien und den Dashboard Secret Manager ein.
 
 **Einrichtung:**
 
@@ -694,13 +709,14 @@ Schützen Sie Ihren Chat-Verlauf und Workflow-Ausführungsprotokolle separat mit
 
 ![Verschlüsselungseinstellungen](docs/images/setting_encryption.png)
 
-Jede Einstellung kann unabhängig aktiviert/deaktiviert werden.
+Jede Protokolleinstellung kann unabhängig aktiviert/deaktiviert werden. Der Editor für verschlüsselte Dateien und der Secret Manager benötigen nur die anfängliche Passwort-/Schlüsseleinrichtung.
 
 **Funktionen:**
 - **Separate Steuerung** - Wählen Sie, welche Protokolle verschlüsselt werden sollen (Chat, Workflow oder beide)
 - **Automatische Verschlüsselung** - Neue Dateien werden beim Speichern basierend auf den Einstellungen verschlüsselt
 - **Passwort-Caching** - Passwort einmal pro Sitzung eingeben
 - **Dedizierter Viewer** - Verschlüsselte Dateien öffnen sich in einem sicheren Editor mit Vorschau
+- **Durchsuchbare Metadaten** - Optionale Beschreibung und ausdrücklich öffentliche Schlüssel/Wert-Metadaten ohne Entschlüsselung hinzufügen
 - **Entschlüsselungsoption** - Verschlüsselung bei Bedarf von einzelnen Dateien entfernen
 
 **Funktionsweise:**
@@ -742,8 +758,8 @@ def decrypt_file(filepath: str, password: str) -> str:
         raise ValueError("Ungültiges verschlüsseltes Dateiformat")
 
     frontmatter, encrypted_data = match.groups()
-    key_match = re.search(r'key:\s*(.+)', frontmatter)
-    salt_match = re.search(r'salt:\s*(.+)', frontmatter)
+    key_match = re.search(r'^key:\s*(.+)$', frontmatter, re.MULTILINE)
+    salt_match = re.search(r'^salt:\s*(.+)$', frontmatter, re.MULTILINE)
     if not key_match or not salt_match:
         raise ValueError("Key oder Salt fehlt im Frontmatter")
 

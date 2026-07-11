@@ -17,7 +17,7 @@ Assistant IA **gratuit et open-source** pour Obsidian avec **Chat**, **Automatis
 - **RAG** - Generation Augmentee par Recuperation pour une recherche intelligente dans votre coffre
 - **Sources de connaissances OKF** - Ajoutez des bundles Open Knowledge Format comme connaissance de chat compacte
 - **Acces aux dossiers par l'IA** - Limitez les dossiers que l'IA peut lire automatiquement quand vous ne voulez pas d'acces a tout le coffre
-- **Chiffrement** - Protection par mot de passe de l'historique de chat et des journaux d'execution des workflows
+- **Chiffrement et Secret Manager** - Chiffrez l'historique de chat et les journaux de workflows, et gérez des secrets chiffrés depuis un dashboard
 - **Historique d'Edition** - Suivez et restaurez les modifications faites par l'IA avec vue des differences
 - **Tableau de bord** - Organisez des vues Bases, des fichiers, des memos de lecture, des pages web, des timelines, des tableaux Kanban et la sortie de workflows dans une grille de widgets responsive
 
@@ -548,7 +548,8 @@ Cliquez sur **+ Ajouter un widget** pour choisir un type :
 | **File** | Un fichier du coffre rendu en ligne : Markdown/texte/HTML, images, PDF, EPUB, et autres fichiers avec un bouton d'ouverture | `path`, `showHeader` |
 | **Web Embed** | Une page web dans un iframe, avec un en-tête optionnel et un bouton d’ouverture dans le navigateur | `url`, `showHeader` |
 | **Workflow** | La sortie d'un workflow, exécuté en headless et rendu en Markdown ou HTML | chemin `workflow`, `output`, `refreshInterval` |
-| **Kanban** | Des notes sous forme de cartes déplaçables, groupées en colonnes par statut | filtre `tag`/`folder`, `statusProperty`, `columns`, `displayFields` |
+| **Kanban** | Des notes sous forme de cartes déplaçables, groupées en colonnes par statut | fichier `.kanban` facultatif, filtre `tag`/`folder`, `statusProperty`, `columns`, `displayFields` |
+| **Secret Manager** | Créer, rechercher, afficher, modifier et copier des secrets chiffrés du vault | dossier facultatif contenant des fichiers `.encrypted` |
 | **Timeline** | Publications datées avec tags, images jointes, épinglage, filtres, longues publications repliables et réécriture de brouillon avec l'IA | `name`, `latestCount`, limites de repli |
 | **MemoList** | Un index des fichiers de mémos de lecture du widget File sous `Dashboards/Memos/` | aucune |
 
@@ -578,6 +579,8 @@ Transformez des notes en un tableau par glisser-déposer. Les cartes sont des no
 
 ![Tableau Kanban](docs/images/dashboard_kanban.png)
 
+Les définitions de tableau peuvent être enregistrées comme fichiers YAML `.kanban` réutilisables sous `Dashboards/Kanbans/`. Sélectionnez un fichier existant ou utilisez **Créer un fichier .kanban à partir de ces paramètres**. Plusieurs dashboards peuvent partager la même définition ; l'ordre des cartes reste propre à chaque widget.
+
 - **Titre & Nouveau** — l'en-tête affiche un titre de tableau optionnel (pratique lorsqu'un tableau de bord contient plusieurs tableaux) et un bouton **Nouveau** qui ouvre une boîte de dialogue pour saisir un titre et choisir une colonne, puis crée une note correspondant déjà aux filtres du tableau (dossier, tag, statut).
 - **Aperçu & ouverture** — cliquez sur une carte pour prévisualiser sa note dans une boîte de dialogue ; l'icône d'ouverture de la boîte de dialogue ouvre la note dans un nouvel onglet.
 - **Colonnes** — codées par couleur et entièrement configurables ; une colonne optionnelle « Non spécifié » regroupe les cartes dont le statut ne correspond à aucune colonne.
@@ -587,6 +590,18 @@ Transformez des notes en un tableau par glisser-déposer. Les cartes sont des no
 Configurez tout depuis les paramètres du widget :
 
 ![Paramètres Kanban](docs/images/dashboard_kanban_edit.png)
+
+## Secret Manager
+
+Secret Manager stocke chaque valeur dans un fichier `.encrypted` distinct du vault. Configurez d'abord un mot de passe dans **Paramètres → Chiffrement** ; les options de chiffrement du chat et des workflows n'ont pas besoin d'être activées.
+
+- Créez et organisez les secrets dans un dossier racine facultatif (`Secrets` par défaut).
+- Recherchez par nom, description ou métadonnées publiques sans déchiffrer les valeurs secrètes.
+- Déverrouillez une valeur pour l'afficher, la modifier ou la copier ; le mot de passe est mis en cache pour la session.
+- Les valeurs en clair ne sont utilisées qu'en mémoire et ne sont jamais enregistrées sans chiffrement dans le vault.
+
+> [!WARNING]
+> Les noms, descriptions, métadonnées publiques et chemins du vault sont stockés hors du texte chiffré. Placez les mots de passe et jetons uniquement dans la valeur secrète.
 
 > [!NOTE]
 > **Les widgets de workflow lisent depuis un cache, pas en direct.** Un widget de workflow ne s'exécute que via le bouton **Exécuter**, l'exécution de test de l'éditeur de configuration, ou une fois à l'ouverture lorsque son résultat en cache est plus ancien que l'**intervalle d'actualisation automatique** (minutes ; `0` = manuel uniquement). Les résultats sont stockés comme fichiers normaux du coffre sous `Dashboards/Data/<encoded dashboard path>.json`, ils se synchronisent/versionnent comme les autres fichiers et sont inclus dans les workflows push/pull. Le workflow doit stocker sa sortie Markdown/HTML dans une variable (par défaut `result`).
@@ -680,7 +695,7 @@ npm run build
 
 ### Chiffrement
 
-Protegez votre historique de chat et vos journaux d'execution de workflows par mot de passe separement.
+Configurez les clés protégeant l'historique de chat, les journaux de workflows, les fichiers chiffrés individuels et Secret Manager.
 
 **Configuration :**
 
@@ -694,13 +709,14 @@ Protegez votre historique de chat et vos journaux d'execution de workflows par m
 
 ![Parametres de chiffrement](docs/images/setting_encryption.png)
 
-Chaque parametre peut etre active/desactive independamment.
+Chaque paramètre de journal peut être activé ou désactivé indépendamment. L'éditeur de fichiers chiffrés et Secret Manager nécessitent uniquement la configuration initiale du mot de passe et des clés.
 
 **Fonctionnalites :**
 - **Controles separes** - Choisissez quels journaux chiffrer (chat, workflow, ou les deux)
 - **Chiffrement automatique** - Les nouveaux fichiers sont chiffres lors de la sauvegarde selon les parametres
 - **Mise en cache du mot de passe** - Entrez le mot de passe une fois par session
 - **Visualiseur dedie** - Les fichiers chiffres s'ouvrent dans un editeur securise avec apercu
+- **Métadonnées recherchables** - Ajoutez une description et des métadonnées clé/valeur explicitement publiques sans déchiffrer le fichier
 - **Option de dechiffrement** - Supprimez le chiffrement de fichiers individuels si necessaire
 
 **Fonctionnement :**
@@ -742,8 +758,8 @@ def decrypt_file(filepath: str, password: str) -> str:
         raise ValueError("Format de fichier chiffre invalide")
 
     frontmatter, encrypted_data = match.groups()
-    key_match = re.search(r'key:\s*(.+)', frontmatter)
-    salt_match = re.search(r'salt:\s*(.+)', frontmatter)
+    key_match = re.search(r'^key:\s*(.+)$', frontmatter, re.MULTILINE)
+    salt_match = re.search(r'^salt:\s*(.+)$', frontmatter, re.MULTILINE)
     if not key_match or not salt_match:
         raise ValueError("Cle ou salt manquant dans frontmatter")
 

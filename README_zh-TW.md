@@ -15,7 +15,7 @@
 - **MCP 支援** - 在工作流中使用 MCP 工具，並在 Obsidian 內呈現 MCP UI 資源
 - **RAG** - 檢索增強生成，在您的 Vault 中進行智慧搜尋
 - **AI 資料夾存取** - 當您不希望 AI 存取整個 Vault 時，限制 AI 可自動讀取的資料夾
-- **加密** - 使用密碼保護聊天記錄和工作流執行紀錄
+- **加密與 Secret Manager** - 加密聊天記錄和工作流紀錄，並從儀表板管理加密祕密
 - **編輯歷史** - 使用差異檢視追蹤和還原 AI 所做的變更
 - **儀表板** - 將 Bases 檢視、筆記、網頁和工作流輸出排列在響應式小工具網格中
 
@@ -525,7 +525,8 @@ nodes:
 | **Markdown** | 內嵌渲染現有筆記 | 筆記的 `path` |
 | **Web Embed** | iframe 中的網頁，可顯示選用標頭和瀏覽器開啟按鈕 | `url`, `showHeader` |
 | **Workflow** | 以無頭方式執行工作流，並將輸出渲染為 Markdown 或 HTML | `workflow` 路徑、`output`、`refreshInterval` |
-| **Kanban** | 將筆記顯示為可拖曳的卡片，按狀態欄分組 | `tag`/`folder` 篩選、`statusProperty`、`columns`、`displayFields` |
+| **Kanban** | 將筆記顯示為可拖曳的卡片，按狀態欄分組 | 選用 `.kanban` 檔案、`tag`/`folder` 篩選、`statusProperty`、`columns`、`displayFields` |
+| **Secret Manager** | 建立、搜尋、檢視、編輯及複製 Vault 中的加密祕密 | 包含 `.encrypted` 檔案的選用資料夾 |
 | **Timeline** | 帶標籤、圖片附件、釘選、篩選、長文折疊和 AI 輔助草稿改寫的日期短文 | `name`, `latestCount`, 折疊限制 |
 
 **Base** 和 **Workflow** 小工具包含 **用 AI 建立** 按鈕，可在不離開設定面板的情況下建立底層 `.base` 檔案或工作流。Base 小工具也可以建立/選擇 `.base` 檔案，並直接從儀表板設定面板編輯所選檢視的顯示類型、順序、排序、限制、篩選、卡片圖片、清單縮排和原始 YAML。對於 AI 編輯，套用前會以 diff 顯示建議的 `.base` 變更。
@@ -546,6 +547,8 @@ nodes:
 
 ![看板](docs/images/dashboard_kanban.png)
 
+看板定義可儲存為 `Dashboards/Kanbans/` 下可重複使用的 `.kanban` YAML 檔案。選取現有檔案，或使用**從目前設定建立 .kanban 檔案**。多個儀表板可共用同一定義；卡片順序仍由每個儀表板小工具個別保存。
+
 - **標題與新增** — 頂部顯示可選的看板標題（當一個儀表板包含多個看板時很有用）以及 **新增** 按鈕。新增按鈕會開啟一個對話框，用於輸入標題並選擇一欄，然後建立一條已符合看板篩選條件（資料夾、標籤、狀態）的筆記。
 - **預覽與開啟** — 按一下卡片可在對話框中預覽其筆記；對話框中的開啟圖示會在新分頁中開啟該筆記。
 - **欄** — 以顏色區分且完全可設定；可選的「未指定」欄會收集狀態與任何欄都不符合的卡片。
@@ -555,6 +558,18 @@ nodes:
 在編輯模式下透過小工具設定進行全部設定：
 
 ![看板設定](docs/images/dashboard_kanban_edit.png)
+
+## Secret Manager
+
+Secret Manager 將每個值儲存為 Vault 中獨立的 `.encrypted` 檔案。請先在**設定 → 加密**中設定密碼；不需要啟用聊天或工作流紀錄的加密開關。
+
+- 在選用的根資料夾（預設為 `Secrets`）中建立和整理祕密。
+- 無需解密祕密值，即可依檔名、說明或公開中繼資料搜尋。
+- 解鎖後可檢視、編輯或複製值；密碼會在目前工作階段中快取。
+- 明文值只在解鎖時存在於記憶體中，絕不會以未加密形式儲存到 Vault。
+
+> [!WARNING]
+> 名稱、說明、公開中繼資料和 Vault 路徑儲存在密文之外。密碼和權杖只能填入祕密值。
 
 > [!NOTE]
 > **工作流小工具讀取快取，而不是即時執行。** 工作流小工具只會在按下 **執行** 按鈕、設定編輯器的測試執行，或開啟時快取結果早於**自動重新整理間隔**（分鐘；`0` = 僅手動）時執行一次。結果會作為一般 Vault 檔案儲存在 `Dashboards/Data/<encoded dashboard path>.json` 下，因此會像其他檔案一樣同步/版本管理，並包含在 push/pull 工作流中。工作流必須將 Markdown/HTML 輸出儲存在變數中（預設 `result`）。
@@ -648,7 +663,7 @@ npm run build
 
 ### 加密
 
-分別使用密碼保護您的聊天記錄和工作流執行紀錄。
+設定用於保護聊天記錄、工作流紀錄、個別加密檔案和 Secret Manager 的加密金鑰。
 
 **設定步驟：**
 
@@ -662,13 +677,14 @@ npm run build
 
 ![加密設定](docs/images/setting_encryption.png)
 
-每個設定可以獨立啟用 / 停用。
+每個紀錄設定都可獨立啟用或停用。加密檔案編輯器和 Secret Manager 只需完成初始密碼與金鑰設定。
 
 **功能：**
 - **獨立控制** - 選擇要加密的紀錄（聊天、工作流或兩者）
 - **自動加密** - 根據設定，新檔案在儲存時加密
 - **密碼快取** - 每個工作階段只需輸入一次密碼
 - **專用檢視器** - 加密檔案在附預覽的安全編輯器中開啟
+- **可搜尋的中繼資料** - 無需解密檔案即可新增選用說明和明確公開的鍵值中繼資料
 - **解密選項** - 需要時可從個別檔案移除加密
 
 **運作原理：**
@@ -710,8 +726,8 @@ def decrypt_file(filepath: str, password: str) -> str:
         raise ValueError("無效的加密檔案格式")
 
     frontmatter, encrypted_data = match.groups()
-    key_match = re.search(r'key:\s*(.+)', frontmatter)
-    salt_match = re.search(r'salt:\s*(.+)', frontmatter)
+    key_match = re.search(r'^key:\s*(.+)$', frontmatter, re.MULTILINE)
+    salt_match = re.search(r'^salt:\s*(.+)$', frontmatter, re.MULTILINE)
     if not key_match or not salt_match:
         raise ValueError("frontmatter 中缺少 key 或 salt")
 

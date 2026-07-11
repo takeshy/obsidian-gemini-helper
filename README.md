@@ -17,7 +17,7 @@
 - **RAG** - Retrieval-Augmented Generation for intelligent search across your vault
 - **OKF Knowledge Sources** - Add Open Knowledge Format bundles as compact chat knowledge
 - **AI Folder Access** - Limit which folders AI can read automatically when you do not want whole-vault access
-- **Encryption** - Password-protect chat history and workflow execution logs
+- **Encryption & Secret Manager** - Encrypt chat history and workflow logs, and manage encrypted secrets from a dashboard
 - **Edit History** - Track and restore AI-made changes with diff view
 - **Dashboard** - Arrange Bases views, files, reading memos, web pages, timelines, kanban boards, and workflow output in a responsive widget grid
 
@@ -491,7 +491,7 @@ Workflows can be automatically triggered by Obsidian events:
 
 # Dashboard
 
-Build a personal **home / overview page** from a responsive grid of widgets. A dashboard is a `.dashboard` file that arranges **Bases views**, **files**, **reading memos**, **web pages**, **timelines**, **workflow output**, and **kanban boards** in a drag-and-resize grid — open it like any note to see a live, editable board.
+Build a personal **home / overview page** from a responsive grid of widgets. A dashboard is a `.dashboard` file that arranges **Bases views**, **files**, **reading memos**, **web pages**, **timelines**, **workflow output**, **kanban boards**, and **encrypted secrets** in a drag-and-resize grid — open it like any note to see a live, editable board.
 
 ![Dashboard](docs/images/dashboard.png)
 
@@ -515,8 +515,8 @@ Click **+ Add widget** to choose a type:
 | **File** | A vault file rendered inline: Markdown/text/HTML, images, PDF, EPUB, and other files with an open button | `path`, `showHeader` |
 | **Web Embed** | A web page in an iframe, with an optional header and browser-open button | `url`, `showHeader` |
 | **Workflow** | The output of a workflow, run headlessly and rendered as Markdown or HTML | `workflow` path, `output`, `refreshInterval` |
-| **Kanban** | Notes as draggable cards grouped into status columns | `tag`/`folder` filter, `statusProperty`, `columns`, `displayFields` |
-| **Secret Manager** | Create, search, decrypt, and copy encrypted vault secrets | encrypted files under an optional folder |
+| **Kanban** | Notes as draggable cards grouped into status columns | optional `.kanban` file, `tag`/`folder` filter, `statusProperty`, `columns`, `displayFields` |
+| **Secret Manager** | Create, search, view, edit, and copy encrypted vault secrets | optional folder containing `.encrypted` files |
 | **Timeline** | Date-based microblog posts with tags, image attachments, pinning, filters, collapsible long posts, and AI-assisted draft rewriting | `name`, `latestCount`, collapse limits |
 | **MemoList** | An index of File-widget reading memo files under `Dashboards/Memos/` | none |
 
@@ -548,7 +548,9 @@ Turn notes into a drag-and-drop board. Cards are notes that match a **tag** and/
 
 ![Kanban board](docs/images/dashboard_kanban.png)
 
-Boards can be stored as reusable `.kanban` files under `Dashboards/Kanbans/`. Use **Create .kanban file from these settings** in the widget settings, then reference the same file from multiple dashboards. The board header also provides a temporary tag filter. Optional display fields are selected from detected frontmatter properties, support aliases or hidden labels, and expose `file.path`/`file.name`/`file.content`/`file.mtime`/`file.ctime` only when explicitly selected. A character limit can be set for `file.content`.
+Board definitions can be stored as reusable `.kanban` YAML files under `Dashboards/Kanbans/`. Select an existing file in the widget settings, or configure an inline board and click **Create .kanban file from these settings**. Multiple dashboards can reference the same definition, and changes made in one widget's settings update the shared file. Card order remains local to each dashboard widget. The board header also provides a temporary tag filter.
+
+Optional display fields are selected from detected frontmatter properties and support custom or hidden labels. The computed fields `file.path`, `file.name`, `file.content`, `file.mtime`, and `file.ctime` appear only when explicitly selected; `file.content` can also be truncated to a configured character limit.
 
 - **Title & New** — the header shows an optional board title (handy when one dashboard holds several boards) and a **New** button that opens a modal to enter a title and pick a column, then creates a note already matching the board's filters (folder, tag, status).
 - **Preview & open** — click a card to preview its note in a modal; the modal's open icon jumps to the note in a new tab.
@@ -562,7 +564,15 @@ Configure everything from the widget settings:
 
 ## Secret Manager
 
-The Secret Manager widget stores each value as an `.encrypted` vault file using the plugin's existing encryption keys. Names, descriptions, and explicitly public metadata remain searchable; secret values are decrypted only when copied and are never persisted as plaintext. Configure encryption in plugin settings first.
+The Secret Manager widget stores each value as a separate `.encrypted` vault file using the plugin's existing encryption keys. Set up an encryption password in **Settings → Encryption** first; the chat-history and workflow-log encryption toggles do not need to be enabled.
+
+- **Create and organize** — choose an optional root folder (the default is `Secrets`); nested folders are preserved in the widget.
+- **Search** — filter by file name, description, or custom public metadata without decrypting secret values.
+- **Unlock and copy** — enter the encryption password to view, edit, or copy a value. The password is cached for the current session.
+- **Encrypted at rest** — plaintext values are used only in memory while unlocked and are never saved back to the vault unencrypted.
+
+> [!WARNING]
+> Secret names, descriptions, custom public metadata, and vault paths are stored outside the ciphertext so they can be listed and searched. Do not put passwords, tokens, or other sensitive values in those fields. Put sensitive data only in the secret value.
 
 > [!NOTE]
 > **Workflow widgets read from a cache, not live.** A workflow widget runs only on the **Run** button, the config editor's test-run, or once on open when its cached result is older than the **Auto-refresh interval** (minutes; `0` = manual only). Results are stored as normal vault files under `Dashboards/Data/<encoded dashboard path>.json`, so they sync/version like other files and are included in push/pull workflows. The workflow must store its Markdown/HTML output in a variable (default `result`).
@@ -656,7 +666,7 @@ npm run build
 
 ### Encryption
 
-Password-protect your chat history and workflow execution logs separately.
+Set up the encryption keys used to protect chat history, workflow execution logs, individual encrypted files, and the Dashboard Secret Manager.
 
 **Setup:**
 
@@ -664,19 +674,20 @@ Password-protect your chat history and workflow execution logs separately.
 
 ![Initial Encryption Setup](docs/images/setting_initial_encryption.png)
 
-2. After setup, toggle encryption for each log type:
+2. After setup, optionally toggle automatic encryption for each log type:
    - **Encrypt AI chat history** - Encrypt chat conversation files
    - **Encrypt workflow execution logs** - Encrypt workflow history files
 
 ![Encryption Settings](docs/images/setting_encryption.png)
 
-Each setting can be enabled/disabled independently.
+Each log setting can be enabled/disabled independently. The encrypted-file editor and Secret Manager only require the initial password/key setup; they do not require either log toggle.
 
 **Features:**
 - **Separate controls** - Choose which logs to encrypt (chat, workflow, or both)
 - **Automatic encryption** - New files are encrypted when saved based on settings
 - **Password caching** - Enter password once per session
 - **Dedicated viewer** - Encrypted files open in a secure editor with preview
+- **Searchable metadata** - Add an optional description and explicitly public key/value metadata without decrypting the file
 - **Decrypt option** - Remove encryption from individual files when needed
 
 **How it works:**
@@ -719,8 +730,8 @@ def decrypt_file(filepath: str, password: str) -> str:
         raise ValueError("Invalid encrypted file format")
 
     frontmatter, encrypted_data = match.groups()
-    key_match = re.search(r'key:\s*(.+)', frontmatter)
-    salt_match = re.search(r'salt:\s*(.+)', frontmatter)
+    key_match = re.search(r'^key:\s*(.+)$', frontmatter, re.MULTILINE)
+    salt_match = re.search(r'^salt:\s*(.+)$', frontmatter, re.MULTILINE)
     if not key_match or not salt_match:
         raise ValueError("Missing key or salt in frontmatter")
 

@@ -307,8 +307,8 @@ export default function SecretManagerWidget({ config, ctx }: { config: unknown; 
             [row.folderPath]: !(previous[row.folderPath] ?? false),
           }))}
         >
-          {expanded ? <ChevronDown size={15} /> : <ChevronRight size={15} />}
-          <Folder size={16} />
+          {expanded ? <ChevronDown size={18} /> : <ChevronRight size={18} />}
+          <Folder size={26} strokeWidth={1.9} />
           <span title={row.folderPath}>{row.folderPath}</span>
           <small>{row.items.length}</small>
         </button>

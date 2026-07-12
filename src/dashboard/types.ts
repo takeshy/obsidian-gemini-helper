@@ -33,6 +33,8 @@ export interface DashboardData {
   version: number;
   grid: GridLayout;
   widgets: Widget[];
+  /** Direction used to arrange widgets when a new widget is added. */
+  layoutDirection?: "horizontal" | "vertical";
   [key: string]: unknown;
 }
 

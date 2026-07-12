@@ -9690,7 +9690,8 @@
 .llm-hub-db-secret-row:hover { background: var(--background-secondary); }
 .llm-hub-db-secret-group { border-bottom: 1px solid var(--background-modifier-border); }
 .llm-hub-db-secret-group-header { display: flex; width: 100%; align-items: center; gap: 6px; padding: 8px; border: 0; border-left: 3px solid var(--color-yellow); border-radius: 0; background: var(--background-secondary); text-align: left; }
-.llm-hub-db-secret-group-header span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: var(--font-semibold); }
+.llm-hub-db-secret-group-header > svg { flex-shrink: 0; }
+.llm-hub-db-secret-group-header span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 15px; font-weight: var(--font-semibold); }
 .llm-hub-db-secret-group-header small { min-width: 22px; text-align: center; }
 .llm-hub-db-secret-group-children { margin-left: 14px; border-left: 2px solid var(--background-modifier-border); }
 .llm-hub-db-secret-info { display: flex; flex: 1; min-width: 0; flex-direction: column; gap: 2px; }

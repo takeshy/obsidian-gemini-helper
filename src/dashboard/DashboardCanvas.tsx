@@ -153,6 +153,11 @@ export function DashboardCanvas({
   const canRedo = indexRef.current < stackRef.current.length - 1;
 
   const { breakpoint, width } = useBreakpoint(containerRef);
+  // Existing dashboards used to append widgets vertically, so preserve that
+  // behavior until the user explicitly chooses another direction.
+  const layoutDirection: EqualizeDirection = data.layoutDirection === "horizontal"
+    ? "horizontal"
+    : "vertical";
 
   const gridLayout = useGridLayout({
     data,
@@ -175,6 +180,17 @@ export function DashboardCanvas({
     [data, commit],
   );
 
+  const handleLayoutDirection = useCallback(
+    (direction: EqualizeDirection) => {
+      if (direction !== layoutDirection) {
+        commit({ ...data, layoutDirection: direction });
+        return;
+      }
+      handleEqualize(direction);
+    },
+    [data, layoutDirection, commit, handleEqualize],
+  );
+
   const handleAddWidget = useCallback(
     (def: WidgetDef) => {
       const maxY = data.widgets.reduce(
@@ -188,13 +204,25 @@ export function DashboardCanvas({
         layout: { lg: { x: 0, y: maxY, w: defaultSize.w, h: defaultSize.h } },
         config: { ...(def.defaultConfig as Record<string, unknown>) },
       };
-      commit({ ...data, widgets: [...data.widgets, newWidget] });
+      const scrollArea = containerRef.current?.parentElement;
+      const areaHeight = scrollArea?.clientHeight ?? 600;
+      const targetRows = Math.max(6, Math.floor(areaHeight / (data.grid.rowHeight + data.grid.gap)));
+      commit({
+        ...data,
+        layoutDirection,
+        widgets: buildEqualizedLayout(
+          [...data.widgets, newWidget],
+          layoutDirection,
+          data.grid.cols,
+          targetRows,
+        ),
+      });
       setShowPalette(false);
       setMaximizedWidgetId(null);
       setEditingWidgetId(newWidget.id);
       setPendingNewWidgetId(newWidget.id);
     },
-    [data, commit],
+    [data, layoutDirection, commit],
   );
 
   // Close the settings panel. If the widget was just added and still has no
@@ -323,18 +351,18 @@ export function DashboardCanvas({
             <Redo2 size={14} />
           </button>
           <button
-            onClick={() => handleEqualize("horizontal")}
-            disabled={data.widgets.length === 0}
+            onClick={() => handleLayoutDirection("horizontal")}
             title={t("dashboard.alignHorizontal")}
-            className="llm-hub-db-toolbtn"
+            className={`llm-hub-db-toolbtn${layoutDirection === "horizontal" ? " is-active" : ""}`}
+            aria-pressed={layoutDirection === "horizontal"}
           >
             <Columns3 size={14} />
           </button>
           <button
-            onClick={() => handleEqualize("vertical")}
-            disabled={data.widgets.length === 0}
+            onClick={() => handleLayoutDirection("vertical")}
             title={t("dashboard.alignVertical")}
-            className="llm-hub-db-toolbtn"
+            className={`llm-hub-db-toolbtn${layoutDirection === "vertical" ? " is-active" : ""}`}
+            aria-pressed={layoutDirection === "vertical"}
           >
             <Rows3 size={14} />
           </button>

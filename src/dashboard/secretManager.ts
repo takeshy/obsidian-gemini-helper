@@ -12,6 +12,17 @@ export type SecretPathRow =
   | { kind: "file"; item: SecretPathItem }
   | { kind: "group"; folderPath: string; items: SecretPathItem[]; children: SecretPathRow[] };
 
+function sortDirectoriesFirst(rows: SecretPathRow[]): void {
+  rows.sort((a, b) => {
+    if (a.kind === b.kind) return 0;
+    return a.kind === "group" ? -1 : 1;
+  });
+
+  for (const row of rows) {
+    if (row.kind === "group") sortDirectoriesFirst(row.children);
+  }
+}
+
 function dirnameOf(path: string): string | null {
   const index = path.lastIndexOf("/");
   return index < 0 ? null : path.slice(0, index);
@@ -46,6 +57,7 @@ export function groupSecretPaths(items: SecretPathItem[]): SecretPathRow[] {
     }
     container.push({ kind: "file", item });
   }
+  sortDirectoriesFirst(rows);
   return rows;
 }
 

@@ -58,28 +58,23 @@ Absolute filesystem paths require desktop Obsidian because mobile Obsidian does 
 
 # Bundle Discovery
 
-Gemini Helper discovers selectable bundles by finding directories that directly contain `index.md`. The bundle ID is the directory path relative to the configured root. A root-level `index.md` produces the root bundle. The display name comes from `index.md` frontmatter `title` when present, otherwise the folder name.
+Gemini Helper discovers selectable bundles by finding top-level directories that directly contain `index.md`. Nested `index.md` files are treated as progressive-disclosure documents inside their parent bundle. The bundle ID is the directory path relative to the configured root. A root-level `index.md` produces the root bundle. The display name comes from `index.md` frontmatter `title` when present, otherwise the folder name.
 
 Users can select active bundle IDs from chat. The active bundle selection is persisted on the OKF knowledge source as `activeBundleIds`.
 
 # Prompt Loading
 
-When OKF is active, Gemini Helper recursively reads Markdown files from the selected bundle directories. `log.md` is skipped. Each document is summarized into a compact prompt fragment with:
+When a bundle is active, Gemini Helper injects only that bundle's `index.md` into the system prompt. The index acts as a table of contents; other documents stay out of the prompt until they are needed.
 
-- type
-- title
-- description
-- tags
-- path
-- short body excerpt
+To read a specific document, Gemini calls `read_okf_document` with the `bundleId` shown in the prompt and a path referenced by the index. Leading slashes are accepted, and directory links resolve to their `index.md`. The tool returns the document's title, description, path, and Markdown body.
 
-The loader limits each selected bundle to 24 Markdown documents and each body excerpt to 1400 characters so OKF does not overwhelm the model context.
+Fetched document bodies are limited to 20,000 characters so one unexpectedly large file cannot dominate a tool result. `log.md` is never returned. A clear, complete index is important because it guides the model to the documents relevant to each question.
 
 # Built-In OKF
 
 Gemini Helper ships a built-in OKF bundle about this plugin. It is always available as the `Gemini Helper Help` OKF option in chat, independently of the external OKF setting, but it is injected only after the user selects it or clicks the help question button. Users can then ask chat about Gemini Helper setup, chat tools, skills, workflows, RAG, OKF, MCP, dashboards, settings, security, and troubleshooting without configuring an OKF directory.
 
-The source copy for the built-in bundle is the English OKF bundle under `docs/okf/gemini-helper-help/`. During `npm run build` and `npm run dev`, `scripts/generate-builtin-okf.mjs` reads that bundle, skips `log.md`, compacts each document, writes a gzip+base64 generated module, and the chat loader expands it as the built-in `gemini-helper-help` bundle.
+The source copy for the built-in bundle is the English OKF bundle under `docs/okf/gemini-helper-help/`. During `npm run build` and `npm run dev`, `scripts/generate-builtin-okf.mjs` reads that bundle, skips `log.md`, caps each document body at 20,000 characters, and writes a gzip+base64 generated module. Chat injects its root index and reads the bundled documents on demand.
 
 # Relationship To RAG And Skills
 

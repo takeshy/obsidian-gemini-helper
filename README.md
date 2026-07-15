@@ -15,7 +15,7 @@
 - **Workflow Builder** - Automate multi-step tasks with visual node editor and 24 node types
 - **MCP Support** - Use MCP tools in workflows and render MCP UI resources inside Obsidian
 - **RAG** - Retrieval-Augmented Generation for intelligent search across your vault
-- **OKF Knowledge Sources** - Add Open Knowledge Format bundles as compact chat knowledge
+- **OKF Knowledge Sources** - Add Open Knowledge Format bundles with on-demand document loading
 - **AI Folder Access** - Limit which folders AI can read automatically when you do not want whole-vault access
 - **Encryption & Secret Manager** - Encrypt chat history and workflow logs, and manage encrypted secrets from a dashboard
 - **Edit History** - Track and restore AI-made changes with diff view
@@ -278,7 +278,7 @@ Gemini Helper can read Open Knowledge Format (OKF) bundles as chat knowledge. En
 
 ![OKF Settings](docs/images/okf.png)
 
-OKF is best for curated domain context: concepts, metrics, datasets, glossaries, and playbooks. It is injected as compact prompt context, while skills remain the place for reusable behavior, references, and executable workflows.
+OKF is best for curated domain context: concepts, metrics, datasets, glossaries, and playbooks. Gemini Helper injects each active bundle's index and loads referenced documents on demand, while skills remain the place for reusable behavior, references, and executable workflows.
 
 Gemini Helper also ships a built-in OKF bundle about its own features. Chat can use this built-in knowledge to answer questions about plugin setup, chat tools, skills, workflows, RAG, OKF, MCP, dashboards, security, and troubleshooting without requiring a separate OKF directory.
 

@@ -5,14 +5,14 @@ import { gzipSync } from "node:zlib";
 const REPO_ROOT = process.cwd();
 const SOURCE_ROOT = path.join(REPO_ROOT, "docs", "okf", "gemini-helper-help");
 const OUTPUT_FILE = path.join(REPO_ROOT, "src", "generated", "builtinOkfData.ts");
-const MAX_BODY_CHARS = 1400;
+const MAX_BODY_CHARS = 20_000;
 
 function normalizePath(filePath) {
   return filePath.split(path.sep).join("/");
 }
 
 function compactBody(body) {
-  return body.trim().replace(/\s+/g, " ").slice(0, MAX_BODY_CHARS);
+  return body.trim().slice(0, MAX_BODY_CHARS);
 }
 
 function parseScalar(value) {

@@ -16,7 +16,7 @@ Main feature areas:
 - Agent Skills with built-in Obsidian Markdown, Canvas, Bases, and Dashboard skills, plus vault-authored and external skills.
 - Workflow Builder for multi-step automations defined in Markdown `workflow` code blocks and edited visually.
 - RAG using Gemini File Search stores for semantic retrieval across vault content.
-- OKF Knowledge Sources that inject compact Open Knowledge Format bundle summaries into chat context.
+- OKF Knowledge Sources that inject bundle indexes and load referenced documents on demand.
 - MCP support for Streamable HTTP MCP servers, workflow MCP nodes, and sandboxed MCP Apps.
 - Dashboard files with responsive widget grids for Bases, files, web pages, workflows, kanban, timelines, and memos.
 - Edit history, safe edit confirmations, AI folder access limits, and optional encryption.

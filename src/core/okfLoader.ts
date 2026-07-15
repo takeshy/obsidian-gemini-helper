@@ -2,7 +2,7 @@ import { parseYaml, type App } from "obsidian";
 import { BUILTIN_OKF_BUNDLE_ID, BUILTIN_OKF_BUNDLE_NAME, BUILTIN_OKF_DOCUMENTS } from "./builtinOkf";
 import { getNodeFs, isAbsolutePath, normalizePathSeparators } from "./pathAccess";
 
-interface OkfDocument {
+export interface OkfDocument {
   path: string;
   title: string;
   type: string;
@@ -21,9 +21,8 @@ export interface OkfBundle {
   builtin?: boolean;
 }
 
-const MAX_DOCS_PER_BUNDLE = 24;
-const MAX_BODY_CHARS = 1400;
-const OKF_SYSTEM_PROMPT_INTRO = "The following Open Knowledge Format (OKF) knowledge bundles are active. Treat them as curated domain context. Prefer their definitions, relationships, and documented procedures when answering domain questions. If a relevant concept may exist but is not included below, use vault tools or semantic search when available before guessing.";
+const MAX_BODY_CHARS = 20_000;
+const OKF_SYSTEM_PROMPT_INTRO = "The following Open Knowledge Format (OKF) knowledge bundles are active. Each bundle section below is only that bundle's index document (its table of contents) — not the full knowledge base. When the index alone doesn't give enough detail to answer, call the read_okf_document tool with the bundleId shown in the section heading and a document path referenced in that index (leading slashes are fine) to fetch that document's full content. Prefer these curated bundles' definitions, relationships, and documented procedures when answering domain questions. If relevant knowledge may exist outside these indexes, use vault tools or semantic search when available before guessing.";
 
 export function getBuiltinOkfBundle(): OkfBundle {
   return {
@@ -128,20 +127,22 @@ function dirOf(path: string): string {
   return slash === -1 ? "" : path.slice(0, slash);
 }
 
-/** A ref belongs to a bundle when it lives in that bundle's directory subtree. */
-function refInBundle(refPath: string, bundleId: string): boolean {
-  return bundleId === "" ? true : refPath === bundleId || refPath.startsWith(`${bundleId}/`);
-}
-
 /**
  * Discover OKF bundles under `root`. A bundle is any directory that directly
  * contains an `index.md`; its display name comes from that file's `title`.
  */
 export async function discoverOkfBundles(app: App, root: string): Promise<OkfBundle[]> {
   const refs = await listMarkdown(app, root);
+  const indexRefs = refs.filter(ref => isIndexFile(ref.path));
+  const bundleDirs = indexRefs.map(ref => dirOf(ref.path));
+  // Nested index files are progressive-disclosure documents inside a bundle,
+  // not independently selectable bundles.
+  const topLevelIndexRefs = indexRefs.filter(ref => {
+    const dir = dirOf(ref.path);
+    return !bundleDirs.some(other => other !== dir && (other === "" || dir.startsWith(`${other}/`)));
+  });
   const bundles: OkfBundle[] = [];
-  for (const ref of refs) {
-    if (!isIndexFile(ref.path)) continue;
+  for (const ref of topLevelIndexRefs) {
     const id = dirOf(ref.path);
     let name = id.split("/").pop() || rootBasename(root);
     try {
@@ -164,60 +165,93 @@ function toDocument(refPath: string, content: string): OkfDocument {
     type: asString(frontmatter.type) || (isIndexFile(refPath) ? "Index" : "Concept"),
     description: asString(frontmatter.description),
     tags: asTags(frontmatter.tags),
-    body: body.trim().replace(/\s+/g, " ").slice(0, MAX_BODY_CHARS),
+    body: body.trim().slice(0, MAX_BODY_CHARS),
   };
 }
 
-function formatOkfBundleSection(bundleName: string, docs: readonly OkfDocument[]): string {
-  const lines = docs.map(doc => {
-    const tags = doc.tags.length > 0 ? ` tags=${doc.tags.join(",")}` : "";
-    const description = doc.description ? ` - ${doc.description}` : "";
-    const body = doc.body ? `\n  Excerpt: ${doc.body}` : "";
-    return `- [${doc.type}] ${doc.title} (${doc.path})${tags}${description}${body}`;
-  });
-  return `\n## OKF bundle: ${bundleName}\n${lines.join("\n")}`;
+function formatIndexSection(bundleId: string, bundleName: string, index: OkfDocument): string {
+  const description = index.description ? ` - ${index.description}` : "";
+  return `\n## OKF bundle: ${bundleName} (bundleId=${bundleId})${description}\n${index.body}`;
 }
 
 /** Build the bundled product knowledge prompt shipped with Gemini Helper. */
 export function buildBuiltinOkfSystemPrompt(): string {
-  const docs = BUILTIN_OKF_DOCUMENTS.map(doc => ({
-    ...doc,
-    path: `gemini-helper-help/${doc.path}`,
-    body: doc.body.trim().replace(/\s+/g, " ").slice(0, MAX_BODY_CHARS),
-  }));
-  return `\n\n${OKF_SYSTEM_PROMPT_INTRO}\n${formatOkfBundleSection(`${BUILTIN_OKF_BUNDLE_NAME} (${BUILTIN_OKF_BUNDLE_ID})`, docs)}`;
+  const index = BUILTIN_OKF_DOCUMENTS.find(doc => doc.path.toLowerCase() === "index.md");
+  if (!index) return "";
+  return `\n\n${OKF_SYSTEM_PROMPT_INTRO}\n${formatIndexSection(BUILTIN_OKF_BUNDLE_ID, BUILTIN_OKF_BUNDLE_NAME, index)}`;
 }
 
 /**
  * Build a system prompt fragment for the selected OKF bundles under `root`.
- * Only documents belonging to a selected bundle are included.
+ * Only each selected bundle's index.md is included. Other documents are read
+ * on demand with readOkfDocument().
  */
 export async function buildOkfSystemPrompt(app: App, root: string, selectedBundleIds: string[]): Promise<string> {
   if (selectedBundleIds.length === 0) return "";
 
-  const sections: string[] = [
-    OKF_SYSTEM_PROMPT_INTRO,
-  ];
+  const sections: string[] = [];
 
   let refs: MarkdownRef[];
   try {
     refs = await listMarkdown(app, root);
   } catch (e) {
-    return `\n\n${sections[0]}\n\nFailed to load OKF bundles from ${root}: ${e instanceof Error ? e.message : String(e)}`;
+    return `\n\n${OKF_SYSTEM_PROMPT_INTRO}\n\nFailed to load OKF bundles from ${root}: ${e instanceof Error ? e.message : String(e)}`;
   }
-
-  const usableRefs = refs.filter(ref => !isLogFile(ref.path));
 
   for (const bundleId of selectedBundleIds) {
-    const bundleRefs = usableRefs.filter(ref => refInBundle(ref.path, bundleId)).slice(0, MAX_DOCS_PER_BUNDLE);
-    if (bundleRefs.length === 0) continue;
-
-    const docs: OkfDocument[] = [];
-    for (const ref of bundleRefs) {
-      docs.push(toDocument(ref.path, await ref.read()));
-    }
-    sections.push(formatOkfBundleSection(bundleId || rootBasename(root), docs));
+    const indexPath = bundleId ? `${bundleId}/index.md` : "index.md";
+    const indexRef = refs.find(ref => ref.path.toLowerCase() === indexPath.toLowerCase());
+    if (!indexRef) continue;
+    const index = toDocument(indexRef.path, await indexRef.read());
+    const name = index.title || bundleId.split("/").pop() || rootBasename(root);
+    sections.push(formatIndexSection(bundleId, name, index));
   }
 
-  return `\n\n${sections.join("\n")}`;
+  return sections.length > 0 ? `\n\n${OKF_SYSTEM_PROMPT_INTRO}\n${sections.join("\n")}` : "";
+}
+
+function normalizeDocumentPath(path: string): string | null {
+  const parts = normalizePathSeparators(path).replace(/^\/+|\/+$/g, "").split("/");
+  const normalized: string[] = [];
+  for (const part of parts) {
+    if (!part || part === ".") continue;
+    if (part === "..") return null;
+    normalized.push(part);
+  }
+  return normalized.join("/");
+}
+
+function documentPathCandidates(path: string): string[] {
+  if (!path) return [];
+  if (path.toLowerCase().endsWith(".md")) return [path];
+  return [`${path}/index.md`, `${path}.md`];
+}
+
+/** Read one document from an active external or built-in OKF bundle. */
+export async function readOkfDocument(
+  app: App,
+  root: string | null,
+  bundleId: string,
+  path: string,
+): Promise<OkfDocument | null> {
+  const cleanPath = normalizeDocumentPath(path);
+  if (!cleanPath || isLogFile(cleanPath)) return null;
+
+  if (isBuiltinOkfBundleId(bundleId)) {
+    const doc = BUILTIN_OKF_DOCUMENTS.find(candidate =>
+      documentPathCandidates(cleanPath).some(value => candidate.path.toLowerCase() === value.toLowerCase())
+    );
+    return doc ? { ...doc, body: doc.body.slice(0, MAX_BODY_CHARS) } : null;
+  }
+
+  if (root === null) return null;
+  const cleanBundleId = normalizeDocumentPath(bundleId);
+  if (bundleId && cleanBundleId === null) return null;
+  const relativePath = cleanBundleId ? `${cleanBundleId}/${cleanPath}` : cleanPath;
+  const refs = await listMarkdown(app, root);
+  const ref = refs.find(candidate =>
+    documentPathCandidates(relativePath).some(value => candidate.path.toLowerCase() === value.toLowerCase())
+  );
+  if (!ref || isLogFile(ref.path)) return null;
+  return toDocument(ref.path, await ref.read());
 }

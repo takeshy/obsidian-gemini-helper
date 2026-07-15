@@ -73,6 +73,7 @@ import { formatError } from "src/utils/error";
 import { findFileMentionOccurrences } from "src/utils/mentionResolver";
 import { discoverSkills, loadSkill, buildSkillSystemPrompt, collectSkillWorkflows, type SkillMetadata, type LoadedSkill, type SkillWorkflowRef } from "src/core/skillsLoader";
 import { buildBuiltinOkfSystemPrompt, buildOkfSystemPrompt, discoverOkfBundles, getBuiltinOkfBundle, isBuiltinOkfBundleId, type OkfBundle } from "src/core/okfLoader";
+import { executeReadOkfDocumentTool, READ_OKF_DOCUMENT_TOOL, READ_OKF_DOCUMENT_TOOL_NAME } from "src/core/okfDocumentTool";
 import { GET_WORKFLOW_SPEC_TOOL, GET_WORKFLOW_SPEC_TOOL_NAME, handleGetWorkflowSpec } from "src/workflow/workflowSpec";
 import { DEFAULT_BUILTIN_SKILL_IDS, builtinFolderPath, getBuiltinSkillMetadata, isBuiltinSkillPath } from "src/core/builtinSkills";
 import { parseWorkflowFromMarkdown } from "src/workflow/parser";
@@ -1395,6 +1396,10 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 					tools.push(GET_WORKFLOW_SPEC_TOOL);
 				}
 
+				if (toolsEnabled && activeOkfBundleIds.length > 0) {
+					tools.push(READ_OKF_DOCUMENT_TOOL);
+				}
+
 				// Create context for RAG tools (Obsidian tools only)
 				const obsidianToolExecutor = toolsEnabled
 					? createToolExecutor(plugin.app, {
@@ -1425,7 +1430,7 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 					: new Map<string, { skill: LoadedSkill; workflowRef: SkillWorkflowRef; vaultPath: string }>();
 
 				// Combined tool executor that routes to Obsidian, MCP, or Skill Workflow based on tool name
-				const baseToolExecutor = (obsidianToolExecutor || mcpToolExecutor || skillWorkflowMap.size > 0)
+				const baseToolExecutor = (obsidianToolExecutor || mcpToolExecutor || skillWorkflowMap.size > 0 || activeOkfBundleIds.length > 0)
 					? async (name: string, args: Record<string, unknown>) => {
 						// MCP tools start with "mcp_"
 						if (name.startsWith("mcp_") && mcpToolExecutor) {
@@ -1456,6 +1461,15 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 						// Workflow spec lookup tool
 						if (name === GET_WORKFLOW_SPEC_TOOL_NAME) {
 							return handleGetWorkflowSpec(args, plugin);
+						}
+						if (name === READ_OKF_DOCUMENT_TOOL_NAME) {
+							return executeReadOkfDocumentTool(
+								plugin.app,
+								getOkfRoot(),
+								activeOkfBundleIds,
+								typeof args.bundleId === "string" ? args.bundleId : "",
+								typeof args.path === "string" ? args.path : "",
+							);
 						}
 						// Otherwise use Obsidian tool executor
 						if (obsidianToolExecutor) {

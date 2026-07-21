@@ -830,6 +830,8 @@ Requires: `pip install cryptography`
 
 See [Google AI Terms of Service](https://ai.google.dev/terms) for data retention policies.
 
+[![OKF BundleDex](https://bundledex.net/static-badge.svg)](https://bundledex.net)
+
 ## License
 
 MIT

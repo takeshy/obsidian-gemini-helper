@@ -194,7 +194,7 @@ const MODEL_PRICING: Record<string, { input: number; output: number }> = {
   "gemini-2.5-flash":       { input: 0.30 / 1e6, output: 2.50 / 1e6 },
   "gemini-2.5-pro":         { input: 1.25 / 1e6, output: 10.00 / 1e6 },
   "gemini-3.6-flash": { input: 1.50 / 1e6, output: 7.50 / 1e6 },
-  "gemini-3.5-flash": { input: 0.50 / 1e6, output: 3.00 / 1e6 },
+  "gemini-3.5-flash": { input: 1.50 / 1e6, output: 9.00 / 1e6 },
   "gemini-3.5-flash-lite": { input: 0.30 / 1e6, output: 2.50 / 1e6 },
   "gemini-3.1-pro-preview": { input: 2.00 / 1e6, output: 12.00 / 1e6 },
   "gemini-3.1-pro-preview-customtools": { input: 2.00 / 1e6, output: 12.00 / 1e6 },
@@ -1399,12 +1399,15 @@ export class GeminiClient {
       const modelLower = this.model.toLowerCase();
       // Gemma 4: thinking config not supported via Interactions API
       if (modelLower.includes("gemma-4")) return undefined;
-      if (modelLower.includes("gemini-3.6-flash") || modelLower.includes("gemini-3.5-flash-lite")) {
+      if (modelLower.includes("gemini-3.6-flash")) {
         return enableThinking ? "high" : "low";
       }
       // Pro models require thinking — always return high
       const thinkingRequired = modelLower.includes("gemini-3-pro") || modelLower.includes("gemini-3.1-pro");
       if (thinkingRequired) return "high";
+      // Gemini 3.5 Flash Lite: "minimal" matches the streaming/SDK path
+      // (buildThinkingConfig), which omits thinkingLevel entirely when
+      // thinking is disabled and relies on "minimal" being the API default.
       if (!enableThinking) return "minimal";
       return "high";
     };

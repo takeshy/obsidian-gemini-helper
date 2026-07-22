@@ -30,32 +30,25 @@ jobs:
         id: version
         run: echo "version=$(node -p "require('./package.json').version")" >> $GITHUB_OUTPUT
 
-      - name: Check release prerequisites
-        id: release_status
-        env:
-          GH_TOKEN: ${{ github.token }}
-          VERSION: ${{ steps.version.outputs.version }}
+      - name: Check if tag exists
+        id: check_tag
         run: |
-          if ! git rev-parse "refs/tags/$VERSION" >/dev/null 2>&1; then
-            echo "ready=false" >> "$GITHUB_OUTPUT"
-            echo "Tag $VERSION does not exist; refusing to create it automatically."
-          elif gh release view "$VERSION" >/dev/null 2>&1; then
-            echo "ready=false" >> "$GITHUB_OUTPUT"
-            echo "Release $VERSION already exists."
+          if git rev-parse "${{ steps.version.outputs.version }}" >/dev/null 2>&1; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
           else
-            echo "ready=true" >> "$GITHUB_OUTPUT"
+            echo "exists=false" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Install dependencies
-        if: steps.release_status.outputs.ready == 'true'
+        if: steps.check_tag.outputs.exists == 'false'
         run: npm ci
 
       - name: Build
-        if: steps.release_status.outputs.ready == 'true'
+        if: steps.check_tag.outputs.exists == 'false'
         run: npm run build
 
       - name: Attest release assets
-        if: steps.release_status.outputs.ready == 'true'
+        if: steps.check_tag.outputs.exists == 'false'
         uses: actions/attest-build-provenance@v3
         with:
           subject-path: |
@@ -64,7 +57,7 @@ jobs:
             styles.css
 
       - name: Create Release
-        if: steps.release_status.outputs.ready == 'true'
+        if: steps.check_tag.outputs.exists == 'false'
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.version.outputs.version }}

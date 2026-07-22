@@ -814,22 +814,24 @@ const InputArea = forwardRef<InputAreaHandle, InputAreaProps>(function InputArea
               </option>
             ))}
           </select>
-          <label className={`gemini-helper-web-search-toggle ${!allowWebSearch ? "disabled" : ""}`}>
-            <input
-              type="checkbox"
-              checked={webSearchEnabled}
-              disabled={isLoading || !allowWebSearch}
-              onChange={(e) => onWebSearchChange(e.target.checked)}
-            />
-            <span>{t("input.webSearch")}</span>
-          </label>
           <select
             className="gemini-helper-model-select gemini-helper-rag-select"
-            value={ragEnabled ? (selectedRagSetting || "") : ""}
-            onChange={(e) => onRagSettingChange(e.target.value || null)}
-            disabled={isLoading || !ragEnabled}
+            value={webSearchEnabled ? "__websearch__" : (ragEnabled ? (selectedRagSetting || "") : "")}
+            onChange={(e) => {
+              const value = e.target.value;
+              if (value === "__websearch__") {
+                onWebSearchChange(true);
+              } else {
+                if (webSearchEnabled) onWebSearchChange(false);
+                onRagSettingChange(value || null);
+              }
+            }}
+            disabled={isLoading || (!allowWebSearch && !ragEnabled)}
           >
             <option value="">{t("input.searchNone")}</option>
+            {allowWebSearch && (
+              <option value="__websearch__">{t("input.webSearch")}</option>
+            )}
             {ragEnabled && ragSettings.map((name) => (
               <option
                 key={name}

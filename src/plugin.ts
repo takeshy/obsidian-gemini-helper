@@ -638,6 +638,10 @@ export class GeminiHelperPlugin extends Plugin {
     return this.wsManager.selectWebSearchEnabled(enabled);
   }
 
+  async setAlwaysThinkPreference(family: "flash" | "flashLite", enabled: boolean): Promise<void> {
+    return this.wsManager.setAlwaysThinkPreference(family, enabled);
+  }
+
   async selectModel(model: ModelType): Promise<void> {
     return this.wsManager.selectModel(model);
   }
@@ -976,7 +980,7 @@ export class GeminiHelperPlugin extends Plugin {
 
       const storeId = currentRagSetting.storeId
         ? normalizeFileSearchStoreName(currentRagSetting.storeId)
-        : await fileSearchManager.createStore(storeName);
+        : await fileSearchManager.getOrCreateStore(storeName);
       if (!storeId) {
         throw new Error("Invalid File Search Store ID");
       }
@@ -988,6 +992,21 @@ export class GeminiHelperPlugin extends Plugin {
         currentSyncState = { files: {}, lastFullSync: null };
         new Notice("Store changed. Re-uploading all files...");
       }
+
+      // Persist the store before uploading. A large sync can be interrupted or
+      // partially fail; the already-created remote store must remain usable and
+      // must be reused on the next sync instead of becoming orphaned.
+      const configuredRagSetting: RagSetting = {
+        ...currentRagSetting,
+        storeId,
+        storeName,
+        embeddingModel: currentRagSetting.embeddingModel
+          ?? FILE_SEARCH_MULTIMODAL_EMBEDDING_MODEL,
+      };
+      this.workspaceState.ragSettings[settingName] = configuredRagSetting;
+      currentRagSetting = configuredRagSetting;
+      await this.saveWorkspaceState();
+      this.settingsEmitter.emit("workspace-state-loaded", this.workspaceState);
 
       // Smart sync with checksum-based diff detection
       const result = await fileSearchManager.smartSync(
@@ -1007,9 +1026,7 @@ export class GeminiHelperPlugin extends Plugin {
         ...currentRagSetting,
         storeId: finalStoreId,
         storeName: storeName,
-        embeddingModel: currentRagSetting.embeddingModel === FILE_SEARCH_MULTIMODAL_EMBEDDING_MODEL
-          ? currentRagSetting.embeddingModel
-          : (finalStoreId !== currentRagSetting.storeId ? FILE_SEARCH_MULTIMODAL_EMBEDDING_MODEL : currentRagSetting.embeddingModel),
+        embeddingModel: currentRagSetting.embeddingModel,
         files: result.newSyncState.files,
         lastFullSync: result.newSyncState.lastFullSync,
       };

@@ -255,20 +255,26 @@ export class FileSearchManager {
       return this.storeName;
     }
 
-    // Try to list existing stores and find matching one
-    try {
-      const pager = await this.ai.fileSearchStores.list();
-      for await (const store of pager) {
-        if (store.displayName === displayName && store.name) {
-          this.storeName = normalizeFileSearchStoreName(store.name);
-          if (!this.storeName) {
-            throw new Error("Failed to get store: invalid name returned");
-          }
-          return this.storeName;
+    // Try to list existing stores and find matching one. A list failure must
+    // not be treated as "not found": doing so creates duplicate stores and can
+    // split one sync across several indexes.
+    const pager = await this.ai.fileSearchStores.list();
+    const matchingStores: Array<{ name: string; updatedAt: number }> = [];
+    for await (const store of pager) {
+      if (store.displayName === displayName && store.name) {
+        const name = normalizeFileSearchStoreName(store.name);
+        if (name) {
+          matchingStores.push({
+            name,
+            updatedAt: Date.parse(store.updateTime ?? store.createTime ?? "") || 0,
+          });
         }
       }
-    } catch {
-      // Failed to list stores, will create new one
+    }
+    if (matchingStores.length > 0) {
+      matchingStores.sort((a, b) => b.updatedAt - a.updatedAt);
+      this.storeName = matchingStores[0].name;
+      return this.storeName;
     }
 
     // Create new store if not found

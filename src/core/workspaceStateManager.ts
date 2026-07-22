@@ -100,6 +100,12 @@ export class WorkspaceStateManager {
       this.workspaceState.selectedRagSetting = null;
       this.workspaceState.webSearchEnabled = true;
     }
+    // Google File Search RAG and Google Search are intentionally exclusive.
+    // Prefer the explicitly selected RAG setting when loading legacy state
+    // that has both enabled.
+    if (this.workspaceState.selectedRagSetting && this.workspaceState.webSearchEnabled) {
+      this.workspaceState.webSearchEnabled = false;
+    }
 
     // Migrate deprecated model names
     if ((this.workspaceState.selectedModel as string) === "gemini-3-pro-preview") {
@@ -243,15 +249,35 @@ export class WorkspaceStateManager {
   // Select a RAG setting
   async selectRagSetting(name: string | null): Promise<void> {
     this.workspaceState.selectedRagSetting = name;
+    if (name && this.workspaceState.webSearchEnabled) {
+      this.workspaceState.webSearchEnabled = false;
+    }
     await this.saveWorkspaceState();
     this.syncFileSearchManagerWithSelectedRag();
     this.settingsEmitter.emit("rag-setting-changed", name);
+    if (name) this.settingsEmitter.emit("web-search-changed", false);
   }
 
   async selectWebSearchEnabled(enabled: boolean): Promise<void> {
     this.workspaceState.webSearchEnabled = enabled;
+    if (enabled && this.workspaceState.selectedRagSetting) {
+      this.workspaceState.selectedRagSetting = null;
+    }
     await this.saveWorkspaceState();
+    if (enabled) {
+      this.syncFileSearchManagerWithSelectedRag();
+      this.settingsEmitter.emit("rag-setting-changed", null);
+    }
     this.settingsEmitter.emit("web-search-changed", enabled);
+  }
+
+  async setAlwaysThinkPreference(family: "flash" | "flashLite", enabled: boolean): Promise<void> {
+    if (family === "flash") {
+      this.workspaceState.alwaysThinkFlash = enabled;
+    } else {
+      this.workspaceState.alwaysThinkFlashLite = enabled;
+    }
+    await this.saveWorkspaceState();
   }
 
   // Select a model

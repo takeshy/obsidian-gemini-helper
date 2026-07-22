@@ -704,23 +704,6 @@
   max-width: 150px;
 }
 
-.gemini-helper-web-search-toggle {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  flex: 0 0 auto;
-  padding: 4px 8px;
-  font-size: 11px;
-  color: var(--text-muted);
-  white-space: nowrap;
-  cursor: pointer;
-}
-
-.gemini-helper-web-search-toggle.disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
 .gemini-helper-model-select:hover {
   color: var(--text-normal);
 }
@@ -1355,11 +1338,6 @@
 .is-mobile .gemini-helper-rag-select {
   max-width: none;
   flex: 1 1 100%;
-}
-
-.is-mobile .gemini-helper-web-search-toggle {
-  min-height: 36px;
-  font-size: 14px;
 }
 
 .is-mobile .gemini-helper-history-item {

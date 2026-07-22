@@ -75,7 +75,7 @@ import { discoverSkills, loadSkill, buildSkillSystemPrompt, collectSkillWorkflow
 import { buildBuiltinOkfSystemPrompt, buildOkfSystemPrompt, discoverOkfBundles, getBuiltinOkfBundle, isBuiltinOkfBundleId, type OkfBundle } from "src/core/okfLoader";
 import { executeReadOkfDocumentTool, READ_OKF_DOCUMENT_TOOL, READ_OKF_DOCUMENT_TOOL_NAME } from "src/core/okfDocumentTool";
 import { GET_WORKFLOW_SPEC_TOOL, GET_WORKFLOW_SPEC_TOOL_NAME, handleGetWorkflowSpec } from "src/workflow/workflowSpec";
-import { DEFAULT_BUILTIN_SKILL_IDS, builtinFolderPath, getBuiltinSkillMetadata, isBuiltinSkillPath } from "src/core/builtinSkills";
+import { DEFAULT_BUILTIN_SKILL_IDS, builtinFolderPath, getBuiltinSkillMetadata } from "src/core/builtinSkills";
 import { parseWorkflowFromMarkdown } from "src/workflow/parser";
 import { WorkflowExecutor } from "src/workflow/executor";
 import { WorkflowExecutionModal } from "./workflow/WorkflowExecutionModal";
@@ -184,8 +184,8 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 	// Pending feedback for edit rejection (to be sent after state update)
 	const [pendingEditFeedback, setPendingEditFeedback] = useState<{ filePath: string; request: string } | null>(null);
 	// Thinking toggles for Flash / Flash Lite models
-	const [thinkFlash, setThinkFlash] = useState(false);
-	const [thinkFlashLite, setThinkFlashLite] = useState(true);
+	const [thinkFlash, setThinkFlash] = useState(plugin.workspaceState.alwaysThinkFlash ?? false);
+	const [thinkFlashLite, setThinkFlashLite] = useState(plugin.workspaceState.alwaysThinkFlashLite ?? true);
 
 	// Agent Skills state (initialise with built-in skills so they are available synchronously)
 	const [availableSkills, setAvailableSkills] = useState<SkillMetadata[]>(getBuiltinSkillMetadata);
@@ -782,6 +782,8 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 			setRagSettingNames(plugin.getRagSettingNames());
 			setSelectedRagSetting(plugin.workspaceState.selectedRagSetting);
 			setWebSearchEnabled(plugin.workspaceState.webSearchEnabled === true);
+			setThinkFlash(plugin.workspaceState.alwaysThinkFlash ?? false);
+			setThinkFlashLite(plugin.workspaceState.alwaysThinkFlashLite ?? true);
 		};
 
 		const handleRagSettingChanged = (name: string | null) => {
@@ -845,12 +847,24 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 
 	const handleWebSearchChange = (enabled: boolean, modelForSupport = currentModel) => {
 		const nextEnabled = enabled && supportsWebSearch(modelForSupport);
+		if (nextEnabled) setSelectedRagSetting(null);
 		setWebSearchEnabled(nextEnabled);
 		void plugin.selectWebSearchEnabled(nextEnabled);
 	};
 
+	const handleThinkFlashChange = (enabled: boolean) => {
+		setThinkFlash(enabled);
+		void plugin.setAlwaysThinkPreference("flash", enabled);
+	};
+
+	const handleThinkFlashLiteChange = (enabled: boolean) => {
+		setThinkFlashLite(enabled);
+		void plugin.setAlwaysThinkPreference("flashLite", enabled);
+	};
+
 	// Handle RAG setting change from UI
 	const handleRagSettingChange = (name: string | null) => {
+		if (name) setWebSearchEnabled(false);
 		setSelectedRagSetting(name);
 		void plugin.selectRagSetting(name);
 	};
@@ -878,7 +892,7 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 
 		// Auto-adjust search setting and vault tool mode for special models
 		if (isImageGenerationModel(model)) {
-			// Image models do not use File Search RAG; Web Search remains independent.
+			// Image models do not use File Search RAG.
 			if (selectedRagSetting !== null) {
 				handleRagSettingChange(null);
 			}
@@ -1291,7 +1305,8 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 			const runStreamOnce = async () => {
 				const { settings } = plugin;
 				const toolsEnabled = !isImageGenerationModel(allowedModel);
-				const obsidianTools = toolsEnabled ? getEnabledTools({
+				const vaultToolsEnabled = toolsEnabled && vaultToolMode !== "none";
+				const obsidianTools = vaultToolsEnabled ? getEnabledTools({
 					allowWrite: true,
 					allowDelete: true,
 					ragEnabled: allowRag,
@@ -1343,29 +1358,12 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 				// Merge Obsidian tools and MCP tools
 				const allTools = [...obsidianTools, ...mcpTools];
 
-				// Filter Obsidian tools based on vaultToolMode (MCP tools are not affected)
-				const vaultToolNames = [
-					"read_note", "create_note", "propose_edit", "propose_delete",
-					"rename_note", "search_notes", "list_notes", "list_folders",
-					"create_folder", "get_active_note_info", "get_rag_sync_status",
-					"bulk_propose_edit", "bulk_propose_rename", "bulk_propose_delete"
-				];
+				// Filter Obsidian search tools in noSearch mode (MCP tools are independent).
 				const searchToolNames = ["search_notes", "list_notes"];
-				// Vault skills are loaded lazily — their SKILL.md (workflow IDs,
-				// inputVariables, full instructions) is only reachable via read_note.
-				// If any such skill is active we must keep read_note available even
-				// when vaultToolMode would otherwise strip it, or the model gets
-				// neither inline workflow metadata nor the tool to fetch it.
-				const hasActiveVaultSkill = loadedSkillsList.some(s => !isBuiltinSkillPath(s.folderPath));
 				const tools = allTools.filter(tool => {
 					// MCP tools are always included
 					if (isMcpTool(tool)) {
 						return true;
-					}
-					// Filter Obsidian tools based on mode
-					if (vaultToolMode === "none") {
-						if (tool.name === "read_note" && hasActiveVaultSkill) return true;
-						return !vaultToolNames.includes(tool.name);
 					}
 					if (vaultToolMode === "noSearch") {
 						return !searchToolNames.includes(tool.name);
@@ -1374,22 +1372,22 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 				});
 
 				// Add run_skill_workflow tool if any active skill has workflows
-				if (toolsEnabled && loadedSkillsList.some(s => s.workflows.length > 0)) {
+				if (vaultToolsEnabled && loadedSkillsList.some(s => s.workflows.length > 0)) {
 					tools.push(skillWorkflowTool);
 				}
 
 				// Add execute_javascript tool
-				if (toolsEnabled) {
+				if (vaultToolsEnabled) {
 					tools.push(EXECUTE_JAVASCRIPT_TOOL);
 					tools.push(GET_WORKFLOW_SPEC_TOOL);
 				}
 
-				if (toolsEnabled && activeOkfBundleIds.length > 0) {
+				if (vaultToolsEnabled && activeOkfBundleIds.length > 0) {
 					tools.push(READ_OKF_DOCUMENT_TOOL);
 				}
 
 				// Create context for RAG tools (Obsidian tools only)
-				const obsidianToolExecutor = toolsEnabled
+				const obsidianToolExecutor = vaultToolsEnabled
 					? createToolExecutor(plugin.app, {
 						ragSyncState: { files: plugin.ragState.files, lastFullSync: plugin.ragState.lastFullSync },
 						ragFilterConfig: {
@@ -1706,13 +1704,16 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 				const ragStoreIds = allowRag && selectedRagSetting
 					? plugin.getStoreIdsForRagSetting(plugin.getRagSetting(selectedRagSetting))
 					: [];
+				if (allowRag && selectedRagSetting && ragStoreIds.length === 0) {
+					throw new Error(`Selected RAG setting "${selectedRagSetting}" has no File Search store. Sync or configure the store before using RAG.`);
+				}
 				const ragMetadataFilter = allowRag && selectedRagSetting
 					? (plugin.getRagSetting(selectedRagSetting)?.metadataFilter || undefined)
 					: undefined;
 
 				let systemPrompt = "You are a helpful AI assistant integrated with Obsidian.";
 
-				if (toolsEnabled) {
+				if (vaultToolsEnabled) {
 					systemPrompt += `
 
 Available tools allow you to:
@@ -1725,9 +1726,9 @@ Available tools allow you to:
 				}
 
 				// Add RAG sync status info if server RAG is enabled (uses FileSearchManager)
-				if (allowRag && toolsEnabled) {
+				if (allowRag && vaultToolsEnabled) {
 							systemPrompt += `
-- Check RAG sync status: When users ask about imported files, use the get_rag_sync_status tool to:
+- Check RAG sync status only when users explicitly ask whether files are synced or imported. Do not use it to answer questions about file content. Use get_rag_sync_status to:
   - Check a specific file's sync status (when it was imported, if it has changes)
   - List unsynced files in a directory
   - Get a summary of the vault's overall sync status`;
@@ -1811,7 +1812,7 @@ Always be helpful and provide clear, concise responses. When working with vault 
 						allMessages,
 						effectiveTools,
 						systemPrompt,
-						toolsEnabled ? toolExecutor : undefined,
+						effectiveTools.length > 0 ? toolExecutor : undefined,
 						ragStoreIds,
 						isWebSearch,
 						{
@@ -1839,7 +1840,7 @@ Always be helpful and provide clear, concise responses. When working with vault 
 									return Number.isFinite(requested) && requested > 0 ? requested : false;
 								},
 							},
-							disableTools: !toolsEnabled,
+							disableTools: effectiveTools.length === 0 && !isWebSearch,
 							enableThinking: getThinkingToggle(allowedModel),
 							ragMetadataFilter,
 							traceId,
@@ -2387,8 +2388,8 @@ Always be helpful and provide clear, concise responses. When working with vault 
 						vaultToolModeOnlyNone={false}
 						thinkFlash={thinkFlash}
 						thinkFlashLite={thinkFlashLite}
-						onThinkFlashChange={setThinkFlash}
-						onThinkFlashLiteChange={setThinkFlashLite}
+						onThinkFlashChange={handleThinkFlashChange}
+						onThinkFlashLiteChange={handleThinkFlashLiteChange}
 						mcpServers={mcpServers}
 						onMcpServerToggle={handleMcpServerToggle}
 						okfBundles={okfBundles}

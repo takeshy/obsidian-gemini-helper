@@ -691,12 +691,8 @@ export class GeminiClient {
     return result;
   }
 
-  // Retrieve RAG context via the generateContent API (file_search tool).
-  // The Interactions API does not support the file_search tool (returns 501
-  // not_implemented), so RAG retrieval is done as a pre-processing step using
-  // the generateContent API. The retrieved contexts are injected into the
-  // system prompt for the subsequent Interactions API call, preserving both
-  // RAG and function calling capabilities.
+  // Retrieve RAG context for the GenerateContent fallback path. The normal
+  // Interactions path uses its native file_search tool directly.
   private async retrieveRagContext(
     userMessage: string,
     ragStoreIds: string[],
@@ -1004,15 +1000,14 @@ export class GeminiClient {
           ragSystemPrompt = (systemPrompt || "")
             + `\n\n[Semantic search results — use these retrieved passages as reference context]\n${contextBlock}`;
         }
-        if (ragResult.sources.length > 0) {
-          yield {
-            type: "rag_used",
-            ragSources: ragResult.sources,
-            ragContexts: ragResult.contexts,
-          };
-        }
-      } catch {
-        // RAG retrieval is best-effort; continue with Web Search and function tools.
+        yield {
+          type: "rag_used",
+          ragSources: ragResult.sources,
+          ragContexts: ragResult.contexts,
+        };
+      } catch (ragError) {
+        yield { type: "error", error: `RAG retrieval failed: ${formatError(ragError)}` };
+        return;
       }
     }
 
@@ -1031,7 +1026,7 @@ export class GeminiClient {
           contents,
           config: {
             systemInstruction: ragSystemPrompt,
-            tools: options?.disableTools ? undefined : generationTools,
+            tools: generationTools,
             toolConfig: mixesBuiltInWithFunctionCalling
               ? { includeServerSideToolInvocations: true }
               : undefined,
@@ -1328,10 +1323,16 @@ export class GeminiClient {
     webSearchEnabled?: boolean,
     options?: ChatWithToolsOptions
   ): AsyncGenerator<StreamChunk> {
-    if (!options?.disableTools && this.shouldUseGenerateContentToolsApi(tools, webSearchEnabled)) {
+    if (webSearchEnabled && ragStoreIds?.length) {
+      yield { type: "error", error: "RAG and Web Search cannot be used at the same time. Select one search source." };
+      return;
+    }
+
+    const enabledFunctionTools = options?.disableTools ? [] : tools;
+    if (this.shouldUseGenerateContentToolsApi(enabledFunctionTools, webSearchEnabled)) {
       yield* this.chatWithToolsStreamGenerateContent(
         messages,
-        tools,
+        enabledFunctionTools,
         systemPrompt,
         executeToolCall,
         ragStoreIds,
@@ -1357,11 +1358,8 @@ export class GeminiClient {
 
     const ragEnabled = ragStoreIds && ragStoreIds.length > 0;
 
-    // Build tools for Interactions API
-    // The Interactions API does not support the file_search tool (returns 501
-    // not_implemented). RAG retrieval is done via generateContent API as a
-    // pre-processing step, and the retrieved context is injected into the
-    // system prompt. This preserves both RAG and function calling.
+    // Build tools for Interactions API. File Search is a native Interactions
+    // tool and can run alongside function tools.
     // Gemma 4: cannot combine google_search with function calling
     const modelLower = this.model.toLowerCase();
     const isGemma4Model = modelLower.includes("gemma-4");
@@ -1371,17 +1369,16 @@ export class GeminiClient {
     const combinesBuiltInAndFunctionTools = effectiveWebSearch && hasFunctionTools;
     const interactionModel = this.getInteractionsModel(hasFunctionTools);
     let interactionTools: Interactions.Tool[] | undefined;
-    if (!options?.disableTools) {
-      // Interactions API rejects google_search + function tools for these models.
-      interactionTools = this.toolsToInteractionsFormat(
-        tools,
-        undefined,
-        undefined,
-        undefined,
-        effectiveWebSearch,
-      );
-      if (interactionTools.length === 0) interactionTools = undefined;
-    }
+    // disableTools only disables client-side function tools. Server-side tools
+    // (File Search and Google Search) remain independently available.
+    interactionTools = this.toolsToInteractionsFormat(
+      options?.disableTools ? [] : tools,
+      effectiveRagEnabled ? ragStoreIds : undefined,
+      effectiveRagEnabled ? clampedTopK : undefined,
+      effectiveRagEnabled ? options?.ragMetadataFilter : undefined,
+      effectiveWebSearch,
+    );
+    if (interactionTools.length === 0) interactionTools = undefined;
 
     // Get the last user message
     const lastMessage = messages[messages.length - 1];
@@ -1447,54 +1444,8 @@ export class GeminiClient {
     let currentInteractionId: string | undefined;
     let streamErrored = false;
 
-    // RAG pre-retrieval via generateContent API.
-    // The Interactions API does not support the file_search tool (501
-    // not_implemented), so we retrieve relevant contexts beforehand using
-    // the generateContent API and inject them into the system prompt.
-    let ragSources: string[] = [];
-    let ragContexts: RagContext[] = [];
     const webSearchSources: WebSearchSource[] = [];
-    if (effectiveRagEnabled && ragStoreIds) {
-      const retrieverSpanId = tracing.spanStart(traceId, "retriever:file-search", {
-        parentId: generationId ?? undefined,
-        metadata: { storeCount: ragStoreIds.length, topK: clampedTopK },
-      });
-      try {
-        const ragResult = await this.retrieveRagContext(
-          lastMessage.content || "",
-          ragStoreIds,
-          clampedTopK,
-          options?.ragMetadataFilter,
-          lastMessage.attachments,
-        );
-        ragSources = ragResult.sources;
-        ragContexts = ragResult.contexts;
-        tracing.spanEnd(retrieverSpanId, {
-          output: ragSources,
-          metadata: { sourceCount: ragSources.length, contextCount: ragContexts.length },
-        });
-      } catch (ragError) {
-        tracing.spanEnd(retrieverSpanId, { error: formatError(ragError) });
-        // RAG retrieval failed — continue without RAG context
-      }
-    }
-
-    // Inject RAG context into system prompt
-    let ragSystemPrompt = systemPrompt;
-    if (ragContexts.length > 0) {
-      const contextBlock = ragContexts
-        .map(c => `--- Source: ${c.source} ---\n${c.text}`)
-        .join("\n\n");
-      ragSystemPrompt = (systemPrompt || "") +
-        `\n\n[Semantic search results — use these retrieved passages as reference context]\n${contextBlock}`;
-    }
-
-    // Emit RAG sources once (pre-retrieved before the main loop)
     let ragEmitted = false;
-    if (ragSources.length > 0) {
-      ragEmitted = true;
-      yield { type: "rag_used", ragSources, ragContexts };
-    }
 
     // Build the initial input.
     // When chaining via previous_interaction_id the server already knows the conversation,
@@ -1531,14 +1482,14 @@ export class GeminiClient {
           previous_interaction_id: roundPreviousInteractionId,
           store: true,
           tools: interactionTools,
-          system_instruction: ragSystemPrompt,
+          system_instruction: systemPrompt,
           generation_config: generationConfig,
         });
 
         const functionCallsToProcess: Array<{ id: string; name: string; args: Record<string, unknown> }> = [];
         const accumulatedSources: string[] = [];
         const accumulatedContexts: RagContext[] = [];
-        let groundingEmitted = false;
+        let fileSearchUsedInRound = false;
         let webSearchUsedInRound = false;
         let roundUsage: TracingUsage | undefined;
         let hasReceivedEvent = false;
@@ -1573,6 +1524,9 @@ export class GeminiClient {
                     argsBuffer: "",
                     startArgs: step.arguments ?? {},
                   });
+                  break;
+                case "file_search_call":
+                  fileSearchUsedInRound = true;
                   break;
                 default:
                   break;
@@ -1619,6 +1573,7 @@ export class GeminiClient {
                 }
 
                 case "file_search_call":
+                  fileSearchUsedInRound = true;
                   break;
 
                 case "file_search_result":
@@ -1635,7 +1590,6 @@ export class GeminiClient {
                   if (!webSearchUsedInRound) {
                     webSearchUsedInRound = true;
                     yield { type: "web_search_used" };
-                    groundingEmitted = true;
                   }
                   break;
 
@@ -1718,12 +1672,9 @@ export class GeminiClient {
           totalUsage.totalCost = (totalUsage.totalCost ?? 0) + SEARCH_GROUNDING_COST[this.model];
         }
 
-        // RAG sources were already emitted before the loop (pre-retrieved via
-        // generateContent API since Interactions API doesn't support file_search).
-        // Web search grounding is still detected within the loop below.
-        if (accumulatedSources.length > 0 && !groundingEmitted && !ragEmitted) {
+        if (fileSearchUsedInRound && !ragEmitted) {
           yield { type: "rag_used", ragSources: accumulatedSources, ragContexts: accumulatedContexts };
-          groundingEmitted = true;
+          ragEmitted = true;
         }
 
         if (!hasReceivedEvent && functionCallsToProcess.length === 0) {
@@ -1754,7 +1705,7 @@ export class GeminiClient {
               model: interactionModel,
               input: nextInput,
               stream: true,
-              system_instruction: ragSystemPrompt,
+              system_instruction: systemPrompt,
               previous_interaction_id: currentInteractionId,
               store: true,
               generation_config: generationConfig,

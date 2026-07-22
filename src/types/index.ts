@@ -233,6 +233,8 @@ export interface WorkspaceState {
   webSearchEnabled: boolean;          // Web SearchはRAGとは独立して保持
   selectedModel: ModelType | null;    // 現在選択中のモデル
   ragSettings: Record<string, RagSetting>;  // 設定名 -> RAG設定
+  alwaysThinkFlash?: boolean;         // Flashモデルで常に思考
+  alwaysThinkFlashLite?: boolean;     // Flash Liteモデルで常に思考
 }
 
 // デフォルトのRAG設定
@@ -255,6 +257,8 @@ export const DEFAULT_WORKSPACE_STATE: WorkspaceState = {
   webSearchEnabled: false,
   selectedModel: null,
   ragSettings: {},
+  alwaysThinkFlash: false,
+  alwaysThinkFlashLite: true,
 };
 
 // 後方互換性のためのエイリアス（旧RagState形式）

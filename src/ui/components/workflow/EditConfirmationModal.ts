@@ -263,37 +263,18 @@ export class EditConfirmationModal extends Modal {
       const hasText = (this.additionalRequestEl?.value || "").trim().length > 0;
       if (hasComments || hasText) {
         // Warn when there are unsubmitted line comments
-        const overlay = activeDocument.createElement("div");
-        overlay.className = "gemini-helper-diff-confirm-overlay";
-
-        const dialog = activeDocument.createElement("div");
-        dialog.className = "gemini-helper-diff-confirm-dialog";
-
-        const msg = activeDocument.createElement("p");
-        msg.textContent = t("diff.applyWithCommentsConfirm");
-        dialog.appendChild(msg);
-
-        const btns = activeDocument.createElement("div");
-        btns.className = "gemini-helper-diff-confirm-dialog-actions";
-
-        const dialogCancelBtn = activeDocument.createElement("button");
-        dialogCancelBtn.textContent = t("workflowModal.cancel");
+        const overlay = this.modalEl.createDiv({ cls: "gemini-helper-diff-confirm-overlay" });
+        const dialog = overlay.createDiv({ cls: "gemini-helper-diff-confirm-dialog" });
+        dialog.createEl("p", { text: t("diff.applyWithCommentsConfirm") });
+        const btns = dialog.createDiv({ cls: "gemini-helper-diff-confirm-dialog-actions" });
+        const dialogCancelBtn = btns.createEl("button", { text: t("workflowModal.cancel") });
         dialogCancelBtn.addEventListener("click", () => overlay.remove());
-        btns.appendChild(dialogCancelBtn);
-
-        const applyBtn = activeDocument.createElement("button");
-        applyBtn.textContent = t("message.apply");
-        applyBtn.className = "mod-cta";
+        const applyBtn = btns.createEl("button", { text: t("message.apply"), cls: "mod-cta" });
         applyBtn.addEventListener("click", () => {
           overlay.remove();
           this.resolvePromise?.({ confirmed: true });
           this.close();
         });
-        btns.appendChild(applyBtn);
-
-        dialog.appendChild(btns);
-        overlay.appendChild(dialog);
-        this.modalEl.appendChild(overlay);
       } else {
         this.resolvePromise?.({ confirmed: true });
         this.close();
@@ -323,10 +304,7 @@ export class EditConfirmationModal extends Modal {
   private addResizeHandles(modalEl: HTMLElement) {
     const directions = ["n", "e", "s", "w", "ne", "nw", "se", "sw"];
     for (const dir of directions) {
-      const handle = activeDocument.createElement("div");
-      handle.className = `gemini-helper-resize-handle gemini-helper-resize-${dir}`;
-      handle.dataset.direction = dir;
-      modalEl.appendChild(handle);
+      const handle = modalEl.createDiv({ cls: `gemini-helper-resize-handle gemini-helper-resize-${dir}`, attr: { "data-direction": dir } });
       this.setupResize(handle, modalEl, dir);
     }
   }
@@ -606,10 +584,7 @@ export class DeleteConfirmationModal extends Modal {
   private addResizeHandles(modalEl: HTMLElement) {
     const directions = ["n", "e", "s", "w", "ne", "nw", "se", "sw"];
     for (const dir of directions) {
-      const handle = activeDocument.createElement("div");
-      handle.className = `gemini-helper-resize-handle gemini-helper-resize-${dir}`;
-      handle.dataset.direction = dir;
-      modalEl.appendChild(handle);
+      const handle = modalEl.createDiv({ cls: `gemini-helper-resize-handle gemini-helper-resize-${dir}`, attr: { "data-direction": dir } });
       this.setupResize(handle, modalEl, dir);
     }
   }
@@ -975,10 +950,7 @@ export class BulkEditConfirmationModal extends Modal {
   private addResizeHandles(modalEl: HTMLElement) {
     const directions = ["n", "e", "s", "w", "ne", "nw", "se", "sw"];
     for (const dir of directions) {
-      const handle = activeDocument.createElement("div");
-      handle.className = `gemini-helper-resize-handle gemini-helper-resize-${dir}`;
-      handle.dataset.direction = dir;
-      modalEl.appendChild(handle);
+      const handle = modalEl.createDiv({ cls: `gemini-helper-resize-handle gemini-helper-resize-${dir}`, attr: { "data-direction": dir } });
       this.setupResize(handle, modalEl, dir);
     }
   }
@@ -1335,10 +1307,7 @@ export class BulkDeleteConfirmationModal extends Modal {
   private addResizeHandles(modalEl: HTMLElement) {
     const directions = ["n", "e", "s", "w", "ne", "nw", "se", "sw"];
     for (const dir of directions) {
-      const handle = activeDocument.createElement("div");
-      handle.className = `gemini-helper-resize-handle gemini-helper-resize-${dir}`;
-      handle.dataset.direction = dir;
-      modalEl.appendChild(handle);
+      const handle = modalEl.createDiv({ cls: `gemini-helper-resize-handle gemini-helper-resize-${dir}`, attr: { "data-direction": dir } });
       this.setupResize(handle, modalEl, dir);
     }
   }
@@ -1742,10 +1711,7 @@ export class BulkRenameConfirmationModal extends Modal {
   private addResizeHandles(modalEl: HTMLElement) {
     const directions = ["n", "e", "s", "w", "ne", "nw", "se", "sw"];
     for (const dir of directions) {
-      const handle = activeDocument.createElement("div");
-      handle.className = `gemini-helper-resize-handle gemini-helper-resize-${dir}`;
-      handle.dataset.direction = dir;
-      modalEl.appendChild(handle);
+      const handle = modalEl.createDiv({ cls: `gemini-helper-resize-handle gemini-helper-resize-${dir}`, attr: { "data-direction": dir } });
       this.setupResize(handle, modalEl, dir);
     }
   }

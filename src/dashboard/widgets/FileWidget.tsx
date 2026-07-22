@@ -182,20 +182,24 @@ function setCustomHighlights(win: Window, name: string, ranges: Range[]) {
   registry.set(name, new highlightWindow.Highlight(...ranges));
 }
 
+const installedHighlightStyles = new WeakMap<Document, Set<string>>();
+
 function ensureHighlightStyle(doc: Document, name: string) {
-  const id = `llm-hub-db-memo-highlight-${name}`;
-  if (doc.getElementById(id)) return;
-  const style = doc.createElement("style");
-  style.id = id;
-  style.textContent = `
+  const installed = installedHighlightStyles.get(doc) ?? new Set<string>();
+  if (installed.has(name)) return;
+  const StyleSheet = doc.defaultView?.CSSStyleSheet ?? CSSStyleSheet;
+  const sheet = new StyleSheet();
+  sheet.replaceSync(`
 ::highlight(${name}) {
   background-color: rgb(217 119 6 / 0.30);
 }
 ::highlight(${name}-flash) {
   background-color: rgb(217 119 6 / 0.58);
 }
-`;
-  (doc.head ?? doc.documentElement).appendChild(style);
+`);
+  doc.adoptedStyleSheets = [...doc.adoptedStyleSheets, sheet];
+  installed.add(name);
+  installedHighlightStyles.set(doc, installed);
 }
 
 function fileKind(path: string): "markdown" | "text" | "html" | "image" | "pdf" | "epub" | "other" {

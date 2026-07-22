@@ -342,28 +342,21 @@ function createCommentEditor(
   const line = diffLines[lineIndex];
   const existingComment = lineComments.get(lineIndex);
 
-  const editor = activeDocument.createElement("div");
-  editor.className = "gemini-helper-diff-comment-editor";
+  const editor = afterEl.parentElement!.createDiv({ cls: "gemini-helper-diff-comment-editor" });
   afterEl.insertAdjacentElement("afterend", editor);
 
-  const textarea = activeDocument.createElement("textarea");
-  textarea.className = "gemini-helper-diff-comment-input";
-  textarea.placeholder = t("diff.commentPlaceholder");
-  textarea.rows = 2;
+  const textarea = editor.createEl("textarea", {
+    cls: "gemini-helper-diff-comment-input",
+    attr: { placeholder: t("diff.commentPlaceholder"), rows: "2" },
+  });
   if (existingComment) {
     textarea.value = existingComment.comment;
   }
   // Prevent clicks inside the editor from triggering diff line click handlers
   editor.addEventListener("click", (e) => e.stopPropagation());
-  editor.appendChild(textarea);
+  const actions = editor.createDiv({ cls: "gemini-helper-diff-comment-actions" });
 
-  const actions = activeDocument.createElement("div");
-  actions.className = "gemini-helper-diff-comment-actions";
-  editor.appendChild(actions);
-
-  const saveBtn = activeDocument.createElement("button");
-  saveBtn.textContent = t("diff.saveComment");
-  saveBtn.className = "mod-cta";
+  const saveBtn = actions.createEl("button", { text: t("diff.saveComment"), cls: "mod-cta" });
   saveBtn.addEventListener("click", (e) => {
     e.stopPropagation();
     const text = textarea.value.trim();
@@ -382,27 +375,19 @@ function createCommentEditor(
     editor.remove();
     onSave();
   });
-  actions.appendChild(saveBtn);
-
-  const cancelBtn = activeDocument.createElement("button");
-  cancelBtn.textContent = t("diff.cancelComment");
+  const cancelBtn = actions.createEl("button", { text: t("diff.cancelComment") });
   cancelBtn.addEventListener("click", (e) => {
     e.stopPropagation();
     editor.remove();
   });
-  actions.appendChild(cancelBtn);
-
   if (existingComment) {
-    const removeBtn = activeDocument.createElement("button");
-    removeBtn.textContent = t("diff.removeComment");
-    removeBtn.className = "mod-warning";
+    const removeBtn = actions.createEl("button", { text: t("diff.removeComment"), cls: "mod-warning" });
     removeBtn.addEventListener("click", (e) => {
       e.stopPropagation();
       lineComments.delete(lineIndex);
       editor.remove();
       onSave();
     });
-    actions.appendChild(removeBtn);
   }
 
   textarea.focus();

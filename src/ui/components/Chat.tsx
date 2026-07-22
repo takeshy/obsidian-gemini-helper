@@ -146,13 +146,14 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 	const [selectedRagSetting, setSelectedRagSetting] = useState<string | null>(
 		plugin.workspaceState.selectedRagSetting
 	);
+	const [webSearchEnabled, setWebSearchEnabled] = useState(plugin.workspaceState.webSearchEnabled === true);
 	// Vault tool mode: "all" = use all tools, "noSearch" = exclude search_notes/list_notes, "none" = no vault tools
 	const mustUseWebSearchOnly = (model: string) => {
 		return model.toLowerCase() === "gemini-3.1-flash-lite";
 	};
 	const supportsWebSearch = (model: string) => !model.toLowerCase().includes("gemma-4");
 	const initialWebSearchOnly = mustUseWebSearchOnly(plugin.getSelectedModel())
-		&& plugin.workspaceState.selectedRagSetting === "__websearch__";
+		&& plugin.workspaceState.webSearchEnabled === true;
 	const [vaultToolMode, setVaultToolMode] = useState<"all" | "noSearch" | "none">(initialWebSearchOnly ? "none" : "all");
 	// Reason why vault tools are "none" - determines whether MCP should also be disabled
 	const [, setVaultToolNoneReason] = useState<VaultToolNoneReason | null>(initialWebSearchOnly ? "manual" : null);
@@ -787,18 +788,24 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 		const handleWorkspaceStateLoaded = () => {
 			setRagSettingNames(plugin.getRagSettingNames());
 			setSelectedRagSetting(plugin.workspaceState.selectedRagSetting);
+			setWebSearchEnabled(plugin.workspaceState.webSearchEnabled === true);
 		};
 
 		const handleRagSettingChanged = (name: string | null) => {
 			setSelectedRagSetting(name);
 		};
+		const handleWebSearchChanged = (enabled: boolean) => {
+			setWebSearchEnabled(enabled);
+		};
 
 		plugin.settingsEmitter.on("workspace-state-loaded", handleWorkspaceStateLoaded);
 		plugin.settingsEmitter.on("rag-setting-changed", handleRagSettingChanged);
+		plugin.settingsEmitter.on("web-search-changed", handleWebSearchChanged);
 
 		return () => {
 			plugin.settingsEmitter.off("workspace-state-loaded", handleWorkspaceStateLoaded);
 			plugin.settingsEmitter.off("rag-setting-changed", handleRagSettingChanged);
+			plugin.settingsEmitter.off("web-search-changed", handleWebSearchChanged);
 		};
 	}, [plugin]);
 
@@ -843,19 +850,21 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 	// Gemma 4 cannot combine Google Search with Function Calling in one request
 	const isGemma4 = (model: string) => model.toLowerCase().includes("gemma-4");
 
-	// Handle RAG setting change from UI
-	const handleRagSettingChange = (name: string | null, modelForSupport = currentModel) => {
-		if (name === "__websearch__" && !supportsWebSearch(modelForSupport)) {
-			name = null;
-		}
-		setSelectedRagSetting(name);
-		void plugin.selectRagSetting(name);
-		// Some models cannot combine Web Search with function calling tools.
-		if (mustUseWebSearchOnly(currentModel) && name === "__websearch__") {
+	const handleWebSearchChange = (enabled: boolean, modelForSupport = currentModel) => {
+		const nextEnabled = enabled && supportsWebSearch(modelForSupport);
+		setWebSearchEnabled(nextEnabled);
+		void plugin.selectWebSearchEnabled(nextEnabled);
+		if (mustUseWebSearchOnly(modelForSupport) && nextEnabled) {
 			setVaultToolMode("none");
 			setVaultToolNoneReason("manual");
 			setMcpServers(servers => servers.map(s => ({ ...s, enabled: false })));
 		}
+	};
+
+	// Handle RAG setting change from UI
+	const handleRagSettingChange = (name: string | null) => {
+		setSelectedRagSetting(name);
+		void plugin.selectRagSetting(name);
 	};
 
 	// Handle vault tool mode change from UI
@@ -863,9 +872,8 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 		setVaultToolMode(mode);
 		setVaultToolNoneReason(mode === "none" ? "manual" : null);
 		// Some models cannot combine Web Search with function calling tools.
-		if (mustUseWebSearchOnly(currentModel) && mode !== "none" && selectedRagSetting === "__websearch__") {
-			setSelectedRagSetting(null);
-			void plugin.selectRagSetting(null);
+		if (mustUseWebSearchOnly(currentModel) && mode !== "none" && webSearchEnabled) {
+			handleWebSearchChange(false);
 		}
 	};
 
@@ -876,9 +884,8 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 			plugin.settings.mcpServers = updated;
 			void plugin.saveSettings();
 			// Some models cannot combine Web Search with function calling tools.
-			if (mustUseWebSearchOnly(currentModel) && enabled && selectedRagSetting === "__websearch__") {
-				setSelectedRagSetting(null);
-				void plugin.selectRagSetting(null);
+			if (mustUseWebSearchOnly(currentModel) && enabled && webSearchEnabled) {
+				handleWebSearchChange(false);
 			}
 			return updated;
 		});
@@ -891,8 +898,8 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 
 		// Auto-adjust search setting and vault tool mode for special models
 		if (isImageGenerationModel(model)) {
-			// Image models: Web Search only → keep if Web Search, else None
-			if (selectedRagSetting !== null && selectedRagSetting !== "__websearch__") {
+			// Image models do not use File Search RAG; Web Search remains independent.
+			if (selectedRagSetting !== null) {
 				handleRagSettingChange(null);
 			}
 			setVaultToolMode("all");
@@ -902,7 +909,8 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 			if (selectedRagSetting) {
 				handleRagSettingChange(null);
 			}
-		} else if (mustUseWebSearchOnly(model) && selectedRagSetting === "__websearch__") {
+			if (webSearchEnabled) handleWebSearchChange(false, model);
+		} else if (mustUseWebSearchOnly(model) && webSearchEnabled) {
 			// Web Search active → disable vault tools
 			setVaultToolMode("none");
 			setVaultToolNoneReason("manual");
@@ -1064,10 +1072,15 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 			setCurrentModel(nextModel);
 		}
 
-		// Optionally change search setting (null = keep current, "" = None, "__websearch__" = Web Search, other = RAG setting name)
+		// Legacy slash-command search setting migration.
 		if (command.searchSetting !== null && command.searchSetting !== undefined) {
-			const newSetting = command.searchSetting === "" ? null : command.searchSetting;
-			handleRagSettingChange(newSetting, nextModel);
+			if (command.searchSetting === "__websearch__") {
+				handleWebSearchChange(true, nextModel);
+				handleRagSettingChange(null);
+			} else {
+				handleRagSettingChange(command.searchSetting === "" ? null : command.searchSetting);
+				if (command.searchSetting === "") handleWebSearchChange(false, nextModel);
+			}
 		}
 
 		// Optionally change vault tool mode (null = keep current)
@@ -1287,7 +1300,7 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 			metadata: {
 				model: allowedModel,
 				ragEnabled: allowRag,
-				webSearchEnabled: selectedRagSetting === "__websearch__",
+				webSearchEnabled,
 				toolsEnabled: !isImageGenerationModel(allowedModel),
 				isImageGeneration: isImageGenerationModel(allowedModel),
 				pluginVersion: plugin.manifest.version,
@@ -1711,15 +1724,14 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 					: undefined;
 
 					// Check if Web Search or Image Generation model is selected
-				const isWebSearch = supportsWebSearch(allowedModel) && selectedRagSetting === "__websearch__"
-					&& (toolsEnabled || isImageGenerationModel(allowedModel));
+				const isWebSearch = supportsWebSearch(allowedModel) && webSearchEnabled;
 				const isImageGeneration = isImageGenerationModel(allowedModel);
 
 				// Pass RAG store IDs if RAG is enabled and a setting is selected (not web search)
-				const ragStoreIds = allowRag && toolsEnabled && selectedRagSetting && !isWebSearch
+				const ragStoreIds = allowRag && selectedRagSetting
 					? plugin.getStoreIdsForRagSetting(plugin.getRagSetting(selectedRagSetting))
 					: [];
-				const ragMetadataFilter = allowRag && toolsEnabled && selectedRagSetting && !isWebSearch
+				const ragMetadataFilter = allowRag && selectedRagSetting
 					? (plugin.getRagSetting(selectedRagSetting)?.metadataFilter || undefined)
 					: undefined;
 
@@ -1792,6 +1804,7 @@ Always be helpful and provide clear, concise responses. When working with vault 
 				let ragSources: string[] = [];
 				let ragContexts: Message["ragContexts"] = [];
 				let webSearchUsed = false;
+				let webSearchSources: Message["webSearchSources"];
 				let imageGenerationUsed = false;
 				const generatedImages: GeneratedImage[] = [];
 				let streamUsage: Message["usage"] = undefined;
@@ -1925,6 +1938,7 @@ Always be helpful and provide clear, concise responses. When working with vault 
 						if (chunk.interactionId) {
 							streamInteractionId = chunk.interactionId;
 						}
+						webSearchSources = chunk.webSearchSources ?? webSearchSources;
 						break;
 				}
 			}
@@ -1959,6 +1973,7 @@ Always be helpful and provide clear, concise responses. When working with vault 
 					ragSources: ragSources.length > 0 ? ragSources : undefined,
 					ragContexts: ragContexts.length > 0 ? ragContexts : undefined,
 					webSearchUsed: webSearchUsed || undefined,
+					webSearchSources,
 					imageGenerationUsed: imageGenerationUsed || undefined,
 					generatedImages: generatedImages.length > 0 ? generatedImages : undefined,
 					thinking: thinkingContent || undefined,
@@ -2386,13 +2401,15 @@ Always be helpful and provide clear, concise responses. When working with vault 
 						onModelChange={handleModelChange}
 						availableModels={availableModels}
 						allowWebSearch={allowWebSearch}
+						webSearchEnabled={webSearchEnabled}
+						onWebSearchChange={handleWebSearchChange}
 						ragEnabled={allowRag}
 						ragSettings={allowRag ? ragSettingNames : []}
 						selectedRagSetting={selectedRagSetting}
 						onRagSettingChange={handleRagSettingChange}
 						vaultToolMode={vaultToolMode}
 						onVaultToolModeChange={handleVaultToolModeChange}
-						vaultToolModeOnlyNone={mustUseWebSearchOnly(currentModel) && selectedRagSetting === "__websearch__"}
+						vaultToolModeOnlyNone={mustUseWebSearchOnly(currentModel) && webSearchEnabled}
 						thinkFlash={thinkFlash}
 						thinkFlashLite={thinkFlashLite}
 						onThinkFlashChange={setThinkFlash}

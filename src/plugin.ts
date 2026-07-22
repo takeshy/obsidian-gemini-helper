@@ -50,7 +50,7 @@ import { registerWorkflowCodeBlockProcessor } from "src/ui/workflowCodeBlock";
 function normalizeDeprecatedModelName(model: unknown): ModelType | null | undefined {
   if (model === null || model === undefined) return model;
   if (model === "gemini-3.1-flash-lite-preview") return "gemini-3.1-flash-lite";
-  if (model === "gemini-3-flash-preview") return "gemini-3.5-flash";
+  if (model === "gemini-3-flash-preview") return "gemini-3.6-flash";
   return model as ModelType;
 }
 
@@ -631,6 +631,10 @@ export class GeminiHelperPlugin extends Plugin {
 
   async selectRagSetting(name: string | null): Promise<void> {
     return this.wsManager.selectRagSetting(name);
+  }
+
+  async selectWebSearchEnabled(enabled: boolean): Promise<void> {
+    return this.wsManager.selectWebSearchEnabled(enabled);
   }
 
   async selectModel(model: ModelType): Promise<void> {

@@ -230,6 +230,7 @@ export interface RagFileInfo {
 // Workspace状態ファイル（.gemini-workspace.json）
 export interface WorkspaceState {
   selectedRagSetting: string | null;  // 現在選択中のRAG設定名
+  webSearchEnabled: boolean;          // Web SearchはRAGとは独立して保持
   selectedModel: ModelType | null;    // 現在選択中のモデル
   ragSettings: Record<string, RagSetting>;  // 設定名 -> RAG設定
 }
@@ -251,6 +252,7 @@ export const DEFAULT_RAG_SETTING: RagSetting = {
 // デフォルトのWorkspace状態
 export const DEFAULT_WORKSPACE_STATE: WorkspaceState = {
   selectedRagSetting: null,
+  webSearchEnabled: false,
   selectedModel: null,
   ragSettings: {},
 };
@@ -282,6 +284,7 @@ export type ApiPlan = "paid" | "free";
 export type ModelType =
   | "gemini-2.5-flash"
   | "gemini-2.5-pro"
+  | "gemini-3.6-flash"
   | "gemini-3.5-flash"
   | "gemini-3.1-pro-preview"
   | "gemini-3.1-pro-preview-customtools"
@@ -300,6 +303,11 @@ export interface ModelInfo {
 }
 
 export const PAID_MODELS: ModelInfo[] = [
+  {
+    name: "gemini-3.6-flash",
+    displayName: "Gemini 3.6 Flash",
+    description: "Latest fast model with 1M context (recommended)",
+  },
   {
     name: "gemini-3.1-pro-preview",
     displayName: "Gemini 3.1 Pro Preview",
@@ -355,6 +363,11 @@ export const PAID_MODELS: ModelInfo[] = [
 ];
 
 export const FREE_MODELS: ModelInfo[] = [
+  {
+    name: "gemini-3.6-flash",
+    displayName: "Gemini 3.6 Flash",
+    description: "Latest fast model with 1M context (recommended)",
+  },
   {
     name: "gemini-2.5-flash",
     displayName: "Gemini 2.5 Flash",
@@ -448,6 +461,7 @@ export interface Message {
   ragSources?: string[];  // RAG検索で見つかったソースファイル
   ragContexts?: RagContext[];  // RAG検索で取得された抜粋
   webSearchUsed?: boolean;  // Web Searchが使用されたか
+  webSearchSources?: WebSearchSource[];  // Web Searchの引用元
   imageGenerationUsed?: boolean;  // Image Generationが使用されたか
   generatedImages?: GeneratedImage[];  // 生成された画像
   thinking?: string;  // モデルの思考内容（thinkingモデル用）
@@ -461,6 +475,11 @@ export interface Message {
 export interface RagContext {
   source: string;
   text: string;
+}
+
+export interface WebSearchSource {
+  title: string;
+  url: string;
 }
 
 // 保留中の編集情報
@@ -565,11 +584,12 @@ export interface StreamChunk {
   generatedImage?: GeneratedImage;  // 生成された画像
   usage?: StreamChunkUsage;  // Token usage and cost (populated on "done" chunks)
   interactionId?: string;  // Interactions API interaction ID (populated on "done" chunks)
+  webSearchSources?: WebSearchSource[];  // Cited web sources in display order
 }
 
 // Default models by plan
-export const DEFAULT_MODEL_FREE: ModelType = "gemini-2.5-flash";
-export const DEFAULT_MODEL_PAID: ModelType = "gemini-3.1-pro-preview";
+export const DEFAULT_MODEL_FREE: ModelType = "gemma-4-31b-it";
+export const DEFAULT_MODEL_PAID: ModelType = "gemini-3.6-flash";
 
 // Default model (for backwards compatibility)
 export const DEFAULT_MODEL: ModelType = DEFAULT_MODEL_FREE;

@@ -95,6 +95,12 @@ export class WorkspaceStateManager {
     const loaded = JSON.parse(content) as Partial<WorkspaceState>;
     this.workspaceState = { ...DEFAULT_WORKSPACE_STATE, ...loaded };
 
+    // Migrate the legacy mutually-exclusive Web Search pseudo RAG setting.
+    if (this.workspaceState.selectedRagSetting === "__websearch__") {
+      this.workspaceState.selectedRagSetting = null;
+      this.workspaceState.webSearchEnabled = true;
+    }
+
     // Migrate deprecated model names
     if ((this.workspaceState.selectedModel as string) === "gemini-3-pro-preview") {
       this.workspaceState.selectedModel = "gemini-3.1-pro-preview";
@@ -103,7 +109,7 @@ export class WorkspaceStateManager {
       this.workspaceState.selectedModel = "gemini-3.1-flash-lite";
     }
     if ((this.workspaceState.selectedModel as string) === "gemini-3-flash-preview") {
-      this.workspaceState.selectedModel = "gemini-3.5-flash";
+      this.workspaceState.selectedModel = "gemini-3.6-flash";
     }
     if ((this.workspaceState.selectedModel as string) === "gemini-2.5-flash-image") {
       this.workspaceState.selectedModel = "gemini-3.1-flash-image-preview";
@@ -150,6 +156,7 @@ export class WorkspaceStateManager {
 
       this.workspaceState = {
         selectedRagSetting: settingName,
+        webSearchEnabled: false,
         selectedModel: null,
         ragSettings: {
           [settingName]: ragSetting,
@@ -233,6 +240,12 @@ export class WorkspaceStateManager {
     await this.saveWorkspaceState();
     this.syncFileSearchManagerWithSelectedRag();
     this.settingsEmitter.emit("rag-setting-changed", name);
+  }
+
+  async selectWebSearchEnabled(enabled: boolean): Promise<void> {
+    this.workspaceState.webSearchEnabled = enabled;
+    await this.saveWorkspaceState();
+    this.settingsEmitter.emit("web-search-changed", enabled);
   }
 
   // Select a model
@@ -420,6 +433,7 @@ export class WorkspaceStateManager {
 
       this.workspaceState = {
         selectedRagSetting: "default",
+        webSearchEnabled: false,
         selectedModel: null,
         ragSettings: {
           default: ragSetting,

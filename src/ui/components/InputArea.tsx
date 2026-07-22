@@ -24,6 +24,8 @@ interface InputAreaProps {
   onModelChange: (model: ModelType) => void;
   availableModels: ModelInfo[];
   allowWebSearch: boolean;
+  webSearchEnabled: boolean;
+  onWebSearchChange: (enabled: boolean) => void;
   ragEnabled: boolean;
   ragSettings: string[];
   selectedRagSetting: string | null;
@@ -86,6 +88,8 @@ const InputArea = forwardRef<InputAreaHandle, InputAreaProps>(function InputArea
   onModelChange,
   availableModels,
   allowWebSearch,
+  webSearchEnabled,
+  onWebSearchChange,
   ragEnabled,
   ragSettings,
   selectedRagSetting,
@@ -810,20 +814,22 @@ const InputArea = forwardRef<InputAreaHandle, InputAreaProps>(function InputArea
               </option>
             ))}
           </select>
+          <label className={`gemini-helper-web-search-toggle ${!allowWebSearch ? "disabled" : ""}`}>
+            <input
+              type="checkbox"
+              checked={webSearchEnabled}
+              disabled={isLoading || !allowWebSearch}
+              onChange={(e) => onWebSearchChange(e.target.checked)}
+            />
+            <span>{t("input.webSearch")}</span>
+          </label>
           <select
             className="gemini-helper-model-select gemini-helper-rag-select"
-            value={(allowWebSearch || ragEnabled) ? (selectedRagSetting || "") : ""}
+            value={ragEnabled ? (selectedRagSetting || "") : ""}
             onChange={(e) => onRagSettingChange(e.target.value || null)}
-            disabled={isLoading || (!allowWebSearch && !ragEnabled)}
+            disabled={isLoading || !ragEnabled}
           >
             <option value="">{t("input.searchNone")}</option>
-            {allowWebSearch && (
-              <option
-                value="__websearch__"
-              >
-                {t("input.webSearch")}
-              </option>
-            )}
             {ragEnabled && ragSettings.map((name) => (
               <option
                 key={name}

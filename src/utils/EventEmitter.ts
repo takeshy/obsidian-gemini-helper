@@ -3,6 +3,7 @@ export interface EventMap {
   "settings-updated": [settings: unknown];
   "workspace-state-loaded": [state: unknown];
   "rag-setting-changed": [name: string | null];
+  "web-search-changed": [enabled: boolean];
   "chat-activated": [];
   "file-restored": [path: string];
   "execution-history-saved": [workflowPath: string];

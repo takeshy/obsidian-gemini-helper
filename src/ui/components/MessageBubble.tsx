@@ -11,6 +11,15 @@ import { ChatView, VIEW_TYPE_GEMINI_CHAT } from "src/ui/ChatView";
 import { t } from "src/i18n";
 import { formatError } from "src/utils/error";
 
+function isSafeWebUrl(url: string): boolean {
+  try {
+    const protocol = new URL(url).protocol;
+    return protocol === "https:" || protocol === "http:";
+  } catch {
+    return false;
+  }
+}
+
 interface MessageBubbleProps {
   message: Message;
   isStreaming?: boolean;
@@ -449,6 +458,20 @@ export default function MessageBubble({
           <span className="gemini-helper-rag-indicator">
             🌐 {t("message.webSearchUsed")}
           </span>
+          {message.webSearchSources && message.webSearchSources.length > 0 && (
+            <div className="gemini-helper-rag-sources">
+              {message.webSearchSources.filter(source => isSafeWebUrl(source.url)).map((source, index) => (
+                <span
+                  key={`${source.url}-${index}`}
+                  className="gemini-helper-rag-source gemini-helper-tool-clickable"
+                  onClick={() => window.open(source.url, "_blank")}
+                  title={source.url}
+                >
+                  🌐 {source.title || source.url}
+                </span>
+              ))}
+            </div>
+          )}
         </div>
       )}
 

@@ -148,20 +148,13 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 	);
 	const [webSearchEnabled, setWebSearchEnabled] = useState(plugin.workspaceState.webSearchEnabled === true);
 	// Vault tool mode: "all" = use all tools, "noSearch" = exclude search_notes/list_notes, "none" = no vault tools
-	const mustUseWebSearchOnly = (model: string) => {
-		return model.toLowerCase() === "gemini-3.1-flash-lite";
-	};
 	const supportsWebSearch = (model: string) => !model.toLowerCase().includes("gemma-4");
-	const initialWebSearchOnly = mustUseWebSearchOnly(plugin.getSelectedModel())
-		&& plugin.workspaceState.webSearchEnabled === true;
-	const [vaultToolMode, setVaultToolMode] = useState<"all" | "noSearch" | "none">(initialWebSearchOnly ? "none" : "all");
+	const [vaultToolMode, setVaultToolMode] = useState<"all" | "noSearch" | "none">("all");
 	// Reason why vault tools are "none" - determines whether MCP should also be disabled
-	const [, setVaultToolNoneReason] = useState<VaultToolNoneReason | null>(initialWebSearchOnly ? "manual" : null);
+	const [, setVaultToolNoneReason] = useState<VaultToolNoneReason | null>(null);
 	// MCP servers state: local copy with per-server enabled state (for chat session)
 	const [mcpServers, setMcpServers] = useState(() =>
-		initialWebSearchOnly
-			? plugin.settings.mcpServers.map(s => ({ ...s, enabled: false }))
-			: [...plugin.settings.mcpServers]
+		[...plugin.settings.mcpServers]
 	);
 	const messagesContainerRef = useRef<HTMLDivElement>(null);
 	const abortControllerRef = useRef<AbortController | null>(null);
@@ -854,11 +847,6 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 		const nextEnabled = enabled && supportsWebSearch(modelForSupport);
 		setWebSearchEnabled(nextEnabled);
 		void plugin.selectWebSearchEnabled(nextEnabled);
-		if (mustUseWebSearchOnly(modelForSupport) && nextEnabled) {
-			setVaultToolMode("none");
-			setVaultToolNoneReason("manual");
-			setMcpServers(servers => servers.map(s => ({ ...s, enabled: false })));
-		}
 	};
 
 	// Handle RAG setting change from UI
@@ -871,10 +859,6 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 	const handleVaultToolModeChange = (mode: "all" | "noSearch" | "none") => {
 		setVaultToolMode(mode);
 		setVaultToolNoneReason(mode === "none" ? "manual" : null);
-		// Some models cannot combine Web Search with function calling tools.
-		if (mustUseWebSearchOnly(currentModel) && mode !== "none" && webSearchEnabled) {
-			handleWebSearchChange(false);
-		}
 	};
 
 	// Handle per-server MCP toggle from UI
@@ -883,10 +867,6 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 			const updated = servers.map(s => s.name === serverName ? { ...s, enabled } : s);
 			plugin.settings.mcpServers = updated;
 			void plugin.saveSettings();
-			// Some models cannot combine Web Search with function calling tools.
-			if (mustUseWebSearchOnly(currentModel) && enabled && webSearchEnabled) {
-				handleWebSearchChange(false);
-			}
 			return updated;
 		});
 	};
@@ -910,11 +890,6 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 				handleRagSettingChange(null);
 			}
 			if (webSearchEnabled) handleWebSearchChange(false, model);
-		} else if (mustUseWebSearchOnly(model) && webSearchEnabled) {
-			// Web Search active → disable vault tools
-			setVaultToolMode("none");
-			setVaultToolNoneReason("manual");
-			setMcpServers(servers => servers.map(s => ({ ...s, enabled: false })));
 		} else {
 			// Normal models: restore vault tools
 			setVaultToolMode("all");
@@ -1827,7 +1802,7 @@ Always be helpful and provide clear, concise responses. When working with vault 
 				})();
 
 				// Some models cannot combine google_search with function calling.
-				const effectiveTools = mustUseWebSearchOnly(allowedModel) && isWebSearch ? [] : tools;
+				const effectiveTools = tools;
 
 				// Use image generation stream or regular chat stream
 				const chunkStream = isImageGeneration
@@ -2409,7 +2384,7 @@ Always be helpful and provide clear, concise responses. When working with vault 
 						onRagSettingChange={handleRagSettingChange}
 						vaultToolMode={vaultToolMode}
 						onVaultToolModeChange={handleVaultToolModeChange}
-						vaultToolModeOnlyNone={mustUseWebSearchOnly(currentModel) && webSearchEnabled}
+						vaultToolModeOnlyNone={false}
 						thinkFlash={thinkFlash}
 						thinkFlashLite={thinkFlashLite}
 						onThinkFlashChange={setThinkFlash}

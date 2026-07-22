@@ -65,7 +65,7 @@ export function displayEncryptionSettings(containerEl: HTMLElement, ctx: Setting
       .addButton((btn) =>
         btn
           .setButtonText(t("settings.encryptionResetKeys"))
-          .setWarning()
+          .setDestructive()
           .onClick(() => {
             void (async () => {
               const confirmed = await new ConfirmModal(

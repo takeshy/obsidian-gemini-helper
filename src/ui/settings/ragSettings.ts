@@ -88,7 +88,6 @@ export function displayRagSettings(containerEl: HTMLElement, ctx: SettingsContex
       slider
         .setLimits(1, 20, 1)
         .setValue(plugin.settings.ragTopK)
-        .setDynamicTooltip()
         .onChange((value) => {
           void (async () => {
             plugin.settings.ragTopK = value;
@@ -426,7 +425,7 @@ function displayInternalStoreSettings(
       cancelBtn = btn.buttonEl;
       btn
         .setButtonText(t("settings.cancelSync"))
-        .setWarning()
+        .setDestructive()
         .onClick(() => {
           syncCancelRef.value = true;
           new Notice(t("settings.cancellingSync"));
@@ -534,7 +533,7 @@ function displayInternalStoreSettings(
       .addButton((btn) =>
         btn
           .setButtonText(t("settings.deleteStore"))
-          .setWarning()
+          .setDestructive()
           .onClick(() => {
             void (async () => {
               const confirmed = await new ConfirmModal(

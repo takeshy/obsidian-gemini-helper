@@ -36,30 +36,12 @@ export class SettingsTab extends PluginSettingTab {
     this.plugin = plugin;
   }
 
-  private buildCtx(refresh: () => void): SettingsContext {
-    return {
+  getSettingDefinitions(): SettingDefinitionItem[] {
+    const ctx: SettingsContext = {
       plugin: this.plugin,
-      display: refresh,
+      display: () => this.update(),
       syncCancelRef: this.syncCancelRef,
     };
-  }
-
-  /**
-   * @deprecated Fallback for Obsidian < 1.13.0; superseded by getSettingDefinitions().
-   */
-  display(): void {
-    const { containerEl } = this;
-    containerEl.empty();
-
-    const ctx = this.buildCtx(() => this.display());
-    displayEditHistorySettings(containerEl, ctx);
-    for (const render of SECTION_RENDERERS) {
-      render(containerEl, ctx);
-    }
-  }
-
-  getSettingDefinitions(): SettingDefinitionItem[] {
-    const ctx = this.buildCtx(() => this.update());
     displayEditHistorySettings(this.containerEl, ctx);
 
     return SECTION_RENDERERS.map(

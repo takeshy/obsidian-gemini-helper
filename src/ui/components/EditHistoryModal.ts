@@ -325,7 +325,7 @@ export class EditHistoryModal extends Modal {
       .addButton((btn) =>
         btn
           .setButtonText(t("editHistoryModal.clearAll"))
-          .setWarning()
+          .setDestructive()
           .onClick(() => {
             new ConfirmModal(this.app, t("editHistoryModal.confirmClear"), async () => {
               // Restore to the earliest point in local history

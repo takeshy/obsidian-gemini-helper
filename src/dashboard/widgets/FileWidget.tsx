@@ -495,7 +495,7 @@ function MemoPanel({
       setKeyboardTarget(target);
     },
     onBlurCapture: (e: React.FocusEvent<HTMLDivElement>) => {
-      if (e.currentTarget.contains(e.relatedTarget as Node | null)) return;
+      if (e.currentTarget.contains(e.relatedTarget)) return;
       // Delay unpinning: on iOS the blur lands between touch and click, and
       // moving the container mid-tap makes the tapped button miss its click.
       window.clearTimeout(keyboardBlurTimer.current);

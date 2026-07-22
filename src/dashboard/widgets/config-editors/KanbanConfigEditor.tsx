@@ -37,6 +37,11 @@ function normalizeDisplayFields(value: KanbanConfig["displayFields"]): KanbanDis
 
 const FILE_FIELD_NAMES = ["file.path", "file.name", "file.content", "file.mtime", "file.ctime"];
 
+function normalizeTags(value: unknown): string[] {
+  if (value == null) return [];
+  return (Array.isArray(value) ? value : [value]).map(String);
+}
+
 function fieldNamesFromVault(app: ConfigEditorProps["app"], folder: string, tag: string): string[] {
   const normalizedFolder = folder.trim().replace(/[/\\]+$/, "").toLocaleLowerCase();
   const folderPrefix = normalizedFolder ? `${normalizedFolder}/` : "";
@@ -50,7 +55,7 @@ function fieldNamesFromVault(app: ConfigEditorProps["app"], folder: string, tag:
     if (normalizedTag) {
       const tags = [
         ...(cache?.tags?.map((entry) => entry.tag) ?? []),
-        ...(Array.isArray(frontmatter.tags) ? frontmatter.tags : frontmatter.tags ? [frontmatter.tags] : []),
+        ...normalizeTags(frontmatter.tags),
       ].map((value) => String(value).replace(/^#/, "").toLocaleLowerCase());
       if (!tags.includes(normalizedTag)) continue;
     }

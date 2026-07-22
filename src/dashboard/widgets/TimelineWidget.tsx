@@ -995,7 +995,7 @@ export default function TimelineWidget({
                       setEditKeyboardFocused(true);
                     }}
                     onBlurCapture={(e) => {
-                      if (e.currentTarget.contains(e.relatedTarget as Node | null)) return;
+                      if (e.currentTarget.contains(e.relatedTarget)) return;
                       window.clearTimeout(editBlurTimerRef.current);
                       editBlurTimerRef.current = window.setTimeout(() => {
                         setEditKeyboardFocused(false);

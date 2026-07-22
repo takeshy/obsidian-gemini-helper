@@ -20,7 +20,7 @@ export function kanbanDefinitionFromConfig(
   config: object & { kanban?: unknown; cardOrder?: unknown },
 ): KanbanBoardDefinition {
   const { kanban: _kanban, cardOrder: _cardOrder, ...definition } = config;
-  return definition as KanbanBoardDefinition;
+  return definition;
 }
 
 export function parseKanbanFile(content: string): KanbanBoardDefinition | null {

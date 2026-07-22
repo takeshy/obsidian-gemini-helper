@@ -783,36 +783,36 @@ export class GeminiClient {
     for (const attachment of msg.attachments) {
       if (attachment.type === "image") {
         contents.push({
-          type: "image" as const,
+          type: "image",
           data: attachment.data,
           mime_type: attachment.mimeType,
-        } as Interactions.Content);
+        });
       } else if (attachment.type === "audio") {
         contents.push({
-          type: "audio" as const,
+          type: "audio",
           data: attachment.data,
           mime_type: attachment.mimeType,
-        } as Interactions.Content);
+        });
       } else if (attachment.type === "video") {
         contents.push({
-          type: "video" as const,
+          type: "video",
           data: attachment.data,
           mime_type: attachment.mimeType,
-        } as Interactions.Content);
+        });
       } else if (attachment.type === "pdf") {
         contents.push({
-          type: "document" as const,
+          type: "document",
           data: attachment.data,
           mime_type: attachment.mimeType,
-        } as Interactions.Content);
+        });
       } else {
         // Text files — include as text
         if (attachment.data) {
           try {
             const decoded = atob(attachment.data);
-            contents.push({ type: "text" as const, text: `[File: ${attachment.name}]\n${decoded}` });
+            contents.push({ type: "text", text: `[File: ${attachment.name}]\n${decoded}` });
           } catch {
-            contents.push({ type: "text" as const, text: `[File: ${attachment.name}]` });
+            contents.push({ type: "text", text: `[File: ${attachment.name}]` });
           }
         }
       }

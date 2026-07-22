@@ -1,6 +1,6 @@
 {
   "name": "obsidian-gemini-helper",
-  "version": "1.19.2",
+  "version": "1.19.3",
   "description": "AI-powered assistant using Google Gemini with File Search RAG capabilities",
   "main": "main.js",
   "scripts": {
@@ -41,7 +41,7 @@
     "esbuild": "^0.28.1",
     "eslint-plugin-obsidianmd": "^0.1.9",
     "langfuse": "^3.38.6",
-    "obsidian": "^1.10.0",
+    "obsidian": "^1.13.1",
     "tslib": "^2.4.0",
     "typescript": "^5.0.0",
     "typescript-eslint": "^8.49.0",

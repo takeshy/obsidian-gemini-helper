@@ -1250,6 +1250,15 @@
 }
 
 /* Settings Styles */
+/* Wrapper row used by SettingsTab.getSettingDefinitions() to embed a whole
+   legacy imperative section; strip its own box so nested Setting rows
+   render as if they were direct children of the tab. */
+.gemini-helper-settings-section.setting-item {
+  display: block;
+  border-top: none;
+  padding: 0;
+}
+
 .gemini-helper-settings-textarea-container .setting-item-control {
   flex-direction: column;
   align-items: stretch;

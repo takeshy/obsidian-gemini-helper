@@ -292,7 +292,7 @@ export default function MessageBubble({
         img.src = `data:${mimeType};base64,${base64Data}`;
         await loadPromise;
 
-        const canvas = activeDocument.createElement("canvas");
+        const canvas = createEl("canvas");
         canvas.width = img.width;
         canvas.height = img.height;
         const ctx = canvas.getContext("2d");
@@ -347,7 +347,7 @@ export default function MessageBubble({
       }
     } else {
       // PC: Download file
-      const link = activeDocument.createElement("a");
+      const link = createEl("a");
       link.href = `data:${mimeType};base64,${base64Data}`;
       link.download = fileName;
       link.click();
@@ -418,7 +418,7 @@ export default function MessageBubble({
       // PC: Download file
       const blob = new Blob([htmlContent], { type: "text/html" });
       const url = URL.createObjectURL(blob);
-      const link = activeDocument.createElement("a");
+      const link = createEl("a");
       link.href = url;
       link.download = `infographic-${getBaseName()}-${Date.now()}.html`;
       link.click();

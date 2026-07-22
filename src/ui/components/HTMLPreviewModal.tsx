@@ -94,8 +94,9 @@ export class HTMLPreviewModal extends Modal {
   private addResizeHandles(modalEl: HTMLElement) {
     const directions = ["n", "e", "s", "w", "ne", "nw", "se", "sw"];
     for (const dir of directions) {
-      const handle = activeDocument.createElement("div");
-      handle.className = `gemini-helper-resize-handle gemini-helper-resize-${dir}`;
+      const handle = createEl("div", {
+        cls: `gemini-helper-resize-handle gemini-helper-resize-${dir}`,
+      });
       handle.dataset.direction = dir;
       modalEl.appendChild(handle);
       this.setupResize(handle, modalEl, dir);
@@ -251,7 +252,7 @@ export class HTMLPreviewModal extends Modal {
       // Desktop: Download file
       const blob = new Blob([this.htmlContent], { type: "text/html" });
       const url = URL.createObjectURL(blob);
-      const link = activeDocument.createElement("a");
+      const link = createEl("a");
       link.href = url;
       link.download = `infographic-${this.baseName}-${Date.now()}.html`;
       link.click();

@@ -74,7 +74,7 @@ export class FilePromptModal extends Modal {
       cls: "workflow-select-file-btn",
     });
 
-    const selectedLabel = selectorContainer.createEl("span", {
+    const selectedLabel = selectorContainer.createSpan({
       text: t("workflowModal.noFileSelected"),
       cls: "workflow-selected-file-label",
     });
@@ -231,7 +231,7 @@ class AnyFilePromptModal extends Modal {
       cls: "workflow-select-file-btn",
     });
 
-    const selectedLabel = selectorContainer.createEl("span", {
+    const selectedLabel = selectorContainer.createSpan({
       text: t("workflowModal.noFileSelected"),
       cls: "workflow-selected-file-label",
     });
@@ -310,17 +310,17 @@ class AnyFilePromptModal extends Modal {
       img.src = this.app.vault.getResourcePath(file);
     } else if (ext === "pdf") {
       // PDF files: show info
-      this.previewEl.createEl("div", {
+      this.previewEl.createDiv({
         text: `PDF: ${file.basename}.${file.extension}`,
         cls: "workflow-file-preview-pdf",
       });
-      this.previewEl.createEl("div", {
+      this.previewEl.createDiv({
         text: `Size: ${this.formatFileSize(file.stat.size)}`,
       });
     } else {
       // Other files: show basic info
-      this.previewEl.createEl("div", { text: `File: ${file.path}` });
-      this.previewEl.createEl("div", { text: `Size: ${this.formatFileSize(file.stat.size)}` });
+      this.previewEl.createDiv({ text: `File: ${file.path}` });
+      this.previewEl.createDiv({ text: `Size: ${this.formatFileSize(file.stat.size)}` });
     }
   }
 
@@ -395,7 +395,7 @@ class NewFilePathModal extends Modal {
 
     // Extension hint
     if (this.extensions && this.extensions.length > 0) {
-      contentEl.createEl("div", {
+      contentEl.createDiv({
         text: t("workflowModal.allowedExtensions", { extensions: this.extensions.join(", ") }),
         cls: "workflow-file-path-hint",
       });

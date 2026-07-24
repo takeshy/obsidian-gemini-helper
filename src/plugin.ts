@@ -751,7 +751,6 @@ export class GeminiHelperPlugin extends Plugin {
     const app = this.app as typeof this.app & { plugins?: { plugins?: Record<string, unknown> } };
     const dashboardHub = app.plugins?.plugins?.["dashboard-hub"] as DashboardHubApi | undefined;
     if (!dashboardHub?.createDashboard) {
-      // eslint-disable-next-line obsidianmd/ui/sentence-case -- Dashboard Hub is a product name.
       new Notice("Install and enable Dashboard Hub to create dashboards.");
       return null;
     }
@@ -774,11 +773,10 @@ export class GeminiHelperPlugin extends Plugin {
         if (window.localStorage.getItem(storageKey)) return;
         window.localStorage.setItem(storageKey, "shown");
       } catch {
-        const shared = globalThis as typeof globalThis & { __dashboardHubMigrationNoticeShown?: boolean };
+        const shared = window as typeof window & { __dashboardHubMigrationNoticeShown?: boolean };
         if (shared.__dashboardHubMigrationNoticeShown) return;
         shared.__dashboardHubMigrationNoticeShown = true;
       }
-      // eslint-disable-next-line obsidianmd/ui/sentence-case -- Dashboard Hub is a product name.
       new Notice("Existing .dashboard files now require the separate Dashboard Hub plugin. Install and enable Dashboard Hub to open them.", 15000);
     });
   }

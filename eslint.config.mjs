@@ -1,9 +1,11 @@
 import obsidianmd from 'eslint-plugin-obsidianmd';
 import tseslint from 'typescript-eslint';
 import { DEFAULT_ACRONYMS } from 'eslint-plugin-obsidianmd/dist/lib/rules/ui/acronyms.js';
+import { DEFAULT_BRANDS } from 'eslint-plugin-obsidianmd/dist/lib/rules/ui/brands.js';
 
 // Extend the built-in acronym list so project-specific acronyms render uppercase.
-const ACRONYMS = [...DEFAULT_ACRONYMS, 'OKF'];
+const ACRONYMS = [...DEFAULT_ACRONYMS, 'MCP', 'OKF'];
+const BRANDS = [...DEFAULT_BRANDS, 'Dashboard Hub', 'Gemini Helper'];
 
 export default tseslint.config(
   {
@@ -52,12 +54,23 @@ export default tseslint.config(
       'obsidianmd/platform': 'error',
       'obsidianmd/prefer-file-manager-trash-file': 'warn',
       'obsidianmd/prefer-abstract-input-suggest': 'error',
+      'obsidianmd/prefer-create-el': 'error',
+      'obsidianmd/no-global-this': 'error',
       'obsidianmd/regex-lookbehind': 'error',
       'obsidianmd/sample-names': 'error',
       'obsidianmd/validate-manifest': 'error',
       'obsidianmd/validate-license': 'error',
-      'obsidianmd/ui/sentence-case': ['error', { acronyms: ACRONYMS }],
-      'obsidianmd/ui/sentence-case-locale-module': ['error', { acronyms: ACRONYMS }],
+      'obsidianmd/ui/sentence-case': ['error', {
+        acronyms: ACRONYMS,
+        brands: BRANDS,
+        allowAutoFix: true,
+      }],
+      'obsidianmd/ui/sentence-case-locale-module': ['error', {
+        acronyms: ACRONYMS,
+        brands: BRANDS,
+        ignoreRegex: ['^\\(', 'https?://', '^#', '^\\^', '\\^daily/'],
+        allowAutoFix: true,
+      }],
 
       // Additional strict rules
       'no-case-declarations': 'error',

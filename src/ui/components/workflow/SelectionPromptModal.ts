@@ -71,7 +71,7 @@ export class SelectionPromptModal extends Modal {
       cls: "workflow-select-file-btn",
     });
 
-    const selectedLabel = selectorContainer.createEl("span", {
+    const selectedLabel = selectorContainer.createSpan({
       text: t("workflowModal.noFileSelected"),
       cls: "workflow-selected-file-label",
     });

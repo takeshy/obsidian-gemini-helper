@@ -145,14 +145,14 @@ export class EditConfirmationModal extends Modal {
     titleRow.createEl("h3", { text: t("workflowModal.confirmFileWrite") });
 
     const modeLabel = this.getModeLabel();
-    titleRow.createEl("span", {
+    titleRow.createSpan({
       text: modeLabel,
       cls: "gemini-helper-edit-confirm-mode",
     });
 
     // File path display
     const pathRow = header.createDiv({ cls: "gemini-helper-edit-confirm-path" });
-    pathRow.createEl("span", { text: t("workflowModal.file") });
+    pathRow.createSpan({ text: t("workflowModal.file") });
     pathRow.createEl("strong", { text: this.filePath });
 
     // Content preview
@@ -163,7 +163,7 @@ export class EditConfirmationModal extends Modal {
     const previewLabel = previewContainer.createDiv({
       cls: "gemini-helper-edit-confirm-preview-label",
     });
-    previewLabel.createEl("span", { text: t("workflowModal.changes") });
+    previewLabel.createSpan({ text: t("workflowModal.changes") });
 
     const previewContent = previewContainer.createDiv({
       cls: "gemini-helper-edit-confirm-preview-content",
@@ -518,7 +518,7 @@ export class DeleteConfirmationModal extends Modal {
     const titleRow = header.createDiv({ cls: "gemini-helper-edit-confirm-title-row" });
     titleRow.createEl("h3", { text: t("workflowModal.confirmFileDeletion") });
 
-    const warningLabel = titleRow.createEl("span", {
+    const warningLabel = titleRow.createSpan({
       cls: "gemini-helper-delete-confirm-warning-label",
     });
     warningLabel.createSpan({ text: "⚠️ " });
@@ -527,7 +527,7 @@ export class DeleteConfirmationModal extends Modal {
 
     // File path display
     const pathRow = header.createDiv({ cls: "gemini-helper-edit-confirm-path" });
-    pathRow.createEl("span", { text: t("workflowModal.file") });
+    pathRow.createSpan({ text: t("workflowModal.file") });
     pathRow.createEl("strong", { text: this.filePath });
 
     // Content preview
@@ -538,7 +538,7 @@ export class DeleteConfirmationModal extends Modal {
     const previewLabel = previewContainer.createDiv({
       cls: "gemini-helper-edit-confirm-preview-label",
     });
-    previewLabel.createEl("span", { text: t("workflowModal.contentToBeDeleted") });
+    previewLabel.createSpan({ text: t("workflowModal.contentToBeDeleted") });
 
     const previewContent = previewContainer.createDiv({
       cls: "gemini-helper-edit-confirm-preview-content",
@@ -877,10 +877,10 @@ export class BulkEditConfirmationModal extends Modal {
       const fileInfo = fileRow.createDiv({ cls: "gemini-helper-bulk-file-info" });
 
       const pathEl = fileInfo.createDiv({ cls: "gemini-helper-bulk-file-path" });
-      pathEl.createEl("span", { text: item.path });
+      pathEl.createSpan({ text: item.path });
 
       const modeLabel = this.getModeLabel(item.mode);
-      pathEl.createEl("span", {
+      pathEl.createSpan({
         text: modeLabel,
         cls: "gemini-helper-bulk-file-mode",
       });
@@ -1158,7 +1158,7 @@ export class BulkDeleteConfirmationModal extends Modal {
     const titleRow = header.createDiv({ cls: "gemini-helper-edit-confirm-title-row" });
     titleRow.createEl("h3", { text: t("workflowModal.confirmBulkDelete", { count: String(this.items.length) }) });
 
-    const warningLabel = titleRow.createEl("span", {
+    const warningLabel = titleRow.createSpan({
       cls: "gemini-helper-delete-confirm-warning-label",
     });
     warningLabel.createSpan({ text: "⚠️ " });
@@ -1241,7 +1241,7 @@ export class BulkDeleteConfirmationModal extends Modal {
       const fileInfo = fileRow.createDiv({ cls: "gemini-helper-bulk-file-info" });
 
       const pathEl = fileInfo.createDiv({ cls: "gemini-helper-bulk-file-path" });
-      pathEl.createEl("span", { text: item.path });
+      pathEl.createSpan({ text: item.path });
 
       // Expand/collapse button
       const expandBtn = fileInfo.createEl("button", {
@@ -1487,9 +1487,9 @@ export class RenameConfirmationModal extends Modal {
 
     // Path display
     const pathRow = header.createDiv({ cls: "gemini-helper-edit-confirm-path" });
-    pathRow.createEl("span", { text: "📁 " });
+    pathRow.createSpan({ text: "📁 " });
     pathRow.createEl("strong", { text: this.originalPath });
-    pathRow.createEl("span", { text: " → " });
+    pathRow.createSpan({ text: " → " });
     pathRow.createEl("strong", { text: this.newPath });
 
     // Buttons
@@ -1682,9 +1682,9 @@ export class BulkRenameConfirmationModal extends Modal {
       // Rename info
       const fileInfo = fileRow.createDiv({ cls: "gemini-helper-bulk-file-info" });
       const pathEl = fileInfo.createDiv({ cls: "gemini-helper-bulk-file-path" });
-      pathEl.createEl("span", { text: item.originalPath });
-      pathEl.createEl("span", { text: " → ", cls: "gemini-helper-rename-arrow" });
-      pathEl.createEl("span", { text: item.newPath, cls: "gemini-helper-rename-new-path" });
+      pathEl.createSpan({ text: item.originalPath });
+      pathEl.createSpan({ text: " → ", cls: "gemini-helper-rename-arrow" });
+      pathEl.createSpan({ text: item.newPath, cls: "gemini-helper-rename-new-path" });
     }
   }
 

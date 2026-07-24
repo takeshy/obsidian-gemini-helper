@@ -94,7 +94,7 @@ export class HTMLPreviewModal extends Modal {
   private addResizeHandles(modalEl: HTMLElement) {
     const directions = ["n", "e", "s", "w", "ne", "nw", "se", "sw"];
     for (const dir of directions) {
-      const handle = createEl("div", {
+      const handle = createDiv({
         cls: `gemini-helper-resize-handle gemini-helper-resize-${dir}`,
       });
       handle.dataset.direction = dir;

@@ -120,11 +120,11 @@ class WorkflowConfirmModal extends Modal {
     // can see what was asked without re-prefilling the refinement textarea.
     if (this.userRequest?.trim()) {
       const requestContainer = scrollable.createDiv({ cls: "ai-workflow-confirm-user-request" });
-      requestContainer.createEl("div", {
+      requestContainer.createDiv({
         cls: "ai-workflow-confirm-user-request-label",
         text: t("workflow.generation.yourRequest"),
       });
-      requestContainer.createEl("div", {
+      requestContainer.createDiv({
         cls: "ai-workflow-confirm-user-request-body",
         text: this.userRequest.trim(),
       });
@@ -157,7 +157,7 @@ class WorkflowConfirmModal extends Modal {
     // the user can see both instruction-body changes and workflow YAML changes.
     if (hasInstructionsDiff) {
       const instrLabel = scrollable.createDiv({ cls: "gemini-helper-edit-confirm-preview-label" });
-      instrLabel.createEl("span", { text: t("aiWorkflow.skillInstructionsChanges") });
+      instrLabel.createSpan({ text: t("aiWorkflow.skillInstructionsChanges") });
       const instrUnchanged = (this.oldInstructions ?? "") === this.newInstructions;
       if (instrUnchanged) {
         scrollable.createDiv({
@@ -173,7 +173,7 @@ class WorkflowConfirmModal extends Modal {
 
     // Create diff view with toggle
     const diffLabel = scrollable.createDiv({ cls: "gemini-helper-edit-confirm-preview-label" });
-    diffLabel.createEl("span", {
+    diffLabel.createSpan({
       text: hasInstructionsDiff ? t("aiWorkflow.workflowYamlChanges") : t("workflowModal.changes"),
     });
     const yamlUnchanged = this.oldYaml === this.newYaml;
@@ -477,7 +477,7 @@ export class AIWorkflowModal extends Modal {
       if (this.forceSkill) {
         this.outputPathEl.disabled = true;
       }
-      pathContainer.createEl("div", {
+      pathContainer.createDiv({
         cls: "ai-workflow-hint",
         text: t("aiWorkflow.pathHint"),
       });
@@ -534,7 +534,7 @@ export class AIWorkflowModal extends Modal {
     this.setupMentionAutocomplete();
 
     // Hint for @ mention
-    contentEl.createEl("div", {
+    contentEl.createDiv({
       cls: "ai-workflow-hint",
       text: t("aiWorkflow.mentionHint"),
     });

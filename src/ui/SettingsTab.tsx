@@ -1,6 +1,7 @@
 import { PluginSettingTab, App } from "obsidian";
 import type { Setting, SettingDefinitionItem } from "obsidian";
 import type { GeminiHelperPlugin } from "src/plugin";
+import { t, type TranslationKey } from "src/i18n";
 import type { SettingsContext } from "src/ui/settings/settingsContext";
 import { displayApiSettings } from "src/ui/settings/apiSettings";
 import { displayWorkspaceSettings } from "src/ui/settings/workspaceSettings";
@@ -14,17 +15,51 @@ import { displayKnowledgeSettings } from "src/ui/settings/knowledgeSettings";
 
 import { displayMcpServersSettings } from "src/ui/settings/mcpServersSettings";
 
+interface SettingsSection {
+  name: TranslationKey;
+  aliases: TranslationKey[];
+  render: (containerEl: HTMLElement, ctx: SettingsContext) => void;
+}
+
 // Sections rendered under the main tab heading (edit history has no UI of its own).
-const SECTION_RENDERERS: Array<(containerEl: HTMLElement, ctx: SettingsContext) => void> = [
-  displayApiSettings,
-  displayWorkspaceSettings,
-  displayEncryptionSettings,
-  displayLangfuseSettings,
-  displaySlashCommandSettings,
-  displayExternalSkillSettings,
-  displayKnowledgeSettings,
-  displayRagSettings,
-  displayMcpServersSettings,
+const SETTINGS_SECTIONS: SettingsSection[] = [
+  { name: "settings.api", aliases: ["settings.googleApiKey", "settings.apiPlan"], render: displayApiSettings },
+  {
+    name: "settings.workspace",
+    aliases: ["settings.workspaceFolder", "settings.saveChatHistory", "settings.systemPrompt"],
+    render: displayWorkspaceSettings,
+  },
+  {
+    name: "settings.encryption",
+    aliases: ["settings.encryptionPassword", "settings.encryptChatHistory", "settings.encryptWorkflowHistory"],
+    render: displayEncryptionSettings,
+  },
+  {
+    name: "settings.langfuse",
+    aliases: ["settings.langfuseBaseUrl", "settings.langfusePublicKey", "settings.langfuseSecretKey"],
+    render: displayLangfuseSettings,
+  },
+  { name: "settings.slashCommands", aliases: ["settings.manageCommands"], render: displaySlashCommandSettings },
+  {
+    name: "settings.externalSkills",
+    aliases: ["settings.externalSkillsRepository", "settings.externalSkills.install", "settings.externalSkills.installed"],
+    render: displayExternalSkillSettings,
+  },
+  {
+    name: "settings.knowledge",
+    aliases: ["settings.okfSource", "settings.okfSourcePath"],
+    render: displayKnowledgeSettings,
+  },
+  {
+    name: "settings.rag",
+    aliases: ["settings.ragSetting", "settings.targetFolders", "settings.excludedPatterns", "settings.metadataFilter"],
+    render: displayRagSettings,
+  },
+  {
+    name: "settings.mcpServers",
+    aliases: ["settings.mcpServers.desc"],
+    render: displayMcpServersSettings,
+  },
 ];
 
 export class SettingsTab extends PluginSettingTab {
@@ -45,7 +80,7 @@ export class SettingsTab extends PluginSettingTab {
       syncCancelRef: this.syncCancelRef,
     };
     displayEditHistorySettings(this.containerEl, ctx);
-    for (const renderSection of SECTION_RENDERERS) renderSection(this.containerEl, ctx);
+    for (const section of SETTINGS_SECTIONS) section.render(this.containerEl, ctx);
   }
 
   getSettingDefinitions(): SettingDefinitionItem[] {
@@ -56,14 +91,14 @@ export class SettingsTab extends PluginSettingTab {
     };
     displayEditHistorySettings(this.containerEl, ctx);
 
-    return SECTION_RENDERERS.map(
-      (renderSection): SettingDefinitionItem => ({
-        name: "",
-        searchable: false,
+    return SETTINGS_SECTIONS.map(
+      (section): SettingDefinitionItem => ({
+        name: t(section.name),
+        aliases: section.aliases.map((key) => t(key)),
         render: (setting: Setting) => {
           setting.settingEl.addClass("gemini-helper-settings-section");
           setting.settingEl.empty();
-          renderSection(setting.settingEl, ctx);
+          section.render(setting.settingEl, ctx);
         },
       }),
     );

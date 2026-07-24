@@ -102,7 +102,7 @@ export class WorkflowGenerationModal extends Modal {
     // Execution history info (if steps are selected)
     if (this.executionStepsCount > 0) {
       const historySection = contentEl.createDiv({ cls: "workflow-generation-history-info" });
-      historySection.createEl("span", {
+      historySection.createSpan({
         cls: "workflow-generation-history-badge",
         text: t("workflow.generation.executionHistoryIncluded", { count: this.executionStepsCount }),
       });

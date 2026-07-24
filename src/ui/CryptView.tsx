@@ -66,7 +66,7 @@ export class CryptView extends TextFileView {
     container.addClass("gemini-helper-crypt-container");
 
     if (!this.currentData) {
-      container.createEl("div", {
+      container.createDiv({
         text: "No content",
         cls: "gemini-helper-crypt-error",
       });
@@ -74,7 +74,7 @@ export class CryptView extends TextFileView {
     }
 
     if (!isEncryptedFile(this.currentData)) {
-      container.createEl("div", {
+      container.createDiv({
         text: "File is not encrypted",
         cls: "gemini-helper-crypt-error",
       });

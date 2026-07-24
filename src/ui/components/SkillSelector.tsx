@@ -4,6 +4,7 @@ import { Sparkles, X, Plus } from "lucide-react";
 import { type App } from "obsidian";
 import type { SkillMetadata } from "src/core/skillsLoader";
 import { isBuiltinSkillPath } from "src/core/builtinSkills";
+import { isRuntimeSkillPath } from "src/core/runtimeSkills";
 import { t } from "src/i18n";
 
 interface SkillSelectorProps {
@@ -64,7 +65,7 @@ export default function SkillSelector({
     <div className="gemini-helper-skill-selector" ref={selectorRef}>
       <Sparkles size={14} className="gemini-helper-skill-icon" />
       {activeSkills.map(skill => {
-        const builtin = isBuiltinSkillPath(skill.folderPath);
+        const builtin = isBuiltinSkillPath(skill.folderPath) || isRuntimeSkillPath(skill.folderPath);
         return (
           <span key={skill.folderPath} className="gemini-helper-skill-chip" title={skill.description}>
             {builtin ? (
@@ -113,6 +114,9 @@ export default function SkillSelector({
                   {skill.name}
                   {isBuiltinSkillPath(skill.folderPath) && (
                     <span className="gemini-helper-skill-builtin-badge">built-in</span>
+                  )}
+                  {isRuntimeSkillPath(skill.folderPath) && (
+                    <span className="gemini-helper-skill-builtin-badge">plugin</span>
                   )}
                 </span>
                 {skill.description && (

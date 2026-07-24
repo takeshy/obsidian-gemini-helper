@@ -7,6 +7,7 @@ import { HTMLPreviewModal, extractHtmlFromCodeBlock } from "./HTMLPreviewModal";
 import { McpAppRenderer } from "./McpAppRenderer";
 import { discoverSkills } from "src/core/skillsLoader";
 import { isBuiltinSkillPath } from "src/core/builtinSkills";
+import { isRuntimeSkillPath } from "src/core/runtimeSkills";
 import { ChatView, VIEW_TYPE_GEMINI_CHAT } from "src/ui/ChatView";
 import { t } from "src/i18n";
 import { formatError } from "src/utils/error";
@@ -814,7 +815,7 @@ function SkillsUsedIndicator({ skillNames, app }: { skillNames: string[]; app: A
       if (cancelled) return;
       const map = new Map<string, { path: string; builtin: boolean }>();
       for (const s of skills) {
-        map.set(s.name, { path: s.skillFilePath, builtin: isBuiltinSkillPath(s.folderPath) });
+        map.set(s.name, { path: s.skillFilePath, builtin: isBuiltinSkillPath(s.folderPath) || isRuntimeSkillPath(s.folderPath) });
       }
       setSkillMap(map);
     });

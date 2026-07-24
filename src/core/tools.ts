@@ -3,6 +3,24 @@ import type { ToolDefinition } from "src/types";
 // Tool definitions for Gemini Function Calling
 export const obsidianTools: ToolDefinition[] = [
   {
+    name: "read_timeline",
+    description:
+      "Read activity recorded by Dashboard Hub in an Obsidian Timeline for a day. Use this when asked what the user did today or on a specific date. Includes manual Timeline posts, Calendar plans created that day, memo activity, and Kanban status changes.",
+    parameters: {
+      type: "object",
+      properties: {
+        date: {
+          type: "string",
+          description: "Local date in YYYY-MM-DD format. Defaults to today.",
+        },
+        timelineName: {
+          type: "string",
+          description: "Timeline name. Defaults to Timeline.",
+        },
+      },
+    },
+  },
+  {
     name: "read_note",
     description:
       "Read the content of a text-based vault file in Obsidian by name or by detecting the currently active file.",
@@ -369,7 +387,7 @@ export function getEnabledTools(options: {
   return obsidianTools.filter((tool) => {
     // Read operations always allowed
     if (
-      ["read_note", "search_notes", "list_notes", "list_folders", "get_active_note_info"].includes(
+      ["read_timeline", "read_note", "search_notes", "list_notes", "list_folders", "get_active_note_info"].includes(
         tool.name
       )
     ) {

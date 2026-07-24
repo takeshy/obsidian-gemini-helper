@@ -8,7 +8,7 @@ timestamp: 2026-07-04T00:00:00Z
 
 # Workflow Triggers and Inputs
 
-Workflows can run manually, from hotkeys, from Obsidian events, as dashboard widgets, as sub-workflows, or as skill workflow tools called from chat.
+Workflows can run manually, from hotkeys, from Obsidian events, through integrations such as Dashboard Hub, as sub-workflows, or as skill workflow tools called from chat.
 
 # Hotkeys
 
@@ -46,6 +46,6 @@ For skill workflows, any variable read via `{{var}}` before it is initialized by
 
 The chat model sees these input variable names when deciding how to call `run_skill_workflow`. Skill instructions should reference each input by exact variable name.
 
-# Dashboard Workflow Inputs
+# Dashboard Hub Workflow Inputs
 
-Workflow widgets run headlessly from dashboards and render cached Markdown or HTML output. They should not rely on interactive prompt nodes because no user interaction is available during background refresh. The output should be stored in a string variable, usually `result`.
+When Dashboard Hub asks Gemini Helper to execute a Workflow for a widget, it runs headlessly and returns a Markdown or HTML string. Such workflows should not rely on interactive prompt nodes because no user interaction is available during background refresh. The output should be stored in a string variable, usually `result`. Dashboard behavior and caching are documented in the Dashboard Hub repository.

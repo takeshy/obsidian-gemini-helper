@@ -33,6 +33,5 @@ Workflow execution is protected by an iteration limit of 1000 to prevent infinit
 
 - [Agent Skills](./agent-skills.md) explains skill workflows.
 - [MCP](./mcp.md) explains MCP workflow nodes.
-- [Dashboard](./dashboard.md) explains workflow widgets.
 - [Workflow Authoring and Recovery](./workflow-authoring-recovery.md) explains AI generation, modification, history, and failure recovery.
 - [Workflow Triggers and Inputs](./workflow-triggers-inputs.md) explains hotkeys, events, prompts, and skill inputs.

@@ -38,6 +38,7 @@ function makeApp(files: TFile[], activeFile: TFile | null = null): App {
   return {
     vault: {
       getFiles: () => files,
+      getMarkdownFiles: () => files.filter((file) => file.extension === "md"),
       getAllLoadedFiles: () => [...folders, ...files],
       getAbstractFileByPath: (path: string) => files.find((file) => file.path === path) ?? null,
       read: async (file: TFile) => (file as TFile & { _content: string })._content,
@@ -52,6 +53,20 @@ function makeApp(files: TFile[], activeFile: TFile | null = null): App {
 describe("AI vault tool folder scope", () => {
   beforeEach(() => {
     mockGetFileSearchManager.mockReset();
+  });
+
+  it("reads Dashboard Hub Timeline activity through the dedicated AI tool", async () => {
+    const app = makeApp([
+      makeFile("Dashboards/Timeline/Timeline/2026-07-23.md", "2026-07-23T01:00:00.000Z\nid: memo-1\n\nMemo created"),
+      makeFile("Dashboards/Timeline/Timeline/2026-07-30.md", "2026-07-23T02:00:00.000Z\nid: event-1\n\n<!-- calendar-event: 2026-07-30 -->\n> Planned review"),
+    ]);
+
+    const result = await executeToolCall(app, "read_timeline", { date: "2026-07-23" });
+
+    expect(result.success).toBe(true);
+    expect(result.count).toBe(2);
+    expect(String(result.content)).toContain("Memo created");
+    expect(String(result.content)).toContain("Planned review");
   });
 
   it("allows the whole vault when no allowed folders are configured", async () => {

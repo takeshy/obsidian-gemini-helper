@@ -30,6 +30,7 @@ import {
 } from "src/core/fileSearch";
 import { DEFAULT_SETTINGS, type RagSyncState } from "src/types";
 import { formatError } from "src/utils/error";
+import { readTimelineEntriesForDay, sanitizeTimelineName } from "./timelineReader";
 import {
   AI_VAULT_SCOPE_DENIED_MSG,
   isFileAllowedForAiVaultTools,
@@ -123,6 +124,11 @@ function asString(value: unknown): string | undefined {
   try { return JSON.stringify(value); } catch { return undefined; }
 }
 
+function localDay(date = new Date()): string {
+  const pad = (value: number) => String(value).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+}
+
 // Internal function that may throw
 async function executeToolCallInternal(
   app: App,
@@ -131,6 +137,25 @@ async function executeToolCallInternal(
   context?: ToolExecutionContext
 ): Promise<ToolResult> {
   switch (toolName) {
+    case "read_timeline": {
+      const timelineName = sanitizeTimelineName(asString(args.timelineName) || "Timeline");
+      const date = asString(args.date) || localDay();
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+        return { success: false, error: "date must use YYYY-MM-DD format" };
+      }
+      if (!isPathInAiVaultToolScope(`Dashboards/Timeline/${timelineName}`, context)) {
+        return denyAiVaultToolScope();
+      }
+      const entries = await readTimelineEntriesForDay(app.vault, timelineName, date);
+      return {
+        success: true,
+        timelineName,
+        date,
+        count: entries.length,
+        content: entries.join("\n\n---\n\n"),
+      };
+    }
+
     case "read_note":
       if (!isFileInAiVaultToolScope(app, asString(args.fileName), args.activeNote as boolean | undefined, context)) {
         return denyAiVaultToolScope();

@@ -1,6 +1,7 @@
 import { type App, TFile, TFolder, parseYaml, stringifyYaml } from "obsidian";
 import { SKILLS_FOLDER } from "src/types";
-import { getBuiltinSkillMetadata, isBuiltinSkillPath, loadBuiltinSkill } from "./builtinSkills";
+import { getBuiltinSkillMetadata, isBuiltinSkillPath, loadBuiltinSkill, loadBuiltinSkillByCapability } from "./builtinSkills";
+import { getRuntimeSkillMetadata, isRuntimeSkillPath, loadRuntimeSkill } from "./runtimeSkills";
 
 export interface SkillWorkflowRef {
   path: string;              // relative path from skill folder (e.g. "workflows/lint.md")
@@ -117,7 +118,7 @@ export function writeSkillMd(frontmatter: Record<string, unknown>, body: string)
  * ```
  */
 export async function discoverSkills(app: App): Promise<SkillMetadata[]> {
-  const skills: SkillMetadata[] = [...getBuiltinSkillMetadata()];
+  const skills: SkillMetadata[] = [...getBuiltinSkillMetadata(), ...getRuntimeSkillMetadata()];
 
   const folder = app.vault.getAbstractFileByPath(SKILLS_FOLDER);
   if (!(folder instanceof TFolder)) return skills;
@@ -194,6 +195,17 @@ export function loadSkill(_app: App, metadata: SkillMetadata): LoadedSkill {
     const builtin = loadBuiltinSkill(metadata.folderPath);
     if (builtin) return builtin;
   }
+  if (isRuntimeSkillPath(metadata.folderPath)) {
+    const runtime = loadRuntimeSkill(metadata.folderPath);
+    if (runtime) {
+      const references = [...runtime.references];
+      for (const dependency of runtime.dependencies) {
+        const builtin = loadBuiltinSkillByCapability(dependency);
+        if (builtin) references.push(`[DEPENDENCY: ${dependency}]\n${builtin.instructions}\n\n${builtin.references.join("\n\n")}`);
+      }
+      return { ...runtime, references };
+    }
+  }
   return { ...metadata, instructions: "", references: [] };
 }
 
@@ -211,7 +223,7 @@ export function buildSkillSystemPrompt(skills: LoadedSkill[]): string {
   let sawLazyVaultSkill = false;
 
   const parts = skills.map(skill => {
-    const isBuiltin = isBuiltinSkillPath(skill.folderPath);
+    const isBuiltin = isBuiltinSkillPath(skill.folderPath) || isRuntimeSkillPath(skill.folderPath);
 
     let section = `## Skill: ${skill.name}`;
     if (isBuiltin) {

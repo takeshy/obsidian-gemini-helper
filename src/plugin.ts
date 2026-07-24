@@ -1,4 +1,4 @@
-import { Plugin, WorkspaceLeaf, Notice, MarkdownView, TFile, Modal } from "obsidian";
+import { Plugin, WorkspaceLeaf, Notice, MarkdownView, TFile, Modal, type EventRef } from "obsidian";
 import { EventEmitter } from "src/utils/EventEmitter";
 import type { SelectionLocationInfo } from "src/ui/selectionHighlight";
 import { SelectionManager } from "src/plugin/selectionManager";
@@ -8,10 +8,6 @@ import { WorkflowManager } from "src/plugin/workflowManager";
 import { WorkspaceStateManager } from "src/core/workspaceStateManager";
 import { ChatView, VIEW_TYPE_GEMINI_CHAT } from "src/ui/ChatView";
 import { CryptView, CRYPT_VIEW_TYPE } from "src/ui/CryptView";
-import { DashboardView, DASHBOARD_VIEW_TYPE } from "src/ui/DashboardView";
-import { registerCoreWidgets } from "src/dashboard/widgets/registry";
-import { dashboardPath, serializeDashboard, createEmptyDashboard, ensureVaultFolder } from "src/dashboard/dashboardFile";
-import { DASHBOARD_FOLDER } from "src/dashboard/types";
 import { SettingsTab } from "src/ui/SettingsTab";
 import {
   type GeminiHelperSettings,
@@ -46,6 +42,35 @@ import { formatError } from "src/utils/error";
 import { DEFAULT_EDIT_HISTORY_SETTINGS, DEFAULT_LANGFUSE_SETTINGS, DEFAULT_WORKSPACE_FOLDER } from "src/types";
 import { initLocale, t } from "src/i18n";
 import { registerWorkflowCodeBlockProcessor } from "src/ui/workflowCodeBlock";
+import { generateDashboardBase, generateDashboardWorkflow, listDashboardModels, rewriteDashboardText, runDashboardWorkflow } from "src/integrations/dashboardHubCapabilities";
+import { REGISTER_RUNTIME_SKILL_EVENT, REQUEST_RUNTIME_SKILLS_EVENT, UNREGISTER_RUNTIME_SKILL_EVENT, registerRuntimeSkill, unregisterRuntimeSkill } from "src/core/runtimeSkills";
+
+interface DashboardHubIntegration {
+  protocolVersion: 1;
+  id: string;
+  name: string;
+  listModels: () => Promise<Array<{ id: string; name: string; capabilities: { text: boolean; vaultRead: boolean; tools: boolean } }>>;
+  getDefaultModel: () => Promise<string | null>;
+  openChatWithDraft: (draft: string) => void | Promise<void>;
+  askChatAboutSelection: (request: { text: string; sourcePath?: string }) => void | Promise<void>;
+  runWorkflow?: (request: { workflowPath: string; outputVariable?: string; abortSignal?: AbortSignal }) => Promise<string>;
+  generateBase?: (request: Parameters<typeof generateDashboardBase>[1]) => Promise<string>;
+  rewriteText?: (request: Parameters<typeof rewriteDashboardText>[1]) => Promise<string>;
+  generateWorkflow?: (request: Parameters<typeof generateDashboardWorkflow>[1]) => Promise<string>;
+}
+
+interface DashboardHubApi {
+  registerIntegration: (integration: DashboardHubIntegration) => () => void;
+  createDashboard: (requestedName?: string) => Promise<TFile | null>;
+}
+
+interface DashboardWorkspaceEvents {
+  on: (name: "dashboard-hub:ready", callback: (hub: DashboardHubApi) => void) => EventRef;
+  trigger: {
+    (name: "dashboard-hub:register-integration", integration: DashboardHubIntegration): void;
+    (name: "dashboard-hub:unregister-integration", request: { id: string; integration: DashboardHubIntegration }): void;
+  };
+}
 
 function normalizeDeprecatedModelName(model: unknown): ModelType | null | undefined {
   if (model === null || model === undefined) return model;
@@ -174,6 +199,16 @@ export class GeminiHelperPlugin extends Plugin {
 
     // Add settings tab
     this.addSettingTab(new SettingsTab(this.app, this));
+    this.registerRuntimeSkillContributions();
+    this.registerDashboardHubIntegration();
+    this.notifyDashboardHubMigration();
+    // Compatibility command for existing hotkeys; Dashboard Hub performs the
+    // actual creation and remains the sole owner of .dashboard files.
+    this.addCommand({
+      id: "create-dashboard",
+      name: t("command.createDashboard"),
+      callback: () => { void this.createDashboard(); },
+    });
 
     // Register chat view
     this.registerView(
@@ -189,20 +224,6 @@ export class GeminiHelperPlugin extends Plugin {
 
     // Register .encrypted extension so Obsidian opens these files in CryptView
     this.registerExtensions(["encrypted"], CRYPT_VIEW_TYPE);
-
-    // Register dashboard view (.dashboard files: widget grid over bases/notes/web)
-    registerCoreWidgets();
-    this.registerView(
-      DASHBOARD_VIEW_TYPE,
-      (leaf) => new DashboardView(leaf, this)
-    );
-
-    // Register .dashboard extension so Obsidian opens these files in DashboardView
-    try {
-      this.registerExtensions(["dashboard"], DASHBOARD_VIEW_TYPE);
-    } catch {
-      // Extension already registered by another plugin — skip
-    }
 
     // Register file menu (right-click) for encryption and edit history
     this.registerEvent(
@@ -289,15 +310,6 @@ export class GeminiHelperPlugin extends Plugin {
       name: "Sync vault for semantic search",
       callback: () => {
         void this.syncVaultForRAG();
-      },
-    });
-
-    // Add command to create a new dashboard
-    this.addCommand({
-      id: "create-dashboard",
-      name: t("command.createDashboard"),
-      callback: () => {
-        void this.createDashboard();
       },
     });
 
@@ -504,6 +516,7 @@ export class GeminiHelperPlugin extends Plugin {
     this.settings = {
       ...DEFAULT_SETTINGS,
       ...loaded,
+      googleApiKey: loaded.googleApiKey?.trim() ?? DEFAULT_SETTINGS.googleApiKey,
       // Deep copy arrays to avoid mutating DEFAULT_SETTINGS
       // Use loaded commands if present, otherwise use default commands
       slashCommands: loaded.slashCommands
@@ -731,37 +744,79 @@ export class GeminiHelperPlugin extends Plugin {
     }
   }
 
-  /**
-   * Create a new empty `.dashboard` file under `Dashboards/` and open it.
-   * Picks a unique name by appending " 2", " 3", ... when needed.
-   */
+  /** Delegate dashboard creation to the standalone Dashboard Hub plugin. */
   async createDashboard(requestedName = "Dashboard"): Promise<TFile | null> {
-    const { vault, workspace } = this.app;
-
-    const baseName = requestedName
-      .trim()
-      .replace(/[\\/:*?"<>|#^[\]]/g, " ")
-      .replace(/\s+/g, " ")
-      .trim() || "Dashboard";
-    let name = baseName;
-    let path = dashboardPath(name);
-    for (let i = 2; vault.getAbstractFileByPath(path); i++) {
-      name = `${baseName} ${i}`;
-      path = dashboardPath(name);
-    }
-
-    let file: TFile;
-    try {
-      await ensureVaultFolder(vault, DASHBOARD_FOLDER);
-      file = await vault.create(path, serializeDashboard(createEmptyDashboard()));
-    } catch (error) {
-      new Notice(`Failed to create dashboard: ${String(error)}`);
+    const app = this.app as typeof this.app & { plugins?: { plugins?: Record<string, unknown> } };
+    const dashboardHub = app.plugins?.plugins?.["dashboard-hub"] as DashboardHubApi | undefined;
+    if (!dashboardHub?.createDashboard) {
+      // eslint-disable-next-line obsidianmd/ui/sentence-case -- Dashboard Hub is a product name.
+      new Notice("Install and enable Dashboard Hub to create dashboards.");
       return null;
     }
+    return dashboardHub.createDashboard(requestedName);
+  }
 
-    const leaf = workspace.getLeaf(true);
-    await leaf.openFile(file);
-    return file;
+  private notifyDashboardHubMigration(): void {
+    this.app.workspace.onLayoutReady(() => {
+      const app = this.app as typeof this.app & {
+        plugins?: {
+          plugins?: Record<string, unknown>;
+          enabledPlugins?: { has: (id: string) => boolean };
+        };
+      };
+      if (app.plugins?.plugins?.["dashboard-hub"] || app.plugins?.enabledPlugins?.has("dashboard-hub")) return;
+      if (!app.vault.getFiles().some((file) => file.extension === "dashboard")) return;
+
+      const storageKey = `dashboard-hub:migration-notice:${app.vault.getName()}`;
+      try {
+        if (window.localStorage.getItem(storageKey)) return;
+        window.localStorage.setItem(storageKey, "shown");
+      } catch {
+        const shared = globalThis as typeof globalThis & { __dashboardHubMigrationNoticeShown?: boolean };
+        if (shared.__dashboardHubMigrationNoticeShown) return;
+        shared.__dashboardHubMigrationNoticeShown = true;
+      }
+      // eslint-disable-next-line obsidianmd/ui/sentence-case -- Dashboard Hub is a product name.
+      new Notice("Existing .dashboard files now require the separate Dashboard Hub plugin. Install and enable Dashboard Hub to open them.", 15000);
+    });
+  }
+
+  private registerDashboardHubIntegration(): void {
+    const integration: DashboardHubIntegration = {
+      protocolVersion: 1,
+      id: this.manifest.id,
+      name: this.manifest.name,
+      listModels: () => Promise.resolve(listDashboardModels(this)),
+      getDefaultModel: () => Promise.resolve(this.getSelectedModel()),
+      openChatWithDraft: (draft) => this.openChatWithDraft(draft),
+      askChatAboutSelection: (request) => this.askChatAboutSelection(request),
+      runWorkflow: (request) => runDashboardWorkflow(this, request),
+      generateBase: (request) => generateDashboardBase(this, request),
+      rewriteText: (request) => rewriteDashboardText(this, request),
+      generateWorkflow: (request) => generateDashboardWorkflow(this, request),
+    };
+    const workspace = this.app.workspace as unknown as DashboardWorkspaceEvents;
+    this.registerEvent(workspace.on("dashboard-hub:ready", (hub) => {
+      hub.registerIntegration(integration);
+    }));
+    workspace.trigger("dashboard-hub:register-integration", integration);
+    this.register(() => {
+      workspace.trigger("dashboard-hub:unregister-integration", { id: integration.id, integration });
+    });
+  }
+
+  private registerRuntimeSkillContributions(): void {
+    const workspace = this.app.workspace as unknown as {
+      on: (name: string, callback: (value: unknown) => void) => EventRef;
+      trigger: (name: string) => void;
+    };
+    this.registerEvent(workspace.on(REGISTER_RUNTIME_SKILL_EVENT, (value) => {
+      if (registerRuntimeSkill(value)) this.settingsEmitter.emit("skills-changed");
+    }));
+    this.registerEvent(workspace.on(UNREGISTER_RUNTIME_SKILL_EVENT, (value) => {
+      if (unregisterRuntimeSkill(value)) this.settingsEmitter.emit("skills-changed");
+    }));
+    workspace.trigger(REQUEST_RUNTIME_SKILLS_EVENT);
   }
 
   async activateChatView(): Promise<void> {

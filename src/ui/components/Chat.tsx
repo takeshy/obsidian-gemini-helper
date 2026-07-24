@@ -76,6 +76,7 @@ import { buildBuiltinOkfSystemPrompt, buildOkfSystemPrompt, discoverOkfBundles, 
 import { executeReadOkfDocumentTool, READ_OKF_DOCUMENT_TOOL, READ_OKF_DOCUMENT_TOOL_NAME } from "src/core/okfDocumentTool";
 import { GET_WORKFLOW_SPEC_TOOL, GET_WORKFLOW_SPEC_TOOL_NAME, handleGetWorkflowSpec } from "src/workflow/workflowSpec";
 import { DEFAULT_BUILTIN_SKILL_IDS, builtinFolderPath, getBuiltinSkillMetadata } from "src/core/builtinSkills";
+import { runtimeSkillPath } from "src/core/runtimeSkills";
 import { parseWorkflowFromMarkdown } from "src/workflow/parser";
 import { WorkflowExecutor } from "src/workflow/executor";
 import { WorkflowExecutionModal } from "./workflow/WorkflowExecutionModal";
@@ -109,7 +110,7 @@ export interface ChatRef {
 
 const MAX_BACKGROUND_STREAMS = 3;
 const MARKDOWN_SKILL_PATH = builtinFolderPath("obsidian-markdown");
-const DASHBOARD_SKILL_PATH = builtinFolderPath("dashboard");
+const DASHBOARD_SKILL_PATH = runtimeSkillPath("dashboard-hub", "dashboard");
 const CANVAS_SKILL_PATH = builtinFolderPath("json-canvas");
 const BASE_SKILL_PATH = builtinFolderPath("base");
 const CONTEXT_SKILL_BY_EXTENSION: Record<string, string> = {
@@ -177,6 +178,7 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 	const [vaultFiles, setVaultFiles] = useState<string[]>([]);
 	const [currentDashboard, setCurrentDashboard] = useState<TFile | null>(null);
 	const [activeContextSkillPath, setActiveContextSkillPath] = useState<string | null>(null);
+	const dismissedContextSkillPathsRef = useRef<Set<string>>(new Set());
 	const [hasSelection, setHasSelection] = useState(false);
 	const [hasApiKey, setHasApiKey] = useState(!!plugin.settings.googleApiKey);
 	const [decryptingChatId, setDecryptingChatId] = useState<string | null>(null);
@@ -665,7 +667,11 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 		const refreshContext = () => {
 			const context = findContext();
 			setCurrentDashboard(context.dashboardFile);
-			setActiveContextSkillPath(context.skillPath);
+			setActiveContextSkillPath(
+				context.skillPath && !dismissedContextSkillPathsRef.current.has(context.skillPath)
+					? context.skillPath
+					: null
+			);
 		};
 
 		refreshContext();
@@ -2410,6 +2416,9 @@ Always be helpful and provide clear, concise responses. When working with vault 
 						activeSkillPaths={effectiveActiveSkillPaths}
 						onToggleSkill={(folderPath) => {
 							if (activeContextSkillPath && CONTEXT_BUILTIN_SKILL_PATHS.has(folderPath)) {
+								dismissedContextSkillPathsRef.current.add(folderPath);
+								setActiveContextSkillPath(null);
+								setActiveSkillPaths(prev => prev.filter(path => path !== folderPath));
 								return;
 							}
 							setActiveSkillPaths(prev =>

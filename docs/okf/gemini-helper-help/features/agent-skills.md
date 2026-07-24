@@ -15,7 +15,7 @@ Built-in skills are available without vault setup. They teach the AI about Obsid
 - `obsidian-markdown` covers Obsidian Markdown extensions such as wikilinks, embeds, callouts, properties, tags, highlights, comments, math, and footnotes.
 - `json-canvas` covers `.canvas` JSON Canvas files.
 - `obsidian-bases` covers `.base` files and includes the Bases authoring reference.
-- `dashboard` can author `.dashboard` files and backing `.base` files from chat.
+- When the separate Dashboard Hub plugin is enabled, it contributes a `dashboard` skill at runtime for authoring `.dashboard` files and backing `.base` files.
 
 External skills are installed from the official `takeshy/llm-hub-skills` repository into the vault `skills/` folder. Each external skill must include `SKILL.md` and `manifest.json`; versions are compared with semver for updates.
 

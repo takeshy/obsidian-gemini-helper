@@ -36,6 +36,18 @@ export class SettingsTab extends PluginSettingTab {
     this.plugin = plugin;
   }
 
+  /** Obsidian versions before searchable setting definitions call display() directly. */
+  display(): void {
+    this.containerEl.empty();
+    const ctx: SettingsContext = {
+      plugin: this.plugin,
+      display: () => this.display(),
+      syncCancelRef: this.syncCancelRef,
+    };
+    displayEditHistorySettings(this.containerEl, ctx);
+    for (const renderSection of SECTION_RENDERERS) renderSection(this.containerEl, ctx);
+  }
+
   getSettingDefinitions(): SettingDefinitionItem[] {
     const ctx: SettingsContext = {
       plugin: this.plugin,

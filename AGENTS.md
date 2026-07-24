@@ -56,14 +56,11 @@ This runs `version-bump.mjs` which updates `package.json`, `manifest.json`, and 
 - **historyCanvas.ts** - Export execution history to Obsidian Canvas
 - **codeblockSync.ts** - Sync workflow changes back to markdown
 
-### Dashboard Layer (`src/dashboard/`)
-- Responsive widget grid stored as a `.dashboard` file (YAML, version 1). Opened via `DashboardView` (`src/ui/DashboardView.tsx`, a `TextFileView` registered for the `.dashboard` extension).
-- **dashboardFile.ts** - Parse/serialize `.dashboard` YAML, layout helpers, `createEmptyDashboard()`
-- **DashboardCanvas.tsx / GridCell.tsx / useGridLayout.ts / useBreakpoint.ts** - Drag/resize responsive grid
-- **widgets/registry.ts** - `registerCoreWidgets()` registers widget types (base, markdown, web, workflow, kanban); called once in `plugin.ts` onload
-- **widgets/** - Widget renderers + `config-editors/` panels; `workflowRunner.ts` runs workflow widgets headlessly with a sidecar result cache
-- **AIBaseModal.ts / aiBaseGenerate.ts** - Headless `.base` generation (Gemini-only) from the built-in `base` skill
-- New dashboards: `Dashboards/` folder; backing `.base` files: `Dashboards/Bases/`. The `dashboard` built-in agent skill (`builtinSkills.ts`) authors `.dashboard` + `.base` files.
+### Dashboard Hub Integration (`src/integrations/`)
+- Dashboard UI, `.dashboard` ownership, widgets, and storage are provided by the separate `obsidian-dashboard-hub` plugin.
+- **dashboardHubCapabilities.ts** - Exposes Gemini models, Chat handoff, headless Workflow execution, Base generation, text rewriting, and Workflow generation to Dashboard Hub.
+- Dashboard Hub contributes its `dashboard` agent skill dynamically through the runtime skill registry in `src/core/runtimeSkills.ts`.
+- `plugin.ts` retains a compatibility `create-dashboard` command that delegates creation to Dashboard Hub.
 
 ### UI Layer (`src/ui/`)
 - **ChatView.tsx** - Obsidian ItemView wrapper for React

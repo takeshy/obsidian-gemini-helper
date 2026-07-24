@@ -1020,219 +1020,6 @@ Sort direction depends on property type:
 };
 
 // ---------------------------------------------------------------------------
-// dashboard
-// ---------------------------------------------------------------------------
-
-const DASHBOARD: BuiltinSkillDefinition = {
-  id: "dashboard",
-  name: "dashboard",
-  description: "Create Obsidian Gemini Helper Dashboards (.dashboard files): a grid of widgets that embed Bases views, files, memos, and web pages. Use when the user asks for a dashboard, a home/overview page, or to arrange .base views, notes/files, memos, or web embeds in a grid.",
-  instructions: `# Dashboard Skill
-
-Create \`.dashboard\` files for the Gemini Helper plugin: a grid of widgets that embed
-Obsidian **Bases** views, vault files, memos, and web pages. Opening a \`.dashboard\`
-file shows an editable widget grid (drag/resize in edit mode).
-
-## Workflow
-
-1. **Clarify the goal** — what should the dashboard show (tasks, notes, links)?
-2. **Create the backing data first** — for data widgets, author a \`.base\` file
-   (stored under \`Dashboards/Bases\`). Note its view names. You do **not** need a
-   separate Bases skill: the full \`.base\` authoring reference is included below.
-3. **Create the file** — use \`create_note\` with \`name: "<Name>.dashboard"\` and
-   \`folder: "Dashboards"\`. The content is YAML (schema below).
-4. **Lay out widgets** — give each widget an \`lg\` layout on a 12-column grid.
-5. **Validate YAML** — valid YAML, every widget has \`id\`, \`type\`, \`layout.lg\`.
-
-## File Structure
-
-A \`.dashboard\` file is YAML (version 1):
-
-\`\`\`yaml
-version: 1
-grid:
-  cols: 12        # column count (default 12)
-  rowHeight: 80   # pixels per grid row
-  gap: 8          # pixels between cells
-widgets:
-  - id: <uuid>
-    type: base | file | web | workflow | kanban | timeline | memo-list
-    layout:
-      lg: { x: 0, y: 0, w: 6, h: 4 }   # required: position on the wide grid
-      sm: { x: 0, y: 0, w: 12, h: 4 }  # optional: auto-derived (stacked) if omitted
-    config: { ... }                    # per-widget-type config (see below)
-\`\`\`
-
-- \`id\` must be unique — use a UUID-like string.
-- \`layout.lg\` is the position on the wide (≥768px) grid: \`x\`/\`y\` are the
-  top-left cell (0-based), \`w\`/\`h\` are width/height in grid cells.
-- \`sm\` (narrow screens) is auto-derived as a full-width stack if omitted.
-- Place widgets so they don't overlap; stack vertically by increasing \`y\`.
-
-## Widget Types
-
-### \`base\` — embed an Obsidian Bases view (the primary data widget)
-
-Renders a named view of a \`.base\` file using Obsidian's native Bases UI
-(table / cards / list / map). **Use this for any list/table/card of notes** —
-do not reimplement those; create a \`.base\` and point a \`base\` widget at it.
-
-\`\`\`yaml
-- id: tasks-1
-  type: base
-  layout: { lg: { x: 0, y: 0, w: 8, h: 6 } }
-  config:
-    base: Dashboards/Bases/Tasks.base   # vault path to the .base file
-    view: Active                     # view name; omit/empty = the base's first view
-\`\`\`
-
-### \`file\` — embed an existing vault file
-
-Renders an existing vault file inline with a link to open it. Markdown notes are
-rendered with Obsidian Markdown; text files are editable; HTML, images, and PDFs
-are previewed when supported. A memo panel can be toggled per file.
-
-\`\`\`yaml
-- id: notes-1
-  type: file
-  layout: { lg: { x: 8, y: 0, w: 4, h: 6 } }
-  config:
-    path: Welcome.md              # vault path to a supported file
-    showHeader: true              # optional; default true
-\`\`\`
-
-### \`memo-list\` — browse document memos
-
-Lists memo sidecar files created by file widgets under \`Dashboards/Memos/\`.
-
-\`\`\`yaml
-- id: memos-1
-  type: memo-list
-  layout: { lg: { x: 8, y: 0, w: 4, h: 5 } }
-  config: {}
-\`\`\`
-
-### \`web\` — embed a web page
-
-\`\`\`yaml
-- id: web-1
-  type: web
-  layout: { lg: { x: 0, y: 6, w: 6, h: 4 } }
-  config:
-    url: https://example.com
-\`\`\`
-
-### \`workflow\` — run a workflow and render its output
-
-Runs an existing workflow (from \`workflows/\`) headlessly and renders the result
-as Markdown or HTML. The workflow must store its output string in a variable
-(default \`result\`). Card/table outputs are not supported — produce a Markdown or
-HTML string.
-
-\`\`\`yaml
-- id: digest-1
-  type: workflow
-  layout: { lg: { x: 0, y: 6, w: 6, h: 5 } }
-  config:
-    workflow: workflows/Daily Digest.md  # vault path to the workflow note
-    output: markdown                     # markdown | html
-    outputVariable: result               # variable holding the output string
-    refreshInterval: 60                  # minutes; 0/omit = manual refresh only; re-runs periodically while the dashboard is open
-\`\`\`
-
-Unknown widget types are preserved on save but render as a placeholder.
-
-### \`kanban\` — drag-and-drop board of notes by status
-
-Renders notes matching a tag/folder filter as cards grouped into columns by a
-frontmatter status property. Drag cards between columns to update the status
-(writes via \`processFrontMatter\`). Click a card to preview its note in a modal
-(with an icon to open it). The header
-shows an optional board title plus a **New** button that opens a modal (title +
-column) and creates a note already matching the board's filters (placed in
-\`folder\`, tagged with \`tag\`, set to the chosen column's status). Works in view
-mode — the board is interactive without entering edit mode.
-
-\`\`\`yaml
-- id: board-1
-  type: kanban
-  layout: { lg: { x: 0, y: 0, w: 12, h: 6 } }
-  config:
-    title: Tasks                   # optional board title shown in the header
-    tag: task                      # optional tag filter (without #)
-    folder: ""                     # optional folder path prefix
-    statusProperty: status         # frontmatter property holding the status
-    titleProperty: ""              # frontmatter property for card title (empty = file name)
-    columns:                       # ordered list of status values
-      - value: todo
-        label: To Do
-      - value: in-progress
-        label: In Progress
-      - value: done
-        label: Done
-    showUnspecified: true          # show cards with no/unknown status in an extra column
-\`\`\`
-
-## Importing a .base into a Dashboard
-
-The \`base\` widget **is** the import mechanism: set \`config.base\` to the
-\`.base\` file's vault path and \`config.view\` to the view name. The same \`.base\`
-can be referenced by multiple \`base\` widgets (e.g. one per view).
-
-Recommended flow:
-1. Author \`Dashboards/Bases/Tasks.base\` (defining views such as "Active", "Done").
-   The \`.base\` authoring reference is included with this skill — no separate
-   Bases skill needs to be activated.
-2. Add \`base\` widgets to the dashboard referencing \`Dashboards/Bases/Tasks.base\`
-   with each view name.
-
-## Complete Example
-
-\`\`\`yaml
-version: 1
-grid:
-  cols: 12
-  rowHeight: 80
-  gap: 8
-widgets:
-  - id: tasks-active
-    type: base
-    layout: { lg: { x: 0, y: 0, w: 8, h: 6 } }
-    config:
-      base: Dashboards/Bases/Tasks.base
-      view: Active
-  - id: readme
-    type: file
-    layout: { lg: { x: 8, y: 0, w: 4, h: 6 } }
-    config:
-      path: Home.md
-  - id: docs
-    type: web
-    layout: { lg: { x: 0, y: 6, w: 12, h: 4 } }
-    config:
-      url: https://help.obsidian.md
-\`\`\`
-
-## Validation Checklist
-
-- [ ] Valid YAML (no tabs, consistent indentation)
-- [ ] \`version: 1\`, and \`grid\` with \`cols\`/\`rowHeight\`/\`gap\`
-- [ ] Every widget has a unique \`id\`, a \`type\`, and \`layout.lg\`
-- [ ] \`type\` is one of \`base\`, \`file\`, \`web\`, \`workflow\`, \`kanban\`, \`timeline\`, \`memo-list\`
-- [ ] \`base\` widgets point at an existing \`.base\` path; \`view\` matches a view name
-- [ ] \`file\` widgets point at an existing supported vault file path
-- [ ] \`kanban\` widgets define \`statusProperty\` and at least one column with \`value\` and \`label\`
-- [ ] Widgets don't overlap (increase \`y\` to stack)`,
-  // Fold the full Bases authoring guide in as references so the `dashboard`
-  // skill is self-sufficient: activating it alone gives the model everything it
-  // needs to author the backing `.base` files, without also activating `base`.
-  references: [
-    `[BASE_SKILL.md]\n${BASE.instructions}`,
-    ...BASE.references,
-  ],
-};
-
-// ---------------------------------------------------------------------------
 // Registry
 // ---------------------------------------------------------------------------
 
@@ -1240,7 +1027,6 @@ const ALL_BUILTIN_SKILLS: BuiltinSkillDefinition[] = [
   OBSIDIAN_MARKDOWN,
   JSON_CANVAS,
   BASE,
-  DASHBOARD,
 ];
 
 /** Default built-in skills to auto-activate in new chats. */
@@ -1289,4 +1075,9 @@ export function loadBuiltinSkill(folderPath: string): LoadedSkill | null {
 /** Get all built-in skill IDs. */
 export function getBuiltinSkillIds(): string[] {
   return ALL_BUILTIN_SKILLS.map(s => s.id);
+}
+
+export function loadBuiltinSkillByCapability(capability: string): LoadedSkill | null {
+  const id = capability === "obsidian-bases" ? "base" : capability;
+  return loadBuiltinSkill(builtinFolderPath(id));
 }

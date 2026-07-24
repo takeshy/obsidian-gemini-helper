@@ -72,7 +72,7 @@ Fetched document bodies are limited to 20,000 characters so one unexpectedly lar
 
 # Built-In OKF
 
-Gemini Helper ships a built-in OKF bundle about this plugin. It is always available as the `Gemini Helper Help` OKF option in chat, independently of the external OKF setting, but it is injected only after the user selects it or clicks the help question button. Users can then ask chat about Gemini Helper setup, chat tools, skills, workflows, RAG, OKF, MCP, dashboards, settings, security, and troubleshooting without configuring an OKF directory.
+Gemini Helper ships a built-in OKF bundle about this plugin. It is always available as the `Gemini Helper Help` OKF option in chat, independently of the external OKF setting, but it is injected only after the user selects it or clicks the help question button. Users can then ask chat about Gemini Helper setup, chat tools, skills, workflows, RAG, OKF, MCP, settings, security, and troubleshooting without configuring an OKF directory.
 
 The source copy for the built-in bundle is the English OKF bundle under `docs/okf/gemini-helper-help/`. During `npm run build` and `npm run dev`, `scripts/generate-builtin-okf.mjs` reads that bundle, skips `log.md`, caps each document body at 20,000 characters, and writes a gzip+base64 generated module. Chat injects its root index and reads the bundled documents on demand.
 

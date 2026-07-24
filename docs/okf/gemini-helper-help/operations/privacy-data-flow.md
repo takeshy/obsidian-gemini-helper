@@ -8,7 +8,7 @@ timestamp: 2026-07-04T00:00:00Z
 
 # Privacy and Data Flow
 
-Data stored locally includes the Google API key in Obsidian settings, chat history Markdown files when saving is enabled, workflow execution history, workspace RAG state, dashboard YAML files, dashboard sidecar data, and encryption settings. Chat and workflow history can be encrypted.
+Data stored locally includes the Google API key in Obsidian settings, chat history Markdown files when saving is enabled, workflow execution history, workspace RAG state, and encryption settings. Chat and workflow history can be encrypted. Data owned by integrated plugins such as Dashboard Hub is covered by those plugins' documentation.
 
 Data sent to Google includes chat messages, selected context, tool results included in the model conversation, and file attachments sent to the Gemini API. When RAG is enabled and synced, selected vault files are uploaded to Google File Search. When Web Search is enabled, search queries are sent to Google Search.
 

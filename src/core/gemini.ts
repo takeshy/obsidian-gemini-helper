@@ -1898,15 +1898,16 @@ export class GeminiClient {
         webSearchSources: webSearchSources.length > 0 ? webSearchSources : undefined,
       };
     } catch (error) {
+      const errorMessage = formatError(error);
       tracing.generationEnd(generationId, {
-        error: formatError(error),
+        error: errorMessage,
         usage: totalUsage.total ? totalUsage : undefined,
         metadata: { toolCallCount: toolCallTraceCount, roundCount: roundNumber },
       });
 
       yield {
         type: "error",
-        error: formatError(error),
+        error: errorMessage,
       };
     }
   }

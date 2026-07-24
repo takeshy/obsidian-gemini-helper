@@ -44,6 +44,7 @@ import { initLocale, t } from "src/i18n";
 import { registerWorkflowCodeBlockProcessor } from "src/ui/workflowCodeBlock";
 import { generateDashboardBase, generateDashboardWorkflow, listDashboardModels, rewriteDashboardText, runDashboardWorkflow } from "src/integrations/dashboardHubCapabilities";
 import { REGISTER_RUNTIME_SKILL_EVENT, REQUEST_RUNTIME_SKILLS_EVENT, UNREGISTER_RUNTIME_SKILL_EVENT, registerRuntimeSkill, unregisterRuntimeSkill } from "src/core/runtimeSkills";
+import { registerDiscussionHubIntegration } from "src/integrations/discussionHubCapabilities";
 
 interface DashboardHubIntegration {
   protocolVersion: 1;
@@ -201,6 +202,7 @@ export class GeminiHelperPlugin extends Plugin {
     this.addSettingTab(new SettingsTab(this.app, this));
     this.registerRuntimeSkillContributions();
     this.registerDashboardHubIntegration();
+    registerDiscussionHubIntegration(this);
     this.notifyDashboardHubMigration();
     // Compatibility command for existing hotkeys; Dashboard Hub performs the
     // actual creation and remains the sole owner of .dashboard files.

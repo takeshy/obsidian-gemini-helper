@@ -20,6 +20,7 @@
 - **Encryption** - Encrypt chat history and workflow logs
 - **Edit History** - Track and restore AI-made changes with diff view
 - **Dashboard Hub Integration** - Supply Gemini models, Chat, Base generation, text rewriting, and Workflow execution to the separate [Dashboard Hub](https://github.com/takeshy/obsidian-dashboard-hub) plugin
+- **Discussion Hub Integration** - Use Gemini Helper's configured text models in shared multi-model conversations provided by [Discussion Hub](https://github.com/takeshy/obsidian-discussion-hub)
 
 ![Chat Interface](docs/images/chat.png)
 
@@ -497,6 +498,14 @@ Existing `.dashboard` files remain compatible. See the [Dashboard Hub documentat
 
 ---
 
+# Discussion Hub Integration
+
+[Discussion Hub](https://github.com/takeshy/obsidian-discussion-hub) brings multiple AI providers into a shared conversation. When both plugins are enabled, Gemini Helper automatically registers its available non-image Gemini models with Discussion Hub. Responses are streamed into the discussion, and message attachments and the discussion system prompt are passed through to Gemini.
+
+Configure your Google Gemini API key and API plan in Gemini Helper, then select a Gemini Helper model when creating or editing a Discussion Hub discussion. No additional integration settings are required.
+
+---
+
 # Common
 
 ## Supported Models
@@ -759,6 +768,7 @@ MIT
 | obsidian-gemini-helper | Gemini-focused (RAG via File Search API) |
 | obsidian-llm-hub | Multi-LLM support, Desktop Only (RAG via Embedding, supports gemini-embedding-2-preview) |
 | obsidian-local-llm-hub | Local LLM only (RAG via local embeddings only) |
+| obsidian-discussion-hub | Shared multi-model discussions using models supplied by compatible AI plugins |
 
 ## Support
 

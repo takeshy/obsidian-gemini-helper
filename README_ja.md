@@ -20,6 +20,7 @@
 - **暗号化** - チャット履歴とワークフローログを暗号化
 - **編集履歴** - AI による変更を差分表示で追跡・復元
 - **Dashboard Hub 連携** - 別プラグインの [Dashboard Hub](https://github.com/takeshy/obsidian-dashboard-hub) に Gemini モデル、チャット、Base 生成、テキスト書き換え、ワークフロー実行機能を提供
+- **Discussion Hub 連携** - [Discussion Hub](https://github.com/takeshy/obsidian-discussion-hub) が提供する複数モデルの共有ディスカッションで、Gemini Helper に設定したテキストモデルを利用
 
 ![チャット画面](docs/images/chat.png)
 
@@ -509,6 +510,14 @@ Obsidian のイベントでワークフローを自動実行：
 
 ---
 
+# Discussion Hub 連携
+
+[Discussion Hub](https://github.com/takeshy/obsidian-discussion-hub) は、複数のAIプロバイダーを1つの共有会話に参加させるプラグインです。両方のプラグインを有効にすると、Gemini Helperで利用可能な画像生成以外のGeminiモデルがDiscussion Hubへ自動登録されます。Geminiの応答はディスカッションへストリーミングされ、メッセージの添付ファイルとディスカッションのシステムプロンプトもGeminiへ渡されます。
+
+Gemini HelperでGoogle Gemini APIキーとAPIプランを設定し、Discussion Hubのディスカッション作成・編集時にGemini Helperのモデルを選択してください。連携専用の追加設定は不要です。
+
+---
+
 # 共通
 
 ## 対応モデル
@@ -789,6 +798,7 @@ MIT
 | obsidian-llm-hub | LLM 全般に対応、Desktop Only（RAG は Embedding、gemini-embedding-2-preview にも対応） |
 | obsidian-local-llm-hub | Local LLM 専門（RAG はローカル Embedding のみ） |
 | obsidian-gemihub | Web 版 gemini-helper である GemiHub と Google Drive 経由でファイル連携 |
+| obsidian-discussion-hub | 対応AIプラグインが提供するモデルを使った複数モデルの共有ディスカッション |
 
 ## サポート
 

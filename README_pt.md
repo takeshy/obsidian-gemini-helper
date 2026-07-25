@@ -631,6 +631,7 @@ O Secret Manager salva cada valor como um arquivo `.encrypted` separado no vault
 | Gemini 2.5 Pro | Modelo Pro, contexto 1M |
 | Gemini 3 Pro (Image) | Geração de imagens Pro, 4K |
 | Gemini 3.1 Flash (Image) | Geração de imagens rápida e econômica |
+| Gemini 3.1 Flash Lite (Image) | Geração de imagens mais rápida e econômica, 1K |
 
 > **Modo Thinking:** No chat, o modo thinking é acionado por palavras-chave como "pense", "analise" ou "reflita" na sua mensagem. No entanto, **Gemini 3.1 Pro** sempre usa o modo thinking independentemente das palavras-chave — este modelo não suporta a desativação do thinking.
 

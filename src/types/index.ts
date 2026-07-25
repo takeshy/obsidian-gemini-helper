@@ -293,8 +293,9 @@ export type ModelType =
   | "gemini-3.1-pro-preview"
   | "gemini-3.1-pro-preview-customtools"
   | "gemini-3.5-flash-lite"
-  | "gemini-3-pro-image-preview"
-  | "gemini-3.1-flash-image-preview"
+  | "gemini-3-pro-image"
+  | "gemini-3.1-flash-image"
+  | "gemini-3.1-flash-lite-image"
   | "gemma-4-31b-it"
   | "gemma-4-26b-a4b-it";
 
@@ -352,15 +353,21 @@ export const PAID_MODELS: ModelInfo[] = [
     description: "Gemma 4 MoE model with function calling and thinking",
   },
   {
-    name: "gemini-3-pro-image-preview",
+    name: "gemini-3-pro-image",
     displayName: "Gemini 3 Pro (Image)",
     description: "Pro quality image generation, up to 4K",
     isImageModel: true,
   },
   {
-    name: "gemini-3.1-flash-image-preview",
+    name: "gemini-3.1-flash-image",
     displayName: "Gemini 3.1 Flash (Image)",
     description: "Fast, low-cost image generation",
+    isImageModel: true,
+  },
+  {
+    name: "gemini-3.1-flash-lite-image",
+    displayName: "Gemini 3.1 Flash Lite (Image)",
+    description: "Fastest, lowest-cost image generation, up to 1K",
     isImageModel: true,
   },
 ];

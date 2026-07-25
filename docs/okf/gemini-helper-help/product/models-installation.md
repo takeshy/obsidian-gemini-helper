@@ -22,6 +22,7 @@ Free API keys support basic chat, vault operations, web search, limited RAG sync
 - Gemini 2.5 Pro - Pro 1M-context model.
 - Gemini 3 Pro (Image) - Pro image generation, up to 4K.
 - Gemini 3.1 Flash (Image) - fast, low-cost image generation.
+- Gemini 3.1 Flash Lite (Image) - fastest, lowest-cost image generation, up to 1K.
 
 # Free Plan Models
 

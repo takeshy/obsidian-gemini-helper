@@ -123,8 +123,14 @@ export class WorkspaceStateManager {
     if ((this.workspaceState.selectedModel as string) === "gemini-3-flash-preview") {
       this.workspaceState.selectedModel = "gemini-3.6-flash";
     }
-    if ((this.workspaceState.selectedModel as string) === "gemini-2.5-flash-image") {
-      this.workspaceState.selectedModel = "gemini-3.1-flash-image-preview";
+    if (
+      (this.workspaceState.selectedModel as string) === "gemini-2.5-flash-image"
+      || (this.workspaceState.selectedModel as string) === "gemini-3.1-flash-image-preview"
+    ) {
+      this.workspaceState.selectedModel = "gemini-3.1-flash-image";
+    }
+    if ((this.workspaceState.selectedModel as string) === "gemini-3-pro-image-preview") {
+      this.workspaceState.selectedModel = "gemini-3-pro-image";
     }
 
     // Ensure each RAG setting has all required fields (migration for new fields)

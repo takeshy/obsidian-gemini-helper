@@ -5,6 +5,7 @@ import { DEFAULT_SETTINGS } from "src/types";
 import type { RagSetting } from "src/types";
 import { ConfirmModal } from "src/ui/components/ConfirmModal";
 import { formatError } from "src/utils/error";
+import { setDestructiveButton } from "src/ui/buttonCompat";
 import { RagSettingNameModal } from "./RagSettingNameModal";
 import { RagFilesModal } from "./RagFilesModal";
 import type { SettingsContext } from "./settingsContext";
@@ -423,9 +424,7 @@ function displayInternalStoreSettings(
   syncStatusSetting
     .addButton((btn) => {
       cancelBtn = btn.buttonEl;
-      btn
-        .setButtonText(t("settings.cancelSync"))
-        .setDestructive()
+      setDestructiveButton(btn.setButtonText(t("settings.cancelSync")))
         .onClick(() => {
           syncCancelRef.value = true;
           new Notice(t("settings.cancellingSync"));
@@ -531,9 +530,7 @@ function displayInternalStoreSettings(
       .setName(t("settings.deleteStore"))
       .setDesc(t("settings.deleteStore.desc"))
       .addButton((btn) =>
-        btn
-          .setButtonText(t("settings.deleteStore"))
-          .setDestructive()
+        setDestructiveButton(btn.setButtonText(t("settings.deleteStore")))
           .onClick(() => {
             void (async () => {
               const confirmed = await new ConfirmModal(

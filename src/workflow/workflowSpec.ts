@@ -346,7 +346,7 @@ Save FileExplorerData as file.
 - id: generate
   type: command
   prompt: "Generate a landscape image"
-  model: gemini-3-pro-image-preview
+  model: gemini-3-pro-image
   saveImageTo: generatedImage
 - id: save
   type: file-save

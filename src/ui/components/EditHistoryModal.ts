@@ -4,6 +4,7 @@ import { formatError } from "src/utils/error";
 import { getEditHistoryManager, type EditHistoryEntry } from "src/core/editHistory";
 import { globalEventEmitter } from "src/utils/EventEmitter";
 import { reconstructContent } from "src/core/diffUtils";
+import { setDestructiveButton } from "src/ui/buttonCompat";
 
 
 // ========================================
@@ -323,9 +324,7 @@ export class EditHistoryModal extends Modal {
     // Right side: clear all + close
     new Setting(footerEl)
       .addButton((btn) =>
-        btn
-          .setButtonText(t("editHistoryModal.clearAll"))
-          .setDestructive()
+        setDestructiveButton(btn.setButtonText(t("editHistoryModal.clearAll")))
           .onClick(() => {
             new ConfirmModal(this.app, t("editHistoryModal.confirmClear"), async () => {
               // Restore to the earliest point in local history

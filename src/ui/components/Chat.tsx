@@ -1247,11 +1247,11 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 		let autoSwitchedToImage = false;
 		const originalModel = allowedModel;
 		if (!isImageGenerationModel(allowedModel) && shouldUseImageModel(content)) {
-			if (isModelAllowedForPlan(apiPlan, "gemini-3.1-flash-image-preview")) {
-				allowedModel = "gemini-3.1-flash-image-preview";
+			if (isModelAllowedForPlan(apiPlan, "gemini-3.1-flash-image")) {
+				allowedModel = "gemini-3.1-flash-image";
 				autoSwitchedToImage = true;
-			} else if (isModelAllowedForPlan(apiPlan, "gemini-3-pro-image-preview")) {
-				allowedModel = "gemini-3-pro-image-preview";
+			} else if (isModelAllowedForPlan(apiPlan, "gemini-3-pro-image")) {
+				allowedModel = "gemini-3-pro-image";
 				autoSwitchedToImage = true;
 			}
 			// If neither is available, keep current model

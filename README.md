@@ -521,6 +521,7 @@ Configure your Google Gemini API key and API plan in Gemini Helper, then select 
 | Gemini 2.5 Pro | Pro model, 1M context |
 | Gemini 3 Pro (Image) | Pro image generation, 4K |
 | Gemini 3.1 Flash (Image) | Fast, low-cost image generation |
+| Gemini 3.1 Flash Lite (Image) | Fastest, lowest-cost image generation, 1K |
 
 > **Thinking mode:** In Chat, thinking mode is triggered by keywords like "think", "analyze", or "consider" in your message. However, **Gemini 3.1 Pro** always uses thinking mode regardless of keywords — this model does not support disabling thinking.
 

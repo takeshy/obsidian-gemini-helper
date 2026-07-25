@@ -100,6 +100,7 @@ import {
 	parseMarkdownToMessages,
 	formatHistoryDate,
 } from "./chat/chatHistory";
+import { resolveEffectiveSkillPaths } from "./chat/contextSkills";
 
 export interface ChatRef {
 	getActiveChat: () => TFile | null;
@@ -149,7 +150,9 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 	);
 	const [webSearchEnabled, setWebSearchEnabled] = useState(plugin.workspaceState.webSearchEnabled === true);
 	// Vault tool mode: "all" = use all tools, "noSearch" = exclude search_notes/list_notes, "none" = no vault tools
-	const supportsWebSearch = (model: string) => !model.toLowerCase().includes("gemma-4");
+	const supportsWebSearch = (model: string) =>
+		!model.toLowerCase().includes("gemma-4")
+		&& !/^gemini-3\.1-flash-lite-image(?:-|$)/i.test(model);
 	const [vaultToolMode, setVaultToolMode] = useState<"all" | "noSearch" | "none">("all");
 	// Reason why vault tools are "none" - determines whether MCP should also be disabled
 	const [, setVaultToolNoneReason] = useState<VaultToolNoneReason | null>(null);
@@ -178,7 +181,9 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 	const [vaultFiles, setVaultFiles] = useState<string[]>([]);
 	const [currentDashboard, setCurrentDashboard] = useState<TFile | null>(null);
 	const [activeContextSkillPath, setActiveContextSkillPath] = useState<string | null>(null);
-	const dismissedContextSkillPathsRef = useRef<Set<string>>(new Set());
+	const [disabledContextSkillPaths, setDisabledContextSkillPaths] = useState<Set<string>>(
+		() => new Set(),
+	);
 	const [hasSelection, setHasSelection] = useState(false);
 	const [hasApiKey, setHasApiKey] = useState(!!plugin.settings.googleApiKey);
 	const [decryptingChatId, setDecryptingChatId] = useState<string | null>(null);
@@ -194,13 +199,19 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 	const [activeSkillPaths, setActiveSkillPaths] = useState<string[]>(
 		() => DEFAULT_BUILTIN_SKILL_IDS.map(builtinFolderPath)
 	);
-	const effectiveActiveSkillPaths = useMemo(() => {
-		if (!activeContextSkillPath) {
-			return activeSkillPaths;
-		}
-		const withoutContextBuiltins = activeSkillPaths.filter(path => !CONTEXT_BUILTIN_SKILL_PATHS.has(path));
-		return [activeContextSkillPath, ...withoutContextBuiltins];
-	}, [activeSkillPaths, activeContextSkillPath]);
+	const effectiveActiveSkillPaths = useMemo(() => resolveEffectiveSkillPaths(
+		activeSkillPaths,
+		activeContextSkillPath,
+		disabledContextSkillPaths,
+		CONTEXT_BUILTIN_SKILL_PATHS,
+	), [activeSkillPaths, activeContextSkillPath, disabledContextSkillPaths]);
+	const getEffectiveSkillPathsForSend = useCallback((skillPath?: string) => resolveEffectiveSkillPaths(
+		activeSkillPaths,
+		activeContextSkillPath,
+		disabledContextSkillPaths,
+		CONTEXT_BUILTIN_SKILL_PATHS,
+		skillPath,
+	), [activeSkillPaths, activeContextSkillPath, disabledContextSkillPaths]);
 	// OKF knowledge bundles discovered under the configured root directory.
 	const [okfBundles, setOkfBundles] = useState<OkfBundle[]>([]);
 	const [activeOkfBundleIds, setActiveOkfBundleIds] = useState<string[]>([]);
@@ -667,11 +678,7 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 		const refreshContext = () => {
 			const context = findContext();
 			setCurrentDashboard(context.dashboardFile);
-			setActiveContextSkillPath(
-				context.skillPath && !dismissedContextSkillPathsRef.current.has(context.skillPath)
-					? context.skillPath
-					: null
-			);
+			setActiveContextSkillPath(context.skillPath);
 		};
 
 		refreshContext();
@@ -894,14 +901,19 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 	// Handle model change from UI
 	const handleModelChange = (model: ModelType) => {
 		setCurrentModel(model);
-		void plugin.selectModel(model);
+		const shouldClearRag = isImageGenerationModel(model) && selectedRagSetting !== null;
+		if (shouldClearRag) {
+			setSelectedRagSetting(null);
+			// Serialize the workspace writes so a slower model-only write cannot
+			// restore the RAG selection after it has been cleared.
+			void plugin.selectModel(model).then(() => plugin.selectRagSetting(null));
+		} else {
+			void plugin.selectModel(model);
+		}
 
 		// Auto-adjust search setting and vault tool mode for special models
 		if (isImageGenerationModel(model)) {
-			// Image models do not use File Search RAG.
-			if (selectedRagSetting !== null) {
-				handleRagSettingChange(null);
-			}
+			// Image models do not use File Search RAG; it was cleared above.
 			setVaultToolMode("all");
 			setVaultToolNoneReason(null);
 		} else if (isGemma4(model)) {
@@ -1065,6 +1077,13 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 			: currentModel;
 		if (nextModel !== currentModel) {
 			setCurrentModel(nextModel);
+			if (
+				isImageGenerationModel(nextModel)
+				&& selectedRagSetting !== null
+				&& (command.searchSetting === null || command.searchSetting === undefined)
+			) {
+				handleRagSettingChange(null);
+			}
 		}
 
 		// Legacy slash-command search setting migration.
@@ -1294,7 +1313,7 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 			sessionId: currentChatId ?? undefined,
 			metadata: {
 				model: allowedModel,
-				ragEnabled: allowRag,
+				ragEnabled: allowRag && !isImageGenerationModel(allowedModel),
 				webSearchEnabled,
 				toolsEnabled: !isImageGenerationModel(allowedModel),
 				isImageGeneration: isImageGenerationModel(allowedModel),
@@ -1319,15 +1338,7 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 				}) : [];
 
 				// Activate skill if invoked via slash command
-				let effectiveSkillPaths = effectiveActiveSkillPaths;
-				if (skillPath && !effectiveSkillPaths.includes(skillPath)) {
-					effectiveSkillPaths = [...effectiveSkillPaths, skillPath];
-					setActiveSkillPaths(effectiveSkillPaths);
-				}
-				if (activeContextSkillPath) {
-					effectiveSkillPaths = effectiveSkillPaths.filter(path => !CONTEXT_BUILTIN_SKILL_PATHS.has(path));
-					effectiveSkillPaths = [activeContextSkillPath, ...effectiveSkillPaths];
-				}
+				const effectiveSkillPaths = getEffectiveSkillPathsForSend(skillPath);
 
 				// Load active skills (needed for both workflow tools and system prompt).
 				// Vault skills are returned in lazy form (empty instructions/references);
@@ -1703,17 +1714,18 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 					: undefined;
 
 					// Check if Web Search or Image Generation model is selected
-				const isWebSearch = supportsWebSearch(allowedModel) && webSearchEnabled;
 				const isImageGeneration = isImageGenerationModel(allowedModel);
+				const isWebSearch = supportsWebSearch(allowedModel) && webSearchEnabled;
+				const requestRagEnabled = allowRag && !isImageGeneration;
 
 				// Pass RAG store IDs if RAG is enabled and a setting is selected (not web search)
-				const ragStoreIds = allowRag && selectedRagSetting
+				const ragStoreIds = requestRagEnabled && selectedRagSetting
 					? plugin.getStoreIdsForRagSetting(plugin.getRagSetting(selectedRagSetting))
 					: [];
-				if (allowRag && selectedRagSetting && ragStoreIds.length === 0) {
+				if (requestRagEnabled && selectedRagSetting && ragStoreIds.length === 0) {
 					throw new Error(`Selected RAG setting "${selectedRagSetting}" has no File Search store. Sync or configure the store before using RAG.`);
 				}
-				const ragMetadataFilter = allowRag && selectedRagSetting
+				const ragMetadataFilter = requestRagEnabled && selectedRagSetting
 					? (plugin.getRagSetting(selectedRagSetting)?.metadataFilter || undefined)
 					: undefined;
 
@@ -1732,7 +1744,7 @@ Available tools allow you to:
 				}
 
 				// Add RAG sync status info if server RAG is enabled (uses FileSearchManager)
-				if (allowRag && vaultToolsEnabled) {
+				if (requestRagEnabled && vaultToolsEnabled) {
 							systemPrompt += `
 - Check RAG sync status only when users explicitly ask whether files are synced or imported. Do not use it to answer questions about file content. Use get_rag_sync_status to:
   - Check a specific file's sync status (when it was imported, if it has changes)
@@ -2415,12 +2427,23 @@ Always be helpful and provide clear, concise responses. When working with vault 
 						availableSkills={availableSkills}
 						activeSkillPaths={effectiveActiveSkillPaths}
 						onToggleSkill={(folderPath) => {
-							if (activeContextSkillPath && CONTEXT_BUILTIN_SKILL_PATHS.has(folderPath)) {
-								dismissedContextSkillPathsRef.current.add(folderPath);
-								setActiveContextSkillPath(null);
-								setActiveSkillPaths(prev => prev.filter(path => path !== folderPath));
+							if (folderPath === activeContextSkillPath && CONTEXT_BUILTIN_SKILL_PATHS.has(folderPath)) {
+								setDisabledContextSkillPaths(prev => {
+									const next = new Set(prev);
+									if (next.has(folderPath)) next.delete(folderPath);
+									else next.add(folderPath);
+									return next;
+								});
+								setActiveSkillPaths(prev =>
+									prev.filter(path => !CONTEXT_BUILTIN_SKILL_PATHS.has(path))
+								);
 								return;
 							}
+							if (
+								activeContextSkillPath
+								&& !disabledContextSkillPaths.has(activeContextSkillPath)
+								&& CONTEXT_BUILTIN_SKILL_PATHS.has(folderPath)
+							) return;
 							setActiveSkillPaths(prev =>
 								prev.includes(folderPath)
 									? prev.filter(p => p !== folderPath)

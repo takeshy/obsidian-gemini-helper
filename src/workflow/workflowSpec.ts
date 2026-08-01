@@ -391,6 +391,8 @@ Prompt user to select file and read its content.
 - **saveTo** (required): Variable for file content
 - **saveFileTo** (optional): Variable for file info (path, basename, name, extension)
 
+When run from a hotkey with \`forcePrompt: "false"\`, this node uses the active Markdown file. If no Markdown file is active, it opens the file picker. Cancelling the picker, resolving an invalid path, or failing to read the file throws an error and stops the workflow; the node never continues with an empty \`saveFileTo.path\`. Do not add a downstream path-presence check solely to guard a successful \`prompt-file\` result.
+
 **Behavior**:
 - In hotkey mode: Automatically uses the active file without showing a dialog
 - In panel mode: Shows a file picker dialog for user selection

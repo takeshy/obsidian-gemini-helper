@@ -1,5 +1,5 @@
 import { App, TFile } from "obsidian";
-import { SidebarNode, isWorkflowNodeType, normalizeValue } from "./types";
+import { SidebarNode, isWorkflowNodeType, normalizeValue, type WorkflowOptions } from "./types";
 import {
   findWorkflowBlocks,
   replaceWorkflowBlock,
@@ -20,6 +20,7 @@ interface WorkflowBlockNode {
 
 export interface WorkflowBlockData {
   name?: string;
+  options?: WorkflowOptions;
   nodes: SidebarNode[];
 }
 
@@ -50,6 +51,7 @@ export function loadFromCodeBlock(content: string): LoadResult {
   const workflowData = workflowContainer as {
     nodes?: WorkflowBlockNode[];
     name?: unknown;
+    options?: unknown;
   };
   if (!workflowData || !Array.isArray(workflowData.nodes)) {
     return { data: null };
@@ -126,10 +128,15 @@ export function loadFromCodeBlock(content: string): LoadResult {
       : typeof block.yaml.name === "string"
         ? block.yaml.name
         : undefined;
+  const rawOptions = workflowData.options;
+  const options: WorkflowOptions | undefined = rawOptions && typeof rawOptions === "object"
+    ? { showProgress: (rawOptions as { showProgress?: unknown }).showProgress !== false }
+    : undefined;
 
   return {
     data: {
       name,
+      options,
       nodes,
     },
   };
@@ -184,6 +191,9 @@ export async function saveToCodeBlock(
 
   const blockData: Record<string, unknown> = {
     name: data.name || "default",
+    options: {
+      showProgress: data.options?.showProgress !== false,
+    },
     nodes: serializedNodes,
   };
 

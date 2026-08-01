@@ -1944,6 +1944,16 @@
   padding: 12px;
 }
 
+.workflow-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  color: var(--text-muted);
+  font-size: var(--font-ui-small);
+  cursor: pointer;
+}
+
 .workflow-sidebar-footer {
   padding: 12px;
   border-top: 1px solid var(--background-modifier-border);

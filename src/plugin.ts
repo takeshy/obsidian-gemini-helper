@@ -73,6 +73,8 @@ interface DashboardWorkspaceEvents {
   };
 }
 
+const GOOGLE_API_KEY_SECRET_ID = "gemini-helper-google-api-key";
+
 function normalizeDeprecatedModelName(model: unknown): ModelType | null | undefined {
   if (model === null || model === undefined) return model;
   if (model === "gemini-3.1-flash-lite-preview") return "gemini-3.5-flash-lite";
@@ -173,6 +175,8 @@ export class GeminiHelperPlugin extends Plugin {
       try {
         if (this.settings.googleApiKey) {
           this.initializeClients();
+        } else if (this.settings.googleApiKeyConfigured) {
+          new Notice(t("settings.googleApiKey.missingOnDevice"), 10000);
         }
       } catch (e) {
         console.error("Gemini Helper: Failed to initialize clients:", formatError(e));
@@ -515,10 +519,25 @@ export class GeminiHelperPlugin extends Plugin {
 
   async loadSettings() {
     const loaded = (await this.loadData() ?? {}) as Partial<GeminiHelperSettings>;
+    const legacyGoogleApiKey = loaded.googleApiKey?.trim() ?? "";
+    let googleApiKey = this.app.secretStorage.getSecret(GOOGLE_API_KEY_SECRET_ID)?.trim() ?? "";
+
+    // Migrate API keys saved by versions that predate Obsidian SecretStorage.
+    // Write the secret first so a storage failure never removes the only copy.
+    if (legacyGoogleApiKey) {
+      if (!googleApiKey) {
+        this.app.secretStorage.setSecret(GOOGLE_API_KEY_SECRET_ID, legacyGoogleApiKey);
+        googleApiKey = legacyGoogleApiKey;
+      }
+      delete loaded.googleApiKey;
+      loaded.googleApiKeyConfigured = true;
+      await this.saveData(loaded);
+    }
     this.settings = {
       ...DEFAULT_SETTINGS,
       ...loaded,
-      googleApiKey: loaded.googleApiKey?.trim() ?? DEFAULT_SETTINGS.googleApiKey,
+      googleApiKey,
+      googleApiKeyConfigured: loaded.googleApiKeyConfigured || !!googleApiKey,
       // Deep copy arrays to avoid mutating DEFAULT_SETTINGS
       // Use loaded commands if present, otherwise use default commands
       slashCommands: loaded.slashCommands
@@ -565,9 +584,14 @@ export class GeminiHelperPlugin extends Plugin {
   }
 
   async saveSettings() {
+    // Keep the API key out of the plugin's data.json file, which commonly lives
+    // inside a synced or Git-tracked vault.
+    this.app.secretStorage.setSecret(GOOGLE_API_KEY_SECRET_ID, this.settings.googleApiKey.trim());
+
     // Only save values that differ from defaults
     const dataToSave: Partial<GeminiHelperSettings> = {};
     for (const key of Object.keys(this.settings) as (keyof GeminiHelperSettings)[]) {
+      if (key === "googleApiKey") continue;
       const currentValue = this.settings[key];
       const defaultValue = DEFAULT_SETTINGS[key];
       // Use JSON.stringify for arrays/objects comparison

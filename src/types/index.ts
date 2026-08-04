@@ -101,6 +101,8 @@ export interface SlashCommand {
 // Settings interface
 export interface GeminiHelperSettings {
   googleApiKey: string;
+  /** Non-secret marker used to detect a missing device-local SecretStorage value. */
+  googleApiKeyConfigured: boolean;
   apiPlan: ApiPlan;
 
   // RAG settings
@@ -626,6 +628,7 @@ export const WORKFLOWS_FOLDER = "workflows";
 // Default settings
 export const DEFAULT_SETTINGS: GeminiHelperSettings = {
   googleApiKey: "",
+  googleApiKeyConfigured: false,
   apiPlan: "paid",
   ragEnabled: false,
   ragTopK: 5,  // Default: retrieve 5 chunks

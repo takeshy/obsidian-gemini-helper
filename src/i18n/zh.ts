@@ -12,8 +12,9 @@ export const zh: Record<string, string> = {
 
   // Settings - API
   "settings.googleApiKey": "Google API 密钥",
-  "settings.googleApiKey.desc": "您的 ai.google.dev API 密钥",
+  "settings.googleApiKey.desc": "您的 ai.google.dev API 密钥。密钥保存在此设备的本地密钥存储中，因此需要在每台同步设备上分别输入。",
   "settings.googleApiKey.placeholder": "输入您的 API 密钥",
+  "settings.googleApiKey.missingOnDevice": "此仓库已配置 Google API 密钥，但该密钥未保存在此设备上。请在 Gemini Helper 设置中输入 API 密钥。",
   "settings.apiPlan": "API 计划",
   "settings.apiPlan.desc": "选择 API 密钥的计划类型（影响可用模型和搜索功能）",
   "settings.apiPlan.paid": "付费",

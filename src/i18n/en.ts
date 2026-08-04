@@ -12,8 +12,9 @@ export const en = {
 
   // Settings - API
   "settings.googleApiKey": "Google API key",
-  "settings.googleApiKey.desc": "Your API key from AI.google" + ".dev",
+  "settings.googleApiKey.desc": "Your API key from AI.google" + ".dev. It is stored securely on this device and must be entered separately on each synced device.",
   "settings.googleApiKey.placeholder": "Enter your API key",
+  "settings.googleApiKey.missingOnDevice": "A Google API key is configured for this vault, but is not stored on this device. Enter it in Gemini Helper settings to use Gemini here.",
   "settings.apiPlan": "API plan",
   "settings.apiPlan.desc": "Select the plan type for your API key (affects available models and search features)",
   "settings.apiPlan.paid": "Paid",

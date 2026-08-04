@@ -26,6 +26,7 @@ export function displayApiSettings(containerEl: HTMLElement, ctx: SettingsContex
       .onChange((value) => {
         void (async () => {
           plugin.settings.googleApiKey = value.trim();
+          plugin.settings.googleApiKeyConfigured = !!plugin.settings.googleApiKey;
           await plugin.saveSettings();
         })();
       });

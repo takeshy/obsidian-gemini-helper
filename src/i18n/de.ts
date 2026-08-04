@@ -12,8 +12,9 @@ export const de: Record<string, string> = {
 
   // Settings - API
   "settings.googleApiKey": "Google API-Schlüssel",
-  "settings.googleApiKey.desc": "Ihr API-Schlüssel von ai.google.dev",
+  "settings.googleApiKey.desc": "Ihr API-Schlüssel von ai.google.dev. Er wird im lokalen Geheimnisspeicher dieses Geräts gespeichert und muss auf jedem synchronisierten Gerät separat eingegeben werden.",
   "settings.googleApiKey.placeholder": "API-Schlüssel eingeben",
+  "settings.googleApiKey.missingOnDevice": "Für diesen Vault ist ein Google-API-Schlüssel konfiguriert, aber auf diesem Gerät nicht gespeichert. Geben Sie ihn in den Gemini-Helper-Einstellungen ein.",
   "settings.apiPlan": "API-Plan",
   "settings.apiPlan.desc": "Wählen Sie den Plantyp für Ihren API-Schlüssel (beeinflusst verfügbare Modelle und Suchfunktionen)",
   "settings.apiPlan.paid": "Bezahlt",

@@ -12,8 +12,9 @@ export const ko: Record<string, string> = {
 
   // Settings - API
   "settings.googleApiKey": "Google API 키",
-  "settings.googleApiKey.desc": "ai.google.dev에서 발급받은 API 키",
+  "settings.googleApiKey.desc": "ai.google.dev에서 발급받은 API 키입니다. 이 기기의 로컬 비밀 저장소에 저장되므로 동기화된 각 기기에서 별도로 입력해야 합니다.",
   "settings.googleApiKey.placeholder": "API 키를 입력하세요",
+  "settings.googleApiKey.missingOnDevice": "이 보관소에는 Google API 키가 설정되어 있지만 이 기기에는 저장되어 있지 않습니다. Gemini Helper 설정에서 API 키를 입력하세요.",
   "settings.apiPlan": "API 플랜",
   "settings.apiPlan.desc": "API 키의 플랜 유형을 선택하세요 (사용 가능한 모델과 검색 기능에 영향)",
   "settings.apiPlan.paid": "유료",

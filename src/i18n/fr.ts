@@ -12,8 +12,9 @@ export const fr: Record<string, string> = {
 
   // Settings - API
   "settings.googleApiKey": "Clé API Google",
-  "settings.googleApiKey.desc": "Votre clé API de ai.google.dev",
+  "settings.googleApiKey.desc": "Votre clé API de ai.google.dev. Elle est conservée dans le stockage secret local de cet appareil et doit être saisie séparément sur chaque appareil synchronisé.",
   "settings.googleApiKey.placeholder": "Entrez votre clé API",
+  "settings.googleApiKey.missingOnDevice": "Une clé API Google est configurée pour ce coffre, mais elle n'est pas enregistrée sur cet appareil. Saisissez-la dans les réglages de Gemini Helper.",
   "settings.apiPlan": "Plan API",
   "settings.apiPlan.desc": "Sélectionnez le type de plan pour votre clé API (affecte les modèles et fonctions de recherche)",
   "settings.apiPlan.paid": "Payant",

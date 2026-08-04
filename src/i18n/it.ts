@@ -12,8 +12,9 @@ export const it: Record<string, string> = {
 
   // Settings - API
   "settings.googleApiKey": "Chiave API Google",
-  "settings.googleApiKey.desc": "La tua chiave API da ai.google.dev",
+  "settings.googleApiKey.desc": "La tua chiave API da ai.google.dev. Viene salvata nell'archivio segreto locale di questo dispositivo e deve essere inserita separatamente su ogni dispositivo sincronizzato.",
   "settings.googleApiKey.placeholder": "Inserisci la tua chiave API",
+  "settings.googleApiKey.missingOnDevice": "Per questo vault è configurata una chiave API Google, ma non è salvata su questo dispositivo. Inseriscila nelle impostazioni di Gemini Helper.",
   "settings.apiPlan": "Piano API",
   "settings.apiPlan.desc": "Seleziona il tipo di piano per la tua chiave API (influisce sui modelli e funzioni di ricerca)",
   "settings.apiPlan.paid": "A pagamento",

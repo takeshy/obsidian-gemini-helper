@@ -12,8 +12,9 @@ export const ja: Record<string, string> = {
 
   // Settings - API
   "settings.googleApiKey": "Google APIキー",
-  "settings.googleApiKey.desc": "ai.google.devで取得したAPIキー",
+  "settings.googleApiKey.desc": "ai.google.devで取得したAPIキー。この端末の安全なストレージに保存されるため、同期している端末ごとに入力が必要です。",
   "settings.googleApiKey.placeholder": "APIキーを入力",
+  "settings.googleApiKey.missingOnDevice": "このVaultではGoogle APIキーが設定されていますが、この端末には保存されていません。この端末でGeminiを使うには、Gemini Helperの設定でAPIキーを入力してください。",
   "settings.apiPlan": "APIプラン",
   "settings.apiPlan.desc": "APIキーのプランタイプを選択（利用可能なモデルと検索機能に影響）",
   "settings.apiPlan.paid": "有料",

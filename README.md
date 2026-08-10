@@ -230,6 +230,12 @@ MCP (Model Context Protocol) servers provide additional tools that extend the AI
 
 **Tool hints:** After successful connection test, available tool names are saved and displayed in both settings and chat UI for easy reference.
 
+### Agent Plugins
+
+Gemini Helper supports [Agent Plugins v1.0.0](https://agent-plugins.org/) from public GitHub repositories. Open **Settings → Agent plugins**, enter `owner/repository` or a GitHub URL, then preview and install the package. Packages are pinned to the reviewed commit and stored under `.gemini-helper/agent-plugins/`; plugin data is kept separately under `.gemini-helper/agent-plugin-data/`.
+
+Installed plugin skills appear in the chat skill selector as `<plugin>.<skill>`. A plugin's tested Streamable HTTP MCP servers remain disabled by default and are enabled automatically only for a chat turn where a skill from that enabled plugin is active. Gemini Helper does not execute Agent Plugin stdio servers.
+
 ### MCP Apps (Interactive UI)
 
 Some MCP tools return interactive UI that allows you to interact with the tool results visually. This feature is based on the [MCP Apps specification](https://github.com/anthropics/anthropic-cookbook/tree/main/misc/mcp_apps).
@@ -239,6 +245,8 @@ Some MCP tools return interactive UI that allows you to interact with the tool r
 - When an MCP tool returns a `ui://` resource URI in its response metadata, the plugin fetches and renders the HTML content
 - The UI is displayed in a sandboxed iframe for security (`sandbox="allow-scripts allow-forms"`)
 - Interactive apps can call additional MCP tools and update context through a JSON-RPC bridge
+- Apps initialize through the MCP Apps `ui/initialize` handshake and receive results through `ui/notifications/tool-result`
+- Declared CSP resource and connection domains are enforced by the host; HTTPS scripts and styles are materialized by the host for Electron `srcdoc` compatibility
 
 **In Chat:**
 - MCP Apps appear inline in assistant messages with an expand/collapse button
@@ -259,6 +267,7 @@ Extend the AI with custom instructions, reference materials, and executable work
 - **Reference materials** - Include style guides, templates, and checklists in `references/`
 - **Workflow integration** - Skills can expose workflows as function calling tools
 - **External skills** - Install compatible skills from the official `takeshy/llm-hub-skills` repository
+- **Agent Plugins** - Install portable Agent Plugins from public GitHub repositories, including namespaced skills and supported MCP servers
 - **Slash command** - Type `/folder-name` to instantly invoke a skill and send
 - **Selective activation** - Choose which skills are active per conversation
 - **Context-aware skills** - When a Dashboard, Canvas, or Base file is open, chat automatically uses the matching skill instead of the generic Markdown skill; Dashboard context is available when Dashboard Hub is enabled
@@ -270,6 +279,8 @@ Create skills the same way as workflows — select **+ New (AI)**, check **"Crea
 ![External Skills Settings](docs/images/external_skill.png)
 
 External skills are imported from the official repository and copied into your vault `skills/` folder. The settings panel shows installable skills, installed versions, and per-skill update checks. Imported skills use the same selector, slash commands, references, and workflow execution as vault-authored skills.
+
+Agent Plugin skills are installed as commit-pinned packages under `.gemini-helper/agent-plugins/`. They are namespaced by plugin name, loaded directly from the hidden package folder, and can activate tested plugin-managed Streamable HTTP MCP servers for the current chat turn.
 
 > **For setup instructions and examples, ask Gemini Helper chat. The built-in OKF knowledge source contains the current Agent Skills reference.**
 

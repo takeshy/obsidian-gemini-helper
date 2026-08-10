@@ -1,5 +1,17 @@
 import type { Content } from "@google/genai";
 
+export interface AgentPluginInstall {
+  name: string;
+  repo: string;
+  version: string;
+  sourceType: "release" | "branch";
+  sourceRef: string;
+  commitSha: string;
+  enabled: boolean;
+  skillNames: string[];
+  executables?: string[];
+}
+
 // MCP (Model Context Protocol) server configuration
 export interface McpServerConfig {
   name: string;           // Server display name
@@ -7,6 +19,7 @@ export interface McpServerConfig {
   headers?: Record<string, string>;  // Optional headers for authentication
   enabled: boolean;       // Whether this server is enabled for chat
   toolHints?: string[];   // Tool names from test connection (for display hints)
+  agentPlugin?: { pluginName: string; serverName: string };
 }
 
 // MCP tool information (from server)
@@ -18,6 +31,7 @@ export interface McpToolInfo {
     ui?: {
       resourceUri: string;  // ui:// URI for MCP Apps
     };
+    "ui/resourceUri"?: string;
   };
 }
 
@@ -37,10 +51,12 @@ export interface McpAppContent {
 export interface McpAppResult {
   content: McpAppContent[];
   isError?: boolean;
+  structuredContent?: Record<string, unknown>;
   _meta?: {
     ui?: {
       resourceUri: string;
     };
+    "ui/resourceUri"?: string;
   };
 }
 
@@ -50,6 +66,20 @@ export interface McpAppUiResource {
   mimeType: string;
   text?: string;
   blob?: string;  // Base64 encoded binary data
+  _meta?: {
+    ui?: {
+      csp?: {
+        connectDomains?: string[];
+        connect_domains?: string[];
+        resourceDomains?: string[];
+        resource_domains?: string[];
+        frameDomains?: string[];
+        frame_domains?: string[];
+        baseUriDomains?: string[];
+        base_uri_domains?: string[];
+      };
+    };
+  };
 }
 
 // Obsidian event types for workflow triggers
@@ -129,6 +159,7 @@ export interface GeminiHelperSettings {
 
   // MCP servers
   mcpServers: McpServerConfig[];  // External MCP server configurations
+  agentPlugins: AgentPluginInstall[];
 
   // Function call limits (for settings UI)
   maxFunctionCalls: number;           // 最大function call回数
@@ -641,6 +672,7 @@ export const DEFAULT_SETTINGS: GeminiHelperSettings = {
   enabledWorkflowHotkeys: [],
   enabledWorkflowEventTriggers: [],
   mcpServers: [],
+  agentPlugins: [],
   // Function call limits
   maxFunctionCalls: 20,
   functionCallWarningThreshold: 5,

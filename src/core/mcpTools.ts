@@ -10,6 +10,7 @@ import { formatError } from "../utils/error";
 export interface McpToolDefinition extends ToolDefinition {
   mcpServer: McpServerConfig;
   mcpToolName: string;
+  mcpAppResourceUri?: string;
 }
 
 // Cache for MCP tools to avoid repeated fetches
@@ -27,6 +28,11 @@ function sanitizeMcpName(name: string): string {
     .replace(/[^a-z0-9_]/g, "_")
     .replace(/_+/g, "_")
     .replace(/^_+|_+$/g, "");
+}
+
+export function getMcpAppResourceUri(meta?: McpToolInfo["_meta"]): string | undefined {
+  const uri = meta?.ui?.resourceUri ?? meta?.["ui/resourceUri"];
+  return typeof uri === "string" && uri.startsWith("ui://") ? uri : undefined;
 }
 
 /**
@@ -133,6 +139,7 @@ function convertMcpToolToGemini(
     },
     mcpServer: server,
     mcpToolName: tool.name,
+    mcpAppResourceUri: getMcpAppResourceUri(tool._meta),
   };
 }
 
@@ -300,15 +307,20 @@ export function createMcpToolExecutor(
         result: textContents.join("\n"),
       };
 
-      // If the tool returned UI metadata, include it in the result
-      if (appResult._meta?.ui?.resourceUri) {
+      const resourceUri = appResult._meta?.ui?.resourceUri
+        ?? appResult._meta?.["ui/resourceUri"]
+        ?? tool.mcpAppResourceUri;
+      if (resourceUri?.startsWith("ui://")) {
         // Pre-fetch the UI resource
-        const uiResource = await client.readResource(appResult._meta.ui.resourceUri);
+        const uiResource = await client.readResource(resourceUri);
+        const toolResult = appResult._meta?.ui?.resourceUri === resourceUri
+          ? appResult
+          : { ...appResult, _meta: { ...appResult._meta, ui: { resourceUri } } };
 
         result.mcpApp = {
           serverUrl: tool.mcpServer.url,
           serverHeaders: tool.mcpServer.headers,
-          toolResult: appResult,
+          toolResult,
           uiResource,
         };
       }

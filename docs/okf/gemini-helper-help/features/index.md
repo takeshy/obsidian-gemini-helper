@@ -6,6 +6,7 @@
 - [Skill Authoring](./skill-authoring.md) - Vault skill folder structure, SKILL.md format, references, capabilities, and examples.
 - [Skill Chat and Workflows](./skill-chat-workflows.md) - Skill activation, slash commands, run_skill_workflow, inputs, outputs, and recovery.
 - [External Skill Import](./external-skills.md) - Official repository layout, manifest rules, import/update behavior, and safety model.
+- [Agent Skills](./agent-skills.md#agent-skills) also covers portable Agent Plugins and plugin-managed MCP servers.
 - [Workflows](./workflows.md) - Workflow creation, execution, triggers, history, and skill workflows.
 - [Workflow Authoring and Recovery](./workflow-authoring-recovery.md) - AI generation, modification, migration, execution history, and failure recovery.
 - [Workflow Triggers and Inputs](./workflow-triggers-inputs.md) - Hotkeys, event triggers, event variables, prompts, and skill workflow inputs.

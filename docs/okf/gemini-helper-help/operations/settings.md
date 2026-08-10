@@ -15,6 +15,7 @@ Important settings areas:
 - RAG settings manage File Search stores, sync, top-K, folders, exclusions, metadata filters, and external store IDs.
 - Knowledge sources configure an external OKF directory.
 - External skills install versioned skills from the official repository.
+- Agent plugins install commit-pinned Agent Plugins v1.0.0 from public GitHub repositories.
 - MCP servers configure Streamable HTTP MCP endpoints.
 - Encryption settings configure keys and encrypted chat or workflow history.
 - Langfuse settings configure optional observability.
@@ -63,6 +64,16 @@ The Slash Commands section manages reusable `/command` prompts. Each command can
 - Official repository - fixed to `takeshy/llm-hub-skills`.
 - Install a skill - select a compatible catalog entry and install it.
 - Installed skills - show installed version, available update status, and per-skill update check/install action.
+
+# Agent Plugin Settings
+
+- GitHub repository - accepts `owner/repository` or a public GitHub URL.
+- Preview and install - validates the package, displays its commit, skills, supported MCP servers, and warnings, then tests supported servers before saving.
+- Enabled - controls whether the package's skills can be discovered and whether its MCP servers can be activated with those skills.
+- Check for update - compares the installed commit with the latest release, or the default branch when no release exists.
+- Uninstall - removes package files and managed MCP server settings while preserving `.gemini-helper/agent-plugin-data/<plugin-name>/`.
+
+Packages are limited by path, file-count, individual-file-size, and total-size checks. Symlinks and unsafe paths are rejected. Gemini Helper accepts Streamable HTTP Agent Plugin MCP entries and skips unsupported stdio entries with a warning.
 
 # Knowledge Source Settings
 

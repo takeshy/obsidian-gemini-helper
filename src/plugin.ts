@@ -550,6 +550,7 @@ export class GeminiHelperPlugin extends Plugin {
       mcpServers: loaded.mcpServers
         ? [...loaded.mcpServers]
         : [],
+      agentPlugins: Array.isArray(loaded.agentPlugins) ? [...loaded.agentPlugins] : [],
       knowledgeSources: loaded.knowledgeSources
         ? loaded.knowledgeSources.slice(0, 1).map(source => ({ ...source, name: "OKF", type: "okf" as const }))
         : [],

@@ -72,6 +72,7 @@ import { cryptoCache } from "src/core/cryptoCache";
 import { formatError } from "src/utils/error";
 import { findFileMentionOccurrences } from "src/utils/mentionResolver";
 import { discoverSkills, loadSkill, buildSkillSystemPrompt, collectSkillWorkflows, type SkillMetadata, type LoadedSkill, type SkillWorkflowRef } from "src/core/skillsLoader";
+import { resolveAgentPluginMcpServers } from "src/core/agentPlugins";
 import { buildBuiltinOkfSystemPrompt, buildOkfSystemPrompt, discoverOkfBundles, getBuiltinOkfBundle, isBuiltinOkfBundleId, type OkfBundle } from "src/core/okfLoader";
 import { executeReadOkfDocumentTool, READ_OKF_DOCUMENT_TOOL, READ_OKF_DOCUMENT_TOOL_NAME } from "src/core/okfDocumentTool";
 import { GET_WORKFLOW_SPEC_TOOL, GET_WORKFLOW_SPEC_TOOL_NAME, handleGetWorkflowSpec } from "src/workflow/workflowSpec";
@@ -1352,7 +1353,7 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 				}
 
 				// Fetch MCP tools from enabled servers
-				const enabledMcpServers = mcpServers.filter(s => s.enabled);
+				const enabledMcpServers = resolveAgentPluginMcpServers(mcpServers, effectiveSkillPaths, settings.agentPlugins).filter(s => s.enabled);
 				const mcpTools: McpToolDefinition[] = toolsEnabled && enabledMcpServers.length > 0
 					? await fetchMcpTools(enabledMcpServers)
 					: [];

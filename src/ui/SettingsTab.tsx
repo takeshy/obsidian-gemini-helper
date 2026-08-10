@@ -12,6 +12,7 @@ import { displayExternalSkillSettings } from "src/ui/settings/externalSkillSetti
 import { displayKnowledgeSettings } from "src/ui/settings/knowledgeSettings";
 
 import { displayMcpServersSettings } from "src/ui/settings/mcpServersSettings";
+import { displayAgentPluginSettings } from "src/ui/settings/agentPluginSettings";
 
 // Sections rendered under the main tab heading (edit history has no UI of its own).
 const SETTINGS_SECTIONS: Array<(containerEl: HTMLElement, ctx: SettingsContext) => void> = [
@@ -21,6 +22,7 @@ const SETTINGS_SECTIONS: Array<(containerEl: HTMLElement, ctx: SettingsContext) 
   displayLangfuseSettings,
   displaySlashCommandSettings,
   displayExternalSkillSettings,
+  displayAgentPluginSettings,
   displayKnowledgeSettings,
   displayRagSettings,
   displayMcpServersSettings,

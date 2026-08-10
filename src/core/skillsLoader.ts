@@ -2,6 +2,7 @@ import { type App, TFile, TFolder, parseYaml, stringifyYaml } from "obsidian";
 import { SKILLS_FOLDER } from "src/types";
 import { getBuiltinSkillMetadata, isBuiltinSkillPath, loadBuiltinSkill, loadBuiltinSkillByCapability } from "./builtinSkills";
 import { getRuntimeSkillMetadata, isRuntimeSkillPath, loadRuntimeSkill } from "./runtimeSkills";
+import { AGENT_PLUGIN_ROOT } from "./agentPlugins";
 
 export interface SkillWorkflowRef {
   path: string;              // relative path from skill folder (e.g. "workflows/lint.md")
@@ -15,6 +16,7 @@ export interface SkillMetadata {
   folderPath: string;      // e.g. "GeminiHelper/skills/code-review"
   skillFilePath: string;   // e.g. "GeminiHelper/skills/code-review/SKILL.md"
   workflows: SkillWorkflowRef[];  // workflow references from SKILL.md
+  agentPluginContent?: { instructions: string; references: string[] };
 }
 
 export interface LoadedSkill extends SkillMetadata {
@@ -121,9 +123,8 @@ export async function discoverSkills(app: App): Promise<SkillMetadata[]> {
   const skills: SkillMetadata[] = [...getBuiltinSkillMetadata(), ...getRuntimeSkillMetadata()];
 
   const folder = app.vault.getAbstractFileByPath(SKILLS_FOLDER);
-  if (!(folder instanceof TFolder)) return skills;
-
-  for (const child of folder.children) {
+  const children = folder instanceof TFolder ? folder.children : [];
+  for (const child of children) {
     if (!(child instanceof TFolder)) continue;
 
     const skillFilePath = `${child.path}/SKILL.md`;
@@ -179,6 +180,30 @@ export async function discoverSkills(app: App): Promise<SkillMetadata[]> {
     }
   }
 
+  // Dot-folders are not reliably indexed by Obsidian's Vault API. Read
+  // installed Agent Plugin skills through the adapter and retain their content
+  // in memory so the model does not need read_note access to hidden files.
+  try {
+    const pluginEntries = await app.vault.adapter.list(AGENT_PLUGIN_ROOT);
+    for (const pluginPath of pluginEntries.folders) {
+      const pluginName = pluginPath.split("/").pop() || "";
+      if (!pluginName || pluginName.startsWith(".")) continue;
+      try { const install = JSON.parse(await app.vault.adapter.read(`${pluginPath}/install.json`)) as { enabled?: boolean }; if (install.enabled === false) continue; } catch { continue; }
+      let skillFolders: string[] = [];
+      try { skillFolders = (await app.vault.adapter.list(`${pluginPath}/skills`)).folders; } catch { continue; }
+      for (const skillFolder of skillFolders) {
+        const skillName = skillFolder.split("/").pop() || "", skillFilePath = `${skillFolder}/SKILL.md`;
+        try {
+          const content = await app.vault.adapter.read(skillFilePath), { frontmatter, body } = parseFrontmatter(content);
+          const rawName = typeof frontmatter.name === "string" ? frontmatter.name : skillName;
+          const references: string[] = [];
+          try { const entries = await app.vault.adapter.list(`${skillFolder}/references`); for (const path of entries.files.sort()) try { references.push(`[${path.split("/").pop()}]\n${await app.vault.adapter.read(path)}`); } catch { /* skip unreadable reference */ } } catch { /* optional */ }
+          skills.push({ name: `${pluginName}.${rawName}`, description: typeof frontmatter.description === "string" ? frontmatter.description : "", folderPath: skillFolder, skillFilePath, workflows: [], agentPluginContent: { instructions: body.trim(), references } });
+        } catch (error) { console.warn(`[skills] failed to load Agent Plugin skill ${skillFilePath}:`, error); }
+      }
+    }
+  } catch { /* no Agent Plugins installed */ }
+
   return skills;
 }
 
@@ -191,6 +216,7 @@ export async function discoverSkills(app: App): Promise<SkillMetadata[]> {
  * per-message hot path.
  */
 export function loadSkill(_app: App, metadata: SkillMetadata): LoadedSkill {
+  if (metadata.agentPluginContent) return { ...metadata, ...metadata.agentPluginContent };
   if (isBuiltinSkillPath(metadata.folderPath)) {
     const builtin = loadBuiltinSkill(metadata.folderPath);
     if (builtin) return builtin;
@@ -223,7 +249,7 @@ export function buildSkillSystemPrompt(skills: LoadedSkill[]): string {
   let sawLazyVaultSkill = false;
 
   const parts = skills.map(skill => {
-    const isBuiltin = isBuiltinSkillPath(skill.folderPath) || isRuntimeSkillPath(skill.folderPath);
+    const isBuiltin = isBuiltinSkillPath(skill.folderPath) || isRuntimeSkillPath(skill.folderPath) || !!skill.agentPluginContent;
 
     let section = `## Skill: ${skill.name}`;
     if (isBuiltin) {

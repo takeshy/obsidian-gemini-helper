@@ -6,6 +6,13 @@ import type { McpServerConfig, McpToolInfo, McpAppResult, McpAppUiResource } fro
 
 const MODERN_PROTOCOL_VERSION = "2026-07-28";
 const LEGACY_PROTOCOL_VERSION = "2025-11-25";
+export const MCP_APPS_CLIENT_CAPABILITIES = {
+  extensions: {
+    "io.modelcontextprotocol/ui": {
+      mimeTypes: ["text/html;profile=mcp-app"],
+    },
+  },
+};
 const SUPPORTED_LEGACY_PROTOCOL_VERSIONS = new Set([
   LEGACY_PROTOCOL_VERSION,
   "2025-06-18",
@@ -39,6 +46,7 @@ interface McpInitializeResult {
   protocolVersion: string;
   capabilities: {
     tools?: Record<string, unknown>;
+    extensions?: Record<string, unknown>;
   };
   serverInfo: {
     name: string;
@@ -73,10 +81,12 @@ interface McpToolCallResult {
     };
   }>;
   isError?: boolean;
+  structuredContent?: Record<string, unknown>;
   _meta?: {
     ui?: {
       resourceUri: string;
     };
+    "ui/resourceUri"?: string;
   };
 }
 
@@ -87,6 +97,7 @@ interface McpResourceReadResult {
     mimeType?: string;
     text?: string;
     blob?: string;  // Base64 encoded binary
+    _meta?: McpAppUiResource["_meta"];
   }>;
 }
 
@@ -295,7 +306,7 @@ export class McpClient {
     this.negotiatedProtocolVersion = LEGACY_PROTOCOL_VERSION;
     const result = await this.sendRequest("initialize", {
       protocolVersion: LEGACY_PROTOCOL_VERSION,
-      capabilities: {},
+      capabilities: MCP_APPS_CLIENT_CAPABILITIES,
       clientInfo: {
         name: "obsidian-gemini-helper",
         version: "1.0.0",
@@ -402,6 +413,7 @@ export class McpClient {
         resource: c.resource,
       })) || [],
       isError: result.isError,
+      structuredContent: result.structuredContent,
       _meta: result._meta,
     };
 
@@ -427,7 +439,8 @@ export class McpClient {
           uri: content.uri,
           mimeType: content.mimeType || "text/html",
           text: content.text,
-          blob: content.blob,
+      blob: content.blob,
+      _meta: content._meta,
         };
       }
 

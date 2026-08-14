@@ -320,7 +320,6 @@ export type ApiPlan = "paid" | "free";
 // Model types (includes both chat and image generation models)
 export type ModelType =
   | "gemini-3.7-flash"
-  | "gemini-3.5-flash"
   | "gemini-3.1-pro-preview"
   | "gemini-3.1-pro-preview-customtools"
   | "gemini-3.5-flash-lite"
@@ -352,11 +351,6 @@ export const PAID_MODELS: ModelInfo[] = [
     name: "gemini-3.1-pro-preview-customtools",
     displayName: "Gemini 3.1 Pro Preview (Custom Tools)",
     description: "Optimized for agentic workflows with custom tools and bash",
-  },
-  {
-    name: "gemini-3.5-flash",
-    displayName: "Gemini 3.5 Flash",
-    description: "Fast model with 1M context, best cost-performance",
   },
   {
     name: "gemini-3.5-flash-lite",
@@ -398,11 +392,6 @@ export const FREE_MODELS: ModelInfo[] = [
     name: "gemini-3.7-flash",
     displayName: "Gemini 3.7 Flash",
     description: "Free tier latest fast model (recommended)",
-  },
-  {
-    name: "gemini-3.5-flash",
-    displayName: "Gemini 3.5 Flash",
-    description: "Free tier fast model",
   },
   {
     name: "gemini-3.5-flash-lite",

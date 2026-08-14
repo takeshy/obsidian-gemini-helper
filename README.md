@@ -527,7 +527,6 @@ Configure your Google Gemini API key and API plan in Gemini Helper, then select 
 | Gemini 3.7 Flash | Latest fast model, 1M context (recommended) |
 | Gemini 3.1 Pro Preview | Latest flagship model, 1M context (recommended) |
 | Gemini 3.1 Pro Preview (Custom Tools) | Optimized for agentic workflows with custom tools and bash |
-| Gemini 3.5 Flash | Fast model, 1M context, best cost-performance |
 | Gemini 3.5 Flash Lite | Low-latency, cost-effective model, 1M context |
 | Gemini 3 Pro (Image) | Pro image generation, 4K |
 | Gemini 3.1 Flash (Image) | Fast, low-cost image generation |
@@ -550,7 +549,6 @@ When a toggle is ON, thinking is always active for that model family regardless 
 | Model | Vault Operations |
 |-------|------------------|
 | Gemini 3.7 Flash | ✅ |
-| Gemini 3.5 Flash | ✅ |
 | Gemini 3.5 Flash Lite | ✅ |
 | Gemma 4 (31B, 26B A4B MoE) | ✅ |
 

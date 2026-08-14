@@ -79,7 +79,7 @@ function normalizeDeprecatedModelName(model: unknown): ModelType | null | undefi
   if (model === null || model === undefined) return model;
   if (model === "gemini-3.1-flash-lite-preview") return "gemini-3.5-flash-lite";
   if (model === "gemini-3.1-flash-lite" || model === "gemini-2.5-flash-lite") return "gemini-3.5-flash-lite";
-  if (model === "gemini-3-flash-preview" || model === "gemini-3.6-flash") return "gemini-3.7-flash";
+  if (model === "gemini-3-flash-preview" || model === "gemini-3.5-flash" || model === "gemini-3.6-flash") return "gemini-3.7-flash";
   if (model === "gemini-2.5-flash") return "gemini-3.7-flash";
   if (model === "gemini-2.5-pro") return "gemini-3.1-pro-preview";
   return model as ModelType;

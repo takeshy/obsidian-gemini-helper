@@ -193,7 +193,6 @@ function collectWebSources(value: unknown, sources: WebSearchSource[]): void {
 const MODEL_PRICING: Record<string, { input: number; output: number }> = {
   // Introductory pricing through December 31, 2026.
   "gemini-3.7-flash": { input: 0.75 / 1e6, output: 3.75 / 1e6 },
-  "gemini-3.5-flash": { input: 1.50 / 1e6, output: 9.00 / 1e6 },
   "gemini-3.5-flash-lite": { input: 0.30 / 1e6, output: 2.50 / 1e6 },
   "gemini-3.1-pro-preview": { input: 2.00 / 1e6, output: 12.00 / 1e6 },
   "gemini-3.1-pro-preview-customtools": { input: 2.00 / 1e6, output: 12.00 / 1e6 },
@@ -207,7 +206,6 @@ const MODEL_PRICING: Record<string, { input: number; output: number }> = {
 // Approximated as per-prompt since exact query count is not exposed by the API
 const SEARCH_GROUNDING_COST: Record<string, number> = {
   "gemini-3.7-flash": 14 / 1000,
-  "gemini-3.5-flash": 14 / 1000,
   "gemini-3.1-pro-preview": 14 / 1000,
   "gemini-3.1-pro-preview-customtools": 14 / 1000,
   "gemini-3-pro-image": 14 / 1000,

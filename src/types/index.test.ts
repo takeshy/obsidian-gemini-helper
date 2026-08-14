@@ -17,6 +17,10 @@ describe("Gemini 3.7 Flash", () => {
     expect(AVAILABLE_MODELS.map(model => model.name as string)).not.toContain("gemini-3.6-flash");
   });
 
+  it("does not expose superseded Gemini 3.5 Flash", () => {
+    expect(AVAILABLE_MODELS.map(model => model.name as string)).not.toContain("gemini-3.5-flash");
+  });
+
   it("does not expose retired Gemini 2.5 text models", () => {
     const models = AVAILABLE_MODELS.map(model => model.name as string);
     expect(models).not.toContain("gemini-2.5-flash");

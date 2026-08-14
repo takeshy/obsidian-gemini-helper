@@ -319,9 +319,7 @@ export type ApiPlan = "paid" | "free";
 
 // Model types (includes both chat and image generation models)
 export type ModelType =
-  | "gemini-2.5-flash"
-  | "gemini-2.5-pro"
-  | "gemini-3.6-flash"
+  | "gemini-3.7-flash"
   | "gemini-3.5-flash"
   | "gemini-3.1-pro-preview"
   | "gemini-3.1-pro-preview-customtools"
@@ -341,8 +339,8 @@ export interface ModelInfo {
 
 export const PAID_MODELS: ModelInfo[] = [
   {
-    name: "gemini-3.6-flash",
-    displayName: "Gemini 3.6 Flash",
+    name: "gemini-3.7-flash",
+    displayName: "Gemini 3.7 Flash",
     description: "Latest fast model with 1M context (recommended)",
   },
   {
@@ -364,16 +362,6 @@ export const PAID_MODELS: ModelInfo[] = [
     name: "gemini-3.5-flash-lite",
     displayName: "Gemini 3.5 Flash Lite",
     description: "Latest fast, low-cost model with 1M context",
-  },
-  {
-    name: "gemini-2.5-flash",
-    displayName: "Gemini 2.5 Flash",
-    description: "Fast model with 1M context",
-  },
-  {
-    name: "gemini-2.5-pro",
-    displayName: "Gemini 2.5 Pro",
-    description: "Pro model with 1M context",
   },
   {
     name: "gemma-4-31b-it",
@@ -407,14 +395,9 @@ export const PAID_MODELS: ModelInfo[] = [
 
 export const FREE_MODELS: ModelInfo[] = [
   {
-    name: "gemini-3.6-flash",
-    displayName: "Gemini 3.6 Flash",
-    description: "Latest fast model with 1M context (recommended)",
-  },
-  {
-    name: "gemini-2.5-flash",
-    displayName: "Gemini 2.5 Flash",
-    description: "Free tier fast model",
+    name: "gemini-3.7-flash",
+    displayName: "Gemini 3.7 Flash",
+    description: "Free tier latest fast model (recommended)",
   },
   {
     name: "gemini-3.5-flash",
@@ -627,7 +610,7 @@ export interface StreamChunk {
 
 // Default models by plan
 export const DEFAULT_MODEL_FREE: ModelType = "gemma-4-31b-it";
-export const DEFAULT_MODEL_PAID: ModelType = "gemini-3.6-flash";
+export const DEFAULT_MODEL_PAID: ModelType = "gemini-3.7-flash";
 
 // Default model (for backwards compatibility)
 export const DEFAULT_MODEL: ModelType = DEFAULT_MODEL_FREE;

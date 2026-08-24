@@ -133,6 +133,12 @@ interface ChatProps {
 
 const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 	const [messages, setMessages] = useState<Message[]>([]);
+	const [sentPromptHistory, setSentPromptHistory] = useState<string[]>(() => {
+		const saved = plugin.workspaceState.sentPromptHistory;
+		return Array.isArray(saved)
+			? saved.filter(prompt => typeof prompt === "string" && prompt.trim()).slice(-100)
+			: [];
+	});
 	const [activeChat, setActiveChat] = useState<TFile | null>(null);
 	const [currentChatId, setCurrentChatId] = useState<string | null>(null);
 	const [chatHistories, setChatHistories] = useState<ChatHistory[]>([]);
@@ -2457,6 +2463,15 @@ Always be helpful and provide clear, concise responses. When working with vault 
 						vaultFiles={vaultFiles}
 						hasSelection={hasSelection}
 						app={plugin.app}
+						inputHistory={sentPromptHistory}
+						onInputHistoryAdd={(prompt) => {
+							setSentPromptHistory(previous => {
+								const next = [...previous, prompt].slice(-100);
+								plugin.workspaceState.sentPromptHistory = next;
+								void plugin.saveWorkspaceState();
+								return next;
+							});
+						}}
 					/>
 				</>
 			) : (

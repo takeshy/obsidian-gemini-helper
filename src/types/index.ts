@@ -268,6 +268,7 @@ export interface WorkspaceState {
   ragSettings: Record<string, RagSetting>;  // 設定名 -> RAG設定
   alwaysThinkFlash?: boolean;         // Flashモデルで常に思考
   alwaysThinkFlashLite?: boolean;     // Flash Liteモデルで常に思考
+  sentPromptHistory?: string[];       // Recently sent prompts for input history navigation
 }
 
 // デフォルトのRAG設定

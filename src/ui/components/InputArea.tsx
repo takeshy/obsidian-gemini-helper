@@ -7,6 +7,7 @@ import type { OkfBundle } from "src/core/okfLoader";
 import SkillSelector from "./SkillSelector";
 import OkfSelector from "./OkfSelector";
 import { t } from "src/i18n";
+import { isCaretOnFirstLine, isCaretOnLastLine } from "./chat/chatUtils";
 
 // Built-in command definition (not user-configurable)
 interface BuiltInCommand {
@@ -54,6 +55,8 @@ interface InputAreaProps {
   vaultFiles: string[];
   hasSelection: boolean;
   app: App;
+  inputHistory: string[];
+  onInputHistoryAdd: (prompt: string) => void;
 }
 
 export interface InputAreaHandle {
@@ -118,6 +121,8 @@ const InputArea = forwardRef<InputAreaHandle, InputAreaProps>(function InputArea
   vaultFiles,
   hasSelection,
   app,
+  inputHistory,
+  onInputHistoryAdd,
 }, ref) {
   const [input, setInput] = useState("");
   const [pendingAttachments, setPendingAttachments] = useState<Attachment[]>([]);
@@ -135,6 +140,8 @@ const InputArea = forwardRef<InputAreaHandle, InputAreaProps>(function InputArea
   const fileInputRef = useRef<HTMLInputElement>(null);
   const mentionAutocompleteRef = useRef<HTMLDivElement>(null);
   const vaultToolMenuRef = useRef<HTMLDivElement>(null);
+  const historyIndexRef = useRef<number | null>(null);
+  const historyDraftRef = useRef("");
 
   // Scroll to selected mention item
   useEffect(() => {
@@ -161,7 +168,11 @@ const InputArea = forwardRef<InputAreaHandle, InputAreaProps>(function InputArea
 
   // Expose methods via ref
   useImperativeHandle(ref, () => ({
-    setInputValue: (value: string) => setInput(value),
+    setInputValue: (value: string) => {
+      setInput(value);
+      historyIndexRef.current = null;
+      historyDraftRef.current = "";
+    },
     getInputValue: () => input,
     focus: () => textareaRef.current?.focus(),
   }));
@@ -229,16 +240,22 @@ const InputArea = forwardRef<InputAreaHandle, InputAreaProps>(function InputArea
           if (trimmed.toLowerCase().startsWith(prefix.toLowerCase()) &&
               (trimmed.length === prefix.length || trimmed[prefix.length] === " ")) {
             const userMessage = trimmed.slice(prefix.length).trim();
+            onInputHistoryAdd(input);
             void onSend(userMessage, pendingAttachments.length > 0 ? pendingAttachments : undefined, skill.folderPath);
             setInput("");
             setPendingAttachments([]);
+            historyIndexRef.current = null;
+            historyDraftRef.current = "";
             return;
           }
         }
       }
+      if (input.trim()) onInputHistoryAdd(input);
       void onSend(input, pendingAttachments.length > 0 ? pendingAttachments : undefined);
       setInput("");
       setPendingAttachments([]);
+      historyIndexRef.current = null;
+      historyDraftRef.current = "";
     }
   };
 
@@ -246,6 +263,7 @@ const InputArea = forwardRef<InputAreaHandle, InputAreaProps>(function InputArea
     const value = e.target.value;
     const cursorPos = e.target.selectionStart;
     setInput(value);
+    historyIndexRef.current = null;
 
     // Check for slash command trigger (only at start of input)
     if (value.startsWith("/")) {
@@ -331,9 +349,12 @@ const InputArea = forwardRef<InputAreaHandle, InputAreaProps>(function InputArea
       if (command.id.startsWith("__skill__")) {
         const folderPath = command.id.slice("__skill__".length);
         const userMessage = input.replace(/^\/\S*\s*/, "").trim();
+        if (input.trim()) onInputHistoryAdd(input);
         void onSend(userMessage, pendingAttachments.length > 0 ? pendingAttachments : undefined, folderPath);
         setInput("");
         setPendingAttachments([]);
+        historyIndexRef.current = null;
+        historyDraftRef.current = "";
       }
       return;
     }
@@ -417,6 +438,33 @@ const InputArea = forwardRef<InputAreaHandle, InputAreaProps>(function InputArea
       }
       if (e.key === "Escape") {
         setShowMentionAutocomplete(false);
+        return;
+      }
+    }
+
+    if (!e.altKey && !e.ctrlKey && !e.metaKey && !e.shiftKey && inputHistory.length > 0
+      && e.currentTarget.selectionStart === e.currentTarget.selectionEnd) {
+      const caret = e.currentTarget.selectionStart;
+      if (e.key === "ArrowUp" && isCaretOnFirstLine(input, caret)) {
+        e.preventDefault();
+        const nextIndex = historyIndexRef.current === null
+          ? inputHistory.length - 1
+          : Math.max(0, historyIndexRef.current - 1);
+        if (historyIndexRef.current === null) historyDraftRef.current = input;
+        historyIndexRef.current = nextIndex;
+        setInput(inputHistory[nextIndex]);
+        return;
+      }
+      if (e.key === "ArrowDown" && historyIndexRef.current !== null && isCaretOnLastLine(input, caret)) {
+        e.preventDefault();
+        const nextIndex = historyIndexRef.current + 1;
+        if (nextIndex >= inputHistory.length) {
+          historyIndexRef.current = null;
+          setInput(historyDraftRef.current);
+        } else {
+          historyIndexRef.current = nextIndex;
+          setInput(inputHistory[nextIndex]);
+        }
         return;
       }
     }

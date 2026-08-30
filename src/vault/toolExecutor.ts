@@ -5,6 +5,7 @@ import {
   updateNote,
   deleteNote,
   findFileByName,
+  findReadableFileByName,
   getActiveNoteInfo,
   proposeEdit,
   applyEdit,
@@ -86,9 +87,21 @@ function denyAiVaultToolScopeForBulk(rejectedPaths: string[]): ToolResult {
   };
 }
 
-function isFileInAiVaultToolScope(app: App, fileName: string | undefined, activeNote: boolean | undefined, context: ToolExecutionContext | undefined): boolean {
+/**
+ * Resolve the target the same way the tool itself will: read-only tools accept PDFs
+ * (findReadableFileByName), writing tools do not (findFileByName). Using the wrong
+ * lookup here lets a name pass the scope gate and then fail with "could not find".
+ */
+function isFileInAiVaultToolScope(
+  app: App,
+  fileName: string | undefined,
+  activeNote: boolean | undefined,
+  context: ToolExecutionContext | undefined,
+  readOnly = false
+): boolean {
   if (!hasAiVaultToolScope(context)) return true;
-  const file = activeNote ? app.workspace.getActiveFile() : fileName ? findFileByName(app, fileName) : null;
+  const lookup = readOnly ? findReadableFileByName : findFileByName;
+  const file = activeNote ? app.workspace.getActiveFile() : fileName ? lookup(app, fileName) : null;
   return !!(file && isFileAllowedForAiVaultTools(file, context?.aiVaultToolAllowedFolders));
 }
 
@@ -157,7 +170,7 @@ async function executeToolCallInternal(
     }
 
     case "read_note":
-      if (!isFileInAiVaultToolScope(app, asString(args.fileName), args.activeNote as boolean | undefined, context)) {
+      if (!isFileInAiVaultToolScope(app, asString(args.fileName), args.activeNote as boolean | undefined, context, true)) {
         return denyAiVaultToolScope();
       }
       return readNote(

@@ -71,6 +71,8 @@ import {
 import { cryptoCache } from "src/core/cryptoCache";
 import { formatError } from "src/utils/error";
 import { findFileMentionOccurrences } from "src/utils/mentionResolver";
+import { extractPdfText } from "src/vault/pdfText";
+import { isFileAllowedForAiVaultTools } from "src/vault/aiVaultScope";
 import { discoverSkills, loadSkill, buildSkillSystemPrompt, collectSkillWorkflows, type SkillMetadata, type LoadedSkill, type SkillWorkflowRef } from "src/core/skillsLoader";
 import { resolveAgentPluginMcpServers } from "src/core/agentPlugins";
 import { buildBuiltinOkfSystemPrompt, buildOkfSystemPrompt, discoverOkfBundles, getBuiltinOkfBundle, isBuiltinOkfBundleId, type OkfBundle } from "src/core/okfLoader";
@@ -126,6 +128,13 @@ const CONTEXT_BUILTIN_SKILL_PATHS = new Set([
 	CANVAS_SKILL_PATH,
 	BASE_SKILL_PATH,
 ]);
+
+// Files that can be @-mentioned: Markdown plus PDFs (text layer extracted on demand).
+// Extensions are compared lower-cased to match the vault-layer lookups.
+const MENTIONABLE_EXTENSIONS = new Set(["md", "pdf"]);
+
+const isMentionableFile = (file: TFile): boolean =>
+	MENTIONABLE_EXTENSIONS.has(file.extension.toLowerCase());
 
 interface ChatProps {
 	plugin: GeminiHelperPlugin;
@@ -625,7 +634,9 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 	// Load vault files for @ mention suggestions
 	useEffect(() => {
 		const updateVaultFiles = () => {
-			const files = plugin.app.vault.getMarkdownFiles().map(f => f.path);
+			const files = plugin.app.vault.getFiles()
+				.filter(isMentionableFile)
+				.map(file => file.path);
 			setVaultFiles(files.sort());
 		};
 		updateVaultFiles();
@@ -1024,16 +1035,17 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 		return result;
 	};
 
-	// Resolve message variables (for regular messages).
-	// Bare file paths that match a vault markdown file get their contents
-	// inlined. The scan iterates the vault list longest-path-first so files
-	// with spaces/unicode/regex-special chars resolve correctly and longer
-	// paths take priority over shorter suffixes. Paths must be surrounded by
-	// whitespace so we don't accidentally replace text inside words.
-	const resolveMessageVariables = async (content: string): Promise<string> => {
+	// File mentions remain complete vault-relative paths for tool-capable
+	// Gemini models. Image-generation/tool-disabled turns inline text instead.
+	// Files that read_note cannot reach (outside aiVaultToolAllowedFolders) are
+	// always inlined, otherwise an explicit mention would resolve to nothing.
+	const resolveMessageVariables = async (content: string, inlineFileMentions: boolean): Promise<string> => {
 		let result = await resolveCommandVariables(content);
+		const scopedFolders = plugin.settings.aiVaultToolAllowedFolders;
+		const vaultToolScopeLimited = (scopedFolders?.length ?? 0) > 0;
+		if (!inlineFileMentions && !vaultToolScopeLimited) return result;
 
-		const files = plugin.app.vault.getMarkdownFiles();
+		const files = plugin.app.vault.getFiles().filter(isMentionableFile);
 		const fileByPath = new Map<string, TFile>(files.map(f => [f.path, f]));
 		const occurrences = findFileMentionOccurrences(
 			result,
@@ -1053,8 +1065,26 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 		for (const [path, hits] of hitsByPath) {
 			const file = fileByPath.get(path);
 			if (!file) continue;
+			// With vault tools available the model fetches mentions via read_note, so
+			// only inline what read_note is not allowed to reach.
+			if (!inlineFileMentions && isFileAllowedForAiVaultTools(file, scopedFolders)) continue;
 			try {
-				const fileContent = await plugin.app.vault.read(file);
+				const extracted = file.extension.toLowerCase() === "pdf"
+					? await extractPdfText(plugin.app, file)
+					: await plugin.app.vault.read(file);
+				// null means "no extractable text" (scan-only or unreadable PDF). Say so
+				// instead of leaving a bare path the model cannot read and will guess at.
+				if (extracted === null) {
+					const marker = `\n\n[Could not extract text from "${path}"]\n\n`;
+					for (const h of hits) {
+						splices.push({ start: h.start, end: h.end, replacement: marker });
+					}
+					continue;
+				}
+				const maxChars = plugin.settings.maxNoteChars;
+				const fileContent = maxChars > 0 && extracted.length > maxChars
+					? `${extracted.slice(0, maxChars)}\n\n[Content truncated at ${maxChars} characters]`
+					: extracted;
 				const replacement = `\n\n--- Content of "${path}" ---\n${fileContent}\n--- End of "${path}" ---\n\n`;
 				for (const h of hits) {
 					splices.push({ start: h.start, end: h.end, replacement });
@@ -1290,7 +1320,10 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 		client.setModel(allowedModel);
 
 		// Resolve variables in the content ({selection}, {content}, file paths)
-		const resolvedContent = await resolveMessageVariables(content);
+		const resolvedContent = await resolveMessageVariables(
+			content,
+			vaultToolMode === "none" || isImageGenerationModel(allowedModel),
+		);
 
 		// When skill is invoked without message, use skill name as trigger
 		let displayContent = resolvedContent.trim();

@@ -1,7 +1,7 @@
 import { TFile, TFolder, type App } from "obsidian";
 import { formatError } from "src/utils/error";
 import { DEFAULT_SETTINGS } from "src/types";
-import { getVaultTextFiles } from "./fileTypes";
+import { getReadableVaultFiles, getVaultTextFiles } from "./fileTypes";
 
 export interface SearchResult {
   path: string;
@@ -17,7 +17,7 @@ export function searchByName(
   limit = 10,
   fileFilter?: (file: TFile) => boolean
 ): SearchResult[] {
-  const files = fileFilter ? getVaultTextFiles(app).filter(fileFilter) : getVaultTextFiles(app);
+  const files = fileFilter ? getReadableVaultFiles(app).filter(fileFilter) : getReadableVaultFiles(app);
   const searchTerm = query.toLowerCase().trim();
 
   const results: SearchResult[] = [];
@@ -106,7 +106,7 @@ export function listNotes(
   limit = DEFAULT_SETTINGS.listNotesLimit,
   fileFilter?: (file: TFile) => boolean
 ): { results: SearchResult[]; totalCount: number; hasMore: boolean } {
-  let files = fileFilter ? getVaultTextFiles(app).filter(fileFilter) : getVaultTextFiles(app);
+  let files = fileFilter ? getReadableVaultFiles(app).filter(fileFilter) : getReadableVaultFiles(app);
 
   if (folder) {
     const normalizedFolder = folder.toLowerCase().replace(/\/$/, "");

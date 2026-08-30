@@ -8,6 +8,7 @@ import {
   clearPendingBulkEdit,
   discardEdit,
   findFileByName,
+  findReadableFileByName,
   proposeBulkEdit,
   proposeEdit,
 } from "./notes";
@@ -91,6 +92,42 @@ describe("findFileByName", () => {
     const app = createMockApp(vault);
 
     expect(findFileByName(app, "Plan.canvas")?.path).toBe("Plan.canvas");
+  });
+
+  it("resolves an explicit PDF only through the read-only lookup", () => {
+    const vault = new MockVault();
+    vault.addFile("docs/Manual.pdf", "binary");
+    const app = createMockApp(vault);
+
+    expect(findFileByName(app, "docs/Manual.pdf")).toBeNull();
+    expect(findReadableFileByName(app, "docs/Manual.pdf")?.path).toBe("docs/Manual.pdf");
+  });
+
+  it("prefers the shortest path when PDF names collide", () => {
+    const vault = new MockVault();
+    vault.addFile("Archive/2023/Manual.pdf", "binary");
+    vault.addFile("Manual.pdf", "binary");
+    const app = createMockApp(vault);
+
+    expect(findReadableFileByName(app, "Manual.pdf")?.path).toBe("Manual.pdf");
+  });
+
+  it("fuzzy-matches a PDF the same way it matches text files", () => {
+    const vault = new MockVault();
+    vault.addFile("docs/Quarterly Report.pdf", "binary");
+    const app = createMockApp(vault);
+
+    expect(findReadableFileByName(app, "Quarterly Report")?.path).toBe("docs/Quarterly Report.pdf");
+    expect(findReadableFileByName(app, "quarterly")?.path).toBe("docs/Quarterly Report.pdf");
+  });
+
+  it("prefers a markdown note over a same-named PDF for extension-less lookups", () => {
+    const vault = new MockVault();
+    vault.addFile("archive/Manual.pdf", "binary");
+    vault.addMarkdownFile("notes/deep/Manual.md", "# Manual");
+    const app = createMockApp(vault);
+
+    expect(findReadableFileByName(app, "Manual")?.path).toBe("notes/deep/Manual.md");
   });
 });
 

@@ -26,6 +26,18 @@ export function getVaultTextFiles(app: App): TFile[] {
   return app.vault.getFiles().filter(isVaultTextFile);
 }
 
+/** Extensions that can be read (but never written) by the AI vault tools. */
+const READ_ONLY_VAULT_EXTENSIONS = new Set(["pdf"]);
+
+export function isReadableVaultFile(file: TFile): boolean {
+  return isVaultTextFile(file) || READ_ONLY_VAULT_EXTENSIONS.has(file.extension.toLowerCase());
+}
+
+/** Text files plus read-only formats such as PDF, i.e. everything `read_note` accepts. */
+export function getReadableVaultFiles(app: App): TFile[] {
+  return app.vault.getFiles().filter(isReadableVaultFile);
+}
+
 export function compareFileLookupPriority(a: TFile, b: TFile, preferMarkdown: boolean): number {
   if (preferMarkdown) {
     const aMarkdown = a.extension.toLowerCase() === "md";

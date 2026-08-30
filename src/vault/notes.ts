@@ -2,9 +2,11 @@ import { TFile, TFolder, type App } from "obsidian";
 import { formatError } from "src/utils/error";
 import { DEFAULT_SETTINGS } from "src/types";
 import { getEditHistoryManager } from "src/core/editHistory";
+import { extractPdfText } from "./pdfText";
 import {
   compareFileLookupPriority,
   ensureMarkdownExtensionIfMissing,
+  getReadableVaultFiles,
   getVaultTextFiles,
   hasExplicitExtension,
   isMarkdownPath,
@@ -22,9 +24,8 @@ export interface NoteInfo {
   size: number;
 }
 
-// Find a file by name (fuzzy matching)
-export function findFileByName(app: App, fileName: string): TFile | null {
-  const files = getVaultTextFiles(app);
+// Find a file by name (fuzzy matching) within an explicit candidate set
+function findFileInList(files: TFile[], fileName: string): TFile | null {
   const explicitSearchTerm = fileName.toLowerCase().trim();
   const preferMarkdown = !hasExplicitExtension(fileName);
   const orderedFiles = [...files].sort((a, b) => compareFileLookupPriority(a, b, preferMarkdown));
@@ -67,6 +68,20 @@ export function findFileByName(app: App, fileName: string): TFile | null {
   }
 
   return null;
+}
+
+/** Find a writable (text-based) vault file by name. */
+export function findFileByName(app: App, fileName: string): TFile | null {
+  return findFileInList(getVaultTextFiles(app), fileName);
+}
+
+/**
+ * Resolve files accepted by read_note, including read-only formats such as PDF.
+ * Uses the same ordering/fuzzy rules as findFileByName so lookups stay deterministic,
+ * but never makes binary files reachable by the writing tools.
+ */
+export function findReadableFileByName(app: App, fileName: string): TFile | null {
+  return findFileInList(getReadableVaultFiles(app), fileName);
 }
 
 // Find a folder by path (fuzzy matching)
@@ -116,11 +131,11 @@ export async function readNote(
       };
     }
   } else if (fileName) {
-    file = findFileByName(app, fileName);
+    file = findReadableFileByName(app, fileName);
     if (!file) {
       return {
         success: false,
-        error: `Could not find text-based vault file "${fileName}". Please check the name and try again.`,
+        error: `Could not find readable vault file "${fileName}". Please check the name and try again.`,
       };
     }
   } else {
@@ -130,7 +145,11 @@ export async function readNote(
     };
   }
 
-  let content = await app.vault.read(file);
+  const isPdf = file.extension.toLowerCase() === "pdf";
+  let content = isPdf ? await extractPdfText(app, file) : await app.vault.read(file);
+  if (content === null) {
+    return { success: false, path: file.path, error: `Could not extract text from PDF "${file.path}".` };
+  }
   let truncated = false;
 
   // Truncate if too long to prevent token explosion

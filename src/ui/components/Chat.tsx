@@ -136,6 +136,10 @@ const MENTIONABLE_EXTENSIONS = new Set(["md", "pdf"]);
 const isMentionableFile = (file: TFile): boolean =>
 	MENTIONABLE_EXTENSIONS.has(file.extension.toLowerCase());
 
+// File mentions stay as bare vault paths whenever the model has vault tools
+// (see resolveMessageVariables), so it has to fetch their contents itself.
+const FILE_MENTION_TOOL_PROMPT = "\n\nA bare vault-relative path in the user's message (for example `folder/note.md` or `folder/document.pdf`) is a file the user referenced by mention, not a literal string. Its content is not inlined into the message. Call read_note with that exact path before answering anything that depends on it.";
+
 interface ChatProps {
 	plugin: GeminiHelperPlugin;
 }
@@ -1035,10 +1039,12 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 		return result;
 	};
 
-	// File mentions remain complete vault-relative paths for tool-capable
-	// Gemini models. Image-generation/tool-disabled turns inline text instead.
-	// Files that read_note cannot reach (outside aiVaultToolAllowedFolders) are
-	// always inlined, otherwise an explicit mention would resolve to nothing.
+	// File mentions stay as complete vault-relative paths whenever the model has vault
+	// tools: FILE_MENTION_TOOL_PROMPT tells it to call read_note, which returns a PDF
+	// as a native document part rather than a degraded text layer. Tool-disabled and
+	// image-generation turns inline the text instead, and so do files that read_note
+	// cannot reach (outside aiVaultToolAllowedFolders) — otherwise an explicit mention
+	// would resolve to nothing.
 	const resolveMessageVariables = async (content: string, inlineFileMentions: boolean): Promise<string> => {
 		let result = await resolveCommandVariables(content);
 		const scopedFolders = plugin.settings.aiVaultToolAllowedFolders;
@@ -1455,6 +1461,9 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 						maxNoteChars: settings.maxNoteChars,
 						limitAiVaultToolScope: true,
 						aiVaultToolAllowedFolders: settings.aiVaultToolAllowedFolders,
+						// Gemini reads PDFs natively; runStreamOnce lifts the document part
+						// out of the tool result before the response JSON is serialized.
+						pdfInputMode: "native",
 					})
 					: undefined;
 
@@ -1775,12 +1784,13 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 					systemPrompt += `
 
 Available tools allow you to:
-- Read text-based vault files
+- Read vault files, including PDFs
 - Create new text-based vault files
 - Update existing text-based vault files
 - Search for text-based vault files by name or content
 - List text-based vault files and folders
 - Get information about the active vault file`;
+					systemPrompt += FILE_MENTION_TOOL_PROMPT;
 				}
 
 				// Add RAG sync status info if server RAG is enabled (uses FileSearchManager)

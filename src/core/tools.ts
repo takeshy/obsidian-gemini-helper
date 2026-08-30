@@ -23,7 +23,7 @@ export const obsidianTools: ToolDefinition[] = [
   {
     name: "read_note",
     description:
-      "Read the content of a vault file in Obsidian by name or by detecting the currently active file. Text-based files (Markdown, canvas, CSV, code, ...) are returned as-is; PDF files are supported too and their text layer is extracted automatically.",
+      "Read a supported vault file in Obsidian by name or by detecting the currently active file. Text files return their content; PDFs are attached to the result as a document you can read directly, or have their text extracted as a fallback.",
     parameters: {
       type: "object",
       properties: {

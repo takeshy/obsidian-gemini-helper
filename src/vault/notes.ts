@@ -1,8 +1,8 @@
 import { TFile, TFolder, type App } from "obsidian";
 import { formatError } from "src/utils/error";
-import { DEFAULT_SETTINGS } from "src/types";
+import { DEFAULT_SETTINGS, type Attachment, type PdfInputMode } from "src/types";
 import { getEditHistoryManager } from "src/core/editHistory";
-import { extractPdfText } from "./pdfText";
+import { extractPdfText, readPdfAttachment } from "./pdfText";
 import {
   compareFileLookupPriority,
   ensureMarkdownExtensionIfMissing,
@@ -118,8 +118,9 @@ export async function readNote(
   app: App,
   fileName?: string,
   activeNote?: boolean,
-  maxChars: number = DEFAULT_SETTINGS.maxNoteChars
-): Promise<{ success: boolean; content?: string; path?: string; error?: string; truncated?: boolean }> {
+  maxChars: number = DEFAULT_SETTINGS.maxNoteChars,
+  pdfInputMode: PdfInputMode = "extract-text"
+): Promise<{ success: boolean; content?: string; path?: string; error?: string; truncated?: boolean; attachments?: Attachment[] }> {
   let file: TFile | null = null;
 
   if (activeNote) {
@@ -146,9 +147,27 @@ export async function readNote(
   }
 
   const isPdf = file.extension.toLowerCase() === "pdf";
+  if (isPdf && pdfInputMode === "native") {
+    // The model reads the document itself, so scans and figures survive. The caller
+    // lifts this out of the JSON result and sends it as a native document part.
+    const attachment = await readPdfAttachment(app, file);
+    if (attachment) {
+      return {
+        success: true,
+        path: file.path,
+        content: `[PDF "${file.path}" is attached to this tool result as a document. Read it directly.]`,
+        attachments: [attachment],
+      };
+    }
+    // Too large to send whole — fall through to the text layer.
+  }
   let content = isPdf ? await extractPdfText(app, file) : await app.vault.read(file);
   if (content === null) {
-    return { success: false, path: file.path, error: `Could not extract text from PDF "${file.path}".` };
+    return {
+      success: false,
+      path: file.path,
+      error: `Could not extract text from PDF "${file.path}". It has no text layer (it is probably a scan) and is too large to attach.`,
+    };
   }
   let truncated = false;
 

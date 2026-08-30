@@ -24,7 +24,9 @@ import {
   type GeneratedImage,
   type RagContext,
   type WebSearchSource,
+  type Attachment,
 } from "src/types";
+import { dedupeAttachments, getToolResultAttachments, withoutToolResultAttachments } from "src/core/toolResultAttachments";
 import { tracing, type TracingUsage } from "src/core/tracingHooks";
 import { formatError } from "src/utils/error";
 import { Platform, requestUrl } from "obsidian";
@@ -1150,6 +1152,7 @@ export class GeminiClient {
         const callsToExecute = functionCalls.slice(0, remainingBefore);
 
         const functionResponseParts: Part[] = [];
+        const roundAttachments: Attachment[] = [];
         for (const fc of callsToExecute) {
           const toolCall: ToolCall = { id: fc.id ?? fc.name, name: fc.name, args: fc.args };
           yield { type: "tool_call", toolCall };
@@ -1164,11 +1167,12 @@ export class GeminiClient {
           const result = await executeToolCall(fc.name, fc.args);
           tracing.spanEnd(toolSpanId, { output: result });
 
-          const serializedResult = serializeFunctionResult(result);
+          const cleanResult = withoutToolResultAttachments(result);
+          const serializedResult = serializeFunctionResult(cleanResult);
           accumulatedOutput += `\n[tool_call: ${fc.name}(${JSON.stringify(fc.args)})]\n`;
           accumulatedOutput += `[tool_result: ${serializedResult.length > 500 ? serializedResult.slice(0, 500) + "..." : serializedResult}]\n`;
 
-          yield { type: "tool_result", toolResult: { toolCallId: toolCall.id, result } };
+          yield { type: "tool_result", toolResult: { toolCallId: toolCall.id, result: cleanResult } };
 
           functionResponseParts.push({
             functionResponse: {
@@ -1177,7 +1181,12 @@ export class GeminiClient {
               response: { output: serializedResult },
             },
           });
+          roundAttachments.push(...getToolResultAttachments(result));
         }
+        // Keep every functionResponse ahead of the media it produced.
+        functionResponseParts.push(...dedupeAttachments(roundAttachments).map((attachment) => ({
+          inlineData: { mimeType: attachment.mimeType, data: attachment.data },
+        })));
         functionCallCount += callsToExecute.length;
 
         if (functionCalls.length > callsToExecute.length || functionCallCount >= currentFunctionCallLimit) {
@@ -1752,6 +1761,7 @@ export class GeminiClient {
 
           // Execute function calls and build FunctionResultStep inputs (v2 steps schema)
           const functionResults: Interactions.Step[] = [];
+          const roundAttachments: Attachment[] = [];
 
           for (const fc of callsToExecute) {
             const toolCall: ToolCall = {
@@ -1773,17 +1783,18 @@ export class GeminiClient {
 
             tracing.spanEnd(toolSpanId, { output: result });
 
-            const resultForTrace = typeof result === "string" ? result : JSON.stringify(result);
+            const cleanResult = withoutToolResultAttachments(result);
+            const resultForTrace = typeof cleanResult === "string" ? cleanResult : JSON.stringify(cleanResult);
             const truncatedResult = resultForTrace.length > 500 ? resultForTrace.substring(0, 500) + "..." : resultForTrace;
             accumulatedOutput += `\n[tool_call: ${fc.name}(${JSON.stringify(fc.args)})]\n`;
             accumulatedOutput += `[tool_result: ${truncatedResult}]\n`;
 
             yield {
               type: "tool_result",
-              toolResult: { toolCallId: toolCall.id, result },
+              toolResult: { toolCallId: toolCall.id, result: cleanResult },
             };
 
-            const serializedResult = serializeFunctionResult(result);
+            const serializedResult = serializeFunctionResult(cleanResult);
 
             // Build FunctionResultStep for the v2 Interactions API input.
             // Use a JSON string result, matching the SDK README examples and
@@ -1793,6 +1804,20 @@ export class GeminiClient {
               call_id: fc.id,
               name: fc.name,
               result: serializedResult,
+            });
+            roundAttachments.push(...getToolResultAttachments(result));
+          }
+
+          // Keep every function_result ahead of the media it produced.
+          const roundFiles = dedupeAttachments(roundAttachments);
+          if (roundFiles.length > 0) {
+            functionResults.push({
+              type: "user_input",
+              content: roundFiles.map((attachment) => ({
+                type: "document" as const,
+                data: attachment.data,
+                mime_type: attachment.mimeType,
+              })),
             });
           }
 

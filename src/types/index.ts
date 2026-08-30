@@ -513,11 +513,15 @@ export interface PendingRenameInfo {
 }
 
 // 添付ファイル
+/** How a PDF reaches the model: as a native document part, or as extracted text. */
+export type PdfInputMode = "native" | "extract-text";
+
 export interface Attachment {
   name: string;
   type: "image" | "pdf" | "text" | "audio" | "video";
   mimeType: string;
   data: string;  // Base64エンコードされたデータ
+  sourcePath?: string;  // Vault-relative path when the attachment came from a vault file
 }
 
 export interface ToolCall {

@@ -1,4 +1,9 @@
 import { TFile, loadPdfJs, type App } from "obsidian";
+import type { Attachment } from "src/types";
+import { bytesToBase64 } from "src/utils/base64";
+
+/** Base64 of a PDF inflates by 4/3 and Gemini caps a whole request near 32 MB. */
+export const MAX_NATIVE_PDF_BYTES = 15 * 1024 * 1024;
 
 interface PdfJsTextItem {
   str?: unknown;
@@ -54,5 +59,27 @@ export async function extractPdfText(app: App, file: TFile): Promise<string | nu
     } catch (error) {
       console.error(`[gemini-helper] Failed to release PDF "${file.path}"`, error);
     }
+  }
+}
+
+/**
+ * Read a vault PDF as a native Gemini document part, preserving the layout, figures
+ * and scanned pages that a text-layer extraction would lose. Returns null when the
+ * file is too large to send or cannot be read, so callers fall back to extractPdfText.
+ */
+export async function readPdfAttachment(app: App, file: TFile): Promise<Attachment | null> {
+  try {
+    const buffer = await app.vault.readBinary(file);
+    if (buffer.byteLength > MAX_NATIVE_PDF_BYTES) return null;
+    return {
+      name: file.name,
+      type: "pdf",
+      mimeType: "application/pdf",
+      data: bytesToBase64(new Uint8Array(buffer)),
+      sourcePath: file.path,
+    };
+  } catch (error) {
+    console.error(`[gemini-helper] Failed to read PDF "${file.path}" for attachment`, error);
+    return null;
   }
 }

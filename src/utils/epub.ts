@@ -1,4 +1,5 @@
 import { unzipSync } from "fflate";
+import { bytesToBase64 } from "./base64";
 
 type ZipEntries = Record<string, Uint8Array>;
 
@@ -49,15 +50,6 @@ function parseXml(value: string, label: string): Document {
   const error = doc.querySelector("parsererror");
   if (error) throw new Error(`Invalid ${label}`);
   return doc;
-}
-
-function bytesToBase64(bytes: Uint8Array): string {
-  let binary = "";
-  const chunkSize = 0x8000;
-  for (let i = 0; i < bytes.length; i += chunkSize) {
-    binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
-  }
-  return btoa(binary);
 }
 
 function escapeHtml(value: string): string {

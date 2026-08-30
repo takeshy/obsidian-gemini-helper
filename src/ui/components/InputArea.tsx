@@ -8,6 +8,7 @@ import SkillSelector from "./SkillSelector";
 import OkfSelector from "./OkfSelector";
 import { t } from "src/i18n";
 import { isCaretOnFirstLine, isCaretOnLastLine } from "./chat/chatUtils";
+import { MAX_ATTACHMENT_SIZE } from "src/utils/base64";
 
 // Built-in command definition (not user-configurable)
 interface BuiltInCommand {
@@ -80,8 +81,6 @@ const SUPPORTED_TYPES = {
   audio: ["audio/mpeg", "audio/wav", "audio/flac", "audio/aac", "audio/mp4", "audio/opus", "audio/ogg"],
   video: ["video/mp4", "video/webm", "video/quicktime", "video/x-msvideo", "video/x-matroska"],
 };
-
-const MAX_ATTACHMENT_SIZE = 20 * 1024 * 1024; // 20MB
 
 const InputArea = forwardRef<InputAreaHandle, InputAreaProps>(function InputArea({
   onSend,

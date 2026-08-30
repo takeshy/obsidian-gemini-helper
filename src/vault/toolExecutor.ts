@@ -29,7 +29,7 @@ import {
   getFileSearchManager,
   type FilterConfig,
 } from "src/core/fileSearch";
-import { DEFAULT_SETTINGS, type RagSyncState } from "src/types";
+import { DEFAULT_SETTINGS, type PdfInputMode, type RagSyncState } from "src/types";
 import { formatError } from "src/utils/error";
 import { readTimelineEntriesForDay, sanitizeTimelineName } from "./timelineReader";
 import {
@@ -50,6 +50,9 @@ export interface ToolExecutionContext {
   maxNoteChars?: number;
   limitAiVaultToolScope?: boolean;
   aiVaultToolAllowedFolders?: string[];
+  /** "native" sends a PDF to the model as a document part; the caller must lift it
+   *  out of the tool result (see toolResultAttachments) before serializing. */
+  pdfInputMode?: PdfInputMode;
 }
 
 function hasAiVaultToolScope(context: ToolExecutionContext | undefined): boolean {
@@ -177,7 +180,8 @@ async function executeToolCallInternal(
         app,
         asString(args.fileName),
         args.activeNote as boolean | undefined,
-        context?.maxNoteChars ?? DEFAULT_SETTINGS.maxNoteChars
+        context?.maxNoteChars ?? DEFAULT_SETTINGS.maxNoteChars,
+        context?.pdfInputMode ?? "extract-text"
       );
 
     case "create_note": {

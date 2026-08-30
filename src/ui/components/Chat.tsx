@@ -26,6 +26,7 @@ import {
 	type McpAppInfo,
 	type KnowledgeSource,
 	isImageGenerationModel,
+	modelAcceptsPdf,
 	DEFAULT_WORKSPACE_FOLDER,
 } from "src/types";
 import { getGeminiClient } from "src/core/gemini";
@@ -1461,9 +1462,10 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 						maxNoteChars: settings.maxNoteChars,
 						limitAiVaultToolScope: true,
 						aiVaultToolAllowedFolders: settings.aiVaultToolAllowedFolders,
-						// Gemini reads PDFs natively; runStreamOnce lifts the document part
-						// out of the tool result before the response JSON is serialized.
-						pdfInputMode: "native",
+						// Models that take a document part read the PDF itself; the rest
+						// (Gemma 4) fall back to its text layer. runStreamOnce lifts the
+						// document out of the tool result before the JSON is serialized.
+						pdfInputMode: modelAcceptsPdf(allowedModel) ? "native" : "extract-text",
 					})
 					: undefined;
 

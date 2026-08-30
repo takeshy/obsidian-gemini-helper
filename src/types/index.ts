@@ -335,6 +335,11 @@ export interface ModelInfo {
   displayName: string;
   description: string;
   isImageModel?: boolean;  // true if this model is for image generation
+  // true if the model accepts PDF/document input. Gemma 4 documents image, video
+  // and audio input but not PDF, so PDFs are extracted to text for those models.
+  // https://ai.google.dev/gemini-api/docs/document-processing
+  // https://ai.google.dev/gemma/docs/core
+  acceptsPdf?: boolean;
 }
 
 export const PAID_MODELS: ModelInfo[] = [
@@ -342,21 +347,25 @@ export const PAID_MODELS: ModelInfo[] = [
     name: "gemini-3.7-flash",
     displayName: "Gemini 3.7 Flash",
     description: "Latest fast model with 1M context (recommended)",
+    acceptsPdf: true,
   },
   {
     name: "gemini-3.1-pro-preview",
     displayName: "Gemini 3.1 Pro Preview",
     description: "Latest flagship model with 1M context, best performance (recommended)",
+    acceptsPdf: true,
   },
   {
     name: "gemini-3.1-pro-preview-customtools",
     displayName: "Gemini 3.1 Pro Preview (Custom Tools)",
     description: "Optimized for agentic workflows with custom tools and bash",
+    acceptsPdf: true,
   },
   {
     name: "gemini-3.5-flash-lite",
     displayName: "Gemini 3.5 Flash Lite",
     description: "Latest fast, low-cost model with 1M context",
+    acceptsPdf: true,
   },
   {
     name: "gemma-4-31b-it",
@@ -393,11 +402,13 @@ export const FREE_MODELS: ModelInfo[] = [
     name: "gemini-3.7-flash",
     displayName: "Gemini 3.7 Flash",
     description: "Free tier latest fast model (recommended)",
+    acceptsPdf: true,
   },
   {
     name: "gemini-3.5-flash-lite",
     displayName: "Gemini 3.5 Flash Lite",
     description: "Free tier latest lightweight model",
+    acceptsPdf: true,
   },
   {
     name: "gemma-4-31b-it",
@@ -439,6 +450,12 @@ export function isModelAllowedForPlan(plan: ApiPlan, modelName: ModelType): bool
 export function isImageGenerationModel(modelName: ModelType): boolean {
   const model = AVAILABLE_MODELS.find(m => m.name === modelName);
   return model?.isImageModel ?? false;
+}
+
+// Helper function to check if a model accepts PDF/document input
+export function modelAcceptsPdf(modelName: ModelType): boolean {
+  const model = AVAILABLE_MODELS.find(m => m.name === modelName);
+  return model?.acceptsPdf ?? false;
 }
 
 // Chat message types

@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { TFile, type App } from "obsidian";
+import { modelAcceptsPdf } from "src/types";
 import { initEditHistoryManager, resetEditHistoryManager } from "src/core/editHistory";
 import { clearAllHistories } from "src/core/editHistoryStore";
 import {
@@ -196,5 +197,18 @@ describe("notes edit history integration", () => {
     expect(historyManager.getSnapshot("bulk.md")).toBe("three\n");
     expect(historyManager.getContentAt("bulk.md", entries[1].id)).toBe("two\n");
     expect(historyManager.getContentAt("bulk.md", entries[0].id)).toBe("one\n");
+  });
+});
+
+describe("model PDF capability", () => {
+  it("sends PDFs natively only to models documented to accept them", () => {
+    expect(modelAcceptsPdf("gemini-3.7-flash")).toBe(true);
+    expect(modelAcceptsPdf("gemini-3.1-pro-preview")).toBe(true);
+    expect(modelAcceptsPdf("gemini-3.5-flash-lite")).toBe(true);
+    // Gemma 4 documents image/video/audio input but not PDF.
+    expect(modelAcceptsPdf("gemma-4-31b-it")).toBe(false);
+    expect(modelAcceptsPdf("gemma-4-26b-a4b-it")).toBe(false);
+    // Image-generation models never receive tool results at all.
+    expect(modelAcceptsPdf("gemini-3.1-flash-image")).toBe(false);
   });
 });

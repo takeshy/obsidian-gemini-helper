@@ -466,6 +466,7 @@ Obsidian のイベントでワークフローを自動実行：
 
 | イベント       | 説明                                      |
 | -------------- | ----------------------------------------- |
+| 起動           | Obsidian Workspaceの準備完了時に1回実行  |
 | ファイル作成   | 新規ファイル作成時にトリガー              |
 | ファイル変更   | ファイル保存時にトリガー（5秒デバウンス） |
 | ファイル削除   | ファイル削除時にトリガー                  |
@@ -480,6 +481,20 @@ Obsidian のイベントでワークフローを自動実行：
 4. トリガーするイベントを選択
 5. 必要に応じてファイルパターンフィルターを追加
 
+### Obsidian起動時にRAGを同期
+
+`rag-sync`ノードを含むワークフローを作成し、同期するRAG設定を選択します。Vault全体をchecksumで差分同期し、変更のないファイルはスキップします。
+
+![RAG同期ワークフロー](rag_workflow.png)
+
+zapアイコンからイベントトリガーダイアログを開き、**Startup**を有効にして保存します。Startupではファイルパターンは無視されます。
+
+![RAG同期のStartupイベント](rag_event.png)
+
+起動後は**History**から同期結果を開き、アップロード、スキップ、削除、失敗したファイルを確認できます。
+
+![RAGワークフロー実行ログ](rag_workflow_execution_log.png)
+
 **ファイルパターン例：**
 
 - `**/*.md` - 全フォルダのすべての Markdown ファイル
@@ -492,8 +507,8 @@ Obsidian のイベントでワークフローを自動実行：
 
 | 変数                   | 説明                                                              |
 | ---------------------- | ----------------------------------------------------------------- |
-| `_eventType`        | イベント種別：`create`, `modify`, `delete`, `rename`, `file-open` |
-| `_eventFilePath`    | 対象ファイルのパス                                                |
+| `_eventType`        | イベント種別：`startup`, `create`, `modify`, `delete`, `rename`, `file-open` |
+| `_eventFilePath`    | 対象ファイルのパス（startupでは未設定）                           |
 | `_eventFile`        | ファイル情報 JSON（path, basename, name, extension）              |
 | `_eventFileContent` | ファイル内容（create/modify/file-open イベント時）                |
 | `_eventOldPath`     | 変更前パス（rename イベント時のみ）                               |

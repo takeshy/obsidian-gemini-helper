@@ -125,7 +125,7 @@ function getDefaultProperties(type: WorkflowNodeType): Record<string, string> {
     case "workflow":
       return { path: "", input: "", output: "", prefix: "" };
     case "rag-sync":
-      return { path: "", oldPath: "", ragSetting: "", saveTo: "" };
+      return { ragSetting: "", saveTo: "" };
     case "file-save":
       return { source: "", path: "", savePathTo: "" };
     case "mcp":
@@ -241,7 +241,7 @@ function getNodeSummary(node: SidebarNode): string {
     case "workflow":
       return node.properties["path"] || "(no path)";
     case "rag-sync":
-      return `${node.properties["path"]} → ${node.properties["ragSetting"]}`;
+      return node.properties["ragSetting"] || "(selected RAG setting)";
     case "file-save":
       return `${node.properties["source"]} → ${node.properties["path"]}`;
     case "mcp":

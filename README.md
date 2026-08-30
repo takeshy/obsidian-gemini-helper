@@ -468,6 +468,7 @@ Workflows can be automatically triggered by Obsidian events:
 
 | Event | Description |
 |-------|-------------|
+| Startup | Triggered once when the Obsidian workspace is ready |
 | File Created | Triggered when a new file is created |
 | File Modified | Triggered when a file is saved (debounced 5s) |
 | File Deleted | Triggered when a file is deleted |
@@ -480,6 +481,20 @@ Workflows can be automatically triggered by Obsidian events:
 3. Select which events should trigger the workflow
 4. Optionally add a file pattern filter
 
+### Sync RAG when Obsidian starts
+
+Create a workflow containing a `rag-sync` node and select the RAG setting to synchronize. The node performs a full checksum-based incremental sync; unchanged files are skipped.
+
+![RAG sync workflow](rag_workflow.png)
+
+Open the event trigger dialog with the zap icon, enable **Startup**, and save. File patterns are ignored for startup triggers.
+
+![Startup event trigger for RAG sync](rag_event.png)
+
+After startup, open **History** to confirm the sync result and inspect uploaded, skipped, deleted, or failed files.
+
+![RAG workflow execution log](rag_workflow_execution_log.png)
+
 **File pattern examples:**
 - `**/*.md` - All Markdown files in any folder
 - `journal/*.md` - Markdown files in journal folder only
@@ -491,8 +506,8 @@ Workflows can be automatically triggered by Obsidian events:
 
 | Variable | Description |
 |----------|-------------|
-| `_eventType` | Event type: `create`, `modify`, `delete`, `rename`, `file-open` |
-| `_eventFilePath` | Path of the affected file |
+| `_eventType` | Event type: `startup`, `create`, `modify`, `delete`, `rename`, `file-open` |
+| `_eventFilePath` | Path of the affected file (not set for startup) |
 | `_eventFile` | JSON with file info (path, basename, name, extension) |
 | `_eventFileContent` | File content (for create/modify/file-open events) |
 | `_eventOldPath` | Previous path (for rename events only) |

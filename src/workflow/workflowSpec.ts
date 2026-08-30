@@ -417,24 +417,18 @@ Execute sub-workflow.
 - **prefix** (optional): Prefix for all imported variables
 
 #### rag-sync
-Sync note to RAG store.
-- **path** (optional): Note path to sync (required unless delete-only)
-- **ragSetting** (required): RAG setting name
-- **oldPath** (optional): Old path to delete (for rename/delete operations)
+Run a full checksum-based incremental sync of a RAG setting. Target folders and
+exclude patterns from the setting are applied.
+- **ragSetting** (optional): RAG setting name (defaults to the selected setting)
+- **path** (deprecated): Accepted for compatibility but does not limit the sync
 - **saveTo** (optional): Variable for result
 
 **Example**:
 \`\`\`yaml
-- id: update-note
-  type: note
-  path: "{{notePath}}"
-  content: "{{newContent}}"
-  mode: overwrite
-  confirm: "false"
 - id: sync-to-rag
   type: rag-sync
-  path: "{{notePath}}"
   ragSetting: "my-rag-store"
+  saveTo: syncResult
 \`\`\`
 
 #### obsidian-command

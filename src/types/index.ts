@@ -84,6 +84,7 @@ export interface McpAppUiResource {
 
 // Obsidian event types for workflow triggers
 export type ObsidianEventType =
+  | "startup"   // workspace.onLayoutReady() - Workspace ready after startup
   | "create"    // vault.on("create") - New file created
   | "modify"    // vault.on("modify") - File modified/saved
   | "delete"    // vault.on("delete") - File deleted

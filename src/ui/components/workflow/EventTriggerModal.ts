@@ -2,6 +2,7 @@ import { App, Modal, Setting } from "obsidian";
 import type { ObsidianEventType, WorkflowEventTrigger } from "src/types";
 
 const EVENT_LABELS: Record<ObsidianEventType, { name: string; desc: string }> = {
+  startup: { name: "Startup", desc: "Triggered once when the Obsidian workspace is ready" },
   create: { name: "File Created", desc: "Triggered when a new file is created" },
   modify: { name: "File Modified", desc: "Triggered when a file is saved" },
   delete: { name: "File Deleted", desc: "Triggered when a file is deleted" },
@@ -9,7 +10,7 @@ const EVENT_LABELS: Record<ObsidianEventType, { name: string; desc: string }> = 
   "file-open": { name: "File Opened", desc: "Triggered when a file is opened" },
 };
 
-const ALL_EVENTS: ObsidianEventType[] = ["create", "modify", "delete", "rename", "file-open"];
+const ALL_EVENTS: ObsidianEventType[] = ["startup", "create", "modify", "delete", "rename", "file-open"];
 
 export class EventTriggerModal extends Modal {
   private workflowId: string;
@@ -73,7 +74,7 @@ export class EventTriggerModal extends Modal {
     // File pattern filter
     new Setting(contentEl)
       .setName("File pattern (optional)")
-      .setDesc("Filter files by pattern. Use '**/*.md' for all .md files, 'journal/*.md' for a specific folder, '*.md' for root only. Supports {a,b} and [abc] patterns. Leave empty to match all files.")
+      .setDesc("Filter files by pattern. Use '**/*.md' for all .md files, 'journal/*.md' for a specific folder, '*.md' for root only. Supports {a,b} and [abc] patterns. Leave empty to match all files. Ignored for startup triggers.")
       .addText((text) => {
         text.setPlaceholder("**/*.md");
         text.setValue(this.filePattern);

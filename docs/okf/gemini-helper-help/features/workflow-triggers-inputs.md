@@ -20,6 +20,7 @@ When a hotkey run reaches `prompt-file`, it uses the active file automatically. 
 
 Event triggers can run workflows on:
 
+- `startup` - once when the Obsidian workspace is ready.
 - `create` - file created.
 - `modify` - file modified, debounced.
 - `delete` - file deleted.
@@ -27,13 +28,14 @@ Event triggers can run workflows on:
 - `file-open` - file opened.
 
 Triggers can include a glob file pattern such as `**/*.md`, `journal/*.md`, `*.md`, `**/{daily,weekly}/*.md`, or `projects/[a-z]*.md`.
+The file pattern is ignored for `startup`. Assign a Workflow containing a `rag-sync` node to `startup` to update a RAG setting when Obsidian starts.
 
 # Event Variables
 
 Event-triggered workflows receive:
 
 - `_eventType` - event type.
-- `_eventFilePath` - path of the affected file.
+- `_eventFilePath` - path of the affected file (not set for startup).
 - `_eventFile` - JSON with path, basename, name, and extension.
 - `_eventFileContent` - file content for create, modify, and file-open events.
 - `_eventOldPath` - previous path for rename events.

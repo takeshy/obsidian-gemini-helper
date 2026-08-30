@@ -195,6 +195,9 @@ export class GeminiHelperPlugin extends Plugin {
       } catch (e) {
         console.error("Gemini Helper: Failed to register workflow event listeners:", formatError(e));
       }
+      this.app.workspace.onLayoutReady(() => {
+        void this.workflowMgr.triggerStartupWorkflows();
+      });
       // Emit event to refresh UI after workspace state is loaded
       this.settingsEmitter.emit("workspace-state-loaded", this.workspaceState);
       // Notify UI components that settings are ready (fixes race condition where

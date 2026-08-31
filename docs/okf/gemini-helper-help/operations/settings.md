@@ -11,7 +11,8 @@ timestamp: 2026-07-04T00:00:00Z
 Important settings areas:
 
 - API settings store the Google API key and API plan.
-- Workspace settings control workspace folder, hidden workspace behavior, chat history, system prompt, and AI folder access.
+- Workspace settings control workspace folder, hidden workspace behavior, automatic chat history, system prompt, and AI folder access.
+- Chat settings control the destination for manually exported conversation notes.
 - RAG settings manage File Search stores, sync, top-K, folders, exclusions, metadata filters, and external store IDs.
 - Knowledge sources configure an external OKF directory.
 - External skills install versioned skills from the official repository.
@@ -22,7 +23,7 @@ Important settings areas:
 - Slash command settings configure reusable chat commands.
 - Edit history is always enabled internally; there is no visible settings UI for it.
 
-Chat histories are saved as Markdown files under `{workspaceFolder}/chats/{chatId}.md` when saving is enabled. RAG workspace state is stored in `.gemini-workspace.json`.
+Chat histories are saved as Markdown files directly under `{workspaceFolder}` when saving is enabled. Manual chat exports are separate compact notes whose destination is configured under Chat settings. RAG workspace state is stored in `.gemini-workspace.json`.
 
 # API Settings
 
@@ -34,8 +35,14 @@ Chat histories are saved as Markdown files under `{workspaceFolder}/chats/{chatI
 - Workspace folder - vault-relative folder for Gemini Helper data. Defaults to `GeminiHelper`. Absolute paths and `..` traversal are rejected. If the old folder exists, the user can move existing data or skip moving.
 - Hide workspace folder - available only when the workspace folder is the default `GeminiHelper`; hides or shows that folder in Obsidian.
 - Save chat history - toggles chat history file persistence. Turning it off asks whether to delete existing chat history files.
+- Maximum saved chat histories - removes the oldest automatic histories above the limit. Zero is unlimited. Existing installations default to zero; new installations default to 100.
 - System prompt - additional user-defined instructions appended to the chat system prompt.
 - Folders AI can access automatically - comma-separated vault-relative allowlist for automatic AI vault tool access. Empty means whole-vault access. Invalid traversal paths are rejected.
+
+# Chat Settings
+
+- Manual chat save folder - vault-relative destination used by the Chat Save as note button. Empty uses the vault root.
+- Manual exports are named `YYYYMMDD-HHmmss_Chat title.md` and omit frontmatter and restoration metadata. Saving the same chat again during the session overwrites the existing export.
 
 # Tool Limit Settings
 

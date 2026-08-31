@@ -63,6 +63,8 @@ The AI Chat feature provides an interactive conversation interface with Google G
 - **Stop button** - Stop generation
 - **+ button** - New chat
 - **History button** - Load previous chats
+- **Expand / shrink button** - Toggle the sidebar between its normal width and a wider reading layout
+- **Save as note button** - Export the current conversation as compact Markdown. Re-saving the same chat overwrites its exported note
 
 ## Slash Commands
 
@@ -606,11 +608,17 @@ npm run build
 ![Basic Settings](docs/images/setting_basic.png)
 
 ### Workspace Settings
+- **Automatically save chat history** - Keep restorable chat files in the workspace folder
+- **Maximum saved chat histories** - Delete the oldest automatic histories above the limit. Existing users default to unlimited (`0`); new installs default to `100`
 - **System Prompt** - Additional AI instructions
 - **Folders AI can access automatically** - Optional folder allowlist for automatic AI vault access. Leave empty to allow the whole vault; use Encryption for files the AI should never read
 - **Tool Limits** - Control function call limits
 
 ![Tool Limits](docs/images/setting_tool_history.png)
+
+### Chat Settings
+- **Manual chat save folder** - Vault-relative destination used by the Chat **Save as note** button. Leave blank to save in the vault root
+- Manual exports use `YYYYMMDD-HHmmss_Chat title.md` and contain only compact conversation content, without history frontmatter or restoration metadata
 
 ### Encryption
 

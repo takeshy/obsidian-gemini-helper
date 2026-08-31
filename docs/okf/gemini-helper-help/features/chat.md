@@ -8,7 +8,7 @@ timestamp: 2026-07-04T00:00:00Z
 
 # AI Chat
 
-Open chat from the ribbon, the command "Gemini Helper: Open chat", or "Gemini Helper: Toggle chat / editor". Enter sends a message, Shift+Enter inserts a newline, the stop button aborts generation, the plus button starts a new chat, and the history button loads previous chats.
+Open chat from the ribbon, the command "Gemini Helper: Open chat", or "Gemini Helper: Toggle chat / editor". Enter sends a message, Shift+Enter inserts a newline, the stop button aborts generation, the plus button starts a new chat, and the history button loads previous chats. The expand/shrink button toggles a desktop side dock between its normal width and a wider reading layout.
 
 Slash commands are reusable prompt templates. They can insert `{selection}` and `{content}`, override the model or search setting, and are triggered by typing `/`. The default `/infographic` command turns selected or active-note content into an HTML infographic.
 
@@ -24,7 +24,9 @@ Vault tools let the AI read, create, search, rename, edit, and delete notes and 
 
 Chat can also use web search, selected RAG stores, MCP servers, active skills, and active OKF knowledge.
 
-Chat history is stored as Markdown files under the configured workspace folder when history saving is enabled.
+Chat history is stored as restoration-oriented Markdown files directly under the configured workspace folder when automatic history saving is enabled. The maximum saved history setting removes the oldest histories after the configured limit; zero means unlimited. Existing installations default to zero for backward compatibility, while new installations default to 100.
+
+The Save as note button is separate from automatic history. It exports the current non-empty conversation as compact Markdown without frontmatter, creation metadata, timestamps, separators, or `msg-meta` comments. Files use `YYYYMMDD-HHmmss_Chat title.md`. Saving the same chat again during the session overwrites that export. The Chat settings section controls its vault-relative destination; an empty destination uses the vault root.
 
 # Related
 

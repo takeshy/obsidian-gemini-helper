@@ -8,7 +8,7 @@ import {
 	useMemo,
 } from "react";
 import { TFile, Notice, MarkdownView, Platform } from "obsidian";
-import { Plus, History, ChevronDown, Lock, FileText, Loader2, Check } from "lucide-react";
+import { Plus, History, ChevronDown, Lock, FileText, Loader2, Check, Maximize2, Minimize2 } from "lucide-react";
 import type { GeminiHelperPlugin } from "src/plugin";
 import {
 	getAvailableModels,
@@ -101,6 +101,7 @@ import {
 } from "./chat/chatUtils";
 import {
 	messagesToMarkdown,
+	messagesToCompactMarkdown,
 	parseMarkdownToMessages,
 	formatHistoryDate,
 } from "./chat/chatHistory";
@@ -143,9 +144,10 @@ const FILE_MENTION_TOOL_PROMPT = "\n\nA bare vault-relative path in the user's m
 
 interface ChatProps {
 	plugin: GeminiHelperPlugin;
+	onToggleSidebarWidth: () => boolean;
 }
 
-const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
+const Chat = forwardRef<ChatRef, ChatProps>(({ plugin, onToggleSidebarWidth }, ref) => {
 	const [messages, setMessages] = useState<Message[]>([]);
 	const [sentPromptHistory, setSentPromptHistory] = useState<string[]>(() => {
 		const saved = plugin.workspaceState.sentPromptHistory;
@@ -158,6 +160,8 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 	const [chatHistories, setChatHistories] = useState<ChatHistory[]>([]);
 	const [showHistory, setShowHistory] = useState(false);
 	const [saveNoteState, setSaveNoteState] = useState<"idle" | "saving" | "saved">("idle");
+	const savedNotePathsRef = useRef(new Map<string, string>());
+	const [isSidebarWide, setIsSidebarWide] = useState(false);
 	const [isLoading, setIsLoading] = useState(false);
 	const [isCompacting, setIsCompacting] = useState(false);
 	const [streamingContent, setStreamingContent] = useState("");
@@ -277,30 +281,52 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 		return plugin.settings.workspaceFolder || DEFAULT_WORKSPACE_FOLDER;
 	};
 
+	const ensureFolderExists = async (folder: string) => {
+		let currentFolder = "";
+		for (const segment of folder.split("/").filter(Boolean)) {
+			currentFolder = currentFolder ? `${currentFolder}/${segment}` : segment;
+			if (!(await plugin.app.vault.adapter.exists(currentFolder))) {
+				await plugin.app.vault.adapter.mkdir(currentFolder);
+			}
+		}
+	};
+
 	// Get chat file path
 	const getChatFilePath = (chatId: string) => {
 		return `${getChatHistoryFolder()}/${chatId}.md`;
 	};
 
-	// Save current chat as a note file (in vault root)
+	// Save current chat as a note file. Re-saving the same chat overwrites it.
 	const handleSaveAsNote = useCallback(async () => {
 		if (saveNoteState !== "idle" || messages.length === 0) return;
 		setSaveNoteState("saving");
 		try {
 			const chatTitle = messages[0].content.slice(0, 50) + (messages[0].content.length > 50 ? "..." : "");
-			const markdown = await messagesToMarkdown(messages, chatTitle, messages[0].timestamp, plugin.settings.encryption);
+			const markdown = messagesToCompactMarkdown(messages);
 			const now = new Date();
 			const pad = (n: number) => String(n).padStart(2, "0");
-			const fileName = `chat-${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}-${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}.md`;
-			await plugin.app.vault.create(fileName, markdown);
-			new Notice(t("chat.savedAsNote", { path: fileName }));
+			const dateTime = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}-${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
+			const safeTitle = chatTitle
+				.replace(/[\\/:*?"<>|#^[\]\r\n]+/g, " ")
+				.replace(/\s+/g, " ")
+				.replace(/^\.+|\.+$/g, "")
+				.trim()
+				.slice(0, 80) || "Chat";
+			const folder = plugin.settings.manualChatSaveFolder.trim();
+			if (folder) await ensureFolderExists(folder);
+			const chatKey = currentChatId ?? String(messages[0].timestamp);
+			const newPath = `${folder ? `${folder}/` : ""}${dateTime}_${safeTitle}.md`;
+			const filePath = savedNotePathsRef.current.get(chatKey) ?? newPath;
+			await plugin.app.vault.adapter.write(filePath, markdown);
+			savedNotePathsRef.current.set(chatKey, filePath);
+			new Notice(t("chat.savedAsNote", { path: filePath }));
 			setSaveNoteState("saved");
 			window.setTimeout(() => setSaveNoteState("idle"), 3000);
 		} catch (error) {
 			new Notice(t("common.error") + ": " + formatError(error));
 			setSaveNoteState("idle");
 		}
-	}, [saveNoteState, messages, plugin]);
+	}, [saveNoteState, messages, currentChatId, plugin]);
 
 	// Load chat histories from folder
 	const loadChatHistories = useCallback(async () => {
@@ -391,9 +417,7 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 		const folder = getChatHistoryFolder();
 
 		try {
-			if (!(await plugin.app.vault.adapter.exists(folder))) {
-				await plugin.app.vault.adapter.mkdir(folder);
-			}
+			await ensureFolderExists(folder);
 		} catch {
 			// Folder might already exist
 		}
@@ -438,7 +462,22 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin }, ref) => {
 			} else {
 				updated = [newHistory, ...prev];
 			}
-			return updated.slice(0, 50);
+			updated.sort((a, b) => b.updatedAt - a.updatedAt);
+			const limit = Math.max(0, plugin.settings.maxSavedChatHistories);
+			if (limit === 0 || updated.length <= limit) return updated;
+
+			const expired = updated.slice(limit);
+			void Promise.all(expired.flatMap((history) => {
+				const basePath = getChatFilePath(history.id);
+				return [basePath, `${basePath}.encrypted`].map(async (path) => {
+					if (await plugin.app.vault.adapter.exists(path)) {
+						await plugin.app.vault.adapter.remove(path);
+					}
+				});
+			})).catch((error: unknown) => {
+				console.warn("Failed to prune old chat histories:", formatError(error));
+			});
+			return updated.slice(0, limit);
 		});
 
 		if (foreground) {
@@ -2315,6 +2354,13 @@ Always be helpful and provide clear, concise responses. When working with vault 
 			<div className="gemini-helper-chat-header">
 				<h3>{t("chat.title")}</h3>
 				<div className="gemini-helper-header-actions">
+					<button
+						className="gemini-helper-icon-btn gemini-helper-sidebar-width-btn"
+						onClick={() => setIsSidebarWide(onToggleSidebarWidth())}
+						title={isSidebarWide ? t("chat.narrowSidebar") : t("chat.widenSidebar")}
+					>
+						{isSidebarWide ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
+					</button>
 					<button
 						className="gemini-helper-icon-btn"
 						onClick={() => { void handleSaveAsNote(); }}

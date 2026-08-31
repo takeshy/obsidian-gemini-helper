@@ -90,7 +90,6 @@ export function displayWorkspaceSettings(containerEl: HTMLElement, ctx: Settings
       );
   }
 
-  // Save Chat History
   new Setting(containerEl)
     .setName(t("settings.saveChatHistory"))
     .setDesc(t("settings.saveChatHistory.desc"))
@@ -116,6 +115,27 @@ export function displayWorkspaceSettings(containerEl: HTMLElement, ctx: Settings
           })();
         })
     );
+
+  new Setting(containerEl)
+    .setName(t("settings.maxSavedChatHistories"))
+    .setDesc(t("settings.maxSavedChatHistories.desc"))
+    .addText((text) => {
+      text
+        .setPlaceholder(String(DEFAULT_SETTINGS.maxSavedChatHistories))
+        .setValue(String(plugin.settings.maxSavedChatHistories));
+      text.inputEl.type = "number";
+      text.inputEl.min = "0";
+      text.inputEl.step = "1";
+      text.inputEl.addEventListener("blur", () => {
+        const parsed = Number.parseInt(text.inputEl.value, 10);
+        const value = Number.isFinite(parsed) && parsed >= 0
+          ? parsed
+          : DEFAULT_SETTINGS.maxSavedChatHistories;
+        plugin.settings.maxSavedChatHistories = value;
+        text.inputEl.value = String(value);
+        void plugin.saveSettings();
+      });
+    });
 
   // System Prompt
   const systemPromptSetting = new Setting(containerEl)

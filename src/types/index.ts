@@ -142,8 +142,12 @@ export interface GeminiHelperSettings {
 
   // Workspace settings
   workspaceFolder: string;
+  /** Vault-relative folder used by "Save as note". Empty uses the vault root. */
+  manualChatSaveFolder: string;
   hideWorkspaceFolder: boolean;
   saveChatHistory: boolean;
+  /** Maximum automatically saved chats. Zero keeps all chats. */
+  maxSavedChatHistories: number;
   systemPrompt: string;
 
   // Slash commands
@@ -659,8 +663,10 @@ export const DEFAULT_SETTINGS: GeminiHelperSettings = {
   ragEnabled: false,
   ragTopK: 5,  // Default: retrieve 5 chunks
   workspaceFolder: DEFAULT_WORKSPACE_FOLDER,
+  manualChatSaveFolder: "",
   hideWorkspaceFolder: true,
   saveChatHistory: true,
+  maxSavedChatHistories: 100,
   systemPrompt: "",
   slashCommands: DEFAULT_SLASH_COMMANDS,
   knowledgeSources: [],

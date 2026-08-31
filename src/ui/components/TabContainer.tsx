@@ -17,10 +17,11 @@ export interface TabContainerRef {
 
 interface TabContainerProps {
   plugin: GeminiHelperPlugin;
+  onToggleSidebarWidth: () => boolean;
 }
 
 const TabContainer = forwardRef<TabContainerRef, TabContainerProps>(
-  ({ plugin }, ref) => {
+  ({ plugin, onToggleSidebarWidth }, ref) => {
     const [activeTab, setActiveTab] = useState<TabType>("chat");
     const chatRef = useRef<ChatRef>(null);
 
@@ -56,7 +57,7 @@ const TabContainer = forwardRef<TabContainerRef, TabContainerProps>(
         </div>
         <div className="gemini-helper-tab-content">
           <div className={`gemini-helper-tab-panel ${activeTab === "chat" ? "is-active" : ""}`}>
-            <Chat ref={chatRef} plugin={plugin} />
+            <Chat ref={chatRef} plugin={plugin} onToggleSidebarWidth={onToggleSidebarWidth} />
           </div>
           <div className={`gemini-helper-tab-panel ${activeTab === "workflow" ? "is-active" : ""}`}>
             <WorkflowPanel plugin={plugin} />

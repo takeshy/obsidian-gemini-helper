@@ -62,6 +62,16 @@
   overflow: hidden;
 }
 
+/* One-click reading width for a chat hosted in either desktop side dock. */
+.workspace-split.mod-left-split.gemini-helper-wide-sidebar,
+.workspace-split.mod-right-split.gemini-helper-wide-sidebar {
+  width: min(50vw, 800px) !important;
+}
+
+.is-mobile .gemini-helper-sidebar-width-btn {
+  display: none;
+}
+
 /* Mobile: remove extra bottom padding */
 .is-mobile .workspace-leaf-content.gemini-helper-chat-leaf {
   padding-bottom: 0;

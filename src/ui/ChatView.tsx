@@ -9,6 +9,7 @@ export class ChatView extends ItemView {
   plugin: GeminiHelperPlugin;
   reactRoot!: Root;
   private tabContainerRef: TabContainerRef | null = null;
+  private widenedSidebar: HTMLElement | null = null;
 
   constructor(leaf: WorkspaceLeaf, plugin: GeminiHelperPlugin) {
     super(leaf);
@@ -41,6 +42,7 @@ export class ChatView extends ItemView {
           this.tabContainerRef = ref;
         }}
         plugin={this.plugin}
+        onToggleSidebarWidth={() => this.toggleSidebarWidth()}
       />
     );
     this.reactRoot = root;
@@ -49,8 +51,21 @@ export class ChatView extends ItemView {
   async onClose(): Promise<void> {
     // Clear selection highlight when chat view is closed
     this.plugin.clearSelectionHighlight();
+    this.widenedSidebar?.removeClass("gemini-helper-wide-sidebar");
     this.reactRoot?.unmount();
     await Promise.resolve();
+  }
+
+  private toggleSidebarWidth(): boolean {
+    const sidebar = this.containerEl.closest<HTMLElement>(
+      ".workspace-split.mod-left-split, .workspace-split.mod-right-split"
+    );
+    if (!sidebar) return false;
+    sidebar.toggleClass("gemini-helper-wide-sidebar", !sidebar.hasClass("gemini-helper-wide-sidebar"));
+    const isWide = sidebar.hasClass("gemini-helper-wide-sidebar");
+    this.widenedSidebar = isWide ? sidebar : null;
+    window.setTimeout(() => this.leaf.onResize(), 0);
+    return isWide;
   }
 
   getActiveChat(): TFile | null {

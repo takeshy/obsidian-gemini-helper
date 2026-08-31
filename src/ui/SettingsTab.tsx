@@ -3,6 +3,7 @@ import type { GeminiHelperPlugin } from "src/plugin";
 import type { SettingsContext } from "src/ui/settings/settingsContext";
 import { displayApiSettings } from "src/ui/settings/apiSettings";
 import { displayWorkspaceSettings } from "src/ui/settings/workspaceSettings";
+import { displayChatSettings } from "src/ui/settings/chatSettings";
 import { displayEditHistorySettings } from "src/ui/settings/editHistorySettings";
 import { displayEncryptionSettings } from "src/ui/settings/encryptionSettings";
 import { displayLangfuseSettings } from "src/ui/settings/langfuseSettings";
@@ -18,6 +19,7 @@ import { displayAgentPluginSettings } from "src/ui/settings/agentPluginSettings"
 const SETTINGS_SECTIONS: Array<(containerEl: HTMLElement, ctx: SettingsContext) => void> = [
   displayApiSettings,
   displayWorkspaceSettings,
+  displayChatSettings,
   displayEncryptionSettings,
   displayLangfuseSettings,
   displaySlashCommandSettings,

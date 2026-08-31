@@ -523,7 +523,9 @@ export class GeminiHelperPlugin extends Plugin {
   }
 
   async loadSettings() {
-    const loaded = (await this.loadData() ?? {}) as Partial<GeminiHelperSettings>;
+    const savedData = await this.loadData() as Partial<GeminiHelperSettings> | null;
+    const isExistingInstall = savedData !== null && Object.keys(savedData).length > 0;
+    const loaded = savedData ?? {};
     const legacyGoogleApiKey = loaded.googleApiKey?.trim() ?? "";
     let googleApiKey = this.app.secretStorage.getSecret(GOOGLE_API_KEY_SECRET_ID)?.trim() ?? "";
 
@@ -541,6 +543,10 @@ export class GeminiHelperPlugin extends Plugin {
     this.settings = {
       ...DEFAULT_SETTINGS,
       ...loaded,
+      // Preserve existing behavior on upgrade: history pruning is opt-in for
+      // users whose settings predate maxSavedChatHistories.
+      maxSavedChatHistories: loaded.maxSavedChatHistories
+        ?? (isExistingInstall ? 0 : DEFAULT_SETTINGS.maxSavedChatHistories),
       googleApiKey,
       googleApiKeyConfigured: loaded.googleApiKeyConfigured || !!googleApiKey,
       // Deep copy arrays to avoid mutating DEFAULT_SETTINGS

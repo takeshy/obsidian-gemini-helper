@@ -194,7 +194,7 @@ function collectWebSources(value: unknown, sources: WebSearchSource[]): void {
 // Source: https://ai.google.dev/pricing
 const MODEL_PRICING: Record<string, { input: number; output: number }> = {
   // Introductory pricing through December 31, 2026.
-  "gemini-3.7-flash": { input: 0.75 / 1e6, output: 3.75 / 1e6 },
+  "gemini-3.8-flash": { input: 0.75 / 1e6, output: 3.75 / 1e6 },
   "gemini-3.5-flash-lite": { input: 0.30 / 1e6, output: 2.50 / 1e6 },
   "gemini-3.1-pro-preview": { input: 2.00 / 1e6, output: 12.00 / 1e6 },
   "gemini-3.1-pro-preview-customtools": { input: 2.00 / 1e6, output: 12.00 / 1e6 },
@@ -207,7 +207,7 @@ const MODEL_PRICING: Record<string, { input: number; output: number }> = {
 // Gemini 3 models: $14/1K queries, Gemini 2.x: $35/1K prompts
 // Approximated as per-prompt since exact query count is not exposed by the API
 const SEARCH_GROUNDING_COST: Record<string, number> = {
-  "gemini-3.7-flash": 14 / 1000,
+  "gemini-3.8-flash": 14 / 1000,
   "gemini-3.1-pro-preview": 14 / 1000,
   "gemini-3.1-pro-preview-customtools": 14 / 1000,
   "gemini-3-pro-image": 14 / 1000,
@@ -530,7 +530,7 @@ export class GeminiClient {
   private ai: GoogleGenAI;
   private model: ModelType;
 
-  constructor(apiKey: string, model: ModelType = "gemini-3.7-flash") {
+  constructor(apiKey: string, model: ModelType = "gemini-3.8-flash") {
     this.ai = new GoogleGenAI({ apiKey });
     this.model = model;
 
@@ -566,8 +566,8 @@ export class GeminiClient {
     // Gemma 4: thinking config not supported
     if (modelLower.includes("gemma-4")) return undefined;
 
-    // Gemini 3.7 Flash uses thinkingLevel; thinkingBudget is no longer supported.
-    if (modelLower.includes("gemini-3.7-flash")) {
+    // Gemini 3.8 Flash uses thinkingLevel; thinkingBudget is not supported.
+    if (modelLower.includes("gemini-3.8-flash")) {
       return enableThinking
         ? { includeThoughts: true, thinkingLevel: "HIGH" }
         : { thinkingLevel: "LOW" };
@@ -935,7 +935,7 @@ export class GeminiClient {
     webSearchEnabled?: boolean,
   ): boolean {
     const modelLower = this.model.toLowerCase();
-    return modelLower.includes("gemini-3.7-flash") && !!webSearchEnabled && tools.length > 0;
+    return modelLower.includes("gemini-3.8-flash") && !!webSearchEnabled && tools.length > 0;
   }
 
   private buildGenerateContentTools(tools: ToolDefinition[], webSearchEnabled?: boolean): Tool[] | undefined {
@@ -1404,7 +1404,7 @@ export class GeminiClient {
       const modelLower = this.model.toLowerCase();
       // Gemma 4: thinking config not supported via Interactions API
       if (modelLower.includes("gemma-4")) return undefined;
-      if (modelLower.includes("gemini-3.7-flash")) {
+      if (modelLower.includes("gemini-3.8-flash")) {
         return enableThinking ? "high" : "low";
       }
       // Pro models require thinking — always return high

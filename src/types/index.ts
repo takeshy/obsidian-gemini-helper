@@ -325,7 +325,7 @@ export type ApiPlan = "paid" | "free";
 
 // Model types (includes both chat and image generation models)
 export type ModelType =
-  | "gemini-3.7-flash"
+  | "gemini-3.8-flash"
   | "gemini-3.1-pro-preview"
   | "gemini-3.1-pro-preview-customtools"
   | "gemini-3.5-flash-lite"
@@ -349,8 +349,8 @@ export interface ModelInfo {
 
 export const PAID_MODELS: ModelInfo[] = [
   {
-    name: "gemini-3.7-flash",
-    displayName: "Gemini 3.7 Flash",
+    name: "gemini-3.8-flash",
+    displayName: "Gemini 3.8 Flash",
     description: "Latest fast model with 1M context (recommended)",
     acceptsPdf: true,
   },
@@ -404,8 +404,8 @@ export const PAID_MODELS: ModelInfo[] = [
 
 export const FREE_MODELS: ModelInfo[] = [
   {
-    name: "gemini-3.7-flash",
-    displayName: "Gemini 3.7 Flash",
+    name: "gemini-3.8-flash",
+    displayName: "Gemini 3.8 Flash",
     description: "Free tier latest fast model (recommended)",
     acceptsPdf: true,
   },
@@ -626,7 +626,7 @@ export interface StreamChunk {
 
 // Default models by plan
 export const DEFAULT_MODEL_FREE: ModelType = "gemma-4-31b-it";
-export const DEFAULT_MODEL_PAID: ModelType = "gemini-3.7-flash";
+export const DEFAULT_MODEL_PAID: ModelType = "gemini-3.8-flash";
 
 // Default model (for backwards compatibility)
 export const DEFAULT_MODEL: ModelType = DEFAULT_MODEL_FREE;

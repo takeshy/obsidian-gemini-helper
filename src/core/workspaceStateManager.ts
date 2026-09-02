@@ -124,9 +124,10 @@ export class WorkspaceStateManager {
       (this.workspaceState.selectedModel as string) === "gemini-3-flash-preview"
       || (this.workspaceState.selectedModel as string) === "gemini-3.5-flash"
       || (this.workspaceState.selectedModel as string) === "gemini-3.6-flash"
+      || (this.workspaceState.selectedModel as string) === "gemini-3.7-flash"
       || (this.workspaceState.selectedModel as string) === "gemini-2.5-flash"
     ) {
-      this.workspaceState.selectedModel = "gemini-3.7-flash";
+      this.workspaceState.selectedModel = "gemini-3.8-flash";
     }
     if ((this.workspaceState.selectedModel as string) === "gemini-2.5-pro") {
       this.workspaceState.selectedModel = "gemini-3.1-pro-preview";

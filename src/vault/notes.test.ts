@@ -202,7 +202,7 @@ describe("notes edit history integration", () => {
 
 describe("model PDF capability", () => {
   it("sends PDFs natively only to models documented to accept them", () => {
-    expect(modelAcceptsPdf("gemini-3.7-flash")).toBe(true);
+    expect(modelAcceptsPdf("gemini-3.8-flash")).toBe(true);
     expect(modelAcceptsPdf("gemini-3.1-pro-preview")).toBe(true);
     expect(modelAcceptsPdf("gemini-3.5-flash-lite")).toBe(true);
     // Gemma 4 documents image/video/audio input but not PDF.

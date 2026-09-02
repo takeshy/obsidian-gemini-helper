@@ -7,13 +7,14 @@ import {
   PAID_MODELS,
 } from "./index";
 
-describe("Gemini 3.7 Flash", () => {
+describe("Gemini 3.8 Flash", () => {
   it("is available on both API plans", () => {
-    expect(PAID_MODELS.map(model => model.name)).toContain("gemini-3.7-flash");
-    expect(FREE_MODELS.map(model => model.name)).toContain("gemini-3.7-flash");
+    expect(PAID_MODELS.map(model => model.name)).toContain("gemini-3.8-flash");
+    expect(FREE_MODELS.map(model => model.name)).toContain("gemini-3.8-flash");
   });
 
-  it("replaces Gemini 3.6 Flash in the model lists", () => {
+  it("replaces earlier Gemini Flash models in the model lists", () => {
+    expect(AVAILABLE_MODELS.map(model => model.name as string)).not.toContain("gemini-3.7-flash");
     expect(AVAILABLE_MODELS.map(model => model.name as string)).not.toContain("gemini-3.6-flash");
   });
 
@@ -28,7 +29,7 @@ describe("Gemini 3.7 Flash", () => {
   });
 
   it("is the default paid model", () => {
-    expect(getDefaultModelForPlan("paid")).toBe("gemini-3.7-flash");
+    expect(getDefaultModelForPlan("paid")).toBe("gemini-3.8-flash");
   });
 });
 

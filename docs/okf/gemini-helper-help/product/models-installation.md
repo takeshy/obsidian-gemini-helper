@@ -35,7 +35,7 @@ Free API keys support basic chat, vault operations, web search, limited RAG sync
 
 # Thinking Mode
 
-Chat can enable thinking based on message keywords such as "think", "analyze", or "consider". Gemini 3.1 Pro always uses thinking mode. Flash model families can also be forced to always think from the tool menu; Flash is off by default and Flash Lite is on by default.
+For supported Gemini models, choose the thinking level in the selector beside the model picker: `default`, `minimal`, `low`, `medium`, or `high`. `default` leaves the choice to the Gemini API. Gemini 3.1 Pro cannot disable thinking, so its lowest level is `low`. Gemma 4 and image models have no thinking selector. The level is remembered per model, and message keywords no longer change it.
 
 # Installation
 

@@ -6,6 +6,7 @@ import {
   type RagSetting,
   type RagState,
   type ModelType,
+  type ReasoningEffort,
   DEFAULT_WORKSPACE_STATE,
   DEFAULT_RAG_SETTING,
   DEFAULT_RAG_STATE,
@@ -286,12 +287,11 @@ export class WorkspaceStateManager {
     this.settingsEmitter.emit("web-search-changed", enabled);
   }
 
-  async setAlwaysThinkPreference(family: "flash" | "flashLite", enabled: boolean): Promise<void> {
-    if (family === "flash") {
-      this.workspaceState.alwaysThinkFlash = enabled;
-    } else {
-      this.workspaceState.alwaysThinkFlashLite = enabled;
-    }
+  async setReasoningEffort(model: string, effort: ReasoningEffort): Promise<void> {
+    const next = { ...(this.workspaceState.reasoningEffortByModel ?? {}) };
+    if (effort === "default") delete next[model];
+    else next[model] = effort;
+    this.workspaceState.reasoningEffortByModel = next;
     await this.saveWorkspaceState();
   }
 

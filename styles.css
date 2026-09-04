@@ -714,6 +714,11 @@
   max-width: 150px;
 }
 
+.gemini-helper-effort-select {
+  flex: 0 0 auto;
+  max-width: 100px;
+}
+
 .gemini-helper-model-select:hover {
   color: var(--text-normal);
 }
@@ -1046,6 +1051,58 @@
   color: var(--text-normal);
 }
 
+/* Enabled MCP servers shown above the input */
+.gemini-helper-enabled-mcp-servers {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 8px 12px 0 12px;
+}
+
+.gemini-helper-enabled-mcp-server {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  max-width: min(240px, 80vw);
+  padding: 3px 6px;
+  border: 1px solid color-mix(in srgb, var(--color-purple) 35%, var(--background-modifier-border));
+  border-radius: 5px;
+  background: color-mix(in srgb, var(--color-purple) 10%, var(--background-secondary));
+  color: var(--color-purple);
+  font-size: 11px;
+}
+
+.gemini-helper-enabled-mcp-server-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gemini-helper-enabled-mcp-server-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  box-shadow: none;
+}
+
+.gemini-helper-enabled-mcp-server-remove:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--color-purple) 20%, transparent);
+}
+
+.gemini-helper-enabled-mcp-server-remove:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
 .gemini-helper-pending-attachments {
   display: flex;
   flex-wrap: wrap;
@@ -1357,6 +1414,11 @@
 .is-mobile .gemini-helper-rag-select {
   max-width: none;
   flex: 1 1 100%;
+}
+
+.is-mobile .gemini-helper-effort-select {
+  max-width: none;
+  flex: 1 1 40%;
 }
 
 .is-mobile .gemini-helper-history-item {

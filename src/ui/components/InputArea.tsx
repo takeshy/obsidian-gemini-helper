@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, KeyboardEvent, ChangeEvent, forwardRef, useImperativeHandle } from "react";
-import { Send, Paperclip, StopCircle, Loader2, Eye, Database, ChevronUp, ChevronDown } from "lucide-react";
+import { Send, Paperclip, StopCircle, Loader2, Eye, Database, ChevronUp, ChevronDown, Wrench, X } from "lucide-react";
 import { Notice, Platform, type App } from "obsidian";
-import { isImageGenerationModel, type ModelInfo, type ModelType, type Attachment, type SlashCommand, type McpServerConfig, type VaultToolMode } from "src/types";
+import { isImageGenerationModel, type ModelInfo, type ModelType, type Attachment, type SlashCommand, type McpServerConfig, type VaultToolMode, type ReasoningEffort } from "src/types";
 import type { SkillMetadata } from "src/core/skillsLoader";
 import type { OkfBundle } from "src/core/okfLoader";
 import SkillSelector from "./SkillSelector";
@@ -35,10 +35,9 @@ interface InputAreaProps {
   vaultToolMode: VaultToolMode;
   onVaultToolModeChange: (mode: VaultToolMode) => void;
   vaultToolModeOnlyNone: boolean; // When true, only "none" option is available
-  thinkFlash: boolean;
-  thinkFlashLite: boolean;
-  onThinkFlashChange: (value: boolean) => void;
-  onThinkFlashLiteChange: (value: boolean) => void;
+  reasoningEffort: ReasoningEffort;
+  reasoningEffortOptions: ReasoningEffort[]; // Empty when the model has no configurable thinking
+  onReasoningEffortChange: (effort: ReasoningEffort) => void;
   mcpServers: McpServerConfig[]; // MCP server configurations
   onMcpServerToggle: (serverName: string, enabled: boolean) => void; // Per-server toggle handler
   okfBundles: OkfBundle[]; // Discovered OKF knowledge bundles (empty when OKF is off)
@@ -99,10 +98,9 @@ const InputArea = forwardRef<InputAreaHandle, InputAreaProps>(function InputArea
   vaultToolMode,
   onVaultToolModeChange,
   vaultToolModeOnlyNone,
-  thinkFlash,
-  thinkFlashLite,
-  onThinkFlashChange,
-  onThinkFlashLiteChange,
+  reasoningEffort,
+  reasoningEffortOptions,
+  onReasoningEffortChange,
   mcpServers,
   onMcpServerToggle,
   okfBundles,
@@ -560,6 +558,32 @@ const InputArea = forwardRef<InputAreaHandle, InputAreaProps>(function InputArea
 
   return (
     <div className={`gemini-helper-input-container ${isCollapsed ? "collapsed" : ""}`}>
+      {/* MCP servers enabled for this chat */}
+      {!isCollapsed && mcpServers.some((server) => server.enabled) && (
+        <div className="gemini-helper-enabled-mcp-servers">
+          {mcpServers.filter((server) => server.enabled).map((server) => (
+            <span
+              key={server.name}
+              className="gemini-helper-enabled-mcp-server"
+              title={t("input.mcpServerEnabled", { name: server.name })}
+            >
+              <Wrench size={12} aria-hidden="true" />
+              <span className="gemini-helper-enabled-mcp-server-name">{server.name}</span>
+              <button
+                type="button"
+                className="gemini-helper-enabled-mcp-server-remove"
+                onClick={() => onMcpServerToggle(server.name, false)}
+                disabled={isLoading || vaultToolModeOnlyNone}
+                title={t("input.mcpServerDisable", { name: server.name })}
+                aria-label={t("input.mcpServerDisable", { name: server.name })}
+              >
+                <X size={10} aria-hidden="true" />
+              </button>
+            </span>
+          ))}
+        </div>
+      )}
+
       {/* Pending attachments display */}
       {!isCollapsed && pendingAttachments.length > 0 && (
         <div className="gemini-helper-pending-attachments">
@@ -704,16 +728,6 @@ const InputArea = forwardRef<InputAreaHandle, InputAreaProps>(function InputArea
                 >
                   {t("input.vaultToolNone")}
                 </div>
-                <div className="gemini-helper-vault-tool-separator" />
-                <div className="gemini-helper-vault-tool-section-label">{t("input.thinkingLabel")}</div>
-                <label className="gemini-helper-vault-tool-checkbox">
-                  <input type="checkbox" checked={thinkFlash} onChange={(e) => onThinkFlashChange(e.target.checked)} />
-                  <span>{t("input.thinkFlash")}</span>
-                </label>
-                <label className="gemini-helper-vault-tool-checkbox">
-                  <input type="checkbox" checked={thinkFlashLite} onChange={(e) => onThinkFlashLiteChange(e.target.checked)} />
-                  <span>{t("input.thinkFlashLite")}</span>
-                </label>
               </div>
             )}
             {/* Modal for vault tool + MCP settings when MCP servers are configured */}
@@ -757,19 +771,6 @@ const InputArea = forwardRef<InputAreaHandle, InputAreaProps>(function InputArea
                           </label>
                         );
                       })}
-                    </div>
-                  </div>
-                  <div className="gemini-helper-tool-settings-row">
-                    <label>{t("input.thinkingLabel")}</label>
-                    <div className="gemini-helper-mcp-server-list">
-                      <label className="gemini-helper-mcp-server-item">
-                        <input type="checkbox" checked={thinkFlash} onChange={(e) => onThinkFlashChange(e.target.checked)} />
-                        <span className="gemini-helper-mcp-server-name">{t("input.thinkFlash")}</span>
-                      </label>
-                      <label className="gemini-helper-mcp-server-item">
-                        <input type="checkbox" checked={thinkFlashLite} onChange={(e) => onThinkFlashLiteChange(e.target.checked)} />
-                        <span className="gemini-helper-mcp-server-name">{t("input.thinkFlashLite")}</span>
-                      </label>
                     </div>
                   </div>
                   <button
@@ -861,6 +862,20 @@ const InputArea = forwardRef<InputAreaHandle, InputAreaProps>(function InputArea
               </option>
             ))}
           </select>
+          {reasoningEffortOptions.length > 0 && (
+            <select
+              className="gemini-helper-model-select gemini-helper-effort-select"
+              value={reasoningEffort}
+              onChange={(e) => onReasoningEffortChange(e.target.value as ReasoningEffort)}
+              disabled={isLoading}
+              title={t("input.reasoningEffort")}
+              aria-label={t("input.reasoningEffort")}
+            >
+              {reasoningEffortOptions.map((effort) => (
+                <option key={effort} value={effort}>{effort}</option>
+              ))}
+            </select>
+          )}
           <select
             className="gemini-helper-model-select gemini-helper-rag-select"
             value={webSearchEnabled ? "__websearch__" : (ragEnabled ? (selectedRagSetting || "") : "")}

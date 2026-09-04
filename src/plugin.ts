@@ -15,6 +15,7 @@ import {
   type RagSetting,
   type RagState,
   type ModelType,
+  type ReasoningEffort,
   type SlashCommand,
   DEFAULT_SETTINGS,
   DEFAULT_RAG_STATE,
@@ -689,8 +690,8 @@ export class GeminiHelperPlugin extends Plugin {
     return this.wsManager.selectWebSearchEnabled(enabled);
   }
 
-  async setAlwaysThinkPreference(family: "flash" | "flashLite", enabled: boolean): Promise<void> {
-    return this.wsManager.setAlwaysThinkPreference(family, enabled);
+  async setReasoningEffort(model: string, effort: ReasoningEffort): Promise<void> {
+    return this.wsManager.setReasoningEffort(model, effort);
   }
 
   async selectModel(model: ModelType): Promise<void> {

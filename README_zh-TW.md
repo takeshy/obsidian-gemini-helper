@@ -599,18 +599,7 @@ Secret Manager 將每個值儲存為 Vault 中獨立的 `.encrypted` 檔案。�
 | Gemini 3 Pro (Image) | Pro 圖片生成，4K |
 | Gemini 3.1 Flash (Image) | 快速、低成本圖片生成 |
 
-> **Thinking 模式：** 在聊天中，當訊息包含「思考」、「分析一下」或「考慮」等關鍵字時會觸發 Thinking 模式。但是，**Gemini 3.1 Pro** 無論是否包含關鍵字都始終使用 Thinking 模式 — 這些模型不支援停用 Thinking。
-
-**Always Think 開關：**
-
-您可以不使用關鍵字，直接強制為 Flash 模型開啟 Thinking 模式。點選資料庫圖示（📦）開啟工具選單，在 **Always Think** 下勾選對應的開關：
-
-- **Flash** — 預設關閉。勾選後，Flash 模型將始終啟用 Thinking。
-- **Flash Lite** — 預設開啟。啟用 Thinking 後，Flash Lite 的成本和速度幾乎沒有差異，建議保持開啟。
-
-開關處於開啟狀態時，無論訊息內容如何，該模型系列都將始終啟用 Thinking。關閉時，將使用現有的基於關鍵字的偵測機制。
-
-![Always Think Settings](docs/images/setting_thinking.png)
+> **Thinking 模式：** 對於支援的 Gemini 模型，可在模型選擇器旁邊的下拉選單中選擇思考等級（`default` / `minimal` / `low` / `medium` / `high`）。`default` 表示交由 Gemini API 決定。**Gemini 3.1 Pro** 無法停用 Thinking，因此其最低等級為 `low`；Gemma 4 與圖片模型沒有思考選擇器。此設定依模型記憶，訊息中的關鍵字不再自動變更思考等級。
 
 ### 免費方案
 | 模型 | Vault 操作 |

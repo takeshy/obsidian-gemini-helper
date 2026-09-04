@@ -631,18 +631,7 @@ Secret Manager stocke chaque valeur dans un fichier `.encrypted` distinct du vau
 | Gemini 3 Pro (Image) | Generation d'images Pro, 4K |
 | Gemini 3.1 Flash (Image) | Generation d'images rapide et economique |
 
-> **Mode Thinking :** Dans le chat, le mode thinking est declenche par des mots-cles comme "think", "analyze" ou "consider" dans votre message. Cependant, **Gemini 3.1 Pro** utilise toujours le mode thinking independamment des mots-cles -- ce modele ne permet pas de desactiver le thinking.
-
-**Bascule Always Think :**
-
-Vous pouvez forcer le mode thinking a ON pour les modeles Flash sans utiliser de mots-cles. Cliquez sur l'icone de base de donnees (📦) pour ouvrir le menu des outils, et cochez les cases sous **Always Think** :
-
-- **Flash** -- OFF par defaut. Cochez pour toujours activer le thinking pour les modeles Flash.
-- **Flash Lite** -- ON par defaut. Flash Lite a une difference de cout et de vitesse minimale avec le thinking active, il est donc recommande de le garder active.
-
-Quand une bascule est ON, le thinking est toujours actif pour cette famille de modeles independamment du contenu du message. Quand elle est OFF, la detection basee sur les mots-cles existante est utilisee.
-
-![Always Think Settings](docs/images/setting_thinking.png)
+> **Mode Thinking :** Pour les modeles Gemini pris en charge, choisissez le niveau de reflexion dans le selecteur a cote du choix du modele (`default` / `minimal` / `low` / `medium` / `high`). `default` laisse le choix a l'API Gemini. **Gemini 3.1 Pro** ne peut pas desactiver le thinking, son niveau le plus bas est donc `low` ; Gemma 4 et les modeles d'image n'ont pas de selecteur. Le reglage est memorise par modele, et les mots-cles du message ne modifient plus automatiquement le niveau de reflexion.
 
 ### Plan Gratuit
 | Modele | Operations sur le Coffre |

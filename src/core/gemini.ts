@@ -25,6 +25,8 @@ import {
   type RagContext,
   type WebSearchSource,
   type Attachment,
+  type ReasoningEffort,
+  isImageGenerationModel,
 } from "src/types";
 import { dedupeAttachments, getToolResultAttachments, withoutToolResultAttachments } from "src/core/toolResultAttachments";
 import { tracing, type TracingUsage } from "src/core/tracingHooks";
@@ -275,39 +277,6 @@ function toStreamChunkUsage(usage: TracingUsage | undefined): StreamChunkUsage |
   };
 }
 
-// Keywords that trigger thinking mode
-// Latin-script keywords use word-boundary regex to avoid false positives (e.g. "reason" in "no reason")
-const THINKING_KEYWORDS_REGEX = [
-  // English
-  /\bthink\b/, /\banalyze\b/, /\bconsider\b/, /\breason about\b/, /\breflect\b/,
-  // German
-  /\bnachdenken\b/, /\banalysieren\b/, /\büberlegen\b/,
-  // Spanish
-  /\bpiensa\b/, /\banaliza\b/, /\breflexiona\b/,
-  // French
-  /\bréfléchis\b/, /\banalyse\b/, /\bconsidère\b/,
-  // Italian
-  /\bpensa\b/, /\banalizza\b/, /\brifletti\b/,
-  // Portuguese
-  /\bpense\b/, /\banalise\b/, /\breflita\b/,
-];
-
-// CJK keywords use substring matching (word boundaries don't apply)
-const THINKING_KEYWORDS_CJK = [
-  // Japanese
-  "考えて", "考察", "分析して", "検討して", "深く考", "じっくり", "よく考えて",
-  // Korean
-  "생각해", "분석해", "고려해",
-  // Chinese
-  "思考", "分析一下", "考虑",
-];
-
-function shouldEnableThinkingByKeyword(message: string): boolean {
-  const lower = message.toLowerCase();
-  return THINKING_KEYWORDS_REGEX.some(re => re.test(lower))
-    || THINKING_KEYWORDS_CJK.some(kw => lower.includes(kw));
-}
-
 // Default safety settings per Gemini best practices
 // Using BLOCK_MEDIUM_AND_ABOVE as a balanced default
 const DEFAULT_SAFETY_SETTINGS: SafetySetting[] = [
@@ -348,9 +317,105 @@ export interface ChatWithToolsOptions {
   ragMetadataFilter?: string;
   functionCallLimits?: FunctionCallLimitOptions;
   disableTools?: boolean;
-  enableThinking?: boolean;
+  enableThinking?: boolean;              // Legacy binary toggle (workflow/dashboard callers)
+  reasoningEffort?: ReasoningEffort;     // Explicit thinking level selected in Chat; wins over enableThinking
   traceId?: string | null;
   previousInteractionId?: string | null;  // For Interactions API conversation chaining
+}
+
+export type GeminiThinkingLevel = "minimal" | "low" | "medium" | "high";
+
+/**
+ * Check if a model requires thinking (cannot be disabled).
+ */
+export function isThinkingRequired(model: string): boolean {
+  const lower = model.toLowerCase();
+  return lower.includes("gemini-3-pro") || lower.includes("gemini-3.1-pro");
+}
+
+/**
+ * Thinking levels selectable in Chat for a model. Empty when the model has no
+ * configurable thinking (Gemma 4, image models).
+ */
+export function getReasoningEffortOptions(model: string): ReasoningEffort[] {
+  const modelLower = model.toLowerCase();
+  if (modelLower.includes("gemma-4")) return [];
+  if (isImageGenerationModel(model as ModelType)) return [];
+  if (isThinkingRequired(model)) return ["default", "low", "medium", "high"];
+  if (modelLower.includes("gemini-3")) return ["default", "minimal", "low", "medium", "high"];
+  return [];
+}
+
+/**
+ * Build `thinkingConfig` for the GenerateContent / SDK Chat path.
+ * - An explicit reasoning effort (anything but "default") wins and includes thought summaries.
+ * - `enableThinking === undefined` leaves the choice to the API (no config at all).
+ * - `enableThinking` true/false keeps the binary behaviour used by workflow and dashboard callers.
+ */
+export function buildGeminiThinkingConfig(
+  model: string,
+  enableThinking: boolean | undefined,
+  reasoningEffort?: ReasoningEffort,
+): Record<string, unknown> | undefined {
+  const modelLower = model.toLowerCase();
+
+  // Gemma 4: thinking config not supported
+  if (modelLower.includes("gemma-4")) return undefined;
+
+  const explicitLevel = reasoningEffort && reasoningEffort !== "default" ? reasoningEffort : undefined;
+  if (explicitLevel) {
+    return { includeThoughts: true, thinkingLevel: explicitLevel.toUpperCase() };
+  }
+
+  if (enableThinking === undefined) return undefined;
+
+  // Gemini 3.8 Flash uses thinkingLevel; thinkingBudget is not supported.
+  if (modelLower.includes("gemini-3.8-flash")) {
+    return enableThinking
+      ? { includeThoughts: true, thinkingLevel: "HIGH" }
+      : { thinkingLevel: "LOW" };
+  }
+
+  // Gemini 3.5 Flash Lite uses thinkingLevel; minimal is the API default.
+  if (modelLower.includes("gemini-3.5-flash-lite")) {
+    if (!enableThinking) return undefined;
+    return { includeThoughts: true, thinkingLevel: "HIGH" };
+  }
+
+  // gemini-3-pro / gemini-3.1-pro models require thinking — cannot disable
+  if (!enableThinking && !isThinkingRequired(model)) return { thinkingBudget: 0 };
+
+  return { includeThoughts: true };
+}
+
+/**
+ * Resolve `thinking_level` for the Interactions API path. Same precedence as
+ * buildGeminiThinkingConfig(); returns undefined to leave the choice to the API.
+ */
+export function resolveGeminiThinkingLevel(
+  model: string,
+  enableThinking: boolean | undefined,
+  reasoningEffort?: ReasoningEffort,
+): GeminiThinkingLevel | undefined {
+  const modelLower = model.toLowerCase();
+
+  // Gemma 4: thinking config not supported via Interactions API
+  if (modelLower.includes("gemma-4")) return undefined;
+
+  if (reasoningEffort && reasoningEffort !== "default") return reasoningEffort;
+
+  if (enableThinking === undefined) return undefined;
+
+  if (modelLower.includes("gemini-3.8-flash")) {
+    return enableThinking ? "high" : "low";
+  }
+  // Pro models require thinking — always return high
+  if (isThinkingRequired(model)) return "high";
+  // Gemini 3.5 Flash Lite: "minimal" matches the streaming/SDK path
+  // (buildGeminiThinkingConfig), which omits thinkingLevel entirely when
+  // thinking is disabled and relies on "minimal" being the API default.
+  if (!enableThinking) return "minimal";
+  return "high";
 }
 
 // Sanitize function call results for Gemini API.
@@ -560,30 +625,8 @@ export class GeminiClient {
   }
 
   // Build thinking config based on model capabilities (shared across streaming methods)
-  private buildThinkingConfig(enableThinking: boolean): Record<string, unknown> | undefined {
-    const modelLower = this.model.toLowerCase();
-
-    // Gemma 4: thinking config not supported
-    if (modelLower.includes("gemma-4")) return undefined;
-
-    // Gemini 3.8 Flash uses thinkingLevel; thinkingBudget is not supported.
-    if (modelLower.includes("gemini-3.8-flash")) {
-      return enableThinking
-        ? { includeThoughts: true, thinkingLevel: "HIGH" }
-        : { thinkingLevel: "LOW" };
-    }
-
-    // Gemini 3.5 Flash Lite uses thinkingLevel; minimal is the API default.
-    if (modelLower.includes("gemini-3.5-flash-lite")) {
-      if (!enableThinking) return undefined;
-      return { includeThoughts: true, thinkingLevel: "HIGH" };
-    }
-
-    // gemini-3-pro / gemini-3.1-pro models require thinking — cannot disable
-    const thinkingRequired = modelLower.includes("gemini-3-pro") || modelLower.includes("gemini-3.1-pro");
-    if (!enableThinking && !thinkingRequired) return { thinkingBudget: 0 };
-
-    return { includeThoughts: true };
+  private buildThinkingConfig(enableThinking: boolean | undefined, reasoningEffort?: ReasoningEffort): Record<string, unknown> | undefined {
+    return buildGeminiThinkingConfig(this.model, enableThinking, reasoningEffort);
   }
 
   private supportsThinking(): boolean {
@@ -1011,7 +1054,7 @@ export class GeminiClient {
 
     let contents = this.messagesToContents(messages);
     const generationTools = this.buildGenerateContentTools(tools, webSearchEnabled);
-    const thinkingConfig = this.buildThinkingConfig(options?.enableThinking ?? true);
+    const thinkingConfig = this.buildThinkingConfig(options?.enableThinking, options?.reasoningEffort);
     // Gemini rejects mixing a built-in/server-side tool (googleSearch) with
     // function-calling declarations unless this flag is set.
     const mixesBuiltInWithFunctionCalling = !options?.disableTools && tools.length > 0 && !!webSearchEnabled;
@@ -1392,32 +1435,11 @@ export class GeminiClient {
       return;
     }
 
-    // Enable thinking: explicit option overrides keyword detection
-    const enableThinking = this.supportsThinking() &&
-      (options?.enableThinking !== undefined
-        ? options.enableThinking
-        : shouldEnableThinkingByKeyword(lastMessage.content || ""));
-
-    // Build generation config for Interactions API
-    const getThinkingLevel = (): "minimal" | "low" | "medium" | "high" | undefined => {
-      if (!this.supportsThinking()) return undefined;
-      const modelLower = this.model.toLowerCase();
-      // Gemma 4: thinking config not supported via Interactions API
-      if (modelLower.includes("gemma-4")) return undefined;
-      if (modelLower.includes("gemini-3.8-flash")) {
-        return enableThinking ? "high" : "low";
-      }
-      // Pro models require thinking — always return high
-      const thinkingRequired = modelLower.includes("gemini-3-pro") || modelLower.includes("gemini-3.1-pro");
-      if (thinkingRequired) return "high";
-      // Gemini 3.5 Flash Lite: "minimal" matches the streaming/SDK path
-      // (buildThinkingConfig), which omits thinkingLevel entirely when
-      // thinking is disabled and relies on "minimal" being the API default.
-      if (!enableThinking) return "minimal";
-      return "high";
-    };
-
-    const thinkingLevel = getThinkingLevel();
+    // Thinking: explicit reasoning effort wins; otherwise the legacy binary toggle;
+    // when neither is given the API default is used.
+    const enableThinking = this.supportsThinking() ? options?.enableThinking : false;
+    const reasoningEffort = this.supportsThinking() ? options?.reasoningEffort : undefined;
+    const thinkingLevel = resolveGeminiThinkingLevel(this.model, enableThinking, reasoningEffort);
     const generationConfig = thinkingLevel || combinesBuiltInAndFunctionTools
       ? {
           ...(thinkingLevel
@@ -1441,6 +1463,8 @@ export class GeminiClient {
         webSearchEnabled: !!webSearchEnabled,
         toolCount: tools.length,
         enableThinking,
+        reasoningEffort,
+        thinkingLevel,
         useInteractionsApi: true,
         hasPreviousInteractionId: !!previousInteractionId,
       },

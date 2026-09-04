@@ -631,18 +631,7 @@ Secret Manager salva ogni valore come file `.encrypted` separato nel vault. Conf
 | Gemini 3 Pro (Image) | Generazione immagini Pro, 4K |
 | Gemini 3.1 Flash (Image) | Generazione immagini veloce e a basso costo |
 
-> **Modalità Thinking:** Nella chat, la modalità thinking viene attivata da parole chiave come "pensa", "analizza" o "rifletti" nel messaggio. Tuttavia, **Gemini 3.1 Pro** utilizza sempre la modalità thinking indipendentemente dalle parole chiave — questo modello non supporta la disattivazione del thinking.
-
-**Toggle Always Think:**
-
-Puoi forzare la modalità thinking su ON per i modelli Flash senza usare parole chiave. Clicca sull'icona del database (📦) per aprire il menu degli strumenti e seleziona i toggle sotto **Always Think**:
-
-- **Flash** — OFF per default. Seleziona per abilitare sempre il thinking per i modelli Flash.
-- **Flash Lite** — ON per default. Flash Lite ha una differenza minima di costo e velocità con il thinking abilitato, quindi si consiglia di tenerlo attivo.
-
-Quando un toggle è ON, il thinking è sempre attivo per quella famiglia di modelli indipendentemente dal contenuto del messaggio. Quando è OFF, viene utilizzato il rilevamento basato su parole chiave esistente.
-
-![Always Think Settings](docs/images/setting_thinking.png)
+> **Modalità Thinking:** Per i modelli Gemini supportati, scegli il livello di ragionamento nel selettore accanto alla scelta del modello (`default` / `minimal` / `low` / `medium` / `high`). `default` lascia la scelta all'API Gemini. **Gemini 3.1 Pro** non può disattivare il thinking, quindi il suo livello minimo è `low`; Gemma 4 e i modelli di immagini non hanno il selettore. L'impostazione viene ricordata per ogni modello e le parole chiave del messaggio non cambiano più automaticamente il livello di ragionamento.
 
 ### Piano Gratuito
 | Modello | Operazioni sul Vault |

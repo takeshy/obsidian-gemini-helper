@@ -552,18 +552,7 @@ Gemini HelperでGoogle Gemini APIキーとAPIプランを設定し、Discussion 
 | Gemini 3 Pro (Image)     | Pro品質の画像生成、4K                          |
 | Gemini 3.1 Flash (Image) | 高速・低コストの画像生成 |
 
-> **Thinking モード:** チャットでは、メッセージに「考えて」「分析して」「検討して」などのキーワードが含まれると Thinking モードが有効になります。ただし、**Gemini 3.1 Pro** はキーワードに関係なく常に Thinking モードで動作します。このモデルは Thinking の無効化をサポートしていません。
-
-**Always Think トグル:**
-
-キーワードなしで Flash モデルの Thinking モードを強制的に ON にできます。Database icon（📦）をクリックしてツールメニューを開き、**Always Think** のトグルを確認してください：
-
-- **Flash** — デフォルトは OFF。チェックすると Flash モデルで常に Thinking を有効にします。
-- **Flash Lite** — デフォルトは ON。Flash Lite は Thinking を有効にしてもコストと速度の差がほとんどないため、ON のままにすることを推奨します。
-
-トグルが ON の場合、メッセージの内容に関わらずそのモデルファミリーで常に Thinking が有効になります。OFF の場合は、既存のキーワードベースの検出が使用されます。
-
-![Always Think Settings](docs/images/setting_thinking.png)
+> **Thinking モード:** 対応する Gemini モデルでは、モデル選択の隣にあるセレクタで思考レベル（`default` / `minimal` / `low` / `medium` / `high`）を選べます。`default` は Gemini API の既定に任せます。**Gemini 3.1 Pro** は Thinking を無効化できないため、最低レベルは `low` です。Gemma 4 と画像モデルには思考セレクタはありません。設定はモデルごとに記憶され、メッセージのキーワードで思考レベルが自動的に変わることはなくなりました。
 
 ### 無料プラン
 

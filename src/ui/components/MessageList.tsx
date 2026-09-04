@@ -17,7 +17,6 @@ interface MessageListProps {
   isLoading: boolean;
   onApplyEdit?: (messageIndex: number) => Promise<void>;
   onDiscardEdit?: (messageIndex: number) => void;
-  alwaysThink?: boolean;
   app: App;
   currentDashboard?: DashboardLink | null;
   onOpenDashboard?: () => void;
@@ -44,7 +43,6 @@ const MessageList = forwardRef<HTMLDivElement, MessageListProps>(({
   isLoading,
   onApplyEdit,
   onDiscardEdit,
-  alwaysThink,
   app,
   currentDashboard,
   onOpenDashboard,
@@ -125,12 +123,6 @@ const MessageList = forwardRef<HTMLDivElement, MessageListProps>(({
             </div>
           </div>
           <div className="gemini-helper-empty-tips">
-            {!alwaysThink && (
-              <div className="gemini-helper-empty-tip">
-                <span className="gemini-helper-empty-tip-icon">💭</span>
-                <span>{t("chat.welcomeThinking")}</span>
-              </div>
-            )}
             <div className="gemini-helper-empty-tip">
               <span className="gemini-helper-empty-tip-icon">🎨</span>
               <span>{t("chat.welcomeImage")}</span>

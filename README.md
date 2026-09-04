@@ -549,18 +549,7 @@ Configure your Google Gemini API key and API plan in Gemini Helper, then select 
 | Gemini 3.1 Flash (Image) | Fast, low-cost image generation |
 | Gemini 3.1 Flash Lite (Image) | Fastest, lowest-cost image generation, 1K |
 
-> **Thinking mode:** In Chat, thinking mode is triggered by keywords like "think", "analyze", or "consider" in your message. However, **Gemini 3.1 Pro** always uses thinking mode regardless of keywords — this model does not support disabling thinking.
-
-**Always Think toggle:**
-
-You can force thinking mode ON for Flash models without using keywords. Click the Database icon (📦) to open the tool menu, and check the toggles under **Always Think**:
-
-- **Flash** — OFF by default. Check to always enable thinking for Flash models.
-- **Flash Lite** — ON by default. Flash Lite has minimal cost and speed difference with thinking enabled, so it is recommended to keep this on.
-
-When a toggle is ON, thinking is always active for that model family regardless of message content. When OFF, the existing keyword-based detection is used.
-
-![Always Think Settings](docs/images/setting_thinking.png)
+> **Thinking mode:** For supported Gemini models, choose the thinking level in the selector beside the model picker (`default` / `minimal` / `low` / `medium` / `high`). `default` leaves the choice to the Gemini API. **Gemini 3.1 Pro** cannot disable thinking, so it offers `low` as its lowest level; Gemma 4 and image models have no thinking selector. The setting is remembered per model, and prompts no longer change the thinking level automatically.
 
 ### Free Plan
 | Model | Vault Operations |

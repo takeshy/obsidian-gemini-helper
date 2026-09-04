@@ -25,11 +25,12 @@ import {
 	type VaultToolNoneReason,
 	type McpAppInfo,
 	type KnowledgeSource,
+	type ReasoningEffort,
 	isImageGenerationModel,
 	modelAcceptsPdf,
 	DEFAULT_WORKSPACE_FOLDER,
 } from "src/types";
-import { getGeminiClient } from "src/core/gemini";
+import { getGeminiClient, getReasoningEffortOptions } from "src/core/gemini";
 import { tracing } from "src/core/tracingHooks";
 import { getEnabledTools, skillWorkflowTool } from "src/core/tools";
 import { handleExecuteJavascriptTool, EXECUTE_JAVASCRIPT_TOOL } from "src/core/sandboxExecutor";
@@ -215,9 +216,10 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin, onToggleSidebarWidth }, r
 	const [decryptPassword, setDecryptPassword] = useState("");
 	// Pending feedback for edit rejection (to be sent after state update)
 	const [pendingEditFeedback, setPendingEditFeedback] = useState<{ filePath: string; request: string } | null>(null);
-	// Thinking toggles for Flash / Flash Lite models
-	const [thinkFlash, setThinkFlash] = useState(plugin.workspaceState.alwaysThinkFlash ?? false);
-	const [thinkFlashLite, setThinkFlashLite] = useState(plugin.workspaceState.alwaysThinkFlashLite ?? true);
+	// Per-model thinking level (persisted in workspace state; "default" entries are omitted)
+	const [reasoningEffortByModel, setReasoningEffortByModel] = useState<Record<string, ReasoningEffort>>(
+		() => ({ ...(plugin.workspaceState.reasoningEffortByModel ?? {}) }),
+	);
 
 	// Agent Skills state (initialise with built-in skills so they are available synchronously)
 	const [availableSkills, setAvailableSkills] = useState<SkillMetadata[]>(getBuiltinSkillMetadata);
@@ -247,13 +249,13 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin, onToggleSidebarWidth }, r
 	const allowWebSearch = supportsWebSearch(currentModel);
 	const allowRag = ragEnabledState;
 
-	// Resolve thinking toggle for a given model name
-	const getThinkingToggle = (model: string): boolean | undefined => {
-		const m = model.toLowerCase();
-		if (m.includes("flash-lite")) return thinkFlashLite ? true : undefined;
-		if (m.includes("flash") && !m.includes("pro")) return thinkFlash ? true : undefined;
-		return undefined;
+	// Resolve the thinking level selected for a model ("default" leaves it to the API)
+	const getReasoningEffort = (model: string): ReasoningEffort => {
+		const saved = reasoningEffortByModel[model] ?? "default";
+		return getReasoningEffortOptions(model).includes(saved) ? saved : "default";
 	};
+	const reasoningEffortOptions = getReasoningEffortOptions(currentModel);
+	const selectedReasoningEffort = getReasoningEffort(currentModel);
 
 	// Build available models list
 	const availableModels = getAvailableModels(apiPlan);
@@ -857,8 +859,7 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin, onToggleSidebarWidth }, r
 			setRagSettingNames(plugin.getRagSettingNames());
 			setSelectedRagSetting(plugin.workspaceState.selectedRagSetting);
 			setWebSearchEnabled(plugin.workspaceState.webSearchEnabled === true);
-			setThinkFlash(plugin.workspaceState.alwaysThinkFlash ?? false);
-			setThinkFlashLite(plugin.workspaceState.alwaysThinkFlashLite ?? true);
+			setReasoningEffortByModel({ ...(plugin.workspaceState.reasoningEffortByModel ?? {}) });
 		};
 
 		const handleRagSettingChanged = (name: string | null) => {
@@ -927,14 +928,14 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin, onToggleSidebarWidth }, r
 		void plugin.selectWebSearchEnabled(nextEnabled);
 	};
 
-	const handleThinkFlashChange = (enabled: boolean) => {
-		setThinkFlash(enabled);
-		void plugin.setAlwaysThinkPreference("flash", enabled);
-	};
-
-	const handleThinkFlashLiteChange = (enabled: boolean) => {
-		setThinkFlashLite(enabled);
-		void plugin.setAlwaysThinkPreference("flashLite", enabled);
+	const handleReasoningEffortChange = (effort: ReasoningEffort) => {
+		setReasoningEffortByModel(prev => {
+			const next = { ...prev };
+			if (effort === "default") delete next[currentModel];
+			else next[currentModel] = effort;
+			return next;
+		});
+		void plugin.setReasoningEffort(currentModel, effort);
 	};
 
 	// Handle RAG setting change from UI
@@ -1950,7 +1951,7 @@ Always be helpful and provide clear, concise responses. When working with vault 
 								},
 							},
 							disableTools: effectiveTools.length === 0 && !isWebSearch,
-							enableThinking: getThinkingToggle(allowedModel),
+							reasoningEffort: getReasoningEffort(allowedModel),
 							ragMetadataFilter,
 							traceId,
 							previousInteractionId,
@@ -2471,7 +2472,6 @@ Always be helpful and provide clear, concise responses. When working with vault 
 						isLoading={isLoading}
 						onApplyEdit={handleApplyEdit}
 						onDiscardEdit={handleDiscardEdit}
-						alwaysThink={getThinkingToggle(currentModel) === true}
 						app={plugin.app}
 						currentDashboard={currentDashboard ? {
 							basename: currentDashboard.basename,
@@ -2502,10 +2502,9 @@ Always be helpful and provide clear, concise responses. When working with vault 
 						vaultToolMode={vaultToolMode}
 						onVaultToolModeChange={handleVaultToolModeChange}
 						vaultToolModeOnlyNone={false}
-						thinkFlash={thinkFlash}
-						thinkFlashLite={thinkFlashLite}
-						onThinkFlashChange={handleThinkFlashChange}
-						onThinkFlashLiteChange={handleThinkFlashLiteChange}
+						reasoningEffort={selectedReasoningEffort}
+						reasoningEffortOptions={reasoningEffortOptions}
+						onReasoningEffortChange={handleReasoningEffortChange}
 						mcpServers={mcpServers}
 						onMcpServerToggle={handleMcpServerToggle}
 						okfBundles={okfBundles}

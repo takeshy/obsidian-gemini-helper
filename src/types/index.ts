@@ -265,14 +265,17 @@ export interface RagFileInfo {
   fileId: string | null;  // File Search API上のファイルID
 }
 
+// Chat thinking level. "default" leaves the choice to the Gemini API.
+export type ReasoningEffort = "default" | "minimal" | "low" | "medium" | "high";
+export const REASONING_EFFORTS: ReasoningEffort[] = ["default", "minimal", "low", "medium", "high"];
+
 // Workspace状態ファイル（.gemini-workspace.json）
 export interface WorkspaceState {
   selectedRagSetting: string | null;  // 現在選択中のRAG設定名
   webSearchEnabled: boolean;          // Web SearchはRAGとは独立して保持
   selectedModel: ModelType | null;    // 現在選択中のモデル
   ragSettings: Record<string, RagSetting>;  // 設定名 -> RAG設定
-  alwaysThinkFlash?: boolean;         // Flashモデルで常に思考
-  alwaysThinkFlashLite?: boolean;     // Flash Liteモデルで常に思考
+  reasoningEffortByModel?: Record<string, ReasoningEffort>;  // Chat thinking level per model ("default" entries are omitted)
   sentPromptHistory?: string[];       // Recently sent prompts for input history navigation
 }
 
@@ -296,8 +299,6 @@ export const DEFAULT_WORKSPACE_STATE: WorkspaceState = {
   webSearchEnabled: false,
   selectedModel: null,
   ragSettings: {},
-  alwaysThinkFlash: false,
-  alwaysThinkFlashLite: true,
 };
 
 // 後方互換性のためのエイリアス（旧RagState形式）

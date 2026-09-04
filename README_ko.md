@@ -631,18 +631,7 @@ Secret Manager는 각 값을 별도의 `.encrypted` vault 파일로 저장합니
 | Gemini 3 Pro (Image) | Pro 이미지 생성, 4K |
 | Gemini 3.1 Flash (Image) | 빠르고 저렴한 이미지 생성 |
 
-> **Thinking 모드:** 채팅에서는 메시지에 "생각해", "분석해", "고려해" 같은 키워드가 포함되면 Thinking 모드가 활성화됩니다. 그러나 **Gemini 3.1 Pro**는 키워드와 관계없이 항상 Thinking 모드로 작동합니다 — 이 모델은 Thinking 비활성화를 지원하지 않습니다.
-
-**Always Think 토글:**
-
-키워드 없이도 Flash 모델에서 Thinking 모드를 강제로 활성화할 수 있습니다. 데이터베이스 아이콘(📦)을 클릭하여 도구 메뉴를 열고, **Always Think** 아래의 토글을 확인하세요:
-
-- **Flash** — 기본값 OFF. 체크하면 Flash 모델에서 항상 Thinking을 활성화합니다.
-- **Flash Lite** — 기본값 ON. Flash Lite는 Thinking을 활성화해도 비용과 속도 차이가 거의 없으므로 켜둘 것을 권장합니다.
-
-토글이 ON이면 메시지 내용에 관계없이 해당 모델 패밀리에서 항상 Thinking이 활성화됩니다. OFF이면 기존 키워드 기반 감지가 사용됩니다.
-
-![Always Think Settings](docs/images/setting_thinking.png)
+> **Thinking 모드:** 지원되는 Gemini 모델에서는 모델 선택기 옆의 선택기에서 사고 수준(`default` / `minimal` / `low` / `medium` / `high`)을 선택할 수 있습니다. `default`는 Gemini API의 기본값에 맡깁니다. **Gemini 3.1 Pro**는 Thinking을 비활성화할 수 없으므로 최저 수준은 `low`입니다. Gemma 4와 이미지 모델에는 사고 선택기가 없습니다. 설정은 모델별로 기억되며, 메시지의 키워드로 사고 수준이 자동으로 바뀌지 않습니다.
 
 ### 무료 플랜
 | 모델 | Vault 작업 |

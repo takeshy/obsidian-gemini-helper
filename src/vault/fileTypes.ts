@@ -5,6 +5,7 @@ const TEXT_VAULT_EXTENSIONS = new Set([
   "canvas",
   "css",
   "csv",
+  "dashboard",
   "html",
   "js",
   "json",

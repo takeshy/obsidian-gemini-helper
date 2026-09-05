@@ -40,3 +40,7 @@ Chat uses proposal tools for edits and deletes by default. A file is not changed
 # Folder Access
 
 Settings -> Workspace -> Folders AI can access automatically can restrict automatic chat and AI command workflow vault operations to specified vault-relative folders. Empty means whole-vault access. This does not restrict RAG, manual attachments, explicit mentions, MCP tools, scripts, or direct workflow note nodes.
+
+## MCP approval and read-only Vault tools
+
+MCP calls require approval by default. The dialog shows the server, tool, and arguments with Allow once, Always allow this tool, and Deny. Closing denies the call. Enable Always approve in server settings to skip all confirmations, or remove an allowed tool and save to require approval again. Workflow command and mcp nodes support `confirm: "false"` for automatic execution. Vault read-only mode permits search and reading while external MCP and skill tools keep separate permissions. Connection testing locks editing and saving and keeps errors visible for correction. HTTP transport is supported; local stdio command parsing does not apply.

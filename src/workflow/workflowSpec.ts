@@ -154,11 +154,12 @@ Pause execution.
 ### AI & LLM
 
 #### command
+- **confirm** (optional): "true" (default) uses server approval settings; "false" skips MCP approval for this node, including automatic execution.
 Execute LLM prompt.
 - **prompt** (required): Prompt template (supports {{variables}})
 - **model** (optional): Model override. Available: ${modelList}
 - **ragSetting** (optional): __websearch__, __none__, or RAG setting name. ${ragList}
-- **vaultTools** (optional): "all" (default), "noSearch", "none"
+- **vaultTools** (optional): "all" (default), "noSearch", "readOnly" (search/read only), "none"
 - **mcpServers** (optional): Comma-separated MCP server names. ${mcpServerList}
 - **enableThinking** (optional): "true" (default) or "false". Enable deep thinking mode
 - **attachments** (optional): Comma-separated variable names containing FileExplorerData
@@ -199,6 +200,7 @@ Make HTTP request.
 \`\`\`
 
 #### mcp
+- **confirm** (optional): "true" (default) uses server approval settings; "false" skips MCP approval for this node, including automatic execution.
 Call MCP server tool.
 - **url** (required): MCP server endpoint URL (supports {{variables}})
 - **tool** (required): Tool name to call

@@ -1,5 +1,20 @@
 // English translations (base language)
 export const en = {
+  "settings.mcpChecking": "Checking connection…",
+  "settings.mcpSaveFailed": "Failed to save MCP server: {{error}}",
+  "nodeEditor.mcpConfirm": "Confirm MCP tool calls",
+  "nodeEditor.mcpConfirm.desc": "Set false to skip MCP approval for this node, including automatic execution.",
+  "settings.mcpAutoApprove": "Always approve",
+  "settings.mcpAutoApprove.desc": "Allow all tools on this server without asking. When off, ask before running tools outside the allowed list.",
+  "settings.mcpAllowedTools": "Allowed tools",
+  "settings.mcpAllowedTools.desc": "These tools run without asking. Remove a tool and save to require approval again.",
+  "mcp.approval.title": "Approve MCP tool call",
+  "mcp.approval.tool": "Tool",
+  "mcp.approval.arguments": "Arguments",
+  "mcp.approval.deny": "Deny",
+  "mcp.approval.once": "Allow once",
+  "mcp.approval.always": "Always allow this tool",
+  "input.vaultToolReadOnly": "Vault: read only",
   // Settings - Headings
   "settings.api": "API",
   "settings.workspace": "Workspace",

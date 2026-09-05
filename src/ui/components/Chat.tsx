@@ -32,7 +32,7 @@ import {
 } from "src/types";
 import { getGeminiClient, getReasoningEffortOptions } from "src/core/gemini";
 import { tracing } from "src/core/tracingHooks";
-import { getEnabledTools, skillWorkflowTool } from "src/core/tools";
+import { isVaultToolAllowed, getEnabledTools, skillWorkflowTool } from "src/core/tools";
 import { handleExecuteJavascriptTool, EXECUTE_JAVASCRIPT_TOOL } from "src/core/sandboxExecutor";
 import { fetchMcpTools, createMcpToolExecutor, isMcpTool, type McpToolDefinition, type McpToolExecutor } from "src/core/mcpTools";
 import { createToolExecutor } from "src/vault/toolExecutor";
@@ -179,7 +179,7 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin, onToggleSidebarWidth }, r
 	const supportsWebSearch = (model: string) =>
 		!model.toLowerCase().includes("gemma-4")
 		&& !/^gemini-3\.1-flash-lite-image(?:-|$)/i.test(model);
-	const [vaultToolMode, setVaultToolMode] = useState<"all" | "noSearch" | "none">("all");
+	const [vaultToolMode, setVaultToolMode] = useState<"all" | "noSearch" | "readOnly" | "none">("all");
 	// Reason why vault tools are "none" - determines whether MCP should also be disabled
 	const [, setVaultToolNoneReason] = useState<VaultToolNoneReason | null>(null);
 	// MCP servers state: local copy with per-server enabled state (for chat session)
@@ -946,7 +946,7 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin, onToggleSidebarWidth }, r
 	};
 
 	// Handle vault tool mode change from UI
-	const handleVaultToolModeChange = (mode: "all" | "noSearch" | "none") => {
+	const handleVaultToolModeChange = (mode: "all" | "noSearch" | "readOnly" | "none") => {
 		setVaultToolMode(mode);
 		setVaultToolNoneReason(mode === "none" ? "manual" : null);
 	};
@@ -1469,6 +1469,7 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin, onToggleSidebarWidth }, r
 					if (isMcpTool(tool)) {
 						return true;
 					}
+					if (vaultToolMode === "readOnly") return isVaultToolAllowed(tool.name, vaultToolMode);
 					if (vaultToolMode === "noSearch") {
 						return !searchToolNames.includes(tool.name);
 					}
@@ -1567,6 +1568,7 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin, onToggleSidebarWidth }, r
 						}
 						// Otherwise use Obsidian tool executor
 						if (obsidianToolExecutor) {
+							if (!isVaultToolAllowed(name, vaultToolMode)) return { error: `Vault tool is disabled in ${vaultToolMode} mode: ${name}` };
 							return await obsidianToolExecutor(name, args);
 						}
 						return { error: `Unknown tool: ${name}` };

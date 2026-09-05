@@ -465,7 +465,7 @@ export async function handleMcpNode(
 
   try {
     // Call the tool with UI support
-    const appResult = await client.callToolWithUi(toolName, args);
+    const appResult = await client.callToolWithUi(toolName, args, node.properties["confirm"] === "false");
 
     // Extract text content for the result
     const textContents = appResult.content

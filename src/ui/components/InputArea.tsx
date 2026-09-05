@@ -722,6 +722,7 @@ const InputArea = forwardRef<InputAreaHandle, InputAreaProps>(function InputArea
                 >
                   {t("input.vaultToolNoSearch")}
                 </div>
+                <div className={`gemini-helper-vault-tool-item ${vaultToolMode === "readOnly" ? "selected" : ""}`} onClick={() => { onVaultToolModeChange("readOnly"); setShowVaultToolMenu(false); }}>{t("input.vaultToolReadOnly")}</div>
                 <div
                   className={`gemini-helper-vault-tool-item ${vaultToolMode === "none" ? "selected" : ""}`}
                   onClick={() => { onVaultToolModeChange("none"); setShowVaultToolMenu(false); }}
@@ -743,6 +744,7 @@ const InputArea = forwardRef<InputAreaHandle, InputAreaProps>(function InputArea
                     >
                       <option value="all" disabled={vaultToolModeOnlyNone}>{t("input.vaultToolAll")}</option>
                       <option value="noSearch" disabled={vaultToolModeOnlyNone}>{t("input.vaultToolNoSearch")}</option>
+                      <option value="readOnly" disabled={vaultToolModeOnlyNone}>{t("input.vaultToolReadOnly")}</option>
                       <option value="none">{t("input.vaultToolNone")}</option>
                     </select>
                   </div>

@@ -18,6 +18,8 @@ export interface McpServerConfig {
   url: string;            // Streamable HTTP endpoint URL
   headers?: Record<string, string>;  // Optional headers for authentication
   enabled: boolean;       // Whether this server is enabled for chat
+  autoApprove?: boolean;
+  allowedTools?: string[];
   toolHints?: string[];   // Tool names from test connection (for display hints)
   agentPlugin?: { pluginName: string; serverName: string };
 }
@@ -110,7 +112,7 @@ export interface KnowledgeSource {
 }
 
 // Vault tool mode type
-export type VaultToolMode = "all" | "noSearch" | "none";
+export type VaultToolMode = "all" | "noSearch" | "readOnly" | "none";
 
 // Reason why vault tools are set to "none"
 // "manual" = user manually turned off (MCP servers remain unchanged)

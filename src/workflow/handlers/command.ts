@@ -2,7 +2,7 @@ import { App } from "obsidian";
 import type { GeminiHelperPlugin } from "../../plugin";
 import { getGeminiClient } from "../../core/gemini";
 import { getAvailableModels, getDefaultModelForPlan, isImageGenerationModel, type ToolDefinition, type McpAppInfo, type StreamChunkUsage } from "../../types";
-import { getEnabledTools } from "../../core/tools";
+import { isVaultToolAllowed, getEnabledTools } from "../../core/tools";
 import { fetchMcpTools, createMcpToolExecutor, type McpToolDefinition } from "../../core/mcpTools";
 import { createToolExecutor } from "../../vault/toolExecutor";
 import { WorkflowNode, ExecutionContext, PromptCallbacks, FileExplorerData } from "../types";
@@ -169,7 +169,7 @@ Please revise the output based on the user's feedback above.`;
 
   // Get vault tools mode (default: "all")
   // "all" = all vault tools, "noSearch" = exclude search_notes/list_notes, "none" = no vault tools
-  const vaultToolMode = (node.properties["vaultTools"] || "all") as "all" | "noSearch" | "none";
+  const vaultToolMode = (node.properties["vaultTools"] || "all") as "all" | "noSearch" | "readOnly" | "none";
 
   // Get MCP server names to enable (comma-separated)
   const mcpServersStr = node.properties["mcpServers"] || "";
@@ -197,7 +197,8 @@ Please revise the output based on the user's feedback above.`;
     const searchToolNames = ["search_notes", "list_notes"];
 
     tools = vaultTools.filter(tool => {
-      if (vaultToolMode === "noSearch") {
+      if (vaultToolMode === "readOnly") return isVaultToolAllowed(tool.name, vaultToolMode);
+    if (vaultToolMode === "noSearch") {
         return !searchToolNames.includes(tool.name);
       }
       return true; // "all" mode - keep all vault tools
@@ -223,7 +224,7 @@ Please revise the output based on the user's feedback above.`;
           // Add MCP tools to the tools array
           tools = [...tools, ...mcpTools];
           // Create MCP tool executor
-          mcpToolExecutor = createMcpToolExecutor(mcpTools, traceId);
+          mcpToolExecutor = createMcpToolExecutor(mcpTools, traceId, node.properties["confirm"] === "false");
         } catch (error) {
           console.error("Failed to fetch MCP tools:", error);
           // Continue without MCP tools
@@ -257,6 +258,7 @@ Please revise the output based on the user's feedback above.`;
           return await handleExecuteJavascriptTool(args);
         }
         // Otherwise use Obsidian tool executor
+        if (!isVaultToolAllowed(name, vaultToolMode)) return { error: `Vault tool is disabled in ${vaultToolMode} mode: ${name}` };
         return await obsidianToolExecutor(name, args);
       };
     }
@@ -269,7 +271,7 @@ Please revise the output based on the user's feedback above.`;
       try {
         const mcpTools = await fetchMcpTools(enabledServers);
         tools = [...mcpTools, EXECUTE_JAVASCRIPT_TOOL];
-        mcpToolExecutor = createMcpToolExecutor(mcpTools, traceId);
+        mcpToolExecutor = createMcpToolExecutor(mcpTools, traceId, node.properties["confirm"] === "false");
         toolExecutor = async (name: string, args: Record<string, unknown>) => {
           if (name === "execute_javascript") {
             return await handleExecuteJavascriptTool(args);

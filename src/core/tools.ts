@@ -440,3 +440,11 @@ export const skillWorkflowTool: ToolDefinition = {
     required: ["workflowId"],
   },
 };
+
+export function isVaultToolAllowed(name: string, mode: import("../types").VaultToolMode): boolean {
+  if (!obsidianTools.some(tool => tool.name === name)) return true;
+  if (mode === "none") return false;
+  if (mode === "noSearch") return !["search_notes", "list_notes"].includes(name);
+  if (mode === "readOnly") return ["read_timeline", "read_note", "search_notes", "list_notes", "list_folders", "get_active_note_info"].includes(name);
+  return true;
+}

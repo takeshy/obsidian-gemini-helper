@@ -8149,3 +8149,11 @@
 }
 
 /* ===================================================================== */
+
+.gemini-helper-mcp-approval-args {
+  max-height: 40vh;
+  overflow: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  user-select: text;
+}

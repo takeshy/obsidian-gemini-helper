@@ -1,3 +1,5 @@
+import { setMcpApprovalHandler, sameMcpConnection } from "./core/mcpApproval";
+import { McpApprovalModal } from "./ui/components/McpApprovalModal";
 import { Plugin, WorkspaceLeaf, Notice, MarkdownView, TFile, Modal, type EventRef } from "obsidian";
 import { EventEmitter } from "src/utils/EventEmitter";
 import type { SelectionLocationInfo } from "src/ui/selectionHighlight";
@@ -123,6 +125,35 @@ export class GeminiHelperPlugin extends Plugin {
   private onloadImpl(): void {
     // Initialize i18n locale
     initLocale();
+    let approvalModal: McpApprovalModal | undefined;
+    setMcpApprovalHandler({
+      getServer: server => this.settings.mcpServers.find(saved => sameMcpConnection(saved, server) && saved.name === server.name)
+        ?? (server.name === server.url ? this.settings.mcpServers.find(saved => sameMcpConnection(saved, server)) : undefined),
+      request: async (server, tool, args, canRemember) => {
+        approvalModal = new McpApprovalModal(this.app, server, tool, args, canRemember);
+        try {
+          return await approvalModal.openAndWait();
+        } finally {
+          approvalModal = undefined;
+        }
+      },
+      remember: async (server, tool) => {
+        const previous = server.allowedTools;
+        server.allowedTools = [...new Set([...(previous ?? []), tool])];
+        try {
+          await this.saveSettings();
+        } catch (error) {
+          server.allowedTools = previous;
+          throw error;
+        }
+      },
+    });
+    this.register(() => {
+      setMcpApprovalHandler(undefined);
+      approvalModal?.close();
+    });
+
+
 
     // Initialize selection manager
     this.selectionManager = new SelectionManager(this);

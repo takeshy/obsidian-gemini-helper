@@ -795,3 +795,7 @@ MIT
 If you find this plugin useful, consider buying me a coffee!
 
 [![Buy Me A Coffee](https://img.shields.io/badge/Buy%20Me%20A%20Coffee-support-yellow?logo=buymeacoffee)](https://buymeacoffee.com/takeshy)
+
+## MCP approval and read-only Vault tools
+
+MCP calls require approval by default. The dialog shows the server, tool, and arguments with Allow once, Always allow this tool, and Deny. Closing denies the call. Enable Always approve in server settings to skip all confirmations, or remove an allowed tool and save to require approval again. Workflow command and mcp nodes support `confirm: "false"` for automatic execution. Vault read-only mode permits search and reading while external MCP and skill tools keep separate permissions. Connection testing locks editing and saving and keeps errors visible for correction. HTTP transport is supported; local stdio command parsing does not apply.

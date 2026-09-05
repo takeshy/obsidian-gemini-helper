@@ -10,6 +10,7 @@ export class McpServerModal extends Modal {
   private onSubmit: (server: McpServerConfig) => void | Promise<void>;
   private headersText = "";
   private connectionTested = false;
+  private busy = false;
   private saveBtn: import("obsidian").ButtonComponent | null = null;
   private testRequiredEl: HTMLElement | null = null;
 
@@ -23,7 +24,7 @@ export class McpServerModal extends Modal {
     // For existing servers with toolHints, consider connection already tested
     this.connectionTested = server !== null && Array.isArray(server.toolHints) && server.toolHints.length > 0;
     this.server = server
-      ? { ...server }
+      ? { ...server, allowedTools: [...(server.allowedTools ?? [])] }
       : {
           name: "",
           url: "",
@@ -58,6 +59,27 @@ export class McpServerModal extends Modal {
         });
       });
 
+    new Setting(contentEl)
+      .setName(t("settings.mcpAutoApprove"))
+      .setDesc(t("settings.mcpAutoApprove.desc"))
+      .addToggle(toggle => toggle.setValue(this.server.autoApprove ?? false)
+        .onChange(value => { this.server.autoApprove = value; }));
+
+    const allowedEl = contentEl.createDiv();
+    const renderAllowedTools = () => {
+      allowedEl.empty();
+      new Setting(allowedEl).setName(t("settings.mcpAllowedTools")).setDesc(t("settings.mcpAllowedTools.desc"));
+      for (const tool of this.server.allowedTools ?? []) {
+        new Setting(allowedEl).setName(tool).addExtraButton(btn => btn
+          .setIcon("trash").setTooltip(t("common.delete"))
+          .onClick(() => {
+            this.server.allowedTools = this.server.allowedTools?.filter(name => name !== tool);
+            renderAllowedTools();
+          }));
+      }
+    };
+    renderAllowedTools();
+
     // Server URL
     new Setting(contentEl)
       .setName(t("settings.mcpServerUrl"))
@@ -67,6 +89,7 @@ export class McpServerModal extends Modal {
           .setValue(this.server.url)
           .onChange((value) => {
             this.server.url = value;
+            this.invalidateConnectionTest();
           });
       });
 
@@ -83,6 +106,7 @@ export class McpServerModal extends Modal {
         .setValue(this.headersText)
         .onChange((value) => {
           this.headersText = value;
+          this.invalidateConnectionTest();
         });
       text.inputEl.rows = 3;
       text.inputEl.addClass("gemini-helper-settings-textarea");
@@ -143,18 +167,55 @@ export class McpServerModal extends Modal {
             this.server.headers = undefined;
           }
 
-          void this.onSubmit(this.server);
-          this.close();
+          if (!this.busy) void this.saveServer(testStatusEl);
         });
       // Disable save button if connection not tested
       btn.setDisabled(!this.connectionTested);
     });
   }
 
+  private invalidateConnectionTest(): void {
+    this.connectionTested = false;
+    this.server.toolHints = undefined;
+    this.saveBtn?.setDisabled(true);
+    this.testRequiredEl?.removeClass("gemini-helper-hidden");
+  }
+
+  private lockControls(): () => void {
+    this.busy = true;
+    const controls = Array.from(this.contentEl.querySelectorAll<HTMLInputElement | HTMLButtonElement | HTMLSelectElement | HTMLTextAreaElement>("input, button, select, textarea"));
+    const disabled = controls.map(control => control.disabled);
+    controls.forEach(control => { control.disabled = true; });
+    return () => {
+      controls.forEach((control, i) => { control.disabled = disabled[i]; });
+      this.busy = false;
+      this.saveBtn?.setDisabled(!this.connectionTested);
+    };
+  }
+
+  private async saveServer(statusEl: HTMLElement): Promise<void> {
+    const unlock = this.lockControls();
+    try {
+      await this.onSubmit(this.server);
+      this.close();
+    } catch (error) {
+      statusEl.removeClass("gemini-helper-mcp-status--success");
+      statusEl.addClass("gemini-helper-mcp-status--error");
+      statusEl.setText(t("settings.mcpSaveFailed", { error: formatError(error) }));
+    } finally {
+      unlock();
+    }
+  }
+
   private async testConnection(statusEl: HTMLElement, btnEl: HTMLButtonElement): Promise<void> {
+    if (this.busy) return;
+    const unlock = this.lockControls();
+    this.invalidateConnectionTest();
+    let client: McpClient | null = null;
     statusEl.empty();
     statusEl.removeClass("gemini-helper-mcp-status--success", "gemini-helper-mcp-status--error");
-    statusEl.setText("Testing...");
+    statusEl.setText(t("settings.mcpChecking"));
+    btnEl.textContent = t("settings.mcpChecking");
     btnEl.disabled = true;
 
     try {
@@ -171,7 +232,7 @@ export class McpServerModal extends Modal {
         }
       }
 
-      const client = new McpClient({
+      client = new McpClient({
         name: this.server.name || "test",
         url: this.server.url,
         headers,
@@ -180,7 +241,7 @@ export class McpServerModal extends Modal {
 
       await client.initialize();
       const tools = await client.listTools();
-      await client.close();
+
 
       // Save tool hints
       const toolNames = tools.map(tool => tool.name);
@@ -188,9 +249,7 @@ export class McpServerModal extends Modal {
 
       // Mark connection as tested and enable save button
       this.connectionTested = true;
-      if (this.saveBtn) {
-        this.saveBtn.setDisabled(false);
-      }
+
       if (this.testRequiredEl) {
         this.testRequiredEl.addClass("gemini-helper-hidden");
       }
@@ -221,7 +280,9 @@ export class McpServerModal extends Modal {
       statusEl.addClass("gemini-helper-mcp-status--error");
       statusEl.setText(t("settings.mcpConnectionFailed", { error: formatError(error) }));
     } finally {
-      btnEl.disabled = false;
+      await client?.close().catch(() => {});
+      btnEl.textContent = t("settings.testMcpConnection");
+      unlock();
     }
   }
 

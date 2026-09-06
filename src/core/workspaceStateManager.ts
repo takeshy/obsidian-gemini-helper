@@ -15,7 +15,11 @@ import {
   getDefaultModelForPlan,
 } from "../types";
 import { getFileSearchManager, normalizeFileSearchStoreName } from "./fileSearch";
-import { formatError } from "obsidian-llm-hub-common/core";
+import {
+  deleteRagSettingFromState,
+  formatError,
+  renameRagSettingInState,
+} from "obsidian-llm-hub-common/core";
 
 const WORKSPACE_STATE_FILENAME = "gemini-workspace.json";
 const OLD_WORKSPACE_STATE_FILENAME = ".gemini-workspace.json";
@@ -352,12 +356,7 @@ export class WorkspaceStateManager {
       return;
     }
 
-    delete this.workspaceState.ragSettings[name];
-
-    // If this was the selected setting, clear selection
-    if (this.workspaceState.selectedRagSetting === name) {
-      this.workspaceState.selectedRagSetting = null;
-    }
+    deleteRagSettingFromState(this.workspaceState, name);
 
     await this.saveWorkspaceState();
     this.settingsEmitter.emit("workspace-state-loaded", this.workspaceState);
@@ -372,13 +371,7 @@ export class WorkspaceStateManager {
       throw new Error(`Semantic search setting "${newName}" already exists`);
     }
 
-    this.workspaceState.ragSettings[newName] = this.workspaceState.ragSettings[oldName];
-    delete this.workspaceState.ragSettings[oldName];
-
-    // Update selection if needed
-    if (this.workspaceState.selectedRagSetting === oldName) {
-      this.workspaceState.selectedRagSetting = newName;
-    }
+    renameRagSettingInState(this.workspaceState, oldName, newName);
 
     await this.saveWorkspaceState();
     this.settingsEmitter.emit("workspace-state-loaded", this.workspaceState);

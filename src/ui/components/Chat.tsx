@@ -1051,8 +1051,8 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin, onToggleSidebarWidth }, r
 						},
 						listNotesLimit: settings.listNotesLimit,
 						maxNoteChars: settings.maxNoteChars,
-						limitAiVaultToolScope: true,
-						aiVaultToolAllowedFolders: settings.aiVaultToolAllowedFolders,
+						limitVaultToolScope: true,
+						vaultToolAllowedFolders: settings.aiVaultToolAllowedFolders,
 						// Models that take a document part read the PDF itself; the rest
 						// (Gemma 4) fall back to its text layer. runStreamOnce lifts the
 						// document out of the tool result before the JSON is serialized.

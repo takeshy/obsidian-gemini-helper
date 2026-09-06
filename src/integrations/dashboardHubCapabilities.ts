@@ -51,7 +51,7 @@ async function generate(plugin: GeminiHelperPlugin, modelId: string, prompt: str
   const messages: Message[] = [{ role: "user", content: prompt, timestamp: Date.now() }];
   const tools = vaultRead ? getEnabledVaultTools({ allowWrite: false, allowDelete: false, ragSyncStatus: false }) : [];
   const execute = vaultRead ? createToolExecutor(plugin.app, { listNotesLimit: plugin.settings.listNotesLimit, maxNoteChars: plugin.settings.maxNoteChars,
-    limitAiVaultToolScope: true, aiVaultToolAllowedFolders: plugin.settings.aiVaultToolAllowedFolders }) : undefined;
+    limitVaultToolScope: true, vaultToolAllowedFolders: plugin.settings.aiVaultToolAllowedFolders }) : undefined;
   const stream = client.chatWithToolsStream(messages, tools, systemPrompt, execute, undefined, false, { functionCallLimits: { maxFunctionCalls: 12 }, enableThinking: true, traceId: null });
   let output = "";
   for await (const chunk of stream) {

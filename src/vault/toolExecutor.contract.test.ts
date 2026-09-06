@@ -1,44 +1,68 @@
 import { describe, expect, it } from "vitest";
-import { readFileSync } from "node:fs";
-import { fileURLToPath } from "node:url";
+import { App, TFile, TFolder } from "obsidian";
 import {
   NEVER_ADVERTISED_VAULT_TOOL_NAMES,
-  VAULT_TOOL_NAMES,
   getEnabledVaultTools,
 } from "obsidian-llm-hub-common/core";
-import { HOST_EXECUTES_RAG_SYNC_STATUS } from "./toolExecutor";
+import { HOST_EXECUTES_RAG_SYNC_STATUS, executeToolCall } from "./toolExecutor";
 
 /**
- * The built-in Vault tool schemas live in the shared library; the switch below
- * is this host's own. These tests are what stops the two from drifting apart:
- * a tool this host cannot execute must never be advertised, and a case this
- * host answers must correspond to a shared definition rather than a private
- * name the other plugins never learned about.
+ * The built-in Vault tools are declared in one place and executed in another.
+ * This is what stops the two from drifting: every tool this host advertises has
+ * to be answered by something, and the capability flag has to match what the
+ * executor can actually do.
  */
-const CONFIRMATION_STEPS = ["apply_edit", "discard_edit", "apply_delete", "discard_delete"];
+function emptyApp(): App {
+  return {
+    vault: {
+      getFiles: (): TFile[] => [],
+      getMarkdownFiles: (): TFile[] => [],
+      getAllLoadedFiles: (): (TFile | TFolder)[] => [],
+      getAbstractFileByPath: () => null,
+      read: async () => "",
+      cachedRead: async () => "",
+    },
+    workspace: { getActiveFile: () => null },
+  } as unknown as App;
+}
 
-const source = readFileSync(fileURLToPath(new URL("./toolExecutor.ts", import.meta.url)), "utf8");
-const handled = [...source.matchAll(/^\s+case "([a-z_]+)":/gm)].map(match => match[1]);
+async function answers(toolName: string): Promise<boolean> {
+  const result = await executeToolCall(emptyApp(), toolName, {});
+  return !String(result.error ?? "").startsWith("Unknown tool");
+}
 
 describe("vault tool executor contract", () => {
-  it("executes every tool it advertises", () => {
-    const advertised = getEnabledVaultTools({
-      allowWrite: true,
-      allowDelete: true,
-      ragSyncStatus: HOST_EXECUTES_RAG_SYNC_STATUS,
-    }).map(tool => tool.name);
-    expect(advertised.filter(name => !handled.includes(name))).toEqual([]);
+  const advertised = getEnabledVaultTools({
+    allowWrite: true,
+    allowDelete: true,
+    ragSyncStatus: HOST_EXECUTES_RAG_SYNC_STATUS,
+  }).map(tool => tool.name);
+
+  it("executes every tool it advertises", async () => {
+    const unanswered: string[] = [];
+    for (const name of advertised) if (!(await answers(name))) unanswered.push(name);
+    expect(unanswered).toEqual([]);
   });
 
-  it("still answers the tools it stopped advertising, so replayed calls resolve", () => {
-    expect(NEVER_ADVERTISED_VAULT_TOOL_NAMES.filter(name => !handled.includes(name))).toEqual([]);
+  it("still answers the tools it stopped advertising, so replayed calls resolve", async () => {
+    const unanswered: string[] = [];
+    for (const name of NEVER_ADVERTISED_VAULT_TOOL_NAMES) if (!(await answers(name))) unanswered.push(name);
+    expect(unanswered).toEqual([]);
   });
 
-  it("answers no tool the shared definitions never declared", () => {
-    expect(handled.filter(name => !VAULT_TOOL_NAMES.includes(name) && !CONFIRMATION_STEPS.includes(name))).toEqual([]);
+  it("answers the confirmation steps the chat drives directly", async () => {
+    const unanswered: string[] = [];
+    for (const name of ["apply_edit", "discard_edit", "apply_delete", "discard_delete"]) {
+      if (!(await answers(name))) unanswered.push(name);
+    }
+    expect(unanswered).toEqual([]);
   });
 
-  it("declares the RAG sync capability the switch actually implements", () => {
-    expect(HOST_EXECUTES_RAG_SYNC_STATUS).toBe(handled.includes("get_rag_sync_status"));
+  it("declares the RAG sync capability it can actually answer", async () => {
+    expect(await answers("get_rag_sync_status")).toBe(HOST_EXECUTES_RAG_SYNC_STATUS);
+  });
+
+  it("reports a name nothing implements", async () => {
+    expect(await answers("make_coffee")).toBe(false);
   });
 });

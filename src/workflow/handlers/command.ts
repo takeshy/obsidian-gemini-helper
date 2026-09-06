@@ -1,4 +1,5 @@
 import type { CommandNodeResult } from "obsidian-llm-hub-common/workflow";
+import { attachmentsFromVariables, buildRegenerationPrompt } from "obsidian-llm-hub-common/workflow";
 import { App } from "obsidian";
 import type { GeminiHelperPlugin } from "../../plugin";
 import { getGeminiClient } from "../../core/gemini";
@@ -38,15 +39,7 @@ export async function handleCommandNode(
   // Check if this is a regeneration request for this node
   if (context.regenerateInfo?.commandNodeId === node.id) {
     const info = context.regenerateInfo;
-    prompt = `${info.originalPrompt}
-
-[Previous output]
-${info.previousOutput}
-
-[User feedback]
-${info.additionalRequest}
-
-Please revise the output based on the user's feedback above.`;
+    prompt = buildRegenerationPrompt(info);
     // Clear regenerate info after using it
     context.regenerateInfo = undefined;
   }
@@ -117,43 +110,8 @@ Please revise the output based on the user's feedback above.`;
   }
   client.setModel(model);
 
-  // Parse attachments property (comma-separated variable names containing FileExplorerData)
-  const attachmentsStr = node.properties["attachments"] || "";
-  const attachments: import("../../types").Attachment[] = [];
-
-  if (attachmentsStr) {
-    const varNames = attachmentsStr.split(",").map((s) => s.trim()).filter((s) => s);
-    for (const varName of varNames) {
-      const varValue = context.variables.get(varName);
-      if (varValue && typeof varValue === "string") {
-        try {
-          const fileData = JSON.parse(varValue) as FileExplorerData;
-          if (fileData.contentType === "binary" && fileData.data) {
-            // Determine attachment type from MIME type
-            let attachmentType: "image" | "pdf" | "text" | "audio" | "video" = "text";
-            if (fileData.mimeType.startsWith("image/")) {
-              attachmentType = "image";
-            } else if (fileData.mimeType === "application/pdf") {
-              attachmentType = "pdf";
-            } else if (fileData.mimeType.startsWith("audio/")) {
-              attachmentType = "audio";
-            } else if (fileData.mimeType.startsWith("video/")) {
-              attachmentType = "video";
-            }
-            attachments.push({
-              name: fileData.basename,
-              type: attachmentType,
-              mimeType: fileData.mimeType,
-              data: fileData.data,
-            });
-          }
-          // Text files are already included via variable substitution in the prompt
-        } catch {
-          // Not valid FileExplorerData JSON, skip
-        }
-      }
-    }
-  }
+  // Attachments named by the node's property; text files are already in the prompt.
+  const attachments = attachmentsFromVariables(node.properties["attachments"], context.variables);
 
   // Build messages
   const messages = [

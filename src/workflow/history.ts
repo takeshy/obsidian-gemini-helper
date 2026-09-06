@@ -10,9 +10,9 @@ import {
   isEncryptedFile,
   encryptFileContent,
   decryptFileContent,
-} from "../core/crypto";
+} from "obsidian-llm-hub-common/core";
 import { cryptoCache } from "../core/cryptoCache";
-import { formatError } from "../utils/error";
+import { formatError } from "obsidian-llm-hub-common/core";
 import { globalEventEmitter } from "../utils/EventEmitter";
 
 export interface EncryptionConfig {

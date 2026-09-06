@@ -30,7 +30,7 @@ import {
 } from "src/types";
 import { dedupeAttachments, getToolResultAttachments, withoutToolResultAttachments } from "src/core/toolResultAttachments";
 import { tracing, type TracingUsage } from "src/core/tracingHooks";
-import { formatError } from "src/utils/error";
+import { formatError } from "obsidian-llm-hub-common/core";
 import { Platform, requestUrl } from "obsidian";
 
 // ---------------------------------------------------------------------------

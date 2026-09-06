@@ -1,6 +1,6 @@
 import { App, TFile } from "obsidian";
 import { getEditHistoryManager } from "../../core/editHistory";
-import { isEncryptedFile, decryptFileContent } from "../../core/crypto";
+import { isEncryptedFile, decryptFileContent } from "obsidian-llm-hub-common/core";
 import { cryptoCache } from "../../core/cryptoCache";
 import { WorkflowNode, ExecutionContext, PromptCallbacks } from "../types";
 import { replaceVariables, getVariable, RegenerateRequestError } from "./utils";

@@ -72,10 +72,10 @@ import InputArea, { type InputAreaHandle } from "./InputArea";
 import {
 	isEncryptedFile,
 	decryptFileContent,
-} from "src/core/crypto";
+} from "obsidian-llm-hub-common/core";
 import { cryptoCache } from "src/core/cryptoCache";
-import { formatError } from "src/utils/error";
-import { findFileMentionOccurrences } from "src/utils/mentionResolver";
+import { formatError } from "obsidian-llm-hub-common/core";
+import { findFileMentionOccurrences } from "obsidian-llm-hub-common/core";
 import { extractPdfText } from "src/vault/pdfText";
 import { isFileAllowedForAiVaultTools } from "src/vault/aiVaultScope";
 import { discoverSkills, loadSkill, buildSkillSystemPrompt, collectSkillWorkflows, type SkillMetadata, type LoadedSkill, type SkillWorkflowRef } from "src/core/skillsLoader";

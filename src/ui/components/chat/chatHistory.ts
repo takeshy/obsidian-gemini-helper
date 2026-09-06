@@ -2,8 +2,8 @@ import type { Message, ModelType } from "src/types";
 import {
 	isEncryptedFile,
 	encryptFileContent,
-} from "src/core/crypto";
-import { formatError } from "src/utils/error";
+} from "obsidian-llm-hub-common/core";
+import { formatError } from "obsidian-llm-hub-common/core";
 import { t } from "src/i18n";
 
 export interface EncryptionConfig {

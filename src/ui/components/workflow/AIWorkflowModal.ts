@@ -12,8 +12,8 @@ import { WorkflowGenerationModal } from "./WorkflowGenerationModal";
 import { showWorkflowPreview } from "./WorkflowPreviewModal";
 import { showExecutionHistorySelect } from "./ExecutionHistorySelectModal";
 import { ConfirmModal } from "../ConfirmModal";
-import { formatError } from "src/utils/error";
-import { findFileMentionOccurrences, findLiteralOccurrences, type MentionOccurrence } from "src/utils/mentionResolver";
+import { formatError } from "obsidian-llm-hub-common/core";
+import { findFileMentionOccurrences, findLiteralOccurrences, type MentionOccurrence } from "obsidian-llm-hub-common/core";
 import { t, getLocale } from "src/i18n";
 
 // Supported file types for attachments

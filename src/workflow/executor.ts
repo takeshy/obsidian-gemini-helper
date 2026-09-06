@@ -42,9 +42,9 @@ import {
 } from "./nodeHandlers";
 import { parseWorkflowFromMarkdown } from "./parser";
 import { ExecutionHistoryManager, EncryptionConfig } from "./history";
-import { isEncryptedFile } from "../core/crypto";
+import { isEncryptedFile } from "obsidian-llm-hub-common/core";
 import { tracing } from "../core/tracingHooks";
-import { formatError } from "../utils/error";
+import { formatError } from "obsidian-llm-hub-common/core";
 
 const MAX_ITERATIONS = 1000; // Prevent infinite loops
 

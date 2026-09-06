@@ -1,6 +1,6 @@
 import { WorkflowNode, ExecutionContext } from "../types";
 import { replaceVariables, parseCondition, evaluateCondition } from "./utils";
-import { formatError } from "../../utils/error";
+import { formatError } from "obsidian-llm-hub-common/core";
 
 // Handle variable node (initial declaration)
 export function handleVariableNode(

@@ -1,6 +1,6 @@
 import { Modal, App, Notice, Platform } from "obsidian";
 import { t } from "src/i18n";
-import { formatError } from "src/utils/error";
+import { formatError } from "obsidian-llm-hub-common/core";
 
 // Sanitize filename to remove characters not allowed in file systems
 function sanitizeFileName(name: string): string {

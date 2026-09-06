@@ -30,7 +30,7 @@ import {
   type FilterConfig,
 } from "src/core/fileSearch";
 import { DEFAULT_SETTINGS, type PdfInputMode, type RagSyncState } from "src/types";
-import { formatError } from "src/utils/error";
+import { formatError } from "obsidian-llm-hub-common/core";
 import { readTimelineEntriesForDay, sanitizeTimelineName } from "./timelineReader";
 import {
   AI_VAULT_SCOPE_DENIED_MSG,

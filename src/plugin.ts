@@ -41,7 +41,7 @@ import {
 } from "src/core/editHistory";
 import { EditHistoryModal } from "src/ui/components/EditHistoryModal";
 import { ConfirmModal } from "src/ui/components/ConfirmModal";
-import { formatError } from "src/utils/error";
+import { formatError } from "obsidian-llm-hub-common/core";
 import { DEFAULT_EDIT_HISTORY_SETTINGS, DEFAULT_LANGFUSE_SETTINGS, DEFAULT_WORKSPACE_FOLDER } from "src/types";
 import { initLocale, t } from "src/i18n";
 import { registerWorkflowCodeBlockProcessor } from "src/ui/workflowCodeBlock";

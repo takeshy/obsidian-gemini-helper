@@ -24,7 +24,7 @@ import { ConfirmModal } from "src/ui/components/ConfirmModal";
 import { t } from "src/i18n";
 import { cryptoCache } from "src/core/cryptoCache";
 import { globalEventEmitter } from "src/utils/EventEmitter";
-import { formatError } from "src/utils/error";
+import { formatError } from "obsidian-llm-hub-common/core";
 import { promptForPassword } from "src/ui/passwordPrompt";
 import { parseFrontmatter, extractCapabilitiesBlock, upsertCapabilitiesBlock, writeSkillMd } from "src/core/skillsLoader";
 import { extractInputVariables } from "src/workflow/inputVariables";

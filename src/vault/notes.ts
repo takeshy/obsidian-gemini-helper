@@ -1,5 +1,5 @@
 import { TFile, TFolder, type App } from "obsidian";
-import { formatError } from "src/utils/error";
+import { formatError } from "obsidian-llm-hub-common/core";
 import { DEFAULT_SETTINGS, type Attachment, type PdfInputMode } from "src/types";
 import { getEditHistoryManager } from "src/core/editHistory";
 import { extractPdfText, readPdfAttachment } from "./pdfText";

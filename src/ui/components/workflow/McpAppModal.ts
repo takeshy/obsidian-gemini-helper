@@ -2,7 +2,7 @@ import { App, Modal } from "obsidian";
 import type { McpAppInfo, McpAppUiResource } from "src/types";
 import { McpClient } from "src/core/mcpClient";
 import { t } from "src/i18n";
-import { formatError } from "src/utils/error";
+import { formatError } from "obsidian-llm-hub-common/core";
 import { prepareMcpAppHtml } from "src/core/mcpAppCsp";
 
 // JSON-RPC message types for postMessage communication

@@ -1,5 +1,5 @@
 import type { Message } from "src/types";
-import { formatError } from "src/utils/error";
+import { formatError } from "obsidian-llm-hub-common/core";
 import { t } from "src/i18n";
 
 // Keywords that trigger automatic image model switching

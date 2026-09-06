@@ -4,7 +4,7 @@ import type {
   SyncStatus,
   RagSyncState,
 } from "src/types";
-import { formatError } from "src/utils/error";
+import { formatError } from "obsidian-llm-hub-common/core";
 import { tracing } from "src/core/tracingHooks";
 
 export const FILE_SEARCH_MULTIMODAL_EMBEDDING_MODEL = "models/gemini-embedding-2";

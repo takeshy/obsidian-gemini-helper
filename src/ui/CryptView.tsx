@@ -6,8 +6,8 @@ import {
   isEncryptedFile,
   encryptPlaintextFileContent,
   type EncryptedFileMetadata,
-} from "src/core/crypto";
-import { formatError } from "src/utils/error";
+} from "obsidian-llm-hub-common/core";
+import { formatError } from "obsidian-llm-hub-common/core";
 
 export const CRYPT_VIEW_TYPE = "gemini-helper-crypt-view";
 

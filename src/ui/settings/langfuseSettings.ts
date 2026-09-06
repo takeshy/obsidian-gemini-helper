@@ -2,7 +2,7 @@ import { Setting, Notice } from "obsidian";
 import { t } from "src/i18n";
 import { DEFAULT_LANGFUSE_SETTINGS } from "src/types";
 import { sendTestTrace, isLangfuseAvailable } from "src/tracing/langfuse";
-import { formatError } from "src/utils/error";
+import { formatError } from "obsidian-llm-hub-common/core";
 import type { SettingsContext } from "./settingsContext";
 
 export function displayLangfuseSettings(containerEl: HTMLElement, ctx: SettingsContext): void {

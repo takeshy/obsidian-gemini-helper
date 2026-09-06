@@ -15,7 +15,7 @@ import {
   getDefaultModelForPlan,
 } from "../types";
 import { getFileSearchManager, normalizeFileSearchStoreName } from "./fileSearch";
-import { formatError } from "../utils/error";
+import { formatError } from "obsidian-llm-hub-common/core";
 
 const WORKSPACE_STATE_FILENAME = "gemini-workspace.json";
 const OLD_WORKSPACE_STATE_FILENAME = ".gemini-workspace.json";

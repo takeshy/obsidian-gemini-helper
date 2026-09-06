@@ -1,7 +1,7 @@
 import { Modal, App, Setting, Notice } from "obsidian";
 import type { McpServerConfig } from "src/types";
 import { McpClient } from "src/core/mcpClient";
-import { formatError } from "src/utils/error";
+import { formatError } from "obsidian-llm-hub-common/core";
 import { t } from "src/i18n";
 
 export class McpServerModal extends Modal {

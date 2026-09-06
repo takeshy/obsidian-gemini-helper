@@ -8,9 +8,9 @@ import {
   decryptPrivateKey,
   getEncryptedFileMetadata,
   type EncryptedFileMetadata,
-} from "src/core/crypto";
+} from "obsidian-llm-hub-common/core";
 import { cryptoCache } from "src/core/cryptoCache";
-import { formatError } from "src/utils/error";
+import { formatError } from "obsidian-llm-hub-common/core";
 import { t } from "src/i18n";
 
 interface CryptEditorProps {

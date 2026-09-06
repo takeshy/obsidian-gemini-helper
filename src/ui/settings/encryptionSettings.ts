@@ -1,10 +1,10 @@
 import { Setting, Notice } from "obsidian";
 import { t } from "src/i18n";
 import { DEFAULT_ENCRYPTION_SETTINGS } from "src/types";
-import { generateKeyPair, encryptPrivateKey } from "src/core/crypto";
+import { generateKeyPair, encryptPrivateKey } from "obsidian-llm-hub-common/core";
 import { ConfirmModal } from "src/ui/components/ConfirmModal";
-import { formatError } from "src/utils/error";
-import { setDestructiveButton } from "src/ui/buttonCompat";
+import { formatError } from "obsidian-llm-hub-common/core";
+import { setDestructiveButton } from "obsidian-llm-hub-common/obsidian";
 import type { SettingsContext } from "./settingsContext";
 
 export function displayEncryptionSettings(containerEl: HTMLElement, ctx: SettingsContext): void {

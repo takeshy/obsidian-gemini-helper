@@ -1,10 +1,10 @@
 import { Notice, TFile, MarkdownView } from "obsidian";
 import type { App } from "obsidian";
 import { promptForPassword } from "src/ui/passwordPrompt";
-import { isEncryptedFile, encryptFileContent, decryptFileContent } from "src/core/crypto";
+import { isEncryptedFile, encryptFileContent, decryptFileContent } from "obsidian-llm-hub-common/core";
 import { cryptoCache } from "src/core/cryptoCache";
 import { CryptView, CRYPT_VIEW_TYPE } from "src/ui/CryptView";
-import { formatError } from "src/utils/error";
+import { formatError } from "obsidian-llm-hub-common/core";
 import { t } from "src/i18n";
 import type { GeminiHelperPlugin } from "src/plugin";
 

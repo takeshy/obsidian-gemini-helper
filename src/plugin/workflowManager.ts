@@ -13,9 +13,9 @@ import { WorkflowExecutionModal } from "src/ui/components/workflow/WorkflowExecu
 import { showMcpApp } from "src/ui/components/workflow/McpAppModal";
 import { promptForPassword } from "src/ui/passwordPrompt";
 import { matchFilePattern } from "src/utils/globMatcher";
-import { isEncryptedFile } from "src/core/crypto";
+import { isEncryptedFile } from "obsidian-llm-hub-common/core";
 import { cryptoCache } from "src/core/cryptoCache";
-import { formatError } from "src/utils/error";
+import { formatError } from "obsidian-llm-hub-common/core";
 import { t } from "src/i18n";
 import { computeLegacyWorkflowIdMigration } from "./workflowMigration";
 import type { GeminiHelperPlugin } from "src/plugin";

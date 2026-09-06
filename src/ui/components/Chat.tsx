@@ -21,7 +21,6 @@ import {
 	type ModelType,
 	type Attachment,
 	type SlashCommand,
-	type GeneratedImage,
 	type VaultToolNoneReason,
 	type McpAppInfo,
 	type KnowledgeSource,
@@ -49,7 +48,13 @@ import {
 } from "obsidian-llm-hub-common/core";
 import { cryptoCache } from "src/core/cryptoCache";
 import { formatError } from "obsidian-llm-hub-common/core";
-import { createConfirmingToolExecutor, withRateLimitRetry } from "obsidian-llm-hub-common/chat";
+import {
+	accumulateStreamChunk,
+	createConfirmingToolExecutor,
+	createStreamAccumulation,
+	pendingStatusFields,
+	withRateLimitRetry,
+} from "obsidian-llm-hub-common/chat";
 import { runSkillWorkflow } from "obsidian-llm-hub-common/workflow";
 import { extractPdfText } from "src/vault/pdfText";
 import {
@@ -1182,20 +1187,8 @@ Always be helpful and provide clear, concise responses. When working with vault 
 				const allMessages = limitConversationHistory([...messages, userMessage], maxPreviousMessages);
 
 				// Use streaming with tools
-				let fullContent = "";
-				let thinkingContent = "";
-				const toolCalls: Message["toolCalls"] = [];
-				const toolResults: Message["toolResults"] = [];
-				const toolsUsed: string[] = [];
-				let ragUsed = false;
-				let ragSources: string[] = [];
-				let ragContexts: Message["ragContexts"] = [];
-				let webSearchUsed = false;
-				let webSearchSources: Message["webSearchSources"];
-				let imageGenerationUsed = false;
-				const generatedImages: GeneratedImage[] = [];
-				let streamUsage: Message["usage"] = undefined;
-				let streamInteractionId: string | undefined;
+				// Everything the stream says, gathered by the shared accumulator.
+				const stream = createStreamAccumulation();
 				const startTime = Date.now();
 
 				let stopped = false;
@@ -1266,79 +1259,17 @@ Always be helpful and provide clear, concise responses. When working with vault 
 						break;
 					}
 
-				switch (chunk.type) {
-					case "text":
-						fullContent += chunk.content || "";
-						if (isActive()) setStreamingContent(fullContent);
-						break;
-
-					case "thinking":
-						thinkingContent += chunk.content || "";
-						if (isActive()) setStreamingThinking(thinkingContent);
-						break;
-
-					case "tool_call":
-						if (chunk.toolCall) {
-							toolCalls.push(chunk.toolCall);
-							// ツール名を記録（重複なし）
-							if (!toolsUsed.includes(chunk.toolCall.name)) {
-								toolsUsed.push(chunk.toolCall.name);
-							}
-						}
-						break;
-
-					case "tool_result":
-						if (chunk.toolResult) {
-							toolResults.push(chunk.toolResult);
-						}
-						break;
-
-					case "rag_used":
-						ragUsed = true;
-						if (chunk.ragSources) {
-							ragSources = chunk.ragSources;
-						}
-						if (chunk.ragContexts) {
-							ragContexts = chunk.ragContexts;
-						}
-						break;
-
-					case "web_search_used":
-						webSearchUsed = true;
-						break;
-
-					case "image_generated":
-						imageGenerationUsed = true;
-						if (chunk.generatedImage) {
-							generatedImages.push(chunk.generatedImage);
-						}
-						break;
-
-					case "error":
-						throw new Error(chunk.error || "Unknown error");
-
-					case "done":
-						// Capture usage data and interaction ID from the final chunk
-						if (chunk.usage) {
-							streamUsage = chunk.usage;
-						}
-						if (chunk.interactionId) {
-							streamInteractionId = chunk.interactionId;
-						}
-						webSearchSources = chunk.webSearchSources ?? webSearchSources;
-						break;
+				accumulateStreamChunk(stream, chunk);
+				if (isActive()) {
+					if (chunk.type === "text") setStreamingContent(stream.text);
+					else if (chunk.type === "thinking") setStreamingThinking(stream.thinking);
 				}
 			}
 
 				// If stopped, add partial message if any content was received
-				if (stopped && fullContent) {
-					fullContent += `\n\n${t("chat.generationStopped")}`;
-				}
-
-				// Get processed edit/delete/rename info from tool executor (already confirmed during tool execution)
-				const pendingEditInfo = processedEdits.length > 0 ? processedEdits[processedEdits.length - 1] : undefined;
-				const pendingDeleteInfo = processedDeletes.length > 0 ? processedDeletes[processedDeletes.length - 1] : undefined;
-				const pendingRenameInfo = processedRenames.length > 0 ? processedRenames[processedRenames.length - 1] : undefined;
+				const fullContent = stopped && stream.text
+					? `${stream.text}\n\n${t("chat.generationStopped")}`
+					: stream.text;
 
 				// Always clear the slash command ref after message processing
 				currentSlashCommandRef.current = null;
@@ -1349,25 +1280,23 @@ Always be helpful and provide clear, concise responses. When working with vault 
 					content: fullContent,
 					timestamp: Date.now(),
 					model: allowedModel,
-					toolsUsed: toolsUsed.length > 0 ? toolsUsed : undefined,
+					toolsUsed: stream.toolsUsed.length > 0 ? stream.toolsUsed : undefined,
 					skillsUsed: skillsUsedNames.length > 0 ? skillsUsedNames : undefined,
-					pendingEdit: pendingEditInfo,
-					pendingDelete: pendingDeleteInfo,
-					pendingRename: pendingRenameInfo,
-					toolCalls: toolCalls.length > 0 ? toolCalls : undefined,
-					toolResults: toolResults.length > 0 ? toolResults : undefined,
-					ragUsed: ragUsed || undefined,
-					ragSources: ragSources.length > 0 ? ragSources : undefined,
-					ragContexts: ragContexts.length > 0 ? ragContexts : undefined,
-					webSearchUsed: webSearchUsed || undefined,
-					webSearchSources,
-					imageGenerationUsed: imageGenerationUsed || undefined,
-					generatedImages: generatedImages.length > 0 ? generatedImages : undefined,
-					thinking: thinkingContent || undefined,
+					...pendingStatusFields({ edits: processedEdits, deletes: processedDeletes, renames: processedRenames }),
+					toolCalls: stream.toolCalls.length > 0 ? stream.toolCalls : undefined,
+					toolResults: stream.toolResults.length > 0 ? stream.toolResults : undefined,
+					ragUsed: stream.ragUsed || undefined,
+					ragSources: stream.ragSources.length > 0 ? stream.ragSources : undefined,
+					ragContexts: stream.ragContexts.length > 0 ? stream.ragContexts : undefined,
+					webSearchUsed: stream.webSearchUsed || undefined,
+					webSearchSources: stream.webSearchSources.length > 0 ? stream.webSearchSources : undefined,
+					imageGenerationUsed: stream.imageGenerationUsed || undefined,
+					generatedImages: stream.generatedImages.length > 0 ? stream.generatedImages : undefined,
+					thinking: stream.thinking || undefined,
 					mcpApps: collectedMcpApps.length > 0 ? collectedMcpApps : undefined,
-					usage: streamUsage,
+					usage: stream.usage,
 					elapsedMs: Date.now() - startTime,
-					interactionId: streamInteractionId,
+					interactionId: stream.interactionId,
 				};
 
 				const newMessages = [...messages, userMessage, assistantMessage];
@@ -1376,12 +1305,12 @@ Always be helpful and provide clear, concise responses. When working with vault 
 				tracing.traceEnd(traceId, {
 					output: fullContent,
 					metadata: {
-						toolsUsed: toolsUsed.length > 0 ? toolsUsed : undefined,
-						ragUsed,
-						ragSources: ragSources.length > 0 ? ragSources : undefined,
-						ragContexts: ragContexts.length > 0 ? ragContexts : undefined,
-						webSearchUsed,
-						imageGenerationUsed,
+						toolsUsed: stream.toolsUsed.length > 0 ? stream.toolsUsed : undefined,
+						ragUsed: stream.ragUsed,
+						ragSources: stream.ragSources.length > 0 ? stream.ragSources : undefined,
+						ragContexts: stream.ragContexts.length > 0 ? stream.ragContexts : undefined,
+						webSearchUsed: stream.webSearchUsed,
+						imageGenerationUsed: stream.imageGenerationUsed,
 						stopped,
 					},
 				});

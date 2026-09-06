@@ -753,38 +753,6 @@
   background: var(--background-modifier-hover);
 }
 
-.gemini-helper-autocomplete-item:last-child {
-  border-bottom: none;
-}
-
-.gemini-helper-autocomplete-item:hover {
-  background: var(--background-modifier-hover);
-}
-
-.gemini-helper-autocomplete-item.active {
-  background: var(--interactive-accent);
-  color: var(--text-on-accent);
-}
-
-.gemini-helper-autocomplete-item.active .gemini-helper-autocomplete-name {
-  color: var(--text-on-accent);
-}
-
-.gemini-helper-autocomplete-item.active .gemini-helper-autocomplete-desc {
-  color: var(--text-on-accent);
-  opacity: 0.8;
-}
-
-.gemini-helper-autocomplete-item.active .gemini-helper-preview-btn {
-  color: var(--text-on-accent);
-}
-
-/* Mobile styles for autocomplete */
-.is-mobile .gemini-helper-autocomplete-item {
-  padding: 12px;
-  min-height: 48px;
-}
-
 /* HTML Preview Actions */
 .gemini-helper-html-actions {
   display: flex;
@@ -1760,190 +1728,6 @@
   background: var(--background-modifier-hover);
 }
 
-/* AI Workflow Modal */
-.ai-workflow-modal {
-  min-width: 500px;
-}
-
-.ai-workflow-input-row {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  margin-bottom: 12px;
-}
-
-.ai-workflow-name-input,
-.ai-workflow-path-input {
-  width: 100%;
-  min-width: 360px;
-  padding: 6px 8px;
-  border-radius: 4px;
-  border: 1px solid var(--background-modifier-border);
-  background: var(--background-primary);
-}
-
-.ai-workflow-label {
-  display: block;
-  margin-bottom: 8px;
-  font-weight: 500;
-}
-
-/* AI Workflow textarea container for mention autocomplete */
-.ai-workflow-textarea-container {
-  position: relative;
-}
-
-.ai-workflow-textarea {
-  width: 100%;
-  min-height: 120px;
-  resize: vertical;
-  margin-bottom: 8px;
-  padding: 8px;
-  border-radius: 4px;
-  border: 1px solid var(--background-modifier-border);
-  background: var(--background-primary);
-}
-
-.ai-workflow-hint {
-  font-size: 12px;
-  color: var(--text-muted);
-  margin-bottom: 16px;
-}
-
-/* AI Workflow mention autocomplete - fixed position to avoid clipping */
-.ai-workflow-mention-autocomplete {
-  position: fixed;
-  max-height: 200px;
-  overflow-y: auto;
-  z-index: 10000;
-  background: var(--background-secondary);
-  border: 1px solid var(--background-modifier-border);
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-}
-
-.ai-workflow-mention-autocomplete.is-hidden {
-  display: none;
-}
-
-.ai-workflow-existing {
-  margin-bottom: 16px;
-}
-
-.ai-workflow-existing summary {
-  cursor: pointer;
-  color: var(--text-muted);
-  margin-bottom: 8px;
-}
-
-.ai-workflow-yaml-preview {
-  max-height: 200px;
-  overflow: auto;
-  padding: 8px;
-  background: var(--background-secondary);
-  border-radius: 4px;
-  font-size: 12px;
-}
-
-.ai-workflow-model-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 16px;
-}
-
-.ai-workflow-model-select {
-  flex: 1;
-}
-
-.ai-workflow-status {
-  min-height: 24px;
-  margin-bottom: 16px;
-  color: var(--text-muted);
-  font-size: 14px;
-}
-
-.ai-workflow-buttons {
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
-}
-
-/* Paste response section */
-.ai-workflow-paste-section {
-  margin-top: 16px;
-  padding-top: 16px;
-  border-top: 1px solid var(--background-modifier-border);
-}
-
-.ai-workflow-paste-section.is-hidden {
-  display: none;
-}
-
-/* AI Workflow attachment */
-.ai-workflow-attachment-row {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 16px;
-}
-
-.ai-workflow-attach-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 4px 8px;
-  font-size: 12px;
-  background: var(--background-modifier-hover);
-  border: 1px solid var(--background-modifier-border);
-  border-radius: 4px;
-  cursor: pointer;
-}
-
-.ai-workflow-attach-btn:hover {
-  background: var(--background-modifier-active);
-}
-
-.ai-workflow-attachments {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
-.ai-workflow-attachment {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 2px 6px;
-  font-size: 11px;
-  background: var(--background-secondary);
-  border-radius: 4px;
-}
-
-.ai-workflow-attachment-remove {
-  cursor: pointer;
-  color: var(--text-muted);
-  font-weight: bold;
-  margin-left: 4px;
-}
-
-.ai-workflow-attachment-remove:hover {
-  color: var(--text-error);
-}
-
-/* AI Workflow modal drag handle */
-.ai-workflow-modal .modal-drag-handle {
-  cursor: move;
-  margin: -16px -16px 16px -16px;
-  padding: 16px;
-  border-bottom: 1px solid var(--background-modifier-border);
-}
-
-.ai-workflow-modal .modal-drag-handle h2 {
-  margin: 0;
-}
-
 /* Workflow panel AI button */
 .workflow-empty-state .workflow-sidebar-run-btn,
 .workflow-empty-state .workflow-sidebar-ai-btn {
@@ -2028,137 +1812,6 @@
   cursor: not-allowed;
 }
 
-/* AI Workflow confirmation checkbox row */
-.ai-workflow-confirm-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 16px;
-}
-
-.ai-workflow-confirm-row input[type="checkbox"] {
-  margin: 0;
-}
-
-.ai-workflow-confirm-row label {
-  font-size: 14px;
-  cursor: pointer;
-}
-
-/* AI Workflow execution history row */
-.ai-workflow-execution-history-row {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 16px;
-}
-
-.ai-workflow-execution-history-btn {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 6px 12px;
-  background: var(--background-secondary);
-  border: 1px solid var(--background-modifier-border);
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 13px;
-}
-
-.ai-workflow-execution-history-btn:hover {
-  background: var(--background-modifier-hover);
-  border-color: var(--interactive-accent);
-}
-
-.ai-workflow-execution-history-info {
-  font-size: 13px;
-  color: var(--text-accent);
-  font-weight: 500;
-}
-
-.ai-workflow-execution-history-info.is-hidden {
-  display: none;
-}
-
-/* AI Workflow confirmation modal */
-.ai-workflow-confirm-modal {
-  min-width: 700px;
-  max-width: 90vw;
-}
-
-/* Single scrollable middle region holds explanation + diff + generation context.
-   Textarea and buttons sit below it, always visible at the bottom of the modal.
-   Uses block layout (not flex) so the diff view's internal structure renders
-   cleanly without flex-child constraints. Spacing is handled by child margins. */
-.ai-workflow-confirm-scrollable {
-  flex: 1;
-  min-height: 0;
-  overflow-y: auto;
-  /* Explicitly allow text selection (some ancestors disable it). */
-  user-select: text;
-  -webkit-user-select: text;
-}
-
-.ai-workflow-confirm-scrollable > * + * {
-  margin-top: 12px;
-}
-
-/* Ensure explanation / diff content stays selectable & copyable. */
-.ai-workflow-confirm-modal .ai-workflow-explanation,
-.ai-workflow-confirm-modal .ai-workflow-explanation *,
-.ai-workflow-confirm-modal .ai-workflow-confirm-diff-wrapper,
-.ai-workflow-confirm-modal .ai-workflow-confirm-diff-wrapper * {
-  user-select: text;
-  -webkit-user-select: text;
-}
-
-.ai-workflow-confirm-diff-wrapper {
-  /* Inside the scrollable wrapper, let the diff show its full content;
-     the wrapper handles overall scrolling. */
-  min-height: 0;
-}
-
-/* Shown in place of a diff when old/new content is identical. */
-.ai-workflow-confirm-no-changes {
-  padding: 10px 14px;
-  color: var(--text-muted);
-  font-style: italic;
-  text-align: center;
-  background: var(--background-secondary);
-  border: 1px dashed var(--background-modifier-border);
-  border-radius: 6px;
-}
-
-/* Read-only display of the user's original request shown at the top of
-   the confirm modal so the user remembers what was asked. */
-.ai-workflow-confirm-user-request {
-  padding: 8px 12px;
-  background: var(--background-secondary);
-  border-left: 3px solid var(--interactive-accent);
-  border-radius: 4px;
-}
-
-.ai-workflow-confirm-user-request-label {
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  margin-bottom: 4px;
-}
-
-.ai-workflow-confirm-user-request-body {
-  white-space: pre-wrap;
-  word-break: break-word;
-  font-size: 13px;
-  line-height: 1.4;
-}
-
-.ai-workflow-confirm-modal .workflow-preview-additional,
-.ai-workflow-confirm-modal .ai-workflow-buttons {
-  flex-shrink: 0;
-}
-
 .gemini-helper-modal-resizable.modal {
   width: 80vw;
   max-width: 1200px;
@@ -2168,27 +1821,6 @@
   overflow: hidden;
   display: flex;
   flex-direction: column;
-}
-
-.ai-workflow-explanation {
-  margin-bottom: 16px;
-  padding: 12px;
-  background: var(--background-secondary);
-  border: 1px solid var(--background-modifier-border);
-  border-radius: 4px;
-}
-
-.ai-workflow-explanation h3 {
-  margin: 0 0 8px 0;
-  font-size: 14px;
-  color: var(--text-accent);
-}
-
-.ai-workflow-explanation p {
-  margin: 0;
-  font-size: 13px;
-  line-height: 1.5;
-  white-space: pre-wrap;
 }
 
 .ai-workflow-comparison {
@@ -2224,80 +1856,6 @@
   overflow: auto;
   white-space: pre-wrap;
   word-break: break-word;
-}
-
-/* Mobile: AI Workflow Modal */
-.is-mobile .ai-workflow-modal {
-  min-width: unset;
-  width: 95vw;
-  max-width: 95vw;
-  max-height: 85vh;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-}
-
-.is-mobile .ai-workflow-modal .modal-content {
-  flex: 1;
-  overflow-y: auto;
-  overflow-x: hidden;
-  -webkit-overflow-scrolling: touch;
-  padding-bottom: 16px;
-}
-
-.is-mobile .ai-workflow-modal .modal-drag-handle {
-  flex-shrink: 0;
-  padding: 12px;
-  margin: -12px -12px 12px -12px;
-}
-
-.is-mobile .ai-workflow-modal .modal-drag-handle h2 {
-  font-size: 16px;
-}
-
-.is-mobile .ai-workflow-name-input,
-.is-mobile .ai-workflow-path-input {
-  min-width: 0;
-  width: 100%;
-}
-
-.is-mobile .ai-workflow-textarea {
-  min-height: 80px;
-  max-height: 120px;
-}
-
-.is-mobile .ai-workflow-model-row {
-  flex-direction: column;
-  align-items: stretch;
-  gap: 8px;
-}
-
-.is-mobile .ai-workflow-model-select {
-  width: 100%;
-}
-
-.is-mobile .ai-workflow-attachment-row {
-  flex-direction: column;
-  align-items: flex-start;
-}
-
-.is-mobile .ai-workflow-buttons {
-  flex-direction: column;
-  gap: 8px;
-}
-
-.is-mobile .ai-workflow-buttons button {
-  width: 100%;
-  padding: 12px;
-}
-
-.is-mobile .ai-workflow-hint {
-  font-size: 11px;
-}
-
-/* Mobile: AI Workflow Confirmation Modal */
-.is-mobile .ai-workflow-confirm-modal {
-  min-width: unset;
 }
 
 .is-mobile .ai-workflow-comparison {
@@ -3764,49 +3322,6 @@
   }
 }
 
-/* ===============================================
-   Workflow Generation Modal Styles
-   =============================================== */
-
-.workflow-generation-modal {
-  min-width: 500px;
-}
-
-.workflow-generation-modal-content {
-  display: flex;
-  flex-direction: column;
-}
-
-/* Fixed (non-flexing) sections */
-.workflow-generation-modal-content > .modal-drag-handle,
-.workflow-generation-modal-content > .workflow-generation-request,
-.workflow-generation-modal-content > .workflow-generation-history-info,
-.workflow-generation-modal-content > .workflow-generation-phase-indicator,
-.workflow-generation-modal-content > .workflow-generation-status,
-.workflow-generation-buttons button.is-hidden {
-  display: none;
-}
-
-.workflow-generation-modal-content > .workflow-generation-buttons,
-.workflow-generation-modal-content > .workflow-generation-plan-confirm {
-  flex-shrink: 0;
-}
-
-/* Plan section grows when active */
-.workflow-generation-modal-content > .workflow-generation-plan-section:not(.is-collapsed):not(.is-hidden) {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-}
-
-.workflow-generation-modal-content > .workflow-generation-plan-section:not(.is-collapsed):not(.is-hidden) .workflow-generation-plan {
-  flex: 1 1 0;
-  min-height: 0;
-  max-height: none;
-  overflow-y: auto;
-}
-
 /* Thinking content in the generation modal — bounded height so the buttons
    below stay visible, and overflow-y:auto so users can scroll through the
    streamed text. */
@@ -3818,157 +3333,6 @@
 /* Outside the generating phase, tighten the cap so plan/review stays visible. */
 .workflow-generation-modal-content:not([data-phase="generating"]) .workflow-generation-thinking-details[open] .gemini-helper-thinking-content {
   max-height: 25vh;
-}
-
-/* Review section grows when visible */
-.workflow-generation-modal-content > .workflow-generation-review-section:not(.is-hidden) {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-}
-
-.workflow-generation-modal-content > .workflow-generation-review-section:not(.is-hidden) .workflow-generation-review {
-  flex: 1 1 0;
-  min-height: 0;
-  max-height: none;
-  overflow-y: auto;
-}
-
-.workflow-generation-modal-content .modal-drag-handle {
-  cursor: move;
-  margin: -16px -16px 16px -16px;
-  padding: 16px;
-  border-bottom: 1px solid var(--background-modifier-border);
-}
-
-.workflow-generation-modal-content .modal-drag-handle h2 {
-  margin: 0;
-}
-
-.workflow-generation-model-badge {
-  margin-left: 8px;
-  padding: 2px 8px;
-  font-size: 0.75em;
-  font-weight: normal;
-  background: var(--background-modifier-success);
-  color: var(--text-on-accent);
-  border-radius: 4px;
-  vertical-align: middle;
-}
-
-.workflow-generation-request {
-  margin-bottom: 16px;
-  padding: 12px;
-  background: var(--background-secondary);
-  border: 1px solid var(--background-modifier-border);
-  border-radius: 4px;
-}
-
-.workflow-generation-request h3 {
-  margin: 0 0 8px 0;
-  font-size: 12px;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.workflow-generation-request-content {
-  font-size: 14px;
-  line-height: 1.5;
-  white-space: pre-wrap;
-  word-break: break-word;
-  max-height: 100px;
-  overflow-y: auto;
-}
-
-.workflow-generation-history-info {
-  margin-top: 8px;
-  margin-bottom: 8px;
-}
-
-.workflow-generation-history-badge {
-  display: inline-block;
-  padding: 4px 10px;
-  background-color: var(--background-modifier-success);
-  color: var(--text-on-accent);
-  border-radius: 12px;
-  font-size: 12px;
-  font-weight: 500;
-}
-
-/* Phase indicator for plan & review mode */
-.workflow-generation-phase-indicator {
-  display: flex;
-  gap: 8px;
-  margin-bottom: 16px;
-  padding: 8px 0;
-}
-
-.workflow-generation-phase-step {
-  padding: 4px 12px;
-  border-radius: 12px;
-  font-size: 12px;
-  font-weight: 500;
-  background: var(--background-secondary);
-  color: var(--text-muted);
-  border: 1px solid var(--background-modifier-border);
-  transition: all 0.2s ease;
-}
-
-.workflow-generation-phase-step.is-active {
-  background: var(--interactive-accent);
-  color: var(--text-on-accent);
-  border-color: var(--interactive-accent);
-}
-
-.workflow-generation-phase-step.is-completed {
-  background: var(--background-modifier-success);
-  color: var(--text-on-accent);
-  border-color: var(--background-modifier-success);
-}
-
-/* Plan section */
-/* Plan and Review sections share a card-style layout */
-.workflow-generation-plan-section,
-.workflow-generation-review-section {
-  margin-bottom: 12px;
-  border: 1px solid var(--background-modifier-border);
-  border-radius: 6px;
-  background: var(--background-secondary);
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-}
-
-.workflow-generation-plan-section.is-hidden,
-.workflow-generation-review-section.is-hidden {
-  display: none;
-}
-
-.workflow-generation-plan-section.is-collapsed {
-  display: none;
-}
-
-/* Header row: title + copy button */
-.workflow-generation-section-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  padding: 8px 12px;
-  border-bottom: 1px solid var(--background-modifier-border);
-  background: var(--background-secondary);
-}
-
-.workflow-generation-section-header h3 {
-  margin: 0;
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
 }
 
 /* For thinking summary: copy button floats right */
@@ -3984,46 +3348,6 @@
   user-select: text;
   -webkit-user-select: text;
   cursor: text;
-}
-
-/* Markdown-rendered plan — override plain-text styling for a readable document view.
-   Uses high specificity to win against .workflow-generation-plan / .workflow-generation-context-content. */
-.workflow-generation-plan-rendered.workflow-generation-plan-rendered {
-  font-family: var(--font-text, inherit);
-  font-size: var(--font-ui-medium, 14px);
-  line-height: 1.6;
-  white-space: normal;
-  word-break: normal;
-  overflow-wrap: anywhere;
-  color: var(--text-normal);
-}
-
-.workflow-generation-plan {
-  flex: 1;
-  min-height: 40px;
-  max-height: 200px;
-  overflow-y: auto;
-  padding: 10px 12px;
-  background: var(--background-primary);
-  font-size: 12px;
-  line-height: 1.5;
-  white-space: pre-wrap;
-  word-break: break-word;
-}
-
-/* Review section */
-.workflow-generation-review {
-  flex: 1;
-  min-height: 40px;
-  max-height: 200px;
-  overflow-y: auto;
-  padding: 10px 12px;
-  background: var(--background-primary);
-  font-size: 12px;
-  line-height: 1.5;
-  font-family: var(--font-monospace);
-  white-space: pre-wrap;
-  word-break: break-word;
 }
 
 /* Thinking details in generation modal — card style with custom disclosure triangle */
@@ -4072,31 +3396,12 @@
   padding-top: 10px;
 }
 
-/* Plan confirmation UI */
-.workflow-generation-plan-confirm {
-  margin-top: 12px;
-}
-
-.workflow-generation-plan-confirm-buttons {
-  display: flex;
-  gap: 8px;
-  justify-content: flex-end;
-  margin-top: 8px;
-}
-
 .workflow-generation-plan-feedback {
   margin-bottom: 8px;
 }
 
 .workflow-generation-plan-feedback.is-hidden {
   display: none;
-}
-
-.workflow-generation-plan-feedback-input {
-  width: 100%;
-  min-height: 60px;
-  resize: vertical;
-  font-size: 13px;
 }
 
 .workflow-generation-thinking-separator {
@@ -4109,46 +3414,12 @@
   border-top: 1px solid var(--background-modifier-border);
 }
 
-.workflow-generation-status {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 16px;
-  padding: 8px 12px;
-  background: var(--background-modifier-hover);
-  border-radius: 4px;
-  font-size: 14px;
-  color: var(--text-muted);
-}
-
 /* Emphasize the status bar while a background pass (e.g., refinement) is running
    so the user can see that work is still in progress. */
 .workflow-generation-status.workflow-generation-status-active {
   background: var(--background-modifier-border);
   color: var(--text-normal);
   border-left: 3px solid var(--interactive-accent);
-}
-
-.workflow-generation-loading-dots {
-  display: inline-flex;
-  gap: 4px;
-  margin-left: 4px;
-}
-
-.workflow-generation-loading-dots .dot {
-  width: 6px;
-  height: 6px;
-  background: var(--text-muted);
-  border-radius: 50%;
-  animation: workflow-dot-pulse 1.4s ease-in-out infinite;
-}
-
-.workflow-generation-loading-dots .dot:nth-child(1) {
-  animation-delay: -0.32s;
-}
-
-.workflow-generation-loading-dots .dot:nth-child(2) {
-  animation-delay: -0.16s;
 }
 
 @keyframes workflow-dot-pulse {
@@ -4160,12 +3431,6 @@
     opacity: 1;
     transform: scale(1);
   }
-}
-
-.workflow-generation-buttons {
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
 }
 
 /* Mobile: Full screen modals */
@@ -4185,48 +3450,8 @@
   transform: none;
 }
 
-.is-mobile .workflow-generation-modal-content,
-.is-mobile .workflow-preview-modal-content {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  overflow: hidden;
-}
-
-.is-mobile .workflow-generation-modal-content .modal-drag-handle,
-.is-mobile .workflow-preview-modal-content .modal-drag-handle {
-  flex-shrink: 0;
-  cursor: default;
-}
-
-/* Workflow Generation Modal - Mobile */
-.is-mobile .workflow-generation-request {
-  flex-shrink: 0;
-  max-height: 60px;
-  overflow-y: auto;
-}
-
 .is-mobile .workflow-generation-thinking-details {
   flex-shrink: 0;
-}
-
-.is-mobile .workflow-generation-status {
-  flex-shrink: 0;
-}
-
-.is-mobile .workflow-generation-buttons {
-  flex-shrink: 0;
-  padding-top: 8px;
-}
-
-.is-mobile .workflow-generation-buttons button {
-  width: 100%;
-  padding: 10px;
-}
-
-/* Reduce content height when textarea is focused on mobile */
-.is-mobile .workflow-preview-modal-content.textarea-focused .modal-drag-handle {
-  display: none;
 }
 
 .is-mobile .workflow-preview-modal-content.textarea-focused .workflow-preview-name {
@@ -4235,20 +3460,8 @@
   margin-bottom: 8px;
 }
 
-.is-mobile .workflow-preview-modal-content.textarea-focused .workflow-preview-nodes {
-  max-height: 30vh;
-  min-height: 60px;
-  flex: 0 0 auto;
-}
-
 .is-mobile .workflow-preview-modal-content.textarea-focused .workflow-preview-yaml-section {
   display: none;
-}
-
-.is-mobile .workflow-preview-modal-content.textarea-focused {
-  height: 100%;
-  max-height: 100%;
-  box-sizing: border-box;
 }
 
 .is-mobile .workflow-preview-modal-content.textarea-focused .workflow-preview-additional {
@@ -4261,20 +3474,6 @@
   flex-shrink: 0;
   margin-bottom: 4px;
   font-size: 12px;
-}
-
-.is-mobile .workflow-preview-modal-content.textarea-focused .workflow-preview-additional-input {
-  height: 60px;
-  min-height: 60px;
-  max-height: 60px;
-  resize: none;
-  box-sizing: border-box;
-  font-size: 14px;
-}
-
-.is-mobile .workflow-preview-modal-content.textarea-focused .workflow-preview-buttons {
-  flex-shrink: 0;
-  margin-top: 8px;
 }
 
 /* Workflow Preview - Execution History Row */
@@ -4679,50 +3878,6 @@
 /* Hide thinking details until content arrives (models with no reasoning output). */
 .workflow-generation-thinking-details.is-hidden {
   display: none;
-}
-
-/* Parse-failure recovery — raw response shown inside the generation modal
-   when the LLM output cannot be parsed as workflow YAML. */
-.workflow-generation-parse-failure {
-  margin-top: 12px;
-  padding: 12px;
-  border: 1px solid var(--background-modifier-error-border, var(--background-modifier-error));
-  border-radius: 6px;
-  background: var(--background-secondary);
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.workflow-generation-parse-failure h3 {
-  margin: 0;
-  color: var(--text-error);
-}
-
-.workflow-generation-parse-failure-body {
-  max-height: 40vh;
-  overflow: auto;
-  margin: 0;
-  padding: 8px;
-  background: var(--background-primary);
-  font-family: var(--font-monospace);
-  font-size: 12px;
-  white-space: pre-wrap;
-  word-break: break-word;
-  user-select: text;
-}
-
-.workflow-generation-parse-failure-error {
-  margin: 0;
-  padding: 6px 8px;
-  background: var(--background-modifier-error);
-  border-radius: 4px;
-  font-size: 12px;
-  font-family: var(--font-monospace);
-  color: var(--text-error);
-  white-space: pre-wrap;
-  word-break: break-word;
-  user-select: text;
 }
 
 /* ============ Dashboard feature (ported from obsidian-llm-hub) ============ */

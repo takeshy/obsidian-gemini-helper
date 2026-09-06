@@ -121,6 +121,7 @@ export interface SlashCommand {
 
 // Settings interface
 export interface GeminiHelperSettings {
+  skillsFolder?: string;      // Vault folder holding skills (defaults to SKILLS_FOLDER)
   googleApiKey: string;
   /** Non-secret marker used to detect a missing device-local SecretStorage value. */
   googleApiKeyConfigured: boolean;

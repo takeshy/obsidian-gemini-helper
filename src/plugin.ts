@@ -9,6 +9,9 @@ import { configureMcpAppViewer, configureStoragePrefix } from "obsidian-llm-hub-
 import { showMcpApp } from "src/ui/components/workflow/McpAppModal";
 import type { McpAppInfo } from "src/types";
 import { configureWorkflowHost } from "obsidian-llm-hub-common/workflow";
+import { streamWorkflowChat } from "src/core/workflowChat";
+import { tracing } from "src/core/tracingHooks";
+import { getWorkflowSpecification, buildWorkflowSpecContext } from "src/workflow/workflowSpec";
 
 import { WorkflowManager } from "src/plugin/workflowManager";
 import { WorkspaceStateManager } from "src/core/workspaceStateManager";
@@ -16,6 +19,7 @@ import { ChatView, VIEW_TYPE_GEMINI_CHAT } from "src/ui/ChatView";
 import { CryptView, CRYPT_VIEW_TYPE } from "src/ui/CryptView";
 import { SettingsTab } from "src/ui/SettingsTab";
 import {
+  SKILLS_FOLDER,
   type GeminiHelperSettings,
   type WorkspaceState,
   type RagSetting,
@@ -136,6 +140,19 @@ export class GeminiHelperPlugin extends Plugin {
       getModelOptions: () => getAvailableModels(this.settings.apiPlan).map(model => ({ value: model.name, label: model.displayName })),
       getRagSettingNames: () => Object.keys(this.workspaceState.ragSettings || {}),
       getMcpServerNames: () => (this.settings.mcpServers || []).map(server => server.name),
+      getCurrentModel: () => this.getSelectedModel(),
+      getLastWorkflowModel: () => this.settings.lastAIWorkflowModel,
+      setLastWorkflowModel: (model) => {
+        this.settings.lastAIWorkflowModel = model as ModelType;
+        void this.saveSettings();
+      },
+      getWorkflowSpecification: () => getWorkflowSpecification(buildWorkflowSpecContext(this)),
+      getWorkspaceFolder: () => this.settings.workspaceFolder,
+      getSkillsFolder: () => this.settings.skillsFolder || SKILLS_FOLDER,
+      getHistoryEncryption: () => this.settings.encryption,
+      getPluginVersion: () => this.manifest.version,
+      streamChat: (request) => streamWorkflowChat(this, request),
+      tracing,
     });
     configureMcpAppViewer((app, mcpApp) => showMcpApp(app, mcpApp as McpAppInfo));
     let approvalModal: McpApprovalModal | undefined;

@@ -7,24 +7,10 @@ import { findSharedMarkup } from "obsidian-llm-hub-common/check-markup";
  * These classes are shared styling this plugin applies from code that is not chat UI; each says why.
  */
 const HOST_OWNED = [
-  // workflow modals reuse the chat autocomplete styling from plain DOM
-  "autocomplete",
-  // workflow modals reuse the chat autocomplete styling from plain DOM
-  "autocomplete-desc",
-  // workflow modals reuse the chat autocomplete styling from plain DOM
-  "autocomplete-item",
-  // workflow modals reuse the chat autocomplete styling from plain DOM
-  "autocomplete-name",
   // the Obsidian view container, added imperatively in ChatView
   "chat-container",
   // a selector, not markup: mobile keyboard tracking uses closest()
   "input-container",
-  // the workflow generation modal reuses the thinking styling from plain DOM
-  "thinking",
-  // the workflow generation modal reuses the thinking styling from plain DOM
-  "thinking-content",
-  // the workflow generation modal reuses the thinking styling from plain DOM
-  "thinking-summary",
   // the Obsidian view container, added imperatively in ChatView
   "wide-sidebar",
 ];
@@ -38,8 +24,8 @@ const STILL_HOST_RENDERED: string[] = [
   "diff-line",
   "diff-modal",
   "drag-handle",
-  "edit-confirm-preview-label",
   "modal-resizable",
+  "preview-btn",
   "resizable-modal",
   "resize-handle",
 ];

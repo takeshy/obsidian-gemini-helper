@@ -654,16 +654,17 @@ const InputArea = forwardRef<InputAreaHandle, InputAreaProps>(function InputArea
             webSearch={{
               checked: webSearchEnabled,
               disabled: !allowWebSearch,
-              onChange: onWebSearchChange,
+              // Gemini answers with grounding or with the vault index, never both.
+              combinable: false,
             }}
             rag={{
               settings: ragSettings,
               selected: selectedRagSetting,
               disabled: !ragEnabled || isImageGenerationModel(model) || model.toLowerCase().includes("gemma-4"),
-              onSelect: (name) => {
-                if (webSearchEnabled && name) onWebSearchChange(false);
-                onRagSettingChange(name);
-              },
+            }}
+            onChange={(selection) => {
+              onWebSearchChange(selection.webSearch);
+              onRagSettingChange(selection.ragSetting);
             }}
           />
         </ModelRow>

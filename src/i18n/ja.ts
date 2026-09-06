@@ -310,6 +310,7 @@ export const ja: Record<string, string> = {
   "input.fileTooLarge": "ファイルが大きすぎます（最大20MB）: {{name}}",
   "input.removeAttachment": "添付ファイルを削除",
   "input.searchNone": "検索: なし",
+  "input.historyLimit": "過去メッセージ数 (0〜99)",
   "input.webSearch": "ウェブ検索",
   "input.rag": "セマンティック検索: {{name}}",
   "input.vaultToolTitle": "Vaultツール設定",

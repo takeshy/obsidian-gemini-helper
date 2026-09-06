@@ -83,3 +83,10 @@ export interface ChatHistory {
 	updatedAt: number;
 	isEncrypted?: boolean;  // Whether the chat is encrypted
 }
+
+/** Keep the current message plus at most the requested number of older messages. */
+export function limitConversationHistory(messages: Message[], maxPreviousMessages: number): Message[] {
+  if (messages.length === 0) return [];
+  const limit = Math.max(0, Math.min(99, Math.trunc(maxPreviousMessages)));
+  return messages.slice(-(limit + 1));
+}

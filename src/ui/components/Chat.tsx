@@ -95,14 +95,7 @@ import { promptForDialog } from "./workflow/DialogPromptModal";
 import { showMcpApp } from "./workflow/McpAppModal";
 import { promptForPassword } from "src/ui/passwordPrompt";
 import { t } from "src/i18n";
-import {
-	shouldUseImageModel,
-	PAID_RATE_LIMIT_RETRY_DELAYS_MS,
-	sleep,
-	isRateLimitError,
-	buildErrorMessage,
-	type ChatHistory,
-} from "./chat/chatUtils";
+import { PAID_RATE_LIMIT_RETRY_DELAYS_MS, buildErrorMessage, isRateLimitError, limitConversationHistory, shouldUseImageModel, sleep, type ChatHistory } from "./chat/chatUtils";
 import {
 	messagesToMarkdown,
 	messagesToCompactMarkdown,
@@ -153,6 +146,10 @@ interface ChatProps {
 
 const Chat = forwardRef<ChatRef, ChatProps>(({ plugin, onToggleSidebarWidth }, ref) => {
 	const [messages, setMessages] = useState<Message[]>([]);
+	const [maxPreviousMessages, setMaxPreviousMessages] = useState(() => {
+		const saved = plugin.workspaceState.maxPreviousMessages;
+		return typeof saved === "number" ? Math.max(0, Math.min(99, Math.trunc(saved))) : 99;
+	});
 	const [sentPromptHistory, setSentPromptHistory] = useState<string[]>(() => {
 		const saved = plugin.workspaceState.sentPromptHistory;
 		return Array.isArray(saved)
@@ -1883,7 +1880,7 @@ Always be helpful and provide clear, concise responses. When working with vault 
 					systemPrompt += await buildOkfSystemPrompt(plugin.app, okfRoot, externalOkfBundleIds);
 				}
 
-				const allMessages = [...messages, userMessage];
+				const allMessages = limitConversationHistory([...messages, userMessage], maxPreviousMessages);
 
 				// Use streaming with tools
 				let fullContent = "";
@@ -2525,6 +2522,12 @@ Always be helpful and provide clear, concise responses. When working with vault 
 						vaultFiles={vaultFiles}
 						hasSelection={hasSelection}
 						app={plugin.app}
+						maxPreviousMessages={maxPreviousMessages}
+						onMaxPreviousMessagesChange={(count) => {
+							setMaxPreviousMessages(count);
+							plugin.workspaceState.maxPreviousMessages = count;
+							void plugin.saveWorkspaceState();
+						}}
 						inputHistory={sentPromptHistory}
 						onInputHistoryAdd={(prompt) => {
 							setSentPromptHistory(previous => {

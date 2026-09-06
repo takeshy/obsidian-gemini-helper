@@ -1,7 +1,7 @@
 import { CollapsedInput } from "obsidian-llm-hub-chat-ui";
 import ModelSelector from "./ModelSelector";
 import { InputArea as SharedInputArea } from "obsidian-llm-hub-chat-ui";
-import { Composer, Autocomplete, Attachments, VaultToolMenu, VaultToolButton, EnabledMcpServers, McpServerToggles, InputButtons } from "obsidian-llm-hub-chat-ui";
+import { Composer, Autocomplete, Attachments, VaultToolMenu, VaultToolButton, EnabledMcpServers, McpServerToggles, InputButtons, SearchSelector, ModelRow, ModelDropdown, HistoryLimit } from "obsidian-llm-hub-chat-ui";
 import { useState, useRef, useEffect, KeyboardEvent, ChangeEvent, forwardRef, useImperativeHandle } from "react";
 import { Eye } from "lucide-react";
 import { Notice, Platform, type App } from "obsidian";
@@ -59,6 +59,8 @@ interface InputAreaProps {
   vaultFiles: string[];
   hasSelection: boolean;
   app: App;
+  maxPreviousMessages: number;
+  onMaxPreviousMessagesChange: (count: number) => void;
   inputHistory: string[];
   onInputHistoryAdd: (prompt: string) => void;
 }
@@ -122,6 +124,8 @@ const InputArea = forwardRef<InputAreaHandle, InputAreaProps>(function InputArea
   vaultFiles,
   hasSelection,
   app,
+  maxPreviousMessages,
+  onMaxPreviousMessagesChange,
   inputHistory,
   onInputHistoryAdd,
 }, ref) {
@@ -646,7 +650,10 @@ const InputArea = forwardRef<InputAreaHandle, InputAreaProps>(function InputArea
                   { id: "none", label: t("input.vaultToolNone"), description: t("input.vaultToolNoneDesc"), selected: vaultToolMode === "none" },
                 ]}
                 onSelect={(mode) => { onVaultToolModeChange(mode); setShowVaultToolMenu(false); }}
-              />
+              >
+                <HistoryLimit classPrefix="gemini-helper" label={t("input.historyLimit")}
+                  value={maxPreviousMessages} onChange={onMaxPreviousMessagesChange} />
+              </VaultToolMenu>
             )}
             {/* Modal for vault tool + MCP settings when MCP servers are configured */}
             {showVaultToolMenu && mcpServers.length > 0 && (
@@ -720,51 +727,45 @@ const InputArea = forwardRef<InputAreaHandle, InputAreaProps>(function InputArea
       )}
 
       {!isCollapsed && (
-        <div className="gemini-helper-model-selector">
+        <ModelRow classPrefix="gemini-helper">
           <ModelSelector models={availableModels} value={model} onChange={onModelChange} disabled={isLoading} />
           {reasoningEffortOptions.length > 0 && (
-            <select
-              className="gemini-helper-model-dropdown gemini-helper-effort-select"
+            <ModelDropdown
+              classPrefix="gemini-helper"
+              className="gemini-helper-effort-select"
               value={reasoningEffort}
-              onChange={(e) => onReasoningEffortChange(e.target.value as ReasoningEffort)}
+              onChange={(value) => onReasoningEffortChange(value as ReasoningEffort)}
               disabled={isLoading}
               title={t("input.reasoningEffort")}
-              aria-label={t("input.reasoningEffort")}
-            >
-              {reasoningEffortOptions.map((effort) => (
-                <option key={effort} value={effort}>{effort}</option>
-              ))}
-            </select>
+              options={reasoningEffortOptions.map((effort) => ({ value: effort, label: effort }))}
+            />
           )}
-          <select
-            className="gemini-helper-model-dropdown gemini-helper-rag-select"
-            value={webSearchEnabled ? "__websearch__" : (ragEnabled ? (selectedRagSetting || "") : "")}
-            onChange={(e) => {
-              const value = e.target.value;
-              if (value === "__websearch__") {
-                onWebSearchChange(true);
-              } else {
-                if (webSearchEnabled) onWebSearchChange(false);
-                onRagSettingChange(value || null);
-              }
+          <SearchSelector
+            classPrefix="gemini-helper"
+            ownerDocument={activeDocument}
+            disabled={isLoading}
+            labels={{
+              webSearch: t("input.webSearch"),
+              rag: (name) => t("input.rag", { name }),
+              ragNone: t("input.rag", { name: t("common.none") }),
+              none: t("input.searchNone"),
             }}
-            disabled={isLoading || (!allowWebSearch && !ragEnabled)}
-          >
-            <option value="">{t("input.searchNone")}</option>
-            {allowWebSearch && (
-              <option value="__websearch__">{t("input.webSearch")}</option>
-            )}
-            {ragEnabled && ragSettings.map((name) => (
-              <option
-                key={name}
-                value={name}
-                disabled={isImageGenerationModel(model) || model.toLowerCase().includes("gemma-4")}
-              >
-                {t("input.rag", { name })}
-              </option>
-            ))}
-          </select>
-        </div>
+            webSearch={{
+              checked: webSearchEnabled,
+              disabled: !allowWebSearch,
+              onChange: onWebSearchChange,
+            }}
+            rag={{
+              settings: ragSettings,
+              selected: selectedRagSetting,
+              disabled: !ragEnabled || isImageGenerationModel(model) || model.toLowerCase().includes("gemma-4"),
+              onSelect: (name) => {
+                if (webSearchEnabled && name) onWebSearchChange(false);
+                onRagSettingChange(name);
+              },
+            }}
+          />
+        </ModelRow>
       )}
       {!isCollapsed && availableSkills.length > 0 && (
         <SkillSelector

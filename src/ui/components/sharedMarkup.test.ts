@@ -16,8 +16,6 @@ const STILL_HOST_RENDERED = [
   "chat-container",
   "header-btn",
   "input-container",
-  "model-dropdown",
-  "model-selector",
   "rag-indicator",
   "rag-source",
   "rag-sources",

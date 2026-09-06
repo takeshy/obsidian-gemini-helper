@@ -278,6 +278,7 @@ export interface WorkspaceState {
   selectedModel: ModelType | null;    // 現在選択中のモデル
   ragSettings: Record<string, RagSetting>;  // 設定名 -> RAG設定
   reasoningEffortByModel?: Record<string, ReasoningEffort>;  // Chat thinking level per model ("default" entries are omitted)
+  maxPreviousMessages?: number;      // Older chat messages sent with the current one (0-99)
   sentPromptHistory?: string[];       // Recently sent prompts for input history navigation
 }
 

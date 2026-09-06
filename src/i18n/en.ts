@@ -310,6 +310,7 @@ export const en = {
   "input.fileTooLarge": "File is too large (max 20MB): {{name}}",
   "input.removeAttachment": "Remove attachment",
   "input.searchNone": "Search: none",
+  "input.historyLimit": "Previous messages (0-99)",
   "input.webSearch": "Web search",
   "input.rag": "Semantic search: {{name}}",
   "input.vaultToolTitle": "Vault tool settings",

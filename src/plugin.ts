@@ -12,6 +12,9 @@ import { configureWorkflowHost } from "obsidian-llm-hub-common/workflow";
 import { streamWorkflowChat } from "src/core/workflowChat";
 import { tracing } from "src/core/tracingHooks";
 import { getWorkflowSpecification, buildWorkflowSpecContext } from "src/workflow/workflowSpec";
+import { handleCommandNode } from "src/workflow/handlers/command";
+import { handleMcpNode } from "src/workflow/handlers/mcp";
+import { handleRagSyncNode } from "src/workflow/handlers/ragSync";
 
 import { WorkflowManager } from "src/plugin/workflowManager";
 import { WorkspaceStateManager } from "src/core/workspaceStateManager";
@@ -152,6 +155,10 @@ export class GeminiHelperPlugin extends Plugin {
       getHistoryEncryption: () => this.settings.encryption,
       getPluginVersion: () => this.manifest.version,
       streamChat: (request) => streamWorkflowChat(this, request),
+      runCommandNode: ({ node, context, app, callbacks, traceId, abortSignal }) =>
+        handleCommandNode(node, context, app, this, callbacks, traceId, abortSignal),
+      runMcpNode: ({ node, context, app }) => handleMcpNode(node, context, app, this),
+      runRagSyncNode: ({ node, context, app }) => handleRagSyncNode(node, context, app, this),
       tracing,
     });
     configureMcpAppViewer((app, mcpApp) => showMcpApp(app, mcpApp as McpAppInfo));

@@ -1,10 +1,3 @@
-// Re-export all handlers for backward compatibility
-export * from "./handlers/utils";
-export * from "./handlers/controlFlow";
+// Handlers shared with the other plugins, plus the ones this plugin owns.
+export * from "obsidian-llm-hub-common/workflow";
 export * from "./handlers/command";
-export * from "./handlers/http";
-export * from "./handlers/note";
-export * from "./handlers/prompt";
-export * from "./handlers/file";
-export * from "./handlers/integration";
-export * from "./handlers/script";

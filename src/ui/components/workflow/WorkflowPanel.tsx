@@ -1067,7 +1067,7 @@ export default function WorkflowPanel({ plugin }: WorkflowPanelProps) {
       const content = await plugin.app.vault.read(workflowFile);
       const workflow = parseWorkflowFromMarkdown(content);
 
-      const executor = new WorkflowExecutor(plugin.app, plugin);
+      const executor = new WorkflowExecutor(plugin.app);
 
       const input: WorkflowInput = {
         variables: new Map(),
@@ -1154,7 +1154,7 @@ export default function WorkflowPanel({ plugin }: WorkflowPanelProps) {
       const content = await plugin.app.vault.read(file);
       const workflow = parseWorkflowFromMarkdown(content);
 
-      const executor = new WorkflowExecutor(plugin.app, plugin);
+      const executor = new WorkflowExecutor(plugin.app);
 
       const input: WorkflowInput = {
         variables: new Map(),

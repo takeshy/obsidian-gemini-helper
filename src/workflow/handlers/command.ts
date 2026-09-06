@@ -1,3 +1,4 @@
+import type { CommandNodeResult } from "obsidian-llm-hub-common/workflow";
 import { App } from "obsidian";
 import type { GeminiHelperPlugin } from "../../plugin";
 import { getGeminiClient } from "../../core/gemini";
@@ -10,12 +11,6 @@ import { replaceVariables, setSystemVariable } from "./utils";
 import { handleExecuteJavascriptTool, EXECUTE_JAVASCRIPT_TOOL } from "../../core/sandboxExecutor";
 
 // Result type for command node execution
-export interface CommandNodeResult {
-  mcpAppInfo?: McpAppInfo;
-  usedModel: string;
-  usage?: StreamChunkUsage;
-  elapsedMs?: number;
-}
 
 // Handle command node - execute LLM with prompt directly
 export async function handleCommandNode(
@@ -24,7 +19,9 @@ export async function handleCommandNode(
   app: App,
   plugin: GeminiHelperPlugin,
   promptCallbacks?: PromptCallbacks,
-  traceId?: string | null
+  traceId?: string | null,
+  // Accepted for signature parity with the other plugins; this provider call is not yet abortable.
+  _abortSignal?: AbortSignal,
 ): Promise<CommandNodeResult> {
   // Track collected MCP App info from tool executions
   let collectedMcpAppInfo: McpAppInfo | undefined;

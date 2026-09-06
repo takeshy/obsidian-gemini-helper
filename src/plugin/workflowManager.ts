@@ -147,7 +147,7 @@ export class WorkflowManager {
       // Check if progress modal should be shown (default: true)
       const showProgress = workflow.options?.showProgress !== false;
 
-      const executor = new WorkflowExecutor(this.app, this.plugin);
+      const executor = new WorkflowExecutor(this.app);
 
       const input: WorkflowInput = {
         variables: new Map(),
@@ -492,7 +492,7 @@ export class WorkflowManager {
       const fileContent = await this.app.vault.read(workflowFile);
       const workflow = parseWorkflowFromMarkdown(fileContent);
 
-      const executor = new WorkflowExecutor(this.app, this.plugin);
+      const executor = new WorkflowExecutor(this.app);
 
       const input: WorkflowInput = {
         variables: new Map(),

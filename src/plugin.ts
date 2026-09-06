@@ -833,7 +833,7 @@ export class GeminiHelperPlugin extends Plugin {
         promptTemplate: "Convert the following content into an HTML infographic. Output the HTML directly in your response, do not create a note:\n\n{selection}",
         model: null,
         description: "Generate HTML infographic from selection or active note",
-        searchSetting: null,
+        searchSelection: null,
       });
       await this.saveSettings();
     }

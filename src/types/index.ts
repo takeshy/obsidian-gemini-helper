@@ -102,6 +102,11 @@ export type { VaultToolMode };
 // "manual" = user manually turned off (MCP servers remain unchanged)
 export type VaultToolNoneReason = "manual";
 
+// Independent search preferences used by Chat and slash commands. The shared
+// search selector reports this shape, so it is defined once in the library.
+import type { SearchSelection } from "obsidian-llm-hub-common/core";
+export type { SearchSelection };
+
 // Slash command definition
 export interface SlashCommand {
   id: string;
@@ -109,7 +114,10 @@ export interface SlashCommand {
   promptTemplate: string;       // テンプレート (例: "{selection}を英語に翻訳して")
   model?: ModelType | null;     // null = 現在のモデルを使用
   description?: string;         // オートコンプリートに表示
-  searchSetting?: string | null; // null = 現在の設定, "" = None, "__websearch__" = Web Search, その他 = Semantic Search設定名
+  /** null/undefined = keep the chat's current search sources. */
+  searchSelection?: SearchSelection | null;
+  /** Pre-split single choice, read through getSlashCommandSearchSelection. */
+  searchSetting?: string | null;
   confirmEdits?: boolean;       // undefined/true = 編集確認を表示, false = 自動適用
   vaultToolMode?: VaultToolMode | null; // null = 現在の設定, "all" = すべて, "noSearch" = 検索なし, "none" = オフ
   enabledMcpServers?: string[] | null;  // null = 現在の設定, [] = すべてオフ, ["name1", "name2"] = 指定のサーバーのみ有効
@@ -528,7 +536,7 @@ export const DEFAULT_SLASH_COMMANDS: SlashCommand[] = [
     promptTemplate: "Convert the following content into an HTML infographic. Output the HTML directly in your response, do not create a note:\n\n{selection}",
     model: null,
     description: "Generate HTML infographic from selection or active note",
-    searchSetting: null,
+    searchSelection: null,
   },
 ];
 

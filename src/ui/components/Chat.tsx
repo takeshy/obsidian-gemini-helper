@@ -35,7 +35,7 @@ import {
 } from "src/types";
 import { getGeminiClient, getReasoningEffortOptions } from "src/core/gemini";
 import { tracing } from "src/core/tracingHooks";
-import { getEnabledVaultTools, isVaultToolAllowed } from "obsidian-llm-hub-common/core";
+import { getEnabledVaultTools, getSlashCommandSearchSelection, isVaultToolAllowed } from "obsidian-llm-hub-common/core";
 import { HOST_EXECUTES_RAG_SYNC_STATUS } from "src/vault/toolExecutor";
 import { skillWorkflowTool } from "src/core/skillTools";
 import { handleExecuteJavascriptTool, EXECUTE_JAVASCRIPT_TOOL } from "src/core/sandboxExecutor";
@@ -678,11 +678,13 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin, onToggleSidebarWidth }, r
 	// Gemma 4 cannot combine Google Search with Function Calling in one request
 	const isGemma4 = (model: string) => model.toLowerCase().includes("gemma-4");
 
-	const handleWebSearchChange = (enabled: boolean, modelForSupport = currentModel) => {
+	// `persist` is false for slash-command overrides: they last for the message,
+	// and must not rewrite the workspace's remembered search preferences.
+	const handleWebSearchChange = (enabled: boolean, modelForSupport = currentModel, persist = true) => {
 		const nextEnabled = enabled && supportsWebSearch(modelForSupport);
 		if (nextEnabled) setSelectedRagSetting(null);
 		setWebSearchEnabled(nextEnabled);
-		void plugin.selectWebSearchEnabled(nextEnabled);
+		if (persist) void plugin.selectWebSearchEnabled(nextEnabled);
 	};
 
 	const handleReasoningEffortChange = (effort: ReasoningEffort) => {
@@ -696,10 +698,10 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin, onToggleSidebarWidth }, r
 	};
 
 	// Handle RAG setting change from UI
-	const handleRagSettingChange = (name: string | null) => {
+	const handleRagSettingChange = (name: string | null, persist = true) => {
 		if (name) setWebSearchEnabled(false);
 		setSelectedRagSetting(name);
-		void plugin.selectRagSetting(name);
+		if (persist) void plugin.selectRagSetting(name);
 	};
 
 	// Handle vault tool mode change from UI
@@ -776,6 +778,7 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin, onToggleSidebarWidth }, r
 	const handleSlashCommand = (command: SlashCommand): string => {
 		// Track the current slash command for auto-apply logic
 		currentSlashCommandRef.current = command;
+		const commandSearch = getSlashCommandSearchSelection(command);
 
 		// Optionally change model
 		const nextModel = command.model && isModelAllowedForPlan(apiPlan, command.model)
@@ -783,23 +786,21 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin, onToggleSidebarWidth }, r
 			: currentModel;
 		if (nextModel !== currentModel) {
 			setCurrentModel(nextModel);
-			if (
-				isImageGenerationModel(nextModel)
-				&& selectedRagSetting !== null
-				&& (command.searchSetting === null || command.searchSetting === undefined)
-			) {
-				handleRagSettingChange(null);
+			if (isImageGenerationModel(nextModel) && selectedRagSetting !== null && commandSearch === null) {
+				handleRagSettingChange(null, false);
 			}
 		}
 
-		// Legacy slash-command search setting migration.
-		if (command.searchSetting !== null && command.searchSetting !== undefined) {
-			if (command.searchSetting === "__websearch__") {
-				handleWebSearchChange(true, nextModel);
-				handleRagSettingChange(null);
+		// Slash overrides are temporary and must not overwrite workspace preferences.
+		// Commands saved before the split still carry the single-choice value, which
+		// getSlashCommandSearchSelection reads for us.
+		if (commandSearch !== null) {
+			if (commandSearch.webSearch) {
+				handleWebSearchChange(true, nextModel, false);
+				handleRagSettingChange(null, false);
 			} else {
-				handleRagSettingChange(command.searchSetting === "" ? null : command.searchSetting);
-				if (command.searchSetting === "") handleWebSearchChange(false, nextModel);
+				handleWebSearchChange(false, nextModel, false);
+				handleRagSettingChange(commandSearch.ragSetting, false);
 			}
 		}
 

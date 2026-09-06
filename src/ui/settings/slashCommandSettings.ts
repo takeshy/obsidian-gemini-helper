@@ -1,16 +1,20 @@
 import { Setting, Notice } from "obsidian";
 import { t } from "src/i18n";
-import { getAvailableModels } from "src/types";
-import { SlashCommandModal } from "./SlashCommandModal";
+import { getAvailableModels, type SlashCommand } from "src/types";
+import { SlashCommandModal, type SlashCommandModalOptions } from "obsidian-llm-hub-common/modals";
 import type { SettingsContext } from "./settingsContext";
 
 export function displaySlashCommandSettings(containerEl: HTMLElement, ctx: SettingsContext): void {
   const { plugin, display } = ctx;
   const app = plugin.app;
-  const allowRag = plugin.settings.ragEnabled;
-  const allowWebSearch = true;
-  const availableModels = getAvailableModels(plugin.settings.apiPlan);
-  const ragSettingNames = plugin.getRagSettingNames();
+  const modalOptions: SlashCommandModalOptions = {
+    models: getAvailableModels(plugin.settings.apiPlan),
+    // This host's composer still clears one source when the other is picked,
+    // so a command cannot pin Web search and a RAG index together.
+    search: { webSearch: true, ragSettings: plugin.settings.ragEnabled ? plugin.getRagSettingNames() : [], combinable: false },
+    mcpServers: plugin.settings.mcpServers,
+    editConfirmation: true,
+  };
 
   new Setting(containerEl).setName(t("settings.slashCommands")).setHeading();
 
@@ -25,12 +29,8 @@ export function displaySlashCommandSettings(containerEl: HTMLElement, ctx: Setti
           new SlashCommandModal(
             app,
             null,
-            allowRag,
-            allowRag ? ragSettingNames : [],
-            availableModels,
-            allowWebSearch,
-            plugin.settings.mcpServers,
-            async (command) => {
+            modalOptions,
+            async (command: SlashCommand) => {
               plugin.settings.slashCommands.push(command);
               await plugin.saveSettings();
               display();
@@ -60,12 +60,8 @@ export function displaySlashCommandSettings(containerEl: HTMLElement, ctx: Setti
             new SlashCommandModal(
               app,
               command,
-              allowRag,
-              allowRag ? ragSettingNames : [],
-              availableModels,
-              allowWebSearch,
-              plugin.settings.mcpServers,
-              async (updated) => {
+              modalOptions,
+              async (updated: SlashCommand) => {
                 const index = plugin.settings.slashCommands.findIndex(
                   (c) => c.id === command.id
                 );

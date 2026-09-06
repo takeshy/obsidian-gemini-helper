@@ -1,5 +1,5 @@
-import { ToolIndicator } from "obsidian-llm-hub-chat-ui";
-import { MessageBubble as SharedMessageBubble, MessageContent, Attachments, UsageInfo, SourceBadges, ToolsUsed, SkillsUsed } from "obsidian-llm-hub-chat-ui";
+import { ToolIndicator } from "obsidian-llm-hub-common";
+import { MessageBubble as SharedMessageBubble, MessageContent, Attachments, UsageInfo, SourceBadges, ToolsUsed, SkillsUsed } from "obsidian-llm-hub-common";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { type App, MarkdownRenderer, Component, Notice, Platform } from "obsidian";
 import { Copy, CheckCircle, XCircle, Download, Eye } from "lucide-react";

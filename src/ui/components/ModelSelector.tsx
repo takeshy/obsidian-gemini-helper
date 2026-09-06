@@ -1,4 +1,4 @@
-import { ModelSelector as SharedModelSelector } from "obsidian-llm-hub-chat-ui";
+import { ModelSelector as SharedModelSelector } from "obsidian-llm-hub-common";
 import { t } from "src/i18n";
 import type { ModelInfo, ModelType } from "src/types";
 

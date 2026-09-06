@@ -1,7 +1,7 @@
-import { CollapsedInput } from "obsidian-llm-hub-chat-ui";
+import { CollapsedInput } from "obsidian-llm-hub-common";
 import ModelSelector from "./ModelSelector";
-import { InputArea as SharedInputArea } from "obsidian-llm-hub-chat-ui";
-import { Composer, Autocomplete, Attachments, VaultToolMenu, VaultToolButton, EnabledMcpServers, McpServerToggles, InputButtons, SearchSelector, ModelRow, ModelDropdown, HistoryLimit } from "obsidian-llm-hub-chat-ui";
+import { InputArea as SharedInputArea } from "obsidian-llm-hub-common";
+import { Composer, Autocomplete, Attachments, VaultToolMenu, VaultToolButton, EnabledMcpServers, McpServerToggles, InputButtons, SearchSelector, ModelRow, ModelDropdown, HistoryLimit } from "obsidian-llm-hub-common";
 import { useState, useRef, useEffect, KeyboardEvent, ChangeEvent, forwardRef, useImperativeHandle } from "react";
 import { Eye } from "lucide-react";
 import { Notice, Platform, type App } from "obsidian";

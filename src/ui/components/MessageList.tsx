@@ -1,5 +1,5 @@
 import { forwardRef } from "react";
-import { MessageList as SharedMessageList, Welcome } from "obsidian-llm-hub-chat-ui";
+import { MessageList as SharedMessageList, Welcome } from "obsidian-llm-hub-common";
 import type { App } from "obsidian";
 import type { Message } from "src/types";
 import MessageBubble from "./MessageBubble";

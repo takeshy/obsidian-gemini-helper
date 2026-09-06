@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { fileURLToPath } from "node:url";
-import { findSharedMarkup } from "obsidian-llm-hub-chat-ui/check-markup";
+import { findSharedMarkup } from "obsidian-llm-hub-common/check-markup";
 
 /**
- * Shared chat UI markup lives in obsidian-llm-hub-chat-ui, so the three plugins cannot drift apart.
+ * Shared chat UI markup lives in obsidian-llm-hub-common, so the three plugins cannot drift apart.
  * These classes are shared styling this plugin applies from code that is not chat UI; each says why.
  */
 const HOST_OWNED = [

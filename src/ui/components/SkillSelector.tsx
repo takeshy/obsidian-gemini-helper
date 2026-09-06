@@ -1,6 +1,6 @@
 import { Sparkles } from "lucide-react";
 import { type App } from "obsidian";
-import { ChipSelector } from "obsidian-llm-hub-chat-ui";
+import { ChipSelector } from "obsidian-llm-hub-common";
 import type { SkillMetadata } from "src/core/skillsLoader";
 import { isBuiltinSkillPath } from "src/core/builtinSkills";
 import { isRuntimeSkillPath } from "src/core/runtimeSkills";
@@ -14,7 +14,7 @@ interface SkillSelectorProps {
   app: App;
 }
 
-/** Maps skills onto the shared chip selector; the markup lives in obsidian-llm-hub-chat-ui. */
+/** Maps skills onto the shared chip selector; the markup lives in obsidian-llm-hub-common. */
 export default function SkillSelector({
   skills,
   activeSkillPaths,

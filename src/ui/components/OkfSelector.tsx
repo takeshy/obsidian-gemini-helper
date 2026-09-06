@@ -1,5 +1,5 @@
 import { BookOpen } from "lucide-react";
-import { ChipSelector } from "obsidian-llm-hub-chat-ui";
+import { ChipSelector } from "obsidian-llm-hub-common";
 import type { OkfBundle } from "src/core/okfLoader";
 import { t } from "src/i18n";
 
@@ -10,7 +10,7 @@ interface OkfSelectorProps {
   disabled?: boolean;
 }
 
-/** Maps OKF bundles onto the shared chip selector; the markup lives in obsidian-llm-hub-chat-ui. */
+/** Maps OKF bundles onto the shared chip selector; the markup lives in obsidian-llm-hub-common. */
 export default function OkfSelector({
   bundles,
   activeBundleIds,

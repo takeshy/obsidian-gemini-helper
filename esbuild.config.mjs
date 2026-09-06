@@ -1,4 +1,4 @@
-import { buildChatStyles, chatStylesPlugin } from "obsidian-llm-hub-chat-ui/styles";
+import { buildChatStyles, chatStylesPlugin } from "obsidian-llm-hub-common/styles";
 import esbuild from "esbuild";
 import process from "process";
 import path from "path";

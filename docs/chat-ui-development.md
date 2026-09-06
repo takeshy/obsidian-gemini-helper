@@ -1,13 +1,13 @@
 # Shared chat UI
 
-Chat presentation uses `obsidian-llm-hub-chat-ui`, an npm library whose visual
+Chat presentation uses `obsidian-llm-hub-common`, an npm library whose visual
 baseline is Local LLM Hub. The package is bundled into `main.js`; users do not
 install another Obsidian plugin. The dependency is a GitHub reference pinned to a full commit SHA.
 `npm ci` prepares the Git dependency by running its `prepare` script, which builds
 ESM and TypeScript declarations. Keep lifecycle scripts enabled. No npm registry
 publication, sibling checkout or checked-in tarball is required.
 
-Edit shared components and chat styles in the sibling `obsidian-llm-hub-chat-ui` source
+Edit shared components and chat styles in the sibling `obsidian-llm-hub-common` source
 package. Keep provider execution, Vault operations, Markdown rendering, settings,
 translations and persistence in this plugin's host adapters. Pass display data,
 callbacks and React slots to the library, not a plugin instance.

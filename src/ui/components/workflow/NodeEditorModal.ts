@@ -1,8 +1,9 @@
 import { App, Modal, Setting, TFile } from "obsidian";
-import { SidebarNode, WorkflowNodeType } from "src/workflow/types";
+import { SidebarNode } from "src/workflow/types";
 import { getAvailableModels } from "src/types";
 import type { GeminiHelperPlugin } from "src/plugin";
-import { t, TranslationKey } from "src/i18n";
+import { t } from "src/i18n";
+import { getWorkflowNodeTypeLabel } from "obsidian-llm-hub-common/workflow";
 
 // @ path autocomplete helper
 interface PathSuggestion {
@@ -55,35 +56,7 @@ async function expandPathReferences(app: App, text: string): Promise<string> {
   return result;
 }
 
-function getNodeTypeLabel(type: WorkflowNodeType): string {
-  const keyMap: Record<WorkflowNodeType, TranslationKey> = {
-    variable: "workflow.nodeType.variable",
-    set: "workflow.nodeType.set",
-    if: "workflow.nodeType.if",
-    while: "workflow.nodeType.while",
-    command: "workflow.nodeType.command",
-    http: "workflow.nodeType.http",
-    json: "workflow.nodeType.json",
-    note: "workflow.nodeType.note",
-    "note-read": "workflow.nodeType.noteRead",
-    "note-search": "workflow.nodeType.noteSearch",
-    "note-list": "workflow.nodeType.noteList",
-    "folder-list": "workflow.nodeType.folderList",
-    open: "workflow.nodeType.open",
-    dialog: "workflow.nodeType.dialog",
-    "prompt-file": "workflow.nodeType.promptFile",
-    "prompt-selection": "workflow.nodeType.promptSelection",
-    "file-explorer": "workflow.nodeType.fileExplorer",
-    "file-save": "workflow.nodeType.fileSave",
-    workflow: "workflow.nodeType.workflow",
-    "rag-sync": "workflow.nodeType.ragSync",
-    mcp: "workflow.nodeType.mcp",
-    "obsidian-command": "workflow.nodeType.obsidianCommand",
-    sleep: "workflow.nodeType.sleep",
-    script: "workflow.nodeType.script",
-  };
-  return t(keyMap[type]);
-}
+const getNodeTypeLabel = getWorkflowNodeTypeLabel;
 
 export class NodeEditorModal extends Modal {
   private node: SidebarNode;

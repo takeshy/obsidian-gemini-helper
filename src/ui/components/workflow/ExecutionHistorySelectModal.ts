@@ -1,37 +1,13 @@
 import { App, Modal } from "obsidian";
-import type { ExecutionRecord, ExecutionStep, StepStatus, WorkflowNodeType } from "src/workflow/types";
+import type { ExecutionRecord, ExecutionStep, StepStatus } from "src/workflow/types";
 import { t } from "src/i18n";
+import { getWorkflowNodeTypeLabels } from "obsidian-llm-hub-common/workflow";
 
 export interface ExecutionHistorySelectResult {
   selectedSteps: ExecutionStep[];
 }
 
-const getNodeTypeLabels = (): Record<WorkflowNodeType, string> => ({
-  variable: t("workflow.nodeType.variable"),
-  set: t("workflow.nodeType.set"),
-  if: t("workflow.nodeType.if"),
-  while: t("workflow.nodeType.while"),
-  command: t("workflow.nodeType.command"),
-  http: t("workflow.nodeType.http"),
-  json: t("workflow.nodeType.json"),
-  note: t("workflow.nodeType.note"),
-  "note-read": t("workflow.nodeType.noteRead"),
-  "note-search": t("workflow.nodeType.noteSearch"),
-  "note-list": t("workflow.nodeType.noteList"),
-  "folder-list": t("workflow.nodeType.folderList"),
-  open: t("workflow.nodeType.open"),
-  dialog: t("workflow.nodeType.dialog"),
-  "prompt-file": t("workflow.nodeType.promptFile"),
-  "prompt-selection": t("workflow.nodeType.promptSelection"),
-  "file-explorer": t("workflow.nodeType.fileExplorer"),
-  "file-save": t("workflow.nodeType.fileSave"),
-  workflow: t("workflow.nodeType.workflow"),
-  "rag-sync": t("workflow.nodeType.ragSync"),
-  mcp: t("workflow.nodeType.mcp"),
-  "obsidian-command": t("workflow.nodeType.obsidianCommand"),
-  sleep: t("workflow.nodeType.sleep"),
-  script: t("workflow.nodeType.script"),
-});
+const getNodeTypeLabels = getWorkflowNodeTypeLabels;
 
 function formatStatus(status: StepStatus): string {
   switch (status) {

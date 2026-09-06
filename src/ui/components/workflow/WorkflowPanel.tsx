@@ -29,37 +29,13 @@ import { promptForPassword } from "src/ui/passwordPrompt";
 import { parseFrontmatter, extractCapabilitiesBlock, upsertCapabilitiesBlock, writeSkillMd } from "src/core/skillsLoader";
 import { extractInputVariables } from "src/workflow/inputVariables";
 import { SKILLS_FOLDER } from "src/types";
+import { getWorkflowNodeTypeLabels } from "obsidian-llm-hub-common/workflow";
 
 interface WorkflowPanelProps {
   plugin: GeminiHelperPlugin;
 }
 
-const getNodeTypeLabels = (): Record<WorkflowNodeType, string> => ({
-  variable: t("workflow.nodeType.variable"),
-  set: t("workflow.nodeType.set"),
-  if: t("workflow.nodeType.if"),
-  while: t("workflow.nodeType.while"),
-  command: t("workflow.nodeType.command"),
-  http: t("workflow.nodeType.http"),
-  json: t("workflow.nodeType.json"),
-  note: t("workflow.nodeType.note"),
-  "note-read": t("workflow.nodeType.noteRead"),
-  "note-search": t("workflow.nodeType.noteSearch"),
-  "note-list": t("workflow.nodeType.noteList"),
-  "folder-list": t("workflow.nodeType.folderList"),
-  open: t("workflow.nodeType.open"),
-  dialog: t("workflow.nodeType.dialog"),
-  "prompt-file": t("workflow.nodeType.promptFile"),
-  "prompt-selection": t("workflow.nodeType.promptSelection"),
-  "file-explorer": t("workflow.nodeType.fileExplorer"),
-  "file-save": t("workflow.nodeType.fileSave"),
-  workflow: t("workflow.nodeType.workflow"),
-  "rag-sync": t("workflow.nodeType.ragSync"),
-  mcp: t("workflow.nodeType.mcp"),
-  "obsidian-command": t("workflow.nodeType.obsidianCommand"),
-  sleep: t("workflow.nodeType.sleep"),
-  script: t("workflow.nodeType.script"),
-});
+const getNodeTypeLabels = getWorkflowNodeTypeLabels;
 
 const ADDABLE_NODE_TYPES: WorkflowNodeType[] = [
   "variable",
@@ -255,6 +231,9 @@ function getNodeSummary(node: SidebarNode): string {
       const truncated = code.length > 30 ? code.substring(0, 30) + "..." : code;
       return truncated || "(no code)";
     }
+    default:
+      // Node types this plugin does not implement still appear in shared history.
+      return "";
   }
 }
 

@@ -1,7 +1,8 @@
 import { App, Modal, Platform, MarkdownRenderer, Component } from "obsidian";
-import type { SidebarNode, WorkflowNodeType } from "src/workflow/types";
+import type { SidebarNode } from "src/workflow/types";
 import type { GenerationContext } from "./AIWorkflowModal";
 import { t } from "src/i18n";
+import { getWorkflowNodeTypeLabels } from "obsidian-llm-hub-common/workflow";
 
 export type PreviewResult = "ok" | "no" | "cancel";
 
@@ -10,32 +11,7 @@ export interface WorkflowPreviewResult {
   additionalRequest?: string;
 }
 
-const getNodeTypeLabels = (): Record<WorkflowNodeType, string> => ({
-  variable: t("workflow.nodeType.variable"),
-  set: t("workflow.nodeType.set"),
-  if: t("workflow.nodeType.if"),
-  while: t("workflow.nodeType.while"),
-  command: t("workflow.nodeType.command"),
-  http: t("workflow.nodeType.http"),
-  json: t("workflow.nodeType.json"),
-  note: t("workflow.nodeType.note"),
-  "note-read": t("workflow.nodeType.noteRead"),
-  "note-search": t("workflow.nodeType.noteSearch"),
-  "note-list": t("workflow.nodeType.noteList"),
-  "folder-list": t("workflow.nodeType.folderList"),
-  open: t("workflow.nodeType.open"),
-  dialog: t("workflow.nodeType.dialog"),
-  "prompt-file": t("workflow.nodeType.promptFile"),
-  "prompt-selection": t("workflow.nodeType.promptSelection"),
-  "file-explorer": t("workflow.nodeType.fileExplorer"),
-  "file-save": t("workflow.nodeType.fileSave"),
-  workflow: t("workflow.nodeType.workflow"),
-  "rag-sync": t("workflow.nodeType.ragSync"),
-  mcp: t("workflow.nodeType.mcp"),
-  "obsidian-command": t("workflow.nodeType.obsidianCommand"),
-  sleep: t("workflow.nodeType.sleep"),
-  script: t("workflow.nodeType.script"),
-});
+const getNodeTypeLabels = getWorkflowNodeTypeLabels;
 
 /**
  * Get a short summary of a node's properties

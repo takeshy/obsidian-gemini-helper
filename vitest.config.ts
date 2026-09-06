@@ -9,6 +9,8 @@ export default defineConfig({
     },
   },
   test: {
+    // Process the shared package so the obsidian alias above reaches its imports too.
+    server: { deps: { inline: ["obsidian-llm-hub-common"] } },
     include: ["src/**/*.test.ts"],
     testTimeout: 60000,
   },

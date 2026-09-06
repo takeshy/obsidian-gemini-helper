@@ -20,9 +20,6 @@ import {
 	type Message,
 	type ModelType,
 	type Attachment,
-	type PendingEditInfo,
-	type PendingDeleteInfo,
-	type PendingRenameInfo,
 	type SlashCommand,
 	type GeneratedImage,
 	type VaultToolNoneReason,
@@ -42,32 +39,11 @@ import { handleExecuteJavascriptTool, EXECUTE_JAVASCRIPT_TOOL } from "src/core/s
 import { fetchMcpTools, createMcpToolExecutor, isMcpTool, type McpToolDefinition, type McpToolExecutor } from "src/core/mcpTools";
 import { createToolExecutor } from "src/vault/toolExecutor";
 import {
-	getPendingEdit,
 	applyEdit,
 	discardEdit,
-	getPendingDelete,
-	applyDelete,
-	discardDelete,
-	getPendingRename,
-	applyRename,
-	discardRename,
-	getPendingBulkEdit,
-	applyBulkEdit,
-	discardBulkEdit,
-	getPendingBulkDelete,
-	applyBulkDelete,
-	discardBulkDelete,
-	getPendingBulkRename,
-	applyBulkRename,
-	discardBulkRename,
 } from "src/vault/notes";
 import {
 	promptForConfirmation,
-	promptForDeleteConfirmation,
-	promptForRenameConfirmation,
-	promptForBulkEditConfirmation,
-	promptForBulkDeleteConfirmation,
-	promptForBulkRenameConfirmation,
 } from "./workflow/EditConfirmationModal";
 import MessageList from "./MessageList";
 import InputArea, { type InputAreaHandle } from "./InputArea";
@@ -76,6 +52,7 @@ import {
 } from "obsidian-llm-hub-common/core";
 import { cryptoCache } from "src/core/cryptoCache";
 import { formatError } from "obsidian-llm-hub-common/core";
+import { createConfirmingToolExecutor } from "obsidian-llm-hub-common/chat";
 import { extractPdfText } from "src/vault/pdfText";
 import {
 	resolveMessageVariables as resolveMessageVariablesShared,
@@ -233,6 +210,8 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin, onToggleSidebarWidth }, r
 	const inputAreaRef = useRef<InputAreaHandle>(null);
 	const pendingExternalSelectionRef = useRef<{ text: string; sourcePath?: string } | null>(null);
 	const currentSlashCommandRef = useRef<SlashCommand | null>(null);
+	// A slash command with confirmEdits off writes without asking.
+	const autoApplyEdits = () => currentSlashCommandRef.current?.confirmEdits === false;
 	const mcpExecutorRef = useRef<McpToolExecutor | null>(null);
 	// Preserve the plugin-level last active chat across the component's first render
 	// so the mount-time restore effect can read it before sync-back starts.
@@ -1060,14 +1039,9 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin, onToggleSidebarWidth }, r
 					})
 					: undefined;
 
-				// Track processed edits/deletes/renames for message display
-				const processedEdits: PendingEditInfo[] = [];
-				const processedDeletes: PendingDeleteInfo[] = [];
-				const processedRenames: PendingRenameInfo[] = [];
+				// Filled in by the confirming executor below.
 				// Track MCP Apps with UI for message display
 				const collectedMcpApps: McpAppInfo[] = [];
-				// Track pending additional request for edit feedback (use container to bypass TS narrowing)
-				const pendingAdditionalRequestRef: { current: { filePath: string; request: string } | null } = { current: null };
 
 				// Build skill workflow map for tool execution
 				const skillWorkflowMap = loadedSkillsList.length > 0
@@ -1125,236 +1099,17 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin, onToggleSidebarWidth }, r
 					}
 					: undefined;
 
-				// Wrap tool executor to handle propose_edit/propose_delete with immediate confirmation
-				const toolExecutor = baseToolExecutor
-					? async (name: string, args: Record<string, unknown>) => {
-						const result = await baseToolExecutor(name, args) as Record<string, unknown>;
-
-						// Handle propose_edit with immediate confirmation
-						if (name === "propose_edit") {
-							const pending = getPendingEdit();
-							if (pending) {
-								// Check if auto-apply is enabled (slash command with confirmEdits=false)
-								const slashCommand = currentSlashCommandRef.current;
-								const shouldAutoApply = slashCommand && slashCommand.confirmEdits === false;
-
-								if (shouldAutoApply) {
-									const applyResult = await applyEdit(plugin.app);
-									if (applyResult.success) {
-										processedEdits.push({ originalPath: pending.originalPath, status: "applied" });
-										return { ...result, applied: true, message: `Applied changes to "${pending.originalPath}"` };
-									} else {
-										discardEdit(plugin.app);
-										processedEdits.push({ originalPath: pending.originalPath, status: "failed" });
-										return { ...result, applied: false, error: applyResult.error };
-									}
-								} else {
-									const confirmResult = await promptForConfirmation(
-										plugin.app,
-										pending.originalPath,
-										pending.newContent,
-										"overwrite",
-										pending.originalContent
-									);
-
-									if (confirmResult.action === "save") {
-										const applyResult = await applyEdit(plugin.app);
-										if (applyResult.success) {
-											processedEdits.push({ originalPath: pending.originalPath, status: "applied" });
-											return { ...result, applied: true, message: `Applied changes to "${pending.originalPath}"` };
-										} else {
-											discardEdit(plugin.app);
-											processedEdits.push({ originalPath: pending.originalPath, status: "failed" });
-											return { ...result, applied: false, error: applyResult.error };
-										}
-									} else if (confirmResult.additionalRequest !== undefined) {
-										// User requested changes with feedback
-										discardEdit(plugin.app);
-										processedEdits.push({ originalPath: pending.originalPath, status: "discarded" });
-										pendingAdditionalRequestRef.current = {
-											filePath: pending.originalPath,
-											request: confirmResult.additionalRequest,
-										};
-										return { ...result, applied: false, message: "User requested changes" };
-									} else {
-										discardEdit(plugin.app);
-										processedEdits.push({ originalPath: pending.originalPath, status: "discarded" });
-										return { ...result, applied: false, message: "User cancelled the edit" };
-									}
-								}
-							}
-						}
-
-						// Handle propose_delete with immediate confirmation
-						if (name === "propose_delete") {
-							const pending = getPendingDelete();
-							if (pending) {
-								const confirmed = await promptForDeleteConfirmation(
-									plugin.app,
-									pending.path,
-									pending.content
-								);
-
-								if (confirmed) {
-									const deleteResult = await applyDelete(plugin.app);
-									if (deleteResult.success) {
-										processedDeletes.push({ path: pending.path, status: "deleted" });
-										return { ...result, deleted: true, message: `Deleted "${pending.path}"` };
-									} else {
-										discardDelete(plugin.app);
-										processedDeletes.push({ path: pending.path, status: "failed" });
-										return { ...result, deleted: false, error: deleteResult.error };
-									}
-								} else {
-									discardDelete(plugin.app);
-									processedDeletes.push({ path: pending.path, status: "cancelled" });
-									return { ...result, deleted: false, message: "User cancelled the deletion" };
-								}
-							}
-						}
-
-						// Handle rename_note (now proposeRename) with confirmation
-						if (name === "rename_note") {
-							const pendingRn = getPendingRename();
-							if (pendingRn) {
-								const confirmed = await promptForRenameConfirmation(
-									plugin.app,
-									pendingRn.originalPath,
-									pendingRn.newPath
-								);
-
-								if (confirmed) {
-									const renameResult = await applyRename(plugin.app);
-									if (renameResult.success) {
-										processedRenames.push({ originalPath: pendingRn.originalPath, newPath: pendingRn.newPath, status: "applied" });
-										return { ...result, applied: true, message: `Renamed "${pendingRn.originalPath}" to "${pendingRn.newPath}"` };
-									} else {
-										discardRename(plugin.app);
-										processedRenames.push({ originalPath: pendingRn.originalPath, newPath: pendingRn.newPath, status: "failed" });
-										return { ...result, applied: false, error: renameResult.error };
-									}
-								} else {
-									discardRename(plugin.app);
-									processedRenames.push({ originalPath: pendingRn.originalPath, newPath: pendingRn.newPath, status: "discarded" });
-									return { ...result, applied: false, message: "User cancelled the rename" };
-								}
-							}
-						}
-
-						// Handle bulk_propose_edit with immediate confirmation
-						if (name === "bulk_propose_edit") {
-							const pendingBulk = getPendingBulkEdit();
-							if (pendingBulk && pendingBulk.items.length > 0) {
-								const selectedPaths = await promptForBulkEditConfirmation(
-									plugin.app,
-									pendingBulk.items
-								);
-
-								if (selectedPaths.length > 0) {
-									const applyResult = await applyBulkEdit(plugin.app, selectedPaths);
-									// Track each applied edit
-									for (const path of applyResult.applied) {
-										processedEdits.push({ originalPath: path, status: "applied" });
-									}
-									for (const path of applyResult.failed) {
-										processedEdits.push({ originalPath: path, status: "failed" });
-									}
-									return {
-										...result,
-										applied: applyResult.applied,
-										failed: applyResult.failed,
-										message: applyResult.message,
-									};
-								} else {
-									discardBulkEdit();
-									// Track all as discarded
-									for (const item of pendingBulk.items) {
-										processedEdits.push({ originalPath: item.path, status: "discarded" });
-									}
-									return { ...result, applied: [], message: "User cancelled all edits" };
-								}
-							}
-						}
-
-						// Handle bulk_propose_delete with immediate confirmation
-						if (name === "bulk_propose_delete") {
-							const pendingBulk = getPendingBulkDelete();
-							if (pendingBulk && pendingBulk.items.length > 0) {
-								const selectedPaths = await promptForBulkDeleteConfirmation(
-									plugin.app,
-									pendingBulk.items
-								);
-
-								if (selectedPaths.length > 0) {
-									const deleteResult = await applyBulkDelete(plugin.app, selectedPaths);
-									// Track each deleted file
-									for (const path of deleteResult.deleted) {
-										processedDeletes.push({ path, status: "deleted" });
-									}
-									for (const path of deleteResult.failed) {
-										processedDeletes.push({ path, status: "failed" });
-									}
-									return {
-										...result,
-										deleted: deleteResult.deleted,
-										failed: deleteResult.failed,
-										message: deleteResult.message,
-									};
-								} else {
-									discardBulkDelete();
-									// Track all as cancelled
-									for (const item of pendingBulk.items) {
-										processedDeletes.push({ path: item.path, status: "cancelled" });
-									}
-									return { ...result, deleted: [], message: "User cancelled all deletions" };
-								}
-							}
-						}
-
-						// Handle bulk_propose_rename with immediate confirmation
-						if (name === "bulk_propose_rename") {
-							const pendingBulk = getPendingBulkRename();
-							if (pendingBulk && pendingBulk.items.length > 0) {
-								const selectedPaths = await promptForBulkRenameConfirmation(
-									plugin.app,
-									pendingBulk.items
-								);
-
-								if (selectedPaths.length > 0) {
-									const renameResult = await applyBulkRename(plugin.app, selectedPaths);
-									// Track each renamed file
-									for (const path of renameResult.applied) {
-										const item = pendingBulk.items.find(i => i.originalPath === path);
-										if (item) {
-											processedRenames.push({ originalPath: item.originalPath, newPath: item.newPath, status: "applied" });
-										}
-									}
-									for (const path of renameResult.failed) {
-										const item = pendingBulk.items.find(i => i.originalPath === path);
-										if (item) {
-											processedRenames.push({ originalPath: item.originalPath, newPath: item.newPath, status: "failed" });
-										}
-									}
-									return {
-										...result,
-										applied: renameResult.applied,
-										failed: renameResult.failed,
-										message: renameResult.message,
-									};
-								} else {
-									discardBulkRename();
-									// Track all as discarded
-									for (const item of pendingBulk.items) {
-										processedRenames.push({ originalPath: item.originalPath, newPath: item.newPath, status: "discarded" });
-									}
-									return { ...result, applied: [], message: "User cancelled all renames" };
-								}
-							}
-						}
-
-						return result;
-					}
-					: undefined;
+				// The propose_* and bulk_* tools need the user's confirmation before
+				// anything is written; the shared wrapper drives it and records what
+				// happened for the badges on the finished message.
+				const confirming = baseToolExecutor
+					? createConfirmingToolExecutor(baseToolExecutor, plugin.app, autoApplyEdits, () => abortController.abort())
+					: null;
+				const toolExecutor = confirming?.executeToolCall;
+				const processedEdits = confirming?.processedEdits ?? [];
+				const processedDeletes = confirming?.processedDeletes ?? [];
+				const processedRenames = confirming?.processedRenames ?? [];
+				const pendingAdditionalRequestRef = confirming?.pendingAdditionalRequest ?? { current: null };
 
 					// Check if Web Search or Image Generation model is selected
 				const isImageGeneration = isImageGenerationModel(allowedModel);

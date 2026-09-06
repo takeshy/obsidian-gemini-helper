@@ -1,3 +1,6 @@
+import type { ToolCall, ToolResult, WebSearchSource, GeneratedImage } from "obsidian-llm-hub-common/chat";
+
+export type { Message, ToolCall, ToolResult, Attachment, PendingEditInfo, PendingDeleteInfo, PendingRenameInfo, WebSearchSource, GeneratedImage } from "obsidian-llm-hub-common/chat";
 import type { WorkflowEventTrigger } from "obsidian-llm-hub-common/workflow";
 
 export type { ObsidianEventType, WorkflowEventTrigger } from "obsidian-llm-hub-common/workflow";
@@ -458,10 +461,6 @@ export function modelAcceptsPdf(modelName: ModelType): boolean {
 
 // Chat message types
 // Generated image from Gemini
-export interface GeneratedImage {
-  mimeType: string;
-  data: string;  // Base64 encoded image data
-}
 
 // MCP App info for rendering in messages
 export interface McpAppInfo {
@@ -471,84 +470,25 @@ export interface McpAppInfo {
   uiResource?: McpAppUiResource | null;
 }
 
-export interface Message {
-  role: "user" | "assistant";
-  content: string;
-  timestamp: number;
-  model?: ModelType;  // モデル名（assistantの場合のみ）
-  toolsUsed?: string[];  // 使用したツール名の配列
-  attachments?: Attachment[];  // 添付ファイル
-  pendingEdit?: PendingEditInfo;  // 保留中の編集情報
-  pendingDelete?: PendingDeleteInfo;  // 保留中の削除情報
-  pendingRename?: PendingRenameInfo;  // 保留中のリネーム情報
-  toolCalls?: ToolCall[];
-  toolResults?: ToolResult[];
-  ragUsed?: boolean;  // RAG（File Search）が使用されたか
-  ragSources?: string[];  // RAG検索で見つかったソースファイル
-  ragContexts?: RagContext[];  // RAG検索で取得された抜粋
-  webSearchUsed?: boolean;  // Web Searchが使用されたか
-  webSearchSources?: WebSearchSource[];  // Web Searchの引用元
-  imageGenerationUsed?: boolean;  // Image Generationが使用されたか
-  generatedImages?: GeneratedImage[];  // 生成された画像
-  thinking?: string;  // モデルの思考内容（thinkingモデル用）
-  skillsUsed?: string[];  // Names of active skills used
-  mcpApps?: McpAppInfo[];  // MCP Apps with UI (MCP Apps拡張)
-  usage?: StreamChunkUsage;  // Token usage and cost
-  elapsedMs?: number;        // Response time in milliseconds
-  interactionId?: string;    // Interactions API interaction ID for conversation chaining
-}
 
 export interface RagContext {
   source: string;
   text: string;
 }
 
-export interface WebSearchSource {
-  title: string;
-  url: string;
-}
 
 // 保留中の編集情報
-export interface PendingEditInfo {
-  originalPath: string;
-  status: "pending" | "applied" | "discarded" | "failed";
-}
 
 // 保留中の削除情報
-export interface PendingDeleteInfo {
-  path: string;
-  status: "pending" | "deleted" | "cancelled" | "failed";
-}
 
 // 保留中のリネーム情報
-export interface PendingRenameInfo {
-  originalPath: string;
-  newPath: string;
-  status: "pending" | "applied" | "discarded" | "failed";
-}
 
 // 添付ファイル
 /** How a PDF reaches the model: as a native document part, or as extracted text. */
 export type PdfInputMode = "native" | "extract-text";
 
-export interface Attachment {
-  name: string;
-  type: "image" | "pdf" | "text" | "audio" | "video";
-  mimeType: string;
-  data: string;  // Base64エンコードされたデータ
-  sourcePath?: string;  // Vault-relative path when the attachment came from a vault file
-}
 
-export interface ToolCall {
-  id: string;
-  name: string;
-  args: Record<string, unknown>;
-}
 
-export interface ToolResult {
-  toolCallId: string;
-  result: unknown;
-}
 
 // Conversation history for Gemini API
 export interface ConversationHistory {

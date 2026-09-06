@@ -52,7 +52,7 @@
     "diff": "^8.0.2",
     "fflate": "^0.8.3",
     "lucide-react": "^0.503.0",
-    "obsidian-llm-hub-common": "github:takeshy/obsidian-llm-hub-common#0f009aa9ede8d5a95f635e493e57c8a47ef32e9f",
+    "obsidian-llm-hub-common": "github:takeshy/obsidian-llm-hub-common#37a2d86dabc2682912a7d67a141b1c72d2b94f10",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
   }

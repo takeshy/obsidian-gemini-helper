@@ -53,11 +53,9 @@ export interface WorkflowConfirmResult {
 }
 
 /** Context from the generation phases, shown in preview/confirm modals */
-export interface GenerationContext {
-  plan?: string;
-  thinking?: string;
-  review?: string;
-}
+import type { GenerationContext } from "obsidian-llm-hub-common/workflow";
+
+export type { GenerationContext };
 
 // Confirmation modal for reviewing changes
 class WorkflowConfirmModal extends Modal {

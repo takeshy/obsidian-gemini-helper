@@ -4731,23 +4731,6 @@
   letter-spacing: 0.5px;
 }
 
-.workflow-generation-copy-btn {
-  padding: 2px 8px;
-  font-size: 11px;
-  height: auto;
-  line-height: 1.4;
-  background: var(--background-secondary);
-  color: var(--text-muted);
-  border: 1px solid var(--background-modifier-border);
-  border-radius: 4px;
-  cursor: pointer;
-}
-
-.workflow-generation-copy-btn:hover {
-  color: var(--text-normal);
-  background: var(--background-modifier-hover);
-}
-
 /* For thinking summary: copy button floats right */
 .gemini-helper-thinking-summary .workflow-generation-copy-btn {
   float: right;
@@ -4773,75 +4756,6 @@
   word-break: normal;
   overflow-wrap: anywhere;
   color: var(--text-normal);
-}
-
-.workflow-generation-plan-rendered h1,
-.workflow-generation-plan-rendered h2,
-.workflow-generation-plan-rendered h3,
-.workflow-generation-plan-rendered h4 {
-  margin: 14px 0 6px;
-  font-weight: 600;
-  color: var(--text-normal);
-}
-
-.workflow-generation-plan-rendered h1 { font-size: 1.25em; }
-.workflow-generation-plan-rendered h2 { font-size: 1.15em; }
-.workflow-generation-plan-rendered h3 { font-size: 1.05em; }
-.workflow-generation-plan-rendered h4 { font-size: 1em; }
-
-.workflow-generation-plan-rendered p {
-  margin: 6px 0;
-}
-
-.workflow-generation-plan-rendered ul,
-.workflow-generation-plan-rendered ol {
-  margin: 6px 0;
-  padding-left: 1.6em;
-}
-
-.workflow-generation-plan-rendered li {
-  margin: 4px 0;
-}
-
-.workflow-generation-plan-rendered li > p {
-  margin: 0;
-}
-
-.workflow-generation-plan-rendered strong {
-  color: var(--text-normal);
-  font-weight: 600;
-}
-
-.workflow-generation-plan-rendered code {
-  font-size: 0.9em;
-  padding: 1px 4px;
-  background: var(--background-modifier-hover);
-  border-radius: 3px;
-}
-
-.workflow-generation-plan-rendered pre {
-  margin: 6px 0;
-  padding: 8px;
-  background: var(--background-primary-alt);
-  border-radius: 4px;
-  font-size: 0.9em;
-}
-
-.workflow-generation-plan-rendered blockquote {
-  margin: 6px 0;
-  padding-left: 10px;
-  border-left: 3px solid var(--background-modifier-border);
-  color: var(--text-muted);
-}
-
-.workflow-generation-plan-rendered > *:first-child { margin-top: 0; }
-.workflow-generation-plan-rendered > *:last-child { margin-bottom: 0; }
-
-/* In preview/confirm modals the context content defaults to max-height: 200px.
-   Give the rendered plan more breathing room since it's the primary reference. */
-.workflow-generation-context-content.workflow-generation-plan-rendered {
-  max-height: 400px;
-  overflow-y: auto;
 }
 
 .workflow-generation-plan {
@@ -5014,248 +4928,6 @@
   gap: 8px;
 }
 
-/* ===============================================
-   Workflow Preview Modal Styles
-   =============================================== */
-
-.workflow-preview-modal {
-  min-width: 600px;
-  max-width: 900px;
-}
-
-.workflow-preview-modal-content .modal-drag-handle {
-  cursor: move;
-  margin: -16px -16px 16px -16px;
-  padding: 16px;
-  border-bottom: 1px solid var(--background-modifier-border);
-}
-
-.workflow-preview-modal-content .modal-drag-handle h2 {
-  margin: 0;
-}
-
-.workflow-preview-name {
-  margin-bottom: 16px;
-  padding: 8px 12px;
-  background: var(--interactive-accent);
-  color: var(--text-on-accent);
-  border-radius: 4px;
-  font-weight: 600;
-  font-size: 16px;
-}
-
-.workflow-preview-nodes {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin-bottom: 16px;
-  max-height: 400px;
-  overflow-y: auto;
-  padding-right: 8px;
-}
-
-.workflow-preview-node-card {
-  padding: 10px 14px;
-  background: var(--background-secondary);
-  border: 1px solid var(--background-modifier-border);
-  border-radius: 6px;
-  transition: border-color 0.15s;
-}
-
-.workflow-preview-node-card:hover {
-  border-color: var(--interactive-accent);
-}
-
-.workflow-preview-node-header {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 6px;
-}
-
-.workflow-preview-node-type {
-  padding: 2px 6px;
-  background: var(--interactive-accent);
-  color: var(--text-on-accent);
-  border-radius: 4px;
-  font-size: 11px;
-  font-weight: 600;
-  text-transform: uppercase;
-}
-
-.workflow-preview-node-id {
-  font-size: 12px;
-  color: var(--text-muted);
-  font-family: var(--font-monospace);
-}
-
-.workflow-preview-node-comment {
-  font-size: 13px;
-  color: var(--text-normal);
-  line-height: 1.4;
-  margin-bottom: 4px;
-  white-space: pre-wrap;
-  word-break: break-word;
-}
-
-.workflow-preview-node-summary {
-  font-size: 13px;
-  color: var(--text-muted);
-  font-family: var(--font-monospace);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  margin-bottom: 4px;
-}
-
-.workflow-preview-node-connections {
-  font-size: 11px;
-  color: var(--text-muted);
-}
-
-.workflow-preview-yaml-section {
-  margin-bottom: 16px;
-}
-
-.workflow-preview-yaml-section summary {
-  cursor: pointer;
-  padding: 8px 12px;
-  background: var(--background-modifier-hover);
-  border-radius: 4px;
-  font-size: 13px;
-  color: var(--text-muted);
-}
-
-.workflow-preview-yaml-section summary:hover {
-  background: var(--background-modifier-active);
-}
-
-/* Generation context (plan/thinking/review) in preview & confirm modals */
-.workflow-generation-context {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin-bottom: 16px;
-}
-
-.workflow-generation-context-details {
-  border: 1px solid var(--background-modifier-border);
-  border-radius: 6px;
-  background: var(--background-secondary);
-  overflow: hidden;
-}
-
-.workflow-generation-context-details summary {
-  cursor: pointer;
-  padding: 8px 12px;
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--text-normal);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  list-style: none;
-  user-select: none;
-}
-
-.workflow-generation-context-details summary::-webkit-details-marker {
-  display: none;
-}
-
-/* Custom disclosure triangle on the left of the label */
-.workflow-generation-context-details summary > span:first-child {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex: 1;
-}
-
-.workflow-generation-context-details summary > span:first-child::before {
-  content: "▸";
-  display: inline-block;
-  color: var(--text-muted);
-  font-size: 10px;
-  transition: transform 0.15s ease;
-  width: 10px;
-  text-align: center;
-}
-
-.workflow-generation-context-details[open] > summary > span:first-child::before {
-  transform: rotate(90deg);
-}
-
-.workflow-generation-context-details summary:hover {
-  background: var(--background-modifier-hover);
-}
-
-.workflow-generation-context-content {
-  margin: 0;
-  padding: 10px 12px;
-  border-top: 1px solid var(--background-modifier-border);
-  background: var(--background-primary);
-  font-size: 12px;
-  line-height: 1.5;
-  max-height: 240px;
-  overflow-y: auto;
-  white-space: pre-wrap;
-  word-break: break-word;
-}
-
-.workflow-preview-yaml {
-  margin: 8px 0 0 0;
-  padding: 12px;
-  background: var(--background-secondary);
-  border: 1px solid var(--background-modifier-border);
-  border-radius: 4px;
-  font-size: 12px;
-  font-family: var(--font-monospace);
-  overflow-x: auto;
-  white-space: pre-wrap;
-  word-break: break-word;
-  max-height: 200px;
-  overflow-y: auto;
-}
-
-.workflow-preview-additional {
-  margin-bottom: 16px;
-}
-
-.workflow-preview-additional.is-hidden {
-  display: none;
-}
-
-.workflow-preview-additional label {
-  display: block;
-  margin-bottom: 8px;
-  font-weight: 500;
-  font-size: 14px;
-}
-
-.workflow-preview-additional-input {
-  width: 100%;
-  padding: 8px;
-  border: 1px solid var(--background-modifier-border);
-  border-radius: 4px;
-  background: var(--background-primary);
-  resize: vertical;
-}
-
-.workflow-preview-additional-input:focus {
-  border-color: var(--interactive-accent);
-  outline: none;
-}
-
-.workflow-preview-buttons {
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
-}
-
-.workflow-preview-buttons button {
-  padding: 8px 16px;
-}
-
 /* Mobile: Full screen modals */
 .is-mobile .workflow-generation-modal,
 .is-mobile .workflow-preview-modal {
@@ -5310,47 +4982,6 @@
 .is-mobile .workflow-generation-buttons button {
   width: 100%;
   padding: 10px;
-}
-
-/* Workflow Preview Modal - Mobile */
-.is-mobile .workflow-preview-name {
-  flex-shrink: 0;
-}
-
-.is-mobile .workflow-preview-nodes {
-  flex: 1;
-  min-height: 100px;
-  max-height: none;
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
-}
-
-.is-mobile .workflow-preview-yaml-section {
-  flex-shrink: 0;
-}
-
-.is-mobile .workflow-preview-yaml {
-  max-height: 120px;
-}
-
-.is-mobile .workflow-preview-additional {
-  flex-shrink: 0;
-}
-
-.is-mobile .workflow-preview-additional-input {
-  min-height: 60px;
-}
-
-.is-mobile .workflow-preview-buttons {
-  flex-shrink: 0;
-  flex-direction: column;
-  gap: 8px;
-  padding-top: 8px;
-}
-
-.is-mobile .workflow-preview-buttons button {
-  width: 100%;
-  padding: 12px;
 }
 
 /* Reduce content height when textarea is focused on mobile */
@@ -8312,4 +7943,383 @@
   min-width: 0;
   max-width: 100%;
   box-sizing: border-box;
+}
+
+/* Workflow preview modal */
+
+.gemini-helper-workflow-generation-copy-btn {
+  padding: 2px 8px;
+  font-size: 11px;
+  height: auto;
+  line-height: 1.4;
+  background: var(--background-secondary);
+  color: var(--text-muted);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.gemini-helper-workflow-generation-copy-btn:hover {
+  color: var(--text-normal);
+  background: var(--background-modifier-hover);
+}
+
+.gemini-helper-workflow-generation-plan-rendered h1,
+.gemini-helper-workflow-generation-plan-rendered h2,
+.gemini-helper-workflow-generation-plan-rendered h3,
+.gemini-helper-workflow-generation-plan-rendered h4 {
+  margin: 14px 0 6px;
+  font-weight: 600;
+  color: var(--text-normal);
+}
+
+.gemini-helper-workflow-generation-plan-rendered h1 { font-size: 1.25em; }
+
+.gemini-helper-workflow-generation-plan-rendered h2 { font-size: 1.15em; }
+
+.gemini-helper-workflow-generation-plan-rendered h3 { font-size: 1.05em; }
+
+.gemini-helper-workflow-generation-plan-rendered h4 { font-size: 1em; }
+
+.gemini-helper-workflow-generation-plan-rendered p {
+  margin: 6px 0;
+}
+
+.gemini-helper-workflow-generation-plan-rendered ul,
+.gemini-helper-workflow-generation-plan-rendered ol {
+  margin: 6px 0;
+  padding-left: 1.6em;
+}
+
+.gemini-helper-workflow-generation-plan-rendered li {
+  margin: 4px 0;
+}
+
+.gemini-helper-workflow-generation-plan-rendered li > p {
+  margin: 0;
+}
+
+.gemini-helper-workflow-generation-plan-rendered strong {
+  color: var(--text-normal);
+  font-weight: 600;
+}
+
+.gemini-helper-workflow-generation-plan-rendered code {
+  font-size: 0.9em;
+  padding: 1px 4px;
+  background: var(--background-modifier-hover);
+  border-radius: 3px;
+}
+
+.gemini-helper-workflow-generation-plan-rendered pre {
+  margin: 6px 0;
+  padding: 8px;
+  background: var(--background-primary-alt);
+  border-radius: 4px;
+  font-size: 0.9em;
+}
+
+.gemini-helper-workflow-generation-plan-rendered blockquote {
+  margin: 6px 0;
+  padding-left: 10px;
+  border-left: 3px solid var(--background-modifier-border);
+  color: var(--text-muted);
+}
+
+.gemini-helper-workflow-generation-plan-rendered > *:first-child { margin-top: 0; }
+
+.gemini-helper-workflow-generation-plan-rendered > *:last-child { margin-bottom: 0; }
+
+/* In preview/confirm modals the context content defaults to max-height: 200px.
+   Give the rendered plan more breathing room since it's the primary reference. */
+.gemini-helper-workflow-generation-context-content.gemini-helper-workflow-generation-plan-rendered {
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+/* ===============================================
+   Workflow Preview Modal Styles
+   =============================================== */
+
+.gemini-helper-workflow-preview-modal {
+  min-width: 600px;
+  max-width: 900px;
+}
+
+.gemini-helper-workflow-preview-modal-content .modal-drag-handle {
+  cursor: move;
+  margin: -16px -16px 16px -16px;
+  padding: 16px;
+  border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.gemini-helper-workflow-preview-modal-content .modal-drag-handle h2 {
+  margin: 0;
+}
+
+.gemini-helper-workflow-preview-name {
+  margin-bottom: 16px;
+  padding: 8px 12px;
+  background: var(--interactive-accent);
+  color: var(--text-on-accent);
+  border-radius: 4px;
+  font-weight: 600;
+  font-size: 16px;
+}
+
+.gemini-helper-workflow-preview-nodes {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 16px;
+  max-height: 400px;
+  overflow-y: auto;
+  padding-right: 8px;
+}
+
+.gemini-helper-workflow-preview-node-card {
+  padding: 10px 14px;
+  background: var(--background-secondary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 6px;
+  transition: border-color 0.15s;
+}
+
+.gemini-helper-workflow-preview-node-card:hover {
+  border-color: var(--interactive-accent);
+}
+
+.gemini-helper-workflow-preview-node-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.gemini-helper-workflow-preview-node-type {
+  padding: 2px 6px;
+  background: var(--interactive-accent);
+  color: var(--text-on-accent);
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.gemini-helper-workflow-preview-node-id {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-family: var(--font-monospace);
+}
+
+.gemini-helper-workflow-preview-node-comment {
+  font-size: 13px;
+  color: var(--text-normal);
+  line-height: 1.4;
+  margin-bottom: 4px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.gemini-helper-workflow-preview-node-summary {
+  font-size: 13px;
+  color: var(--text-muted);
+  font-family: var(--font-monospace);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-bottom: 4px;
+}
+
+.gemini-helper-workflow-preview-node-connections {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.gemini-helper-workflow-preview-yaml-section {
+  margin-bottom: 16px;
+}
+
+.gemini-helper-workflow-preview-yaml-section summary {
+  cursor: pointer;
+  padding: 8px 12px;
+  background: var(--background-modifier-hover);
+  border-radius: 4px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.gemini-helper-workflow-preview-yaml-section summary:hover {
+  background: var(--background-modifier-active);
+}
+
+/* Generation context (plan/thinking/review) in preview & confirm modals */
+.gemini-helper-workflow-generation-context {
+  margin-bottom: 16px;
+}
+
+.gemini-helper-workflow-generation-context {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.gemini-helper-workflow-generation-context-details {
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 6px;
+  background: var(--background-secondary);
+  overflow: hidden;
+}
+
+.gemini-helper-workflow-generation-context-details summary {
+  cursor: pointer;
+  padding: 8px 12px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-normal);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  list-style: none;
+  user-select: none;
+}
+
+.gemini-helper-workflow-generation-context-details summary::-webkit-details-marker {
+  display: none;
+}
+
+/* Custom disclosure triangle on the left of the label */
+.gemini-helper-workflow-generation-context-details summary > span:first-child {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+}
+
+.gemini-helper-workflow-generation-context-details summary > span:first-child::before {
+  content: "▸";
+  display: inline-block;
+  color: var(--text-muted);
+  font-size: 10px;
+  transition: transform 0.15s ease;
+  width: 10px;
+  text-align: center;
+}
+
+.gemini-helper-workflow-generation-context-details[open] > summary > span:first-child::before {
+  transform: rotate(90deg);
+}
+
+.gemini-helper-workflow-generation-context-details summary:hover {
+  background: var(--background-modifier-hover);
+}
+
+.gemini-helper-workflow-generation-context-content {
+  margin: 0;
+  padding: 10px 12px;
+  border-top: 1px solid var(--background-modifier-border);
+  background: var(--background-primary);
+  font-size: 12px;
+  line-height: 1.5;
+  max-height: 240px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.gemini-helper-workflow-preview-yaml {
+  margin: 8px 0 0 0;
+  padding: 12px;
+  background: var(--background-secondary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 4px;
+  font-size: 12px;
+  font-family: var(--font-monospace);
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.gemini-helper-workflow-preview-additional {
+  margin-bottom: 16px;
+}
+
+.gemini-helper-workflow-preview-additional.is-hidden {
+  display: none;
+}
+
+.gemini-helper-workflow-preview-additional label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 500;
+  font-size: 14px;
+}
+
+.gemini-helper-workflow-preview-additional-input {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 4px;
+  background: var(--background-primary);
+  resize: vertical;
+}
+
+.gemini-helper-workflow-preview-additional-input:focus {
+  border-color: var(--interactive-accent);
+  outline: none;
+}
+
+.gemini-helper-workflow-preview-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.gemini-helper-workflow-preview-buttons button {
+  padding: 8px 16px;
+}
+
+/* Workflow Preview Modal - Mobile */
+.is-mobile .gemini-helper-workflow-preview-name {
+  flex-shrink: 0;
+}
+
+.is-mobile .gemini-helper-workflow-preview-nodes {
+  flex: 1;
+  min-height: 100px;
+  max-height: none;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.is-mobile .gemini-helper-workflow-preview-yaml-section {
+  flex-shrink: 0;
+}
+
+.is-mobile .gemini-helper-workflow-preview-yaml {
+  max-height: 120px;
+}
+
+.is-mobile .gemini-helper-workflow-preview-additional {
+  flex-shrink: 0;
+}
+
+.is-mobile .gemini-helper-workflow-preview-additional-input {
+  min-height: 60px;
+}
+
+.is-mobile .gemini-helper-workflow-preview-buttons {
+  flex-shrink: 0;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 8px;
+}
+
+.is-mobile .gemini-helper-workflow-preview-buttons button {
+  width: 100%;
+  padding: 12px;
 }

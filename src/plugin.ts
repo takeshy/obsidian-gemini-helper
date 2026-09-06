@@ -8,6 +8,7 @@ import { EncryptionManager } from "src/plugin/encryptionManager";
 import { configureMcpAppViewer } from "obsidian-llm-hub-common/modals";
 import { showMcpApp } from "src/ui/components/workflow/McpAppModal";
 import type { McpAppInfo } from "src/types";
+import { configureWorkflowHost } from "obsidian-llm-hub-common/workflow";
 
 import { WorkflowManager } from "src/plugin/workflowManager";
 import { WorkspaceStateManager } from "src/core/workspaceStateManager";
@@ -25,6 +26,7 @@ import {
   DEFAULT_SETTINGS,
   DEFAULT_RAG_STATE,
   getDefaultModelForPlan,
+  getAvailableModels,
 } from "src/types";
 import { initGeminiClient, resetGeminiClient, getGeminiClient } from "src/core/gemini";
 import { initLangfuse, resetLangfuse } from "src/tracing/langfuse";
@@ -129,6 +131,11 @@ export class GeminiHelperPlugin extends Plugin {
     // Initialize i18n locale
     initLocale();
     configureClassPrefix("gemini-helper");
+    configureWorkflowHost({
+      getModelOptions: () => getAvailableModels(this.settings.apiPlan).map(model => ({ value: model.name, label: model.displayName })),
+      getRagSettingNames: () => Object.keys(this.workspaceState.ragSettings || {}),
+      getMcpServerNames: () => (this.settings.mcpServers || []).map(server => server.name),
+    });
     configureMcpAppViewer((app, mcpApp) => showMcpApp(app, mcpApp as McpAppInfo));
     let approvalModal: McpApprovalModal | undefined;
     setMcpApprovalHandler({

@@ -52,7 +52,7 @@ import {
 } from "obsidian-llm-hub-common/core";
 import { cryptoCache } from "src/core/cryptoCache";
 import { formatError } from "obsidian-llm-hub-common/core";
-import { createConfirmingToolExecutor } from "obsidian-llm-hub-common/chat";
+import { createConfirmingToolExecutor, withRateLimitRetry } from "obsidian-llm-hub-common/chat";
 import { extractPdfText } from "src/vault/pdfText";
 import {
 	resolveMessageVariables as resolveMessageVariablesShared,
@@ -80,7 +80,7 @@ import { promptForDialog } from "./workflow/DialogPromptModal";
 import { showMcpApp } from "./workflow/McpAppModal";
 import { promptForPassword } from "src/ui/passwordPrompt";
 import { t } from "src/i18n";
-import { PAID_RATE_LIMIT_RETRY_DELAYS_MS, buildErrorMessage, isRateLimitError, limitConversationHistory, shouldUseImageModel, sleep, type ChatHistory } from "./chat/chatUtils";
+import { PAID_RATE_LIMIT_RETRY_DELAYS_MS, buildErrorMessage, limitConversationHistory, shouldUseImageModel, type ChatHistory } from "./chat/chatUtils";
 import {
 	parseMarkdownToMessages,
 	formatHistoryDate,
@@ -1406,42 +1406,31 @@ Always be helpful and provide clear, concise responses. When working with vault 
 				}
 			};
 
-			const retryDelays = apiPlan === "paid" ? PAID_RATE_LIMIT_RETRY_DELAYS_MS : [];
-			let retryCount = 0;
-
-			while (true) {
-				try {
-					await runStreamOnce();
-					break;
-				} catch (error) {
-					if (abortController.signal.aborted) {
-						if (isActive()) {
-							setStreamingContent("");
-							setStreamingThinking("");
-						}
-						tracing.traceEnd(traceId, { metadata: { status: "aborted" } });
-						tracing.score(traceId, { name: "status", value: 0.5, comment: "aborted during retry" });
-						return;
+			const outcome = await withRateLimitRetry(runStreamOnce, {
+				// Only the paid plan has a rate limit worth waiting out.
+				delays: apiPlan === "paid" ? PAID_RATE_LIMIT_RETRY_DELAYS_MS : [],
+				isAborted: () => abortController.signal.aborted,
+				onRetry: ({ attempt, total, delayMs }) => {
+					// The failed attempt left partial output on screen.
+					if (isActive()) {
+						setStreamingContent("");
+						setStreamingThinking("");
 					}
-					if (apiPlan === "paid" && isRateLimitError(error) && retryCount < retryDelays.length) {
-						const delayMs = retryDelays[retryCount];
-						retryCount += 1;
-						if (isActive()) {
-							setStreamingContent("");
-							setStreamingThinking("");
-						}
-						new Notice(
-							t("chat.rateLimitRetrying", {
-								seconds: String(Math.ceil(delayMs / 1000)),
-								attempt: String(retryCount),
-								max: String(retryDelays.length),
-							})
-						);
-						await sleep(delayMs);
-						continue;
-					}
-					throw error;
+					new Notice(t("chat.rateLimitRetrying", {
+						seconds: String(Math.ceil(delayMs / 1000)),
+						attempt: String(attempt),
+						max: String(total),
+					}));
+				},
+			});
+			if (outcome === "aborted") {
+				if (isActive()) {
+					setStreamingContent("");
+					setStreamingThinking("");
 				}
+				tracing.traceEnd(traceId, { metadata: { status: "aborted" } });
+				tracing.score(traceId, { name: "status", value: 0.5, comment: "aborted during retry" });
+				return;
 			}
 		} catch (error) {
 			const errorMessageText = buildErrorMessage(error, apiPlan);

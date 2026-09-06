@@ -1,3 +1,6 @@
+import { Trash2 } from "lucide-react";
+import { ChatHeader } from "obsidian-llm-hub-chat-ui";
+import { ChatLayout, HistoryList } from "obsidian-llm-hub-chat-ui";
 import {
 	useState,
 	useEffect,
@@ -8,7 +11,7 @@ import {
 	useMemo,
 } from "react";
 import { TFile, Notice, MarkdownView, Platform } from "obsidian";
-import { Plus, History, ChevronDown, Lock, FileText, Loader2, Check, Maximize2, Minimize2 } from "lucide-react";
+import { Plus, History, Lock, FileText, Loader2, Check, Maximize2, Minimize2 } from "lucide-react";
 import type { GeminiHelperPlugin } from "src/plugin";
 import {
 	getAvailableModels,
@@ -2353,73 +2356,49 @@ Always be helpful and provide clear, concise responses. When working with vault 
 	const chatClassName = `gemini-helper-chat${isKeyboardVisible ? " keyboard-visible" : ""}${isDecryptInputFocused ? " decrypt-input-focused" : ""}`;
 
 	return (
-		<div className={chatClassName}>
-			<div className="gemini-helper-chat-header">
-				<h3>{t("chat.title")}</h3>
-				<div className="gemini-helper-header-actions">
+		<ChatLayout className={chatClassName}>
+			<ChatHeader classPrefix="gemini-helper">
 					<button
-						className="gemini-helper-icon-btn gemini-helper-sidebar-width-btn"
+						className="gemini-helper-header-btn gemini-helper-sidebar-width-btn"
 						onClick={() => setIsSidebarWide(onToggleSidebarWidth())}
 						title={isSidebarWide ? t("chat.narrowSidebar") : t("chat.widenSidebar")}
 					>
-						{isSidebarWide ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
+						{isSidebarWide ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
 					</button>
 					<button
-						className="gemini-helper-icon-btn"
+						className="gemini-helper-header-btn"
 						onClick={() => { void handleSaveAsNote(); }}
 						disabled={saveNoteState === "saving" || messages.length === 0}
 						title={saveNoteState === "saved" ? t("chat.savedAsNote", { path: "" }) : t("chat.saveAsNote")}
 					>
-						{saveNoteState === "idle" && <FileText size={18} />}
-						{saveNoteState === "saving" && <Loader2 size={18} className="gemini-helper-spinner" />}
-						{saveNoteState === "saved" && <Check size={18} />}
+						{saveNoteState === "idle" && <FileText size={16} />}
+						{saveNoteState === "saving" && <Loader2 size={16} className="gemini-helper-spin" />}
+						{saveNoteState === "saved" && <Check size={16} />}
 					</button>
 					<button
-						className="gemini-helper-icon-btn"
+						className="gemini-helper-header-btn"
 						onClick={startNewChat}
 						title={t("chat.newChat")}
 					>
-						<Plus size={18} />
+						<Plus size={16} />
 					</button>
 					<button
-						className="gemini-helper-icon-btn"
+						className="gemini-helper-header-btn"
 						onClick={() => setShowHistory(!showHistory)}
 						title={t("chat.chatHistory")}
 					>
-						<History size={18} />
-						{showHistory && <ChevronDown size={14} className="gemini-helper-chevron" />}
-					</button>
-				</div>
-			</div>
+						<History size={16} />
 
-			{showHistory && chatHistories.length > 0 && (
-				<div className="gemini-helper-history-dropdown">
-					{chatHistories.map((history) => (
-						<div key={history.id}>
-							<div
-								className={`gemini-helper-history-item ${currentChatId === history.id ? "active" : ""} ${history.isEncrypted ? "encrypted" : ""}`}
-								onClick={() => loadChat(history)}
-							>
-								<div className="gemini-helper-history-title">
-									{history.isEncrypted && <Lock size={14} className="gemini-helper-lock-icon" />}
-									{history.title}
-								</div>
-								<div className="gemini-helper-history-meta">
-									<span className="gemini-helper-history-date">
-										{formatHistoryDate(history.updatedAt)}
-									</span>
-									<button
-										className="gemini-helper-history-delete"
-										onClick={(e) => {
-											void deleteChat(history.id, e);
-										}}
-										title={t("common.delete")}
-									>
-										×
-									</button>
-								</div>
-							</div>
-							{decryptingChatId === history.id && (
+					</button>
+				</ChatHeader>
+
+			{showHistory && <HistoryList classPrefix="gemini-helper"
+        entries={chatHistories.map(history => ({ ...history, dateLabel: formatHistoryDate(history.updatedAt), encrypted: history.isEncrypted }))}
+        currentId={currentChatId} emptyLabel={t("chat.noChatHistory")} deleteLabel={t("common.delete")}
+        onSelect={history => { void loadChat(history); }}
+        onDelete={(history, event) => { void deleteChat(history.id, event); }}
+        panel deleteIcon={<Trash2 size={12} />} lockIcon={<Lock size={14} className="gemini-helper-lock-icon" />}
+        renderExtra={history => (decryptingChatId === history.id && (
 								<div className="gemini-helper-decrypt-form">
 									<input
 										type="password"
@@ -2452,17 +2431,8 @@ Always be helpful and provide clear, concise responses. When working with vault 
 										×
 									</button>
 								</div>
-							)}
-						</div>
-					))}
-				</div>
-			)}
-
-			{showHistory && chatHistories.length === 0 && (
-				<div className="gemini-helper-history-dropdown">
-					<div className="gemini-helper-history-empty">{t("chat.noChatHistory")}</div>
-				</div>
-			)}
+							))}
+      />}
 
 			{isConfigReady ? (
 				<>
@@ -2578,7 +2548,7 @@ Always be helpful and provide clear, concise responses. When working with vault 
 					</div>
 				</div>
 			)}
-		</div>
+		</ChatLayout>
 	);
 });
 

@@ -1,5 +1,9 @@
+import { CollapsedInput } from "obsidian-llm-hub-chat-ui";
+import ModelSelector from "./ModelSelector";
+import { InputArea as SharedInputArea } from "obsidian-llm-hub-chat-ui";
+import { Composer, Autocomplete, Attachments } from "obsidian-llm-hub-chat-ui";
 import { useState, useRef, useEffect, KeyboardEvent, ChangeEvent, forwardRef, useImperativeHandle } from "react";
-import { Send, Paperclip, StopCircle, Loader2, Eye, Database, ChevronUp, ChevronDown, Wrench, X } from "lucide-react";
+import { Paperclip, Eye, Database, Wrench, X } from "lucide-react";
 import { Notice, Platform, type App } from "obsidian";
 import { isImageGenerationModel, type ModelInfo, type ModelType, type Attachment, type SlashCommand, type McpServerConfig, type VaultToolMode, type ReasoningEffort } from "src/types";
 import type { SkillMetadata } from "src/core/skillsLoader";
@@ -557,7 +561,8 @@ const InputArea = forwardRef<InputAreaHandle, InputAreaProps>(function InputArea
   };
 
   return (
-    <div className={`gemini-helper-input-container ${isCollapsed ? "collapsed" : ""}`}>
+    <SharedInputArea classPrefix="gemini-helper" className={`gemini-helper-input-container ${isCollapsed ? "collapsed" : ""}`} collapsed={isCollapsed}
+      beforeInput={<>
       {/* MCP servers enabled for this chat */}
       {!isCollapsed && mcpServers.some((server) => server.enabled) && (
         <div className="gemini-helper-enabled-mcp-servers">
@@ -586,74 +591,22 @@ const InputArea = forwardRef<InputAreaHandle, InputAreaProps>(function InputArea
 
       {/* Pending attachments display */}
       {!isCollapsed && pendingAttachments.length > 0 && (
-        <div className="gemini-helper-pending-attachments">
-          {pendingAttachments.map((attachment, index) => (
-            <span key={index} className="gemini-helper-pending-attachment">
-              {attachment.type === "image" && "🖼️"}
-              {attachment.type === "pdf" && "📄"}
-              {attachment.type === "text" && "📃"}
-              {attachment.type === "audio" && "🎵"}
-              {attachment.type === "video" && "🎬"}
-              {" "}{attachment.name}
-              <button
-                className="gemini-helper-pending-attachment-remove"
-                onClick={() => removeAttachment(index)}
-                title={t("input.removeAttachment")}
-              >
-                ×
-              </button>
-            </span>
-          ))}
-        </div>
+        <Attachments classPrefix="gemini-helper" attachments={pendingAttachments} pending onRemove={removeAttachment} removeLabel={t("input.removeAttachment")} />
       )}
 
-      {!isCollapsed && (
-        <div className="gemini-helper-input-area">
+      </>}
+      accessories={<>
           {/* Slash command autocomplete */}
           {showAutocomplete && (
-          <div className="gemini-helper-autocomplete">
-            {filteredCommands.map((cmd, index) => (
-              <div
-                key={cmd.id}
-                className={`gemini-helper-autocomplete-item ${
-                  index === autocompleteIndex ? "active" : ""
-                }`}
-                onClick={() => selectCommand(cmd)}
-                onMouseEnter={() => setAutocompleteIndex(index)}
-              >
-                <span className="gemini-helper-autocomplete-name">
-                  {"id" in cmd && (cmd as BuiltInCommand).id?.startsWith("__skill__") ? `✨ /${cmd.name}` : `/${cmd.name}`}
-                </span>
-                {("description" in cmd) && cmd.description && (
-                  <span className="gemini-helper-autocomplete-desc">
-                    {cmd.description}
-                  </span>
-                )}
-              </div>
-            ))}
-          </div>
+          <Autocomplete classPrefix="gemini-helper"
+            items={filteredCommands.map(cmd => ({ id: cmd.id, label: "id" in cmd && (cmd as BuiltInCommand).id?.startsWith("__skill__") ? `✨ /${cmd.name}` : `/${cmd.name}`, description: "description" in cmd ? cmd.description : undefined }))}
+            activeIndex={autocompleteIndex} onSelect={index => selectCommand(filteredCommands[index])} onHover={setAutocompleteIndex} />
         )}
 
         {/* Mention autocomplete */}
         {showMentionAutocomplete && (
-          <div className="gemini-helper-autocomplete" ref={mentionAutocompleteRef}>
-            {filteredMentions.map((mention, index) => (
-              <div
-                key={mention.value}
-                className={`gemini-helper-autocomplete-item ${
-                  index === mentionIndex ? "active" : ""
-                }`}
-                onClick={() => selectMention(mention)}
-                onMouseEnter={() => setMentionIndex(index)}
-              >
-                <span className="gemini-helper-autocomplete-name">
-                  {mention.kind === "wikilink" ? `[[${mention.value}]]` : mention.value}
-                </span>
-                <span className="gemini-helper-autocomplete-desc">
-                  {mention.description}
-                </span>
-                {mention.kind !== "variable" && (
-                  <button
+          <Autocomplete classPrefix="gemini-helper" containerRef={mentionAutocompleteRef}
+            items={filteredMentions.map(mention => ({ id: mention.value, label: mention.kind === "wikilink" ? `[[${mention.value}]]` : mention.value, description: mention.description, action: mention.kind !== "variable" ? (<button
                     className="gemini-helper-preview-btn"
                     onClick={(e) => {
                       e.stopPropagation();
@@ -663,11 +616,8 @@ const InputArea = forwardRef<InputAreaHandle, InputAreaProps>(function InputArea
                     title={t("input.openFile")}
                   >
                     <Eye size={12} />
-                  </button>
-                )}
-              </div>
-            ))}
-          </div>
+                  </button>) : undefined }))}
+            activeIndex={mentionIndex} onSelect={index => selectMention(filteredMentions[index])} onHover={setMentionIndex} />
         )}
 
         {/* Hidden file input */}
@@ -787,86 +737,32 @@ const InputArea = forwardRef<InputAreaHandle, InputAreaProps>(function InputArea
           </div>
         </div>
 
-        <textarea
-          ref={textareaRef}
-          className="gemini-helper-input"
-          value={input}
-          onChange={handleInputChange}
-          onKeyDown={handleKeyDown}
-          placeholder={isCompacting ? t("chat.compacting") : (Platform.isMobile ? t("input.placeholderMobile") : t("input.placeholder"))}
-          disabled={isCompacting}
-          rows={3}
-        />
-        <div className="gemini-helper-send-buttons">
-          {isCompacting ? (
-            <button
-              className="gemini-helper-send-btn"
-              disabled={true}
-              title={t("chat.compacting")}
-            >
-              <Loader2 size={18} className="gemini-helper-spinner" />
-            </button>
-          ) : isLoading ? (
-            <button
-              className="gemini-helper-stop-btn"
-              onClick={onStop}
-              title={t("input.stop")}
-            >
-              <StopCircle size={18} />
-            </button>
-          ) : (
-            <button
-              className="gemini-helper-send-btn"
-              onClick={handleSubmit}
-              disabled={!input.trim() && pendingAttachments.length === 0}
-              title={t("input.send")}
-            >
-              <Send size={18} />
-            </button>
-          )}
-          {Platform.isMobile && (
-            <button
-              className="gemini-helper-collapse-btn"
-              onClick={() => setIsCollapsed(!isCollapsed)}
-              title={isCollapsed ? t("input.expand") : t("input.collapse")}
-            >
-              {isCollapsed ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
-            </button>
-          )}
-        </div>
-      </div>
-      )}
+        </>}
+      composer={<Composer classPrefix="gemini-helper" textareaRef={textareaRef}
+          textarea={{ value: input,
+          onChange: handleInputChange,
+          onKeyDown: handleKeyDown,
+          placeholder: isCompacting ? t("chat.compacting") : (Platform.isMobile ? t("input.placeholderMobile") : t("input.placeholder")),
+          disabled: isCompacting }}
+          isLoading={isLoading} isCompacting={isCompacting} compactingLabel={t("chat.compacting")}
+          canSend={!!input.trim() || pendingAttachments.length > 0}
+          onSend={handleSubmit} onStop={onStop}
+          sendLabel={t("input.send")} stopLabel={t("input.stop")}
+          collapse={Platform.isMobile ? { collapsed: isCollapsed, onToggle: () => setIsCollapsed(!isCollapsed), label: isCollapsed ? t("input.expand") : t("input.collapse") } : undefined}
+        />}
+      footer={<>
 
       {/* Collapsed state: show only expand button */}
       {isCollapsed && Platform.isMobile && (
-        <div className="gemini-helper-collapsed-bar">
-          <button
-            className="gemini-helper-expand-btn"
-            onClick={() => setIsCollapsed(false)}
-            title={t("input.expand")}
-          >
-            <ChevronUp size={18} />
-          </button>
-        </div>
+        <CollapsedInput classPrefix="gemini-helper" label={t("input.expand")} onExpand={() => setIsCollapsed(false)} />
       )}
 
       {!isCollapsed && (
         <div className="gemini-helper-model-selector">
-          <select
-            className="gemini-helper-model-select"
-            value={model}
-            onChange={(e) => onModelChange(e.target.value as ModelType)}
-            disabled={isLoading}
-          >
-            {availableModels.map((m) => (
-              <option key={m.name} value={m.name}>
-                {m.displayName}
-              </option>
-            ))}
-          </select>
+          <ModelSelector models={availableModels} value={model} onChange={onModelChange} disabled={isLoading} />
           {reasoningEffortOptions.length > 0 && (
             <select
-              className="gemini-helper-model-select gemini-helper-effort-select"
+              className="gemini-helper-model-dropdown gemini-helper-effort-select"
               value={reasoningEffort}
               onChange={(e) => onReasoningEffortChange(e.target.value as ReasoningEffort)}
               disabled={isLoading}
@@ -879,7 +775,7 @@ const InputArea = forwardRef<InputAreaHandle, InputAreaProps>(function InputArea
             </select>
           )}
           <select
-            className="gemini-helper-model-select gemini-helper-rag-select"
+            className="gemini-helper-model-dropdown gemini-helper-rag-select"
             value={webSearchEnabled ? "__websearch__" : (ragEnabled ? (selectedRagSetting || "") : "")}
             onChange={(e) => {
               const value = e.target.value;
@@ -925,7 +821,8 @@ const InputArea = forwardRef<InputAreaHandle, InputAreaProps>(function InputArea
           disabled={isLoading}
         />
       )}
-    </div>
+    </>}
+    />
   );
 });
 

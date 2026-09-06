@@ -299,6 +299,8 @@ export const en = {
   "chat.yesterday": "Yesterday",
 
   // InputArea
+  "input.modelFilterPlaceholder": "Filter models...",
+  "input.modelFilterEmpty": "No matching models",
   "input.placeholder": "Type your message... (Enter to send, Shift+Enter for new line)",
   "input.placeholderMobile": "Type your message...",
   "input.send": "Send message",

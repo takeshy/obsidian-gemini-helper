@@ -52,6 +52,7 @@
     "diff": "^8.0.2",
     "fflate": "^0.8.3",
     "lucide-react": "^0.503.0",
+    "obsidian-llm-hub-chat-ui": "file:vendor/obsidian-llm-hub-chat-ui-0.1.0.tgz",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
   }

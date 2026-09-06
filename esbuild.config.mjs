@@ -1,3 +1,4 @@
+import { buildChatStyles, chatStylesPlugin } from "obsidian-llm-hub-chat-ui/styles";
 import esbuild from "esbuild";
 import process from "process";
 import path from "path";
@@ -100,6 +101,8 @@ const langfuseNoopPlugin = {
   },
 };
 
+await buildChatStyles({ classPrefix: "gemini-helper" });
+
 const context = await esbuild.context({
   banner: {
     js: banner,
@@ -150,7 +153,7 @@ const context = await esbuild.context({
   minify: prod,
   jsxFactory: "React.createElement",
   jsxFragment: "React.Fragment",
-  plugins: langfuseBuild ? [langfuseCompatPlugin] : [langfuseNoopPlugin],
+  plugins: [chatStylesPlugin({ classPrefix: "gemini-helper" }), ...(langfuseBuild ? [langfuseCompatPlugin] : [langfuseNoopPlugin])],
   loader: {
     ".ts": "ts",
     ".tsx": "tsx",

@@ -1,6 +1,8 @@
+import { ToolIndicator } from "obsidian-llm-hub-chat-ui";
+import { MessageBubble as SharedMessageBubble, MessageContent, Attachments, UsageInfo } from "obsidian-llm-hub-chat-ui";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { type App, MarkdownRenderer, Component, Notice, Platform } from "obsidian";
-import { Copy, Check, CheckCircle, XCircle, Download, Eye } from "lucide-react";
+import { Copy, CheckCircle, XCircle, Download, Eye } from "lucide-react";
 import type { Message, ToolCall, ToolResult } from "src/types";
 import { AVAILABLE_MODELS } from "src/types";
 import { HTMLPreviewModal, extractHtmlFromCodeBlock } from "./HTMLPreviewModal";
@@ -257,7 +259,6 @@ export default function MessageBubble({
     return parts.join(": ");
   };
 
-
   const handleCopy = async () => {
     try {
       await navigator.clipboard.writeText(message.content);
@@ -428,30 +429,9 @@ export default function MessageBubble({
   };
 
   return (
-    <div
-      className={`gemini-helper-message ${
-        isUser ? "gemini-helper-message-user" : "gemini-helper-message-assistant"
-      } ${isStreaming ? "gemini-helper-message-streaming" : ""}`}
-    >
-      <div className="gemini-helper-message-header">
-        <span className="gemini-helper-message-role">
-          {getModelDisplayName()}
-        </span>
-        <span className="gemini-helper-message-time">
-          {formatTime(message.timestamp)}
-        </span>
-        {!isStreaming && (
-          <button
-            className="gemini-helper-copy-btn"
-            onClick={() => {
-              void handleCopy();
-            }}
-            title={t("message.copyToClipboard")}
-          >
-            {copied ? <Check size={14} /> : <Copy size={14} />}
-          </button>
-        )}
-      </div>
+    <SharedMessageBubble classPrefix="gemini-helper" isUser={isUser} isStreaming={isStreaming}
+      roleLabel={getModelDisplayName()} timeLabel={formatTime(message.timestamp)} copied={copied}
+      copyLabel={t("message.copyToClipboard")} onCopy={() => { void handleCopy(); }}>
 
       {/* Web search indicator */}
       {message.webSearchUsed && (
@@ -541,10 +521,8 @@ export default function MessageBubble({
               const failedWorkflowPath = getFailedWorkflowPath(toolCall, message.toolResults);
               const noteTarget = getToolNoteTarget(toolCall, message.toolResults);
               return (
-                <span key={index} className="gemini-helper-tool-indicator-group">
-                  <span
-                    className="gemini-helper-tool-indicator gemini-helper-tool-clickable"
-                    onClick={() => {
+                <ToolIndicator key={index} classPrefix="gemini-helper" icon={icon} label={label}
+                  detail={getToolDetail(toolCall)} onClick={() => {
                       if (noteTarget) {
                         void app.workspace.openLinkText(noteTarget, "", false).catch(() => {
                           new Notice(getToolDetail(toolCall), 3000);
@@ -553,26 +531,10 @@ export default function MessageBubble({
                         new Notice(getToolDetail(toolCall), 3000);
                       }
                     }}
-                    title={
-                      noteTarget
-                        ? t("message.clickToOpen", { source: noteTarget })
-                        : t("message.clickToSeeDetails")
-                    }
-                  >
-                    {icon} {label}
-                  </span>
-                  {failedWorkflowPath && (
-                    <button
-                      className="gemini-helper-tool-open-workflow-btn"
-                      onClick={() => {
+                  workflowAction={failedWorkflowPath ? { label: t("message.openWorkflow"), title: t("message.clickToOpen", { source: failedWorkflowPath }), onClick: () => {
                         void openWorkflowInPanel(app, failedWorkflowPath);
-                      }}
-                      title={t("message.clickToOpen", { source: failedWorkflowPath })}
-                    >
-                      📂 {t("message.openWorkflow")}
-                    </button>
-                  )}
-                </span>
+                      } } : undefined}
+                />
               );
             })}
           </div>
@@ -586,52 +548,16 @@ export default function MessageBubble({
       )}
 
       {/* Attachments display */}
-      {message.attachments && message.attachments.length > 0 && (
-        <div className="gemini-helper-attachments">
-          {message.attachments.map((attachment, index) => (
-            <span key={index} className="gemini-helper-attachment">
-              {attachment.type === "image" && "🖼️"}
-              {attachment.type === "pdf" && "📄"}
-              {attachment.type === "text" && "📃"}
-              {attachment.type === "audio" && "🎵"}
-              {attachment.type === "video" && "🎬"}
-              {" "}{attachment.name}
-            </span>
-          ))}
-        </div>
-      )}
+      <Attachments classPrefix="gemini-helper" attachments={message.attachments} />
 
       {/* Thinking content (collapsible) */}
-      {message.thinking && (
-        <details className="gemini-helper-thinking">
-          <summary className="gemini-helper-thinking-summary">
-            💭 {t("message.thinking")}
-          </summary>
-          <div className="gemini-helper-thinking-content">
-            {message.thinking}
-          </div>
-        </details>
-      )}
-
-      <div className="gemini-helper-message-content" ref={contentRef} />
+      <MessageContent classPrefix="gemini-helper" contentRef={contentRef} thinking={message.thinking}
+        thinkingLabel={t("message.thinking")} thinkingOpen={isStreaming || !message.content}  />
 
       {/* Usage info (tokens, cost, response time) */}
-      {!isUser && !isStreaming && (message.usage || message.elapsedMs) && (
-        <div className="gemini-helper-usage-info">
-          {message.elapsedMs !== undefined && (
-            <span>{formatElapsed(message.elapsedMs)}</span>
-          )}
-          {message.usage && message.usage.inputTokens !== undefined && message.usage.outputTokens !== undefined && (
-            <span>
-              {formatNumber(message.usage.inputTokens)} → {formatNumber(message.usage.outputTokens)} {t("message.tokens")}
-              {message.usage.thinkingTokens ? ` (${t("message.thinkingTokens")} ${formatNumber(message.usage.thinkingTokens)})` : ""}
-            </span>
-          )}
-          {message.usage?.totalCost !== undefined && (
-            <span>${message.usage.totalCost.toFixed(4)}</span>
-          )}
-        </div>
-      )}
+      <UsageInfo classPrefix="gemini-helper" isUser={isUser} isStreaming={isStreaming}
+        elapsedMs={message.elapsedMs} usage={message.usage}
+        tokensLabel={t("message.tokens")} thinkingTokensLabel={t("message.thinkingTokens")} />
 
       {/* HTML code block actions */}
       {htmlContent && !isStreaming && (
@@ -796,7 +722,7 @@ export default function MessageBubble({
           ❌ {t("message.failedToRename")}
         </div>
       )}
-    </div>
+    </SharedMessageBubble>
   );
 }
 
@@ -888,13 +814,4 @@ function formatTime(timestamp: number): string {
     hour: "2-digit",
     minute: "2-digit",
   });
-}
-
-function formatElapsed(ms: number): string {
-  if (ms < 1000) return `${ms}ms`;
-  return `${(ms / 1000).toFixed(1)}s`;
-}
-
-function formatNumber(n: number): string {
-  return n.toLocaleString();
 }

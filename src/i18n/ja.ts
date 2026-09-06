@@ -299,6 +299,8 @@ export const ja: Record<string, string> = {
   "chat.yesterday": "昨日",
 
   // InputArea
+  "input.modelFilterPlaceholder": "モデルを絞り込み...",
+  "input.modelFilterEmpty": "一致するモデルがありません",
   "input.placeholder": "メッセージを入力...（Enterで送信、Shift+Enterで改行）",
   "input.placeholderMobile": "メッセージを入力...",
   "input.send": "メッセージを送信",

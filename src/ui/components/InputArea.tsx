@@ -565,7 +565,7 @@ const InputArea = forwardRef<InputAreaHandle, InputAreaProps>(function InputArea
   };
 
   return (
-    <SharedInputArea classPrefix="gemini-helper" className={`gemini-helper-input-container ${isCollapsed ? "collapsed" : ""}`} collapsed={isCollapsed}
+    <SharedInputArea classPrefix="gemini-helper" modifiers={[isCollapsed && "collapsed"]} collapsed={isCollapsed}
       beforeInput={<>
       {/* MCP servers enabled for this chat */}
       {!isCollapsed && (

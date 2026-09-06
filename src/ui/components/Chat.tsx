@@ -1,6 +1,6 @@
 import { Trash2 } from "lucide-react";
 import { ChatHeader } from "obsidian-llm-hub-chat-ui";
-import { ChatLayout, HistoryList } from "obsidian-llm-hub-chat-ui";
+import { ChatLayout, HistoryList, HeaderButton, SidebarWidthButton, SaveNoteButton } from "obsidian-llm-hub-chat-ui";
 import {
 	useState,
 	useEffect,
@@ -11,7 +11,7 @@ import {
 	useMemo,
 } from "react";
 import { TFile, Notice, MarkdownView, Platform } from "obsidian";
-import { Plus, History, Lock, FileText, Loader2, Check, Maximize2, Minimize2 } from "lucide-react";
+import { Plus, History, Lock } from "lucide-react";
 import type { GeminiHelperPlugin } from "src/plugin";
 import {
 	getAvailableModels,
@@ -2350,43 +2350,28 @@ Always be helpful and provide clear, concise responses. When working with vault 
 		inputAreaRef.current?.focus();
 	}, []);
 
-	const chatClassName = `gemini-helper-chat${isKeyboardVisible ? " keyboard-visible" : ""}${isDecryptInputFocused ? " decrypt-input-focused" : ""}`;
-
 	return (
-		<ChatLayout className={chatClassName}>
+		<ChatLayout classPrefix="gemini-helper" modifiers={[isKeyboardVisible && "keyboard-visible", isDecryptInputFocused && "decrypt-input-focused"]}>
 			<ChatHeader classPrefix="gemini-helper">
-					<button
-						className="gemini-helper-header-btn gemini-helper-sidebar-width-btn"
-						onClick={() => setIsSidebarWide(onToggleSidebarWidth())}
+					<SidebarWidthButton
+						classPrefix="gemini-helper"
+						wide={isSidebarWide}
 						title={isSidebarWide ? t("chat.narrowSidebar") : t("chat.widenSidebar")}
-					>
-						{isSidebarWide ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
-					</button>
-					<button
-						className="gemini-helper-header-btn"
-						onClick={() => { void handleSaveAsNote(); }}
-						disabled={saveNoteState === "saving" || messages.length === 0}
+						onClick={() => setIsSidebarWide(onToggleSidebarWidth())}
+					/>
+					<SaveNoteButton
+						classPrefix="gemini-helper"
+						state={saveNoteState}
+						disabled={messages.length === 0}
 						title={saveNoteState === "saved" ? t("chat.savedAsNote", { path: "" }) : t("chat.saveAsNote")}
-					>
-						{saveNoteState === "idle" && <FileText size={16} />}
-						{saveNoteState === "saving" && <Loader2 size={16} className="gemini-helper-spin" />}
-						{saveNoteState === "saved" && <Check size={16} />}
-					</button>
-					<button
-						className="gemini-helper-header-btn"
-						onClick={startNewChat}
-						title={t("chat.newChat")}
-					>
+						onClick={() => { void handleSaveAsNote(); }}
+					/>
+					<HeaderButton classPrefix="gemini-helper" title={t("chat.newChat")} onClick={startNewChat}>
 						<Plus size={16} />
-					</button>
-					<button
-						className="gemini-helper-header-btn"
-						onClick={() => setShowHistory(!showHistory)}
-						title={t("chat.chatHistory")}
-					>
+					</HeaderButton>
+					<HeaderButton classPrefix="gemini-helper" title={t("chat.chatHistory")} onClick={() => setShowHistory(!showHistory)}>
 						<History size={16} />
-
-					</button>
+					</HeaderButton>
 				</ChatHeader>
 
 			{showHistory && <HistoryList classPrefix="gemini-helper"

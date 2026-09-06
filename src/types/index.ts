@@ -94,7 +94,9 @@ export interface KnowledgeSource {
 }
 
 // Vault tool mode type
-export type VaultToolMode = "all" | "noSearch" | "readOnly" | "none";
+// Shared: the built-in Vault tool policy lives in the library.
+import type { VaultToolMode } from "obsidian-llm-hub-common/core";
+export type { VaultToolMode };
 
 // Reason why vault tools are set to "none"
 // "manual" = user manually turned off (MCP servers remain unchanged)

@@ -40,6 +40,14 @@ import {
   normalizeVaultScopePath,
 } from "./aiVaultScope";
 
+/**
+ * Whether this host can answer `get_rag_sync_status`. Its RAG store records
+ * per-file import state, so the switch below has a case for it and
+ * `getEnabledVaultTools` may advertise it. toolExecutor.contract.test.ts fails
+ * if this flag and the switch ever disagree.
+ */
+export const HOST_EXECUTES_RAG_SYNC_STATUS = true;
+
 export type ToolResult = Record<string, unknown>;
 
 // Context for tool execution (optional, used for RAG tools)
@@ -140,6 +148,12 @@ function asString(value: unknown): string | undefined {
   try { return JSON.stringify(value); } catch { return undefined; }
 }
 
+function asPageNumber(value: unknown): number | undefined {
+  if (value == null) return undefined;
+  const number = typeof value === "number" ? value : Number(value);
+  return Number.isInteger(number) ? number : Number.NaN;
+}
+
 function localDay(date = new Date()): string {
   const pad = (value: number) => String(value).padStart(2, "0");
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
@@ -172,7 +186,18 @@ async function executeToolCallInternal(
       };
     }
 
-    case "read_note":
+    case "read_note": {
+      // The shared read_note schema offers a PDF page range; without these the
+      // model's startPage/endPage were silently dropped and it got page 1 onward.
+      const startPage = asPageNumber(args.startPage);
+      const endPage = asPageNumber(args.endPage);
+      if ((startPage !== undefined && (Number.isNaN(startPage) || startPage < 1))
+        || (endPage !== undefined && (Number.isNaN(endPage) || endPage < 1))) {
+        return { success: false, error: "startPage and endPage must be positive integers" };
+      }
+      if (startPage !== undefined && endPage !== undefined && startPage > endPage) {
+        return { success: false, error: "startPage must be less than or equal to endPage" };
+      }
       if (!isFileInAiVaultToolScope(app, asString(args.fileName), args.activeNote as boolean | undefined, context, true)) {
         return denyAiVaultToolScope();
       }
@@ -181,8 +206,11 @@ async function executeToolCallInternal(
         asString(args.fileName),
         args.activeNote as boolean | undefined,
         context?.maxNoteChars ?? DEFAULT_SETTINGS.maxNoteChars,
-        context?.pdfInputMode ?? "extract-text"
+        context?.pdfInputMode ?? "extract-text",
+        startPage,
+        endPage,
       );
+    }
 
     case "create_note": {
       let name = asString(args.name);

@@ -203,3 +203,20 @@ describe("AI vault tool folder scope", () => {
     expect(result.rejectedPaths).toEqual(["Private/Secret.md"]);
   });
 });
+
+describe("read_note PDF page range", () => {
+  it("validates the page arguments the shared read_note schema declares", async () => {
+    const app = makeApp([makeFile("Public/report.pdf")]);
+
+    expect(String((await executeToolCall(app, "read_note", {
+      fileName: "Public/report.pdf",
+      startPage: 1.5,
+    })).error)).toContain("positive integers");
+
+    expect(String((await executeToolCall(app, "read_note", {
+      fileName: "Public/report.pdf",
+      startPage: 7,
+      endPage: 3,
+    })).error)).toContain("less than or equal to");
+  });
+});

@@ -3,7 +3,8 @@ import { App } from "obsidian";
 import type { GeminiHelperPlugin } from "../../plugin";
 import { getGeminiClient } from "../../core/gemini";
 import { getAvailableModels, getDefaultModelForPlan, isImageGenerationModel, type ToolDefinition, type McpAppInfo, type StreamChunkUsage } from "../../types";
-import { isVaultToolAllowed, getEnabledTools } from "../../core/tools";
+import { filterVaultToolsForMode, getEnabledVaultTools, isVaultToolAllowed } from "obsidian-llm-hub-common/core";
+import { HOST_EXECUTES_RAG_SYNC_STATUS } from "../../vault/toolExecutor";
 import { fetchMcpTools, createMcpToolExecutor, type McpToolDefinition } from "../../core/mcpTools";
 import { createToolExecutor } from "../../vault/toolExecutor";
 import { WorkflowNode, ExecutionContext, PromptCallbacks, FileExplorerData } from "../types";
@@ -182,24 +183,16 @@ Please revise the output based on the user's feedback above.`;
   const isImageModel = isImageGenerationModel(model);
 
   if (!isImageModel && vaultToolMode !== "none") {
-    // Get vault tools based on RAG setting
+    // get_rag_sync_status only makes sense while a RAG index is in play.
     const allowRag = ragSettingName !== "__websearch__" && ragSettingName !== "__none__" && ragSettingName !== "";
-    const vaultTools = getEnabledTools({
-      allowWrite: true,
-      allowDelete: true,
-      ragEnabled: allowRag,
-    });
-
-    // Filter vault tools based on mode
-    const searchToolNames = ["search_notes", "list_notes"];
-
-    tools = vaultTools.filter(tool => {
-      if (vaultToolMode === "readOnly") return isVaultToolAllowed(tool.name, vaultToolMode);
-    if (vaultToolMode === "noSearch") {
-        return !searchToolNames.includes(tool.name);
-      }
-      return true; // "all" mode - keep all vault tools
-    });
+    tools = filterVaultToolsForMode(
+      getEnabledVaultTools({
+        allowWrite: true,
+        allowDelete: true,
+        ragSyncStatus: HOST_EXECUTES_RAG_SYNC_STATUS && allowRag,
+      }),
+      vaultToolMode,
+    );
 
     // Create vault tool executor
     const obsidianToolExecutor = createToolExecutor(app, {

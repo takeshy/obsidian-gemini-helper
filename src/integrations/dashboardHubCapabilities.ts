@@ -1,7 +1,7 @@
 import { TFile } from "obsidian";
 import type { GeminiHelperPlugin } from "src/plugin";
 import { GeminiClient } from "src/core/gemini";
-import { getEnabledTools } from "src/core/tools";
+import { getEnabledVaultTools } from "obsidian-llm-hub-common/core";
 import { createToolExecutor } from "src/vault/toolExecutor";
 import { loadBuiltinSkill, builtinFolderPath } from "src/core/builtinSkills";
 import { WORKFLOW_SPECIFICATION } from "src/workflow/workflowSpec";
@@ -49,7 +49,7 @@ async function generate(plugin: GeminiHelperPlugin, modelId: string, prompt: str
   if (!plugin.settings.googleApiKey) throw new Error("Gemini API key is not configured.");
   const client = new GeminiClient(plugin.settings.googleApiKey, modelId as ModelType);
   const messages: Message[] = [{ role: "user", content: prompt, timestamp: Date.now() }];
-  const tools = vaultRead ? getEnabledTools({ allowWrite: false, allowDelete: false, ragEnabled: false }) : [];
+  const tools = vaultRead ? getEnabledVaultTools({ allowWrite: false, allowDelete: false, ragSyncStatus: false }) : [];
   const execute = vaultRead ? createToolExecutor(plugin.app, { listNotesLimit: plugin.settings.listNotesLimit, maxNoteChars: plugin.settings.maxNoteChars,
     limitAiVaultToolScope: true, aiVaultToolAllowedFolders: plugin.settings.aiVaultToolAllowedFolders }) : undefined;
   const stream = client.chatWithToolsStream(messages, tools, systemPrompt, execute, undefined, false, { functionCallLimits: { maxFunctionCalls: 12 }, enableThinking: true, traceId: null });

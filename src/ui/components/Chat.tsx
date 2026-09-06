@@ -35,7 +35,9 @@ import {
 } from "src/types";
 import { getGeminiClient, getReasoningEffortOptions } from "src/core/gemini";
 import { tracing } from "src/core/tracingHooks";
-import { isVaultToolAllowed, getEnabledTools, skillWorkflowTool } from "src/core/tools";
+import { getEnabledVaultTools, isVaultToolAllowed } from "obsidian-llm-hub-common/core";
+import { HOST_EXECUTES_RAG_SYNC_STATUS } from "src/vault/toolExecutor";
+import { skillWorkflowTool } from "src/core/skillTools";
 import { handleExecuteJavascriptTool, EXECUTE_JAVASCRIPT_TOOL } from "src/core/sandboxExecutor";
 import { fetchMcpTools, createMcpToolExecutor, isMcpTool, type McpToolDefinition, type McpToolExecutor } from "src/core/mcpTools";
 import { createToolExecutor } from "src/vault/toolExecutor";
@@ -976,10 +978,10 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin, onToggleSidebarWidth }, r
 				const { settings } = plugin;
 				const toolsEnabled = !isImageGenerationModel(allowedModel);
 				const vaultToolsEnabled = toolsEnabled && vaultToolMode !== "none";
-				const obsidianTools = vaultToolsEnabled ? getEnabledTools({
+				const obsidianTools = vaultToolsEnabled ? getEnabledVaultTools({
 					allowWrite: true,
 					allowDelete: true,
-					ragEnabled: allowRag,
+					ragSyncStatus: HOST_EXECUTES_RAG_SYNC_STATUS && allowRag,
 				}) : [];
 
 				// Activate skill if invoked via slash command
@@ -1020,19 +1022,8 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin, onToggleSidebarWidth }, r
 				// Merge Obsidian tools and MCP tools
 				const allTools = [...obsidianTools, ...mcpTools];
 
-				// Filter Obsidian search tools in noSearch mode (MCP tools are independent).
-				const searchToolNames = ["search_notes", "list_notes"];
-				const tools = allTools.filter(tool => {
-					// MCP tools are always included
-					if (isMcpTool(tool)) {
-						return true;
-					}
-					if (vaultToolMode === "readOnly") return isVaultToolAllowed(tool.name, vaultToolMode);
-					if (vaultToolMode === "noSearch") {
-						return !searchToolNames.includes(tool.name);
-					}
-					return true; // "all" mode - keep all tools
-				});
+				// Apply the Vault access mode to the built-in tools (MCP tools are independent).
+				const tools = allTools.filter(tool => isMcpTool(tool) || isVaultToolAllowed(tool.name, vaultToolMode));
 
 				// Add run_skill_workflow tool if any active skill has workflows
 				if (vaultToolsEnabled && loadedSkillsList.some(s => s.workflows.length > 0)) {

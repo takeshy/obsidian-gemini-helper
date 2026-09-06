@@ -1,7 +1,7 @@
 import { Setting, Notice } from "obsidian";
 import { clearMcpToolsCache } from "src/core/mcpTools";
 import { t } from "src/i18n";
-import { McpServerModal } from "./McpServerModal";
+import { McpServerModal } from "obsidian-llm-hub-common/settings";
 import type { SettingsContext } from "./settingsContext";
 
 export function displayMcpServersSettings(containerEl: HTMLElement, ctx: SettingsContext): void {

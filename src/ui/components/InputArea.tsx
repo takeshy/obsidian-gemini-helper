@@ -1,9 +1,9 @@
 import { CollapsedInput } from "obsidian-llm-hub-chat-ui";
 import ModelSelector from "./ModelSelector";
 import { InputArea as SharedInputArea } from "obsidian-llm-hub-chat-ui";
-import { Composer, Autocomplete, Attachments } from "obsidian-llm-hub-chat-ui";
+import { Composer, Autocomplete, Attachments, VaultToolMenu, VaultToolButton, EnabledMcpServers, McpServerToggles, InputButtons } from "obsidian-llm-hub-chat-ui";
 import { useState, useRef, useEffect, KeyboardEvent, ChangeEvent, forwardRef, useImperativeHandle } from "react";
-import { Paperclip, Eye, Database, Wrench, X } from "lucide-react";
+import { Eye } from "lucide-react";
 import { Notice, Platform, type App } from "obsidian";
 import { isImageGenerationModel, type ModelInfo, type ModelType, type Attachment, type SlashCommand, type McpServerConfig, type VaultToolMode, type ReasoningEffort } from "src/types";
 import type { SkillMetadata } from "src/core/skillsLoader";
@@ -564,29 +564,18 @@ const InputArea = forwardRef<InputAreaHandle, InputAreaProps>(function InputArea
     <SharedInputArea classPrefix="gemini-helper" className={`gemini-helper-input-container ${isCollapsed ? "collapsed" : ""}`} collapsed={isCollapsed}
       beforeInput={<>
       {/* MCP servers enabled for this chat */}
-      {!isCollapsed && mcpServers.some((server) => server.enabled) && (
-        <div className="gemini-helper-enabled-mcp-servers">
-          {mcpServers.filter((server) => server.enabled).map((server) => (
-            <span
-              key={server.name}
-              className="gemini-helper-enabled-mcp-server"
-              title={t("input.mcpServerEnabled", { name: server.name })}
-            >
-              <Wrench size={12} aria-hidden="true" />
-              <span className="gemini-helper-enabled-mcp-server-name">{server.name}</span>
-              <button
-                type="button"
-                className="gemini-helper-enabled-mcp-server-remove"
-                onClick={() => onMcpServerToggle(server.name, false)}
-                disabled={isLoading || vaultToolModeOnlyNone}
-                title={t("input.mcpServerDisable", { name: server.name })}
-                aria-label={t("input.mcpServerDisable", { name: server.name })}
-              >
-                <X size={10} aria-hidden="true" />
-              </button>
-            </span>
-          ))}
-        </div>
+      {!isCollapsed && (
+        <EnabledMcpServers
+          classPrefix="gemini-helper"
+          disabled={isLoading || vaultToolModeOnlyNone}
+          onDisable={(id) => onMcpServerToggle(id, false)}
+          servers={mcpServers.filter((server) => server.enabled).map((server) => ({
+            id: server.name,
+            name: server.name,
+            title: t("input.mcpServerEnabled", { name: server.name }),
+            removeTitle: t("input.mcpServerDisable", { name: server.name }),
+          }))}
+        />
       )}
 
       {/* Pending attachments display */}
@@ -620,66 +609,44 @@ const InputArea = forwardRef<InputAreaHandle, InputAreaProps>(function InputArea
             activeIndex={mentionIndex} onSelect={index => selectMention(filteredMentions[index])} onHover={setMentionIndex} />
         )}
 
-        {/* Hidden file input */}
-        <input
-          ref={fileInputRef}
-          type="file"
-          multiple
-          accept={getAllAcceptedTypes()}
-          onChange={(event) => {
-            void handleFileSelect(event);
+        <InputButtons
+          classPrefix="gemini-helper"
+          attach={{
+            title: t("input.attach"),
+            accept: getAllAcceptedTypes(),
+            inputRef: fileInputRef,
+            disabled: isLoading,
+            onOpenPicker: () => fileInputRef.current?.click(),
+            onSelect: (event) => {
+              void handleFileSelect(event);
+            },
           }}
-          className="gemini-helper-hidden-input"
-        />
-
-        {/* Left button column */}
-        <div className="gemini-helper-input-buttons">
-          {/* Attachment button */}
-          <button
-            className="gemini-helper-attachment-btn"
-            onClick={() => fileInputRef.current?.click()}
-            disabled={isLoading}
-            title={t("input.attach")}
-          >
-            <Paperclip size={18} />
-          </button>
+        >
 
           {/* Vault tool mode button */}
-          <div className="gemini-helper-vault-tool-container" ref={vaultToolMenuRef}>
-            <button
-              className={`gemini-helper-vault-tool-btn ${vaultToolMode !== "all" || mcpServers.some(s => !s.enabled) ? "active" : ""}`}
-              onClick={() => {
-                const next = !showVaultToolMenu;
-                setShowVaultToolMenu(next);
-                if (next) onVaultToolMenuOpen?.();
-              }}
-              disabled={isLoading || isImageGenerationModel(model)}
-              title={t("input.vaultToolTitle")}
-            >
-              <Database size={18} />
-            </button>
+          <VaultToolButton
+            classPrefix="gemini-helper"
+            containerRef={vaultToolMenuRef}
+            title={t("input.vaultToolTitle")}
+            active={vaultToolMode !== "all" || mcpServers.some(s => !s.enabled)}
+            disabled={isLoading || isImageGenerationModel(model)}
+            onClick={() => {
+              const next = !showVaultToolMenu;
+              setShowVaultToolMenu(next);
+              if (next) onVaultToolMenuOpen?.();
+            }}
+          >
             {showVaultToolMenu && mcpServers.length === 0 && (
-              <div className="gemini-helper-vault-tool-menu">
-                <div
-                  className={`gemini-helper-vault-tool-item ${vaultToolMode === "all" ? "selected" : ""} ${vaultToolModeOnlyNone ? "disabled" : ""}`}
-                  onClick={() => { if (!vaultToolModeOnlyNone) { onVaultToolModeChange("all"); setShowVaultToolMenu(false); } }}
-                >
-                  {t("input.vaultToolAll")}
-                </div>
-                <div
-                  className={`gemini-helper-vault-tool-item ${vaultToolMode === "noSearch" ? "selected" : ""} ${vaultToolModeOnlyNone ? "disabled" : ""}`}
-                  onClick={() => { if (!vaultToolModeOnlyNone) { onVaultToolModeChange("noSearch"); setShowVaultToolMenu(false); } }}
-                >
-                  {t("input.vaultToolNoSearch")}
-                </div>
-                <div className={`gemini-helper-vault-tool-item ${vaultToolMode === "readOnly" ? "selected" : ""}`} onClick={() => { onVaultToolModeChange("readOnly"); setShowVaultToolMenu(false); }}>{t("input.vaultToolReadOnly")}</div>
-                <div
-                  className={`gemini-helper-vault-tool-item ${vaultToolMode === "none" ? "selected" : ""}`}
-                  onClick={() => { onVaultToolModeChange("none"); setShowVaultToolMenu(false); }}
-                >
-                  {t("input.vaultToolNone")}
-                </div>
-              </div>
+              <VaultToolMenu<VaultToolMode>
+                classPrefix="gemini-helper"
+                options={[
+                  { id: "all", label: t("input.vaultToolAll"), description: t("input.vaultToolAllDesc"), selected: vaultToolMode === "all", disabled: vaultToolModeOnlyNone },
+                  { id: "noSearch", label: t("input.vaultToolNoSearch"), description: t("input.vaultToolNoSearchDesc"), selected: vaultToolMode === "noSearch", disabled: vaultToolModeOnlyNone },
+                  { id: "readOnly", label: t("input.vaultToolReadOnly"), description: t("input.vaultToolReadOnlyDesc"), selected: vaultToolMode === "readOnly" },
+                  { id: "none", label: t("input.vaultToolNone"), description: t("input.vaultToolNoneDesc"), selected: vaultToolMode === "none" },
+                ]}
+                onSelect={(mode) => { onVaultToolModeChange(mode); setShowVaultToolMenu(false); }}
+              />
             )}
             {/* Modal for vault tool + MCP settings when MCP servers are configured */}
             {showVaultToolMenu && mcpServers.length > 0 && (
@@ -701,28 +668,23 @@ const InputArea = forwardRef<InputAreaHandle, InputAreaProps>(function InputArea
                   <div className="gemini-helper-tool-settings-row">
                     <label>{t("input.mcpServersLabel")}</label>
                     <div className="gemini-helper-mcp-server-list">
-                      {mcpServers.map((server) => {
-                        const toolCount = server.toolHints?.length || 0;
-                        const toolHint = toolCount > 0
-                          ? t("input.mcpToolHint", { count: String(toolCount), tools: server.toolHints?.slice(0, 3).join(", ") + (toolCount > 3 ? ", ..." : "") })
-                          : "";
-                        return (
-                          <label
-                            key={server.name}
-                            className={`gemini-helper-mcp-server-item ${vaultToolModeOnlyNone ? "is-disabled" : ""}`}
-                            title={server.toolHints?.join(", ") || ""}
-                          >
-                            <input
-                              type="checkbox"
-                              checked={!vaultToolModeOnlyNone && server.enabled}
-                              onChange={(e) => onMcpServerToggle(server.name, e.target.checked)}
-                              disabled={vaultToolModeOnlyNone}
-                            />
-                            <span className="gemini-helper-mcp-server-name">{server.name}</span>
-                            {toolHint && <span className="gemini-helper-mcp-tool-hint">{toolHint}</span>}
-                          </label>
-                        );
-                      })}
+                      <McpServerToggles
+                        classPrefix="gemini-helper"
+                        disabled={vaultToolModeOnlyNone}
+                        onToggle={onMcpServerToggle}
+                        servers={mcpServers.map((server) => {
+                          const toolCount = server.toolHints?.length || 0;
+                          return {
+                            id: server.name,
+                            name: server.name,
+                            enabled: server.enabled,
+                            hint: toolCount > 0
+                              ? t("input.mcpToolHint", { count: String(toolCount), tools: server.toolHints?.slice(0, 3).join(", ") + (toolCount > 3 ? ", ..." : "") })
+                              : "",
+                            toolsTitle: server.toolHints?.join(", ") || "",
+                          };
+                        })}
+                      />
                     </div>
                   </div>
                   <button
@@ -734,8 +696,8 @@ const InputArea = forwardRef<InputAreaHandle, InputAreaProps>(function InputArea
                 </div>
               </div>
             )}
-          </div>
-        </div>
+          </VaultToolButton>
+        </InputButtons>
 
         </>}
       composer={<Composer classPrefix="gemini-helper" textareaRef={textareaRef}

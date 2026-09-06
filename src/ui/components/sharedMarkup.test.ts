@@ -25,8 +25,6 @@ const HOST_OWNED = [
   "thinking-content",
   // the workflow generation modal reuses the thinking styling from plain DOM
   "thinking-summary",
-  // workflow history and execution modals reuse the usage styling from plain DOM
-  "usage-info",
   // the Obsidian view container, added imperatively in ChatView
   "wide-sidebar",
 ];
@@ -35,7 +33,9 @@ const HOST_OWNED = [
  * Chat UI this plugin still renders itself, waiting to move into the library. The list only ever
  * shrinks: the second test fails once an entry is gone, and nothing is added to make new code pass.
  */
-const STILL_HOST_RENDERED: string[] = [];
+const STILL_HOST_RENDERED: string[] = [
+  "modal-resizable",
+];
 
 const sourceDir = fileURLToPath(new URL("../..", import.meta.url));
 

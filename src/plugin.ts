@@ -41,7 +41,7 @@ import {
 } from "src/core/editHistory";
 import { EditHistoryModal } from "src/ui/components/EditHistoryModal";
 import { ConfirmModal } from "src/ui/components/ConfirmModal";
-import { formatError } from "obsidian-llm-hub-common/core";
+import { formatError, configureClassPrefix } from "obsidian-llm-hub-common/core";
 import { DEFAULT_EDIT_HISTORY_SETTINGS, DEFAULT_LANGFUSE_SETTINGS, DEFAULT_WORKSPACE_FOLDER } from "src/types";
 import { initLocale, t } from "src/i18n";
 import { registerWorkflowCodeBlockProcessor } from "src/ui/workflowCodeBlock";
@@ -125,6 +125,7 @@ export class GeminiHelperPlugin extends Plugin {
   private onloadImpl(): void {
     // Initialize i18n locale
     initLocale();
+    configureClassPrefix("gemini-helper");
     let approvalModal: McpApprovalModal | undefined;
     setMcpApprovalHandler({
       getServer: server => this.settings.mcpServers.find(saved => sameMcpConnection(saved, server) && saved.name === server.name)

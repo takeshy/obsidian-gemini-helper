@@ -1,7 +1,12 @@
-import { describe, expect, it } from "vitest";
-import { AGENT_PLUGIN_MCP_SCHEMA, AGENT_PLUGIN_SCHEMA, normalizeAgentPluginRepo, parseAgentPluginManifest, parseAgentPluginMcp, resolveAgentPluginMcpServers } from "./agentPlugins";
+import { beforeEach, describe, expect, it } from "vitest";
+import { AGENT_PLUGIN_MCP_SCHEMA, AGENT_PLUGIN_SCHEMA, normalizeAgentPluginRepo, parseAgentPluginManifest, parseAgentPluginMcp, resolveAgentPluginMcpServers, configureAgentPluginBase } from "./agentPlugins";
 
 describe("Agent Plugins v1", () => {
+  // Installs live under this plugin's own folder, declared at load in plugin.ts.
+  beforeEach(() => {
+    configureAgentPluginBase(".gemini-helper");
+  });
+
   it("validates manifests", () => {
     expect(parseAgentPluginManifest(JSON.stringify({ $schema: AGENT_PLUGIN_SCHEMA, name: "demo-plugin", version: "1.0.0" })).name).toBe("demo-plugin");
     expect(() => parseAgentPluginManifest(JSON.stringify({ $schema: AGENT_PLUGIN_SCHEMA, name: "../demo" }))).toThrow();

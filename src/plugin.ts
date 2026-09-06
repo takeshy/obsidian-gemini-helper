@@ -15,6 +15,7 @@ import { getWorkflowSpecification, buildWorkflowSpecContext } from "src/workflow
 import { handleCommandNode } from "src/workflow/handlers/command";
 import { handleMcpNode } from "src/workflow/handlers/mcp";
 import { handleRagSyncNode } from "src/workflow/handlers/ragSync";
+import { configureAgentPluginBase } from "obsidian-llm-hub-common/skills";
 
 import { WorkflowManager } from "src/plugin/workflowManager";
 import { WorkspaceStateManager } from "src/core/workspaceStateManager";
@@ -139,6 +140,7 @@ export class GeminiHelperPlugin extends Plugin {
     initLocale();
     configureClassPrefix("gemini-helper");
     configureStoragePrefix("gemini-helper");
+    configureAgentPluginBase(".gemini-helper");
     configureWorkflowHost({
       getModelOptions: () => getAvailableModels(this.settings.apiPlan).map(model => ({ value: model.name, label: model.displayName })),
       getRagSettingNames: () => Object.keys(this.workspaceState.ragSettings || {}),

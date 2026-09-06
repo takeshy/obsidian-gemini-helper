@@ -7,6 +7,3 @@ export function bytesToBase64(bytes: Uint8Array): string {
   }
   return btoa(binary);
 }
-
-/** Largest attachment (base64 source bytes) accepted by the Gemini request builder. */
-export const MAX_ATTACHMENT_SIZE = 20 * 1024 * 1024; // 20MB

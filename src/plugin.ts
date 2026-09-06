@@ -1,3 +1,4 @@
+import { configureMcpClientInfo } from "obsidian-llm-hub-common/mcp";
 import { setMcpApprovalHandler, sameMcpConnection } from "./core/mcpApproval";
 import { McpApprovalModal } from "./ui/components/McpApprovalModal";
 import { Plugin, WorkspaceLeaf, Notice, MarkdownView, TFile, Modal, type EventRef } from "obsidian";
@@ -141,6 +142,7 @@ export class GeminiHelperPlugin extends Plugin {
     configureClassPrefix("gemini-helper");
     configureStoragePrefix("gemini-helper");
     configureAgentPluginBase(".gemini-helper");
+    configureMcpClientInfo({ name: "obsidian-gemini-helper", version: this.manifest.version });
     configureWorkflowHost({
       getModelOptions: () => getAvailableModels(this.settings.apiPlan).map(model => ({ value: model.name, label: model.displayName })),
       getRagSettingNames: () => Object.keys(this.workspaceState.ragSettings || {}),

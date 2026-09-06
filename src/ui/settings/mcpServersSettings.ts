@@ -43,7 +43,7 @@ export function displayMcpServersSettings(containerEl: HTMLElement, ctx: Setting
     emptyEl.textContent = t("settings.mcpNoServers");
   } else {
     for (const server of servers) {
-      let desc = server.url;
+      let desc = server.url ?? "";
       if (server.toolHints && server.toolHints.length > 0) {
         desc += `\n${t("settings.mcpToolHints", { tools: server.toolHints.join(", ") })}`;
       }

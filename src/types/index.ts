@@ -1,3 +1,5 @@
+import type { McpServerConfig } from "obsidian-llm-hub-common/core";
+export type { McpServerConfig, McpTransport, McpFraming } from "obsidian-llm-hub-common/core";
 
 export type { Message, ToolCall, ToolResult, Attachment, PendingEditInfo, PendingDeleteInfo, PendingRenameInfo, WebSearchSource, GeneratedImage } from "obsidian-llm-hub-common/chat";
 import type { WorkflowEventTrigger } from "obsidian-llm-hub-common/workflow";
@@ -18,16 +20,6 @@ export interface AgentPluginInstall {
 }
 
 // MCP (Model Context Protocol) server configuration
-export interface McpServerConfig {
-  name: string;           // Server display name
-  url: string;            // Streamable HTTP endpoint URL
-  headers?: Record<string, string>;  // Optional headers for authentication
-  enabled: boolean;       // Whether this server is enabled for chat
-  autoApprove?: boolean;
-  allowedTools?: string[];
-  toolHints?: string[];   // Tool names from test connection (for display hints)
-  agentPlugin?: { pluginName: string; serverName: string };
-}
 
 // MCP tool information (from server)
 export interface McpToolInfo {

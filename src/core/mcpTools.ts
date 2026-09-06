@@ -283,7 +283,7 @@ export function createMcpToolExecutor(
     const spanId = tracing.spanStart(traceId ?? null, `mcp:${tool.mcpToolName}`, {
       input: args,
       metadata: {
-        serverUrl: tool.mcpServer.url,
+        serverUrl: tool.mcpServer.url ?? "",
         toolName: tool.mcpToolName,
       },
     });
@@ -319,7 +319,7 @@ export function createMcpToolExecutor(
           : { ...appResult, _meta: { ...appResult._meta, ui: { resourceUri } } };
 
         result.mcpApp = {
-          serverUrl: tool.mcpServer.url,
+          serverUrl: tool.mcpServer.url ?? "",
           serverHeaders: tool.mcpServer.headers,
           toolResult,
           uiResource,

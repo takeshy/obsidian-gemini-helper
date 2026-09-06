@@ -10,7 +10,7 @@ import {
 	useCallback,
 	useMemo,
 } from "react";
-import { TFile, Notice, MarkdownView, Platform } from "obsidian";
+import { TFile, Notice, Platform } from "obsidian";
 import { Plus, History, Lock } from "lucide-react";
 import type { GeminiHelperPlugin } from "src/plugin";
 import {
@@ -75,9 +75,11 @@ import {
 } from "obsidian-llm-hub-common/core";
 import { cryptoCache } from "src/core/cryptoCache";
 import { formatError } from "obsidian-llm-hub-common/core";
-import { findFileMentionOccurrences } from "obsidian-llm-hub-common/core";
 import { extractPdfText } from "src/vault/pdfText";
-import { isFileAllowedForAiVaultTools } from "src/vault/aiVaultScope";
+import {
+	resolveMessageVariables as resolveMessageVariablesShared,
+	type CommandVariableSources,
+} from "obsidian-llm-hub-common/chat";
 import { discoverSkills, loadSkill, buildSkillSystemPrompt, collectSkillWorkflows, type SkillMetadata, type LoadedSkill, type SkillWorkflowRef } from "src/core/skillsLoader";
 import { resolveAgentPluginMcpServers } from "src/core/agentPlugins";
 import { buildBuiltinOkfSystemPrompt, buildOkfSystemPrompt, discoverOkfBundles, getBuiltinOkfBundle, isBuiltinOkfBundleId, type OkfBundle } from "src/core/okfLoader";
@@ -992,163 +994,28 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin, onToggleSidebarWidth }, r
 		}
 	};
 
-	// Resolve slash command variables
-	const resolveCommandVariables = async (template: string): Promise<string> => {
-		let result = template;
-
-		// Resolve {content} - active note content with file info
-		if (result.includes("{content}")) {
-			const activeFile = plugin.app.workspace.getActiveFile();
-			if (activeFile) {
-				const content = await plugin.app.vault.read(activeFile);
-				const contentText = `From "${activeFile.path}":\n${content}`;
-				result = result.replace(/\{content\}/g, contentText);
-			} else {
-				result = result.replace(/\{content\}/g, "[No active note]");
-			}
-		}
-
-		// Resolve {selection} - selected text in editor with optional location info
-		// Falls back to {content} if no selection
-		if (result.includes("{selection}")) {
-			let selection = "";
-			let locationInfo: { filePath: string; startLine: number; endLine: number } | null = null;
-			const externalSelection = pendingExternalSelectionRef.current;
+	// Both resolvers live in the shared library; the host only supplies its selection
+	// sources, PDF extraction and vault-tool scope.
+	const commandVariableSources = (): CommandVariableSources => ({
+		takeExternalSelection: () => {
+			const pending = pendingExternalSelectionRef.current;
 			pendingExternalSelectionRef.current = null;
+			return pending;
+		},
+		getLastSelection: () => plugin.getLastSelection(),
+		getSelectionLocation: () => plugin.getSelectionLocation(),
+	});
 
-			if (externalSelection?.text) {
-				selection = externalSelection.text;
-				if (externalSelection.sourcePath) {
-					locationInfo = {
-						filePath: externalSelection.sourcePath,
-						startLine: 0,
-						endLine: 0,
-					};
-				}
-			}
-
-			// First try to get selection from current active view
-			const activeView = selection ? null : plugin.app.workspace.getActiveViewOfType(MarkdownView);
-			if (activeView) {
-				const editor = activeView.editor;
-				selection = editor.getSelection();
-				if (selection && activeView.file) {
-					const fromPos = editor.getCursor("from");
-					const toPos = editor.getCursor("to");
-					locationInfo = {
-						filePath: activeView.file.path,
-						startLine: fromPos.line + 1,
-						endLine: toPos.line + 1,
-					};
-				}
-			}
-
-			// Fallback to cached selection (captured before focus changed to chat)
-			if (!selection) {
-				selection = plugin.getLastSelection();
-				locationInfo = plugin.getSelectionLocation();
-			}
-
-			// Build selection text with location info
-			let selectionText: string;
-			if (selection && locationInfo) {
-				const lineInfo = locationInfo.startLine > 0
-					? (locationInfo.startLine === locationInfo.endLine
-						? ` (Line ${locationInfo.startLine})`
-						: ` (Lines ${locationInfo.startLine}-${locationInfo.endLine})`)
-					: "";
-				// Format as quote block for clear boundary
-				const quotedSelection = selection.split("\n").map(line => `> ${line}`).join("\n");
-				selectionText = `From "${locationInfo.filePath}"${lineInfo}:\n${quotedSelection}`;
-			} else if (selection) {
-				const quotedSelection = selection.split("\n").map(line => `> ${line}`).join("\n");
-				selectionText = `Selected text:\n${quotedSelection}`;
-			} else {
-				// Fallback to active note content if no selection
-				const activeFile = plugin.app.workspace.getActiveFile();
-				if (activeFile) {
-					const content = await plugin.app.vault.read(activeFile);
-					selectionText = `From "${activeFile.path}":\n${content}`;
-				} else {
-					selectionText = "[No selection or active note]";
-				}
-			}
-
-			result = result.replace(/\{selection\}/g, selectionText);
-		}
-
-		return result;
-	};
-
-	// File mentions stay as complete vault-relative paths whenever the model has vault
-	// tools: FILE_MENTION_TOOL_PROMPT tells it to call read_note, which returns a PDF
-	// as a native document part rather than a degraded text layer. Tool-disabled and
-	// image-generation turns inline the text instead, and so do files that read_note
-	// cannot reach (outside aiVaultToolAllowedFolders) — otherwise an explicit mention
-	// would resolve to nothing.
-	const resolveMessageVariables = async (content: string, inlineFileMentions: boolean): Promise<string> => {
-		let result = await resolveCommandVariables(content);
-		const scopedFolders = plugin.settings.aiVaultToolAllowedFolders;
-		const vaultToolScopeLimited = (scopedFolders?.length ?? 0) > 0;
-		if (!inlineFileMentions && !vaultToolScopeLimited) return result;
-
-		const files = plugin.app.vault.getFiles().filter(isMentionableFile);
-		const fileByPath = new Map<string, TFile>(files.map(f => [f.path, f]));
-		const occurrences = findFileMentionOccurrences(
-			result,
-			files.map(f => f.path),
-			{ requireWhitespaceBoundary: true }
-		);
-		if (occurrences.length === 0) return result;
-
-		interface Splice { start: number; end: number; replacement: string; }
-		const splices: Splice[] = [];
-		const hitsByPath = new Map<string, typeof occurrences>();
-		for (const occ of occurrences) {
-			const list = hitsByPath.get(occ.key) ?? [];
-			list.push(occ);
-			hitsByPath.set(occ.key, list);
-		}
-		for (const [path, hits] of hitsByPath) {
-			const file = fileByPath.get(path);
-			if (!file) continue;
-			// With vault tools available the model fetches mentions via read_note, so
-			// only inline what read_note is not allowed to reach.
-			if (!inlineFileMentions && isFileAllowedForAiVaultTools(file, scopedFolders)) continue;
-			try {
-				const extracted = file.extension.toLowerCase() === "pdf"
-					? await extractPdfText(plugin.app, file)
-					: await plugin.app.vault.read(file);
-				// null means "no extractable text" (scan-only or unreadable PDF). Say so
-				// instead of leaving a bare path the model cannot read and will guess at.
-				if (extracted === null) {
-					const marker = `\n\n[Could not extract text from "${path}"]\n\n`;
-					for (const h of hits) {
-						splices.push({ start: h.start, end: h.end, replacement: marker });
-					}
-					continue;
-				}
-				const maxChars = plugin.settings.maxNoteChars;
-				const fileContent = maxChars > 0 && extracted.length > maxChars
-					? `${extracted.slice(0, maxChars)}\n\n[Content truncated at ${maxChars} characters]`
-					: extracted;
-				const replacement = `\n\n--- Content of "${path}" ---\n${fileContent}\n--- End of "${path}" ---\n\n`;
-				for (const h of hits) {
-					splices.push({ start: h.start, end: h.end, replacement });
-				}
-			} catch {
-				// File couldn't be read — leave the mention as-is.
-			}
-		}
-
-		// Splice in reverse order so earlier offsets stay valid.
-		splices.sort((a, b) => b.start - a.start);
-		for (const s of splices) {
-			result = result.slice(0, s.start) + s.replacement + result.slice(s.end);
-		}
-
-		return result;
-	};
+	const resolveMessageVariables = (content: string, inlineFileMentions: boolean): Promise<string> =>
+		resolveMessageVariablesShared(plugin.app, content, {
+			...commandVariableSources(),
+			inlineFileMentions,
+			vaultToolAllowedFolders: plugin.settings.aiVaultToolAllowedFolders,
+			maxNoteChars: plugin.settings.maxNoteChars,
+			readMentionText: (file) => file.extension.toLowerCase() === "pdf"
+				? extractPdfText(plugin.app, file)
+				: plugin.app.vault.read(file),
+		});
 
 	// Handle slash command selection
 	const handleSlashCommand = (command: SlashCommand): string => {

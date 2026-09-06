@@ -66,3 +66,17 @@ export const MarkdownRenderer = {
 };
 export function setIcon(_el: unknown, _icon: string): void {}
 export const Platform = { isMobile: false, isDesktop: true };
+
+// The shared CryptView extends this; tests only need the class to exist.
+export class ItemView extends Component {
+  leaf: unknown;
+  contentEl = { empty() {}, addClass() {}, createDiv() { return {}; } } as unknown as HTMLElement;
+  constructor(leaf: unknown) {
+    super();
+    this.leaf = leaf;
+  }
+}
+export class TextFileView extends ItemView {
+  data = "";
+  requestSave(): void {}
+}

@@ -5,6 +5,9 @@ import { EventEmitter } from "src/utils/EventEmitter";
 import type { SelectionLocationInfo } from "src/ui/selectionHighlight";
 import { SelectionManager } from "src/plugin/selectionManager";
 import { EncryptionManager } from "src/plugin/encryptionManager";
+import { configureMcpAppViewer } from "obsidian-llm-hub-common/modals";
+import { showMcpApp } from "src/ui/components/workflow/McpAppModal";
+import type { McpAppInfo } from "src/types";
 
 import { WorkflowManager } from "src/plugin/workflowManager";
 import { WorkspaceStateManager } from "src/core/workspaceStateManager";
@@ -126,6 +129,7 @@ export class GeminiHelperPlugin extends Plugin {
     // Initialize i18n locale
     initLocale();
     configureClassPrefix("gemini-helper");
+    configureMcpAppViewer((app, mcpApp) => showMcpApp(app, mcpApp as McpAppInfo));
     let approvalModal: McpApprovalModal | undefined;
     setMcpApprovalHandler({
       getServer: server => this.settings.mcpServers.find(saved => sameMcpConnection(saved, server) && saved.name === server.name)

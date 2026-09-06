@@ -610,16 +610,6 @@
   padding: 0;
 }
 
-.gemini-helper-settings-textarea-container .setting-item-control {
-  flex-direction: column;
-  align-items: stretch;
-}
-
-.gemini-helper-settings-textarea {
-  width: 100%;
-  min-height: 80px;
-  resize: vertical;
-}
 
 .gemini-helper-settings-wide-input {
   width: 100%;

@@ -79,7 +79,7 @@ export async function handleNoteNode(
       mode,
       originalContent
     );
-    if (!confirmResult.confirmed) {
+    if (confirmResult.action !== "save") {
       // Check if user requested regeneration
       if (confirmResult.additionalRequest && context.lastCommandInfo) {
         // Get the previous output from the command node

@@ -1054,7 +1054,7 @@ export class WorkflowExecutor {
                   promptForFile: () => Promise.resolve(null),
                   promptForSelection: () => Promise.resolve(null),
                   promptForValue: () => Promise.resolve(null),
-                  promptForConfirmation: () => Promise.resolve({ confirmed: false }),
+                  promptForConfirmation: () => Promise.resolve({ action: "cancel" as const }),
                   executeSubWorkflow
                 };
 

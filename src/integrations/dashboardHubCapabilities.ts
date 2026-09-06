@@ -24,7 +24,7 @@ export function listDashboardModels(plugin: GeminiHelperPlugin): DashboardAiMode
 function headlessCallbacks(): PromptCallbacks {
   return { promptForFile: () => Promise.resolve(null), promptForAnyFile: () => Promise.resolve(null), promptForNewFilePath: () => Promise.resolve(null),
     promptForSelection: () => Promise.resolve(null), promptForValue: () => Promise.resolve(null),
-    promptForConfirmation: () => Promise.resolve({ confirmed: false }), promptForDialog: () => Promise.resolve(null), promptForPassword: () => Promise.resolve(null) };
+    promptForConfirmation: () => Promise.resolve({ action: "cancel" as const }), promptForDialog: () => Promise.resolve(null), promptForPassword: () => Promise.resolve(null) };
 }
 function extract(values: Map<string, string | number>, name?: string): string | null {
   const str = (value: unknown) => typeof value === "string" ? value : typeof value === "number" ? String(value) : null;

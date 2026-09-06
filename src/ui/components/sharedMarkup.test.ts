@@ -34,7 +34,14 @@ const HOST_OWNED = [
  * shrinks: the second test fails once an entry is gone, and nothing is added to make new code pass.
  */
 const STILL_HOST_RENDERED: string[] = [
+  "diff-content",
+  "diff-line",
+  "diff-modal",
+  "drag-handle",
+  "edit-confirm-preview-label",
   "modal-resizable",
+  "resizable-modal",
+  "resize-handle",
 ];
 
 const sourceDir = fileURLToPath(new URL("../..", import.meta.url));

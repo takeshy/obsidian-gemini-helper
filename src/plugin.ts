@@ -5,7 +5,7 @@ import { EventEmitter } from "src/utils/EventEmitter";
 import type { SelectionLocationInfo } from "src/ui/selectionHighlight";
 import { SelectionManager } from "src/plugin/selectionManager";
 import { EncryptionManager } from "src/plugin/encryptionManager";
-import { configureMcpAppViewer } from "obsidian-llm-hub-common/modals";
+import { configureMcpAppViewer, configureStoragePrefix } from "obsidian-llm-hub-common/modals";
 import { showMcpApp } from "src/ui/components/workflow/McpAppModal";
 import type { McpAppInfo } from "src/types";
 import { configureWorkflowHost } from "obsidian-llm-hub-common/workflow";
@@ -131,6 +131,7 @@ export class GeminiHelperPlugin extends Plugin {
     // Initialize i18n locale
     initLocale();
     configureClassPrefix("gemini-helper");
+    configureStoragePrefix("gemini-helper");
     configureWorkflowHost({
       getModelOptions: () => getAvailableModels(this.settings.apiPlan).map(model => ({ value: model.name, label: model.displayName })),
       getRagSettingNames: () => Object.keys(this.workspaceState.ragSettings || {}),

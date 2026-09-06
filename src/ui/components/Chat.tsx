@@ -1607,7 +1607,7 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin, onToggleSidebarWidth }, r
 										pending.originalContent
 									);
 
-									if (confirmResult.confirmed) {
+									if (confirmResult.action === "save") {
 										const applyResult = await applyEdit(plugin.app);
 										if (applyResult.success) {
 											processedEdits.push({ originalPath: pending.originalPath, status: "applied" });

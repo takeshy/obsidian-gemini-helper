@@ -2,7 +2,7 @@ import { forwardRef, useImperativeHandle, useRef, useState } from "react";
 import type { GeminiHelperPlugin } from "src/plugin";
 import type { TFile } from "obsidian";
 import Chat, { ChatRef } from "./Chat";
-import WorkflowPanel from "./workflow/WorkflowPanel";
+import { WorkflowPanel } from "./workflow/WorkflowPanel";
 import { t } from "src/i18n";
 
 export type TabType = "chat" | "workflow";
@@ -60,7 +60,7 @@ const TabContainer = forwardRef<TabContainerRef, TabContainerProps>(
             <Chat ref={chatRef} plugin={plugin} onToggleSidebarWidth={onToggleSidebarWidth} />
           </div>
           <div className={`gemini-helper-tab-panel ${activeTab === "workflow" ? "is-active" : ""}`}>
-            <WorkflowPanel plugin={plugin} />
+            <WorkflowPanel app={plugin.app} />
           </div>
         </div>
       </div>

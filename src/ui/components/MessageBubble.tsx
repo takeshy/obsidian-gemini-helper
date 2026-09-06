@@ -1,5 +1,5 @@
 import { ToolIndicator } from "obsidian-llm-hub-chat-ui";
-import { MessageBubble as SharedMessageBubble, MessageContent, Attachments, UsageInfo } from "obsidian-llm-hub-chat-ui";
+import { MessageBubble as SharedMessageBubble, MessageContent, Attachments, UsageInfo, SourceBadges, ToolsUsed, SkillsUsed } from "obsidian-llm-hub-chat-ui";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { type App, MarkdownRenderer, Component, Notice, Platform } from "obsidian";
 import { Copy, CheckCircle, XCircle, Download, Eye } from "lucide-react";
@@ -435,34 +435,21 @@ export default function MessageBubble({
 
       {/* Web search indicator */}
       {message.webSearchUsed && (
-        <div className="gemini-helper-rag-used">
-          <span className="gemini-helper-rag-indicator">
-            🌐 {t("message.webSearchUsed")}
-          </span>
-          {message.webSearchSources && message.webSearchSources.length > 0 && (
-            <div className="gemini-helper-rag-sources">
-              {message.webSearchSources.filter(source => isSafeWebUrl(source.url)).map((source, index) => (
-                <span
-                  key={`${source.url}-${index}`}
-                  className="gemini-helper-rag-source gemini-helper-tool-clickable"
-                  onClick={() => window.open(source.url, "_blank")}
-                  title={source.url}
-                >
-                  🌐 {source.title || source.url}
-                </span>
-              ))}
-            </div>
-          )}
-        </div>
+        <SourceBadges
+          classPrefix="gemini-helper"
+          icon="🌐"
+          label={t("message.webSearchUsed")}
+          sources={(message.webSearchSources ?? []).filter((source) => isSafeWebUrl(source.url)).map((source) => ({
+            label: `🌐 ${source.title || source.url}`,
+            title: source.url,
+            onOpen: () => window.open(source.url, "_blank"),
+          }))}
+        />
       )}
 
       {/* Image generation indicator */}
       {message.imageGenerationUsed && (
-        <div className="gemini-helper-rag-used">
-          <span className="gemini-helper-rag-indicator">
-            🎨 {t("message.imageGenerated")}
-          </span>
-        </div>
+        <SourceBadges classPrefix="gemini-helper" icon="🎨" label={t("message.imageGenerated")} />
       )}
 
       {/* Skills used indicator — vault skills are clickable to open SKILL.md; built-in skills are displayed as plain labels */}
@@ -472,50 +459,30 @@ export default function MessageBubble({
 
       {/* Semantic search indicator with sources */}
       {message.ragUsed && (
-        <div className="gemini-helper-rag-used">
-          <span className="gemini-helper-rag-indicator">
-            📚 {t("message.rag")}
-          </span>
-          {message.ragSources && message.ragSources.length > 0 && (
-            <div className="gemini-helper-rag-sources">
-              {message.ragSources.map((source, index) => (
-                <span
-                  key={index}
-                  className="gemini-helper-rag-source gemini-helper-tool-clickable"
-                  onClick={() => {
-                    // Try to open the file if it's a vault file
-                    const sourcePath = source.split(" # ")[0];
-                    const file = app.vault.getAbstractFileByPath(sourcePath);
-                    if (file) {
-                      void app.workspace.openLinkText(sourcePath, "", false);
-                    } else {
-                      new Notice(`Source: ${source}`, 3000);
-                    }
-                  }}
-                  title={t("message.clickToOpen", { source })}
-                >
-                  📄 {source.split("/").pop() || source}
-                </span>
-              ))}
-            </div>
-          )}
-          {message.ragContexts && message.ragContexts.length > 0 && (
-            <div className="gemini-helper-rag-contexts">
-              {message.ragContexts.slice(0, 5).map((context, index) => (
-                <details key={`${context.source}-${index}`} className="gemini-helper-rag-context">
-                  <summary>{context.source.split("/").pop() || context.source}</summary>
-                  <div>{context.text}</div>
-                </details>
-              ))}
-            </div>
-          )}
-        </div>
+        <SourceBadges
+          classPrefix="gemini-helper"
+          icon="📚"
+          label={t("message.rag")}
+          sources={(message.ragSources ?? []).map((source) => ({
+            label: `📄 ${source.split("/").pop() || source}`,
+            title: t("message.clickToOpen", { source }),
+            onOpen: () => {
+              if (app.vault.getAbstractFileByPath(source)) {
+                void app.workspace.openLinkText(source, "", false);
+              } else {
+                new Notice(`Source: ${source}`, 3000);
+              }
+            },
+          }))}
+        />
       )}
 
       {/* Tools used indicator */}
       {message.toolCalls && message.toolCalls.length > 0 && (
-        <>
-          <div className="gemini-helper-tools-used">
+        <ToolsUsed
+          classPrefix="gemini-helper"
+          errorHint={message.toolCalls.some(tc => getFailedWorkflowPath(tc, message.toolResults)) ? t("message.workflowErrorHint") : undefined}
+        >
             {message.toolCalls.map((toolCall, index) => {
               const { icon, label } = getToolDisplayInfo(toolCall.name);
               const failedWorkflowPath = getFailedWorkflowPath(toolCall, message.toolResults);
@@ -537,14 +504,7 @@ export default function MessageBubble({
                 />
               );
             })}
-          </div>
-          {/* Error hint — shown once if any skill workflow failed */}
-          {message.toolCalls.some(tc => getFailedWorkflowPath(tc, message.toolResults)) && (
-            <div className="gemini-helper-workflow-error-hint">
-              {t("message.workflowErrorHint")}
-            </div>
-          )}
-        </>
+        </ToolsUsed>
       )}
 
       {/* Attachments display */}
@@ -749,28 +709,19 @@ function SkillsUsedIndicator({ skillNames, app }: { skillNames: string[]; app: A
   }, [app, skillNames]);
 
   return (
-    <div className="gemini-helper-skills-used">
-      <span className="gemini-helper-skills-indicator">
-        ✨ {t("message.skillsUsed")}:
-      </span>
-      {skillNames.map((skillName, index) => {
+    <SkillsUsed
+      classPrefix="gemini-helper"
+      label={t("message.skillsUsed")}
+      skills={skillNames.map((skillName) => {
         const info = skillMap.get(skillName);
-        const isBuiltin = info?.builtin ?? false;
-        const isClickable = info && !isBuiltin;
-        return (
-          <span
-            key={index}
-            className={`gemini-helper-skill-chip${isClickable ? " gemini-helper-tool-clickable" : " is-static"}`}
-            onClick={isClickable ? () => {
-              void app.workspace.openLinkText(info.path, "", false);
-            } : undefined}
-            title={isClickable ? t("message.clickToOpen", { source: skillName }) : skillName}
-          >
-            {skillName}
-          </span>
-        );
+        const clickable = info && !info.builtin ? info : undefined;
+        return {
+          name: skillName,
+          title: clickable ? t("message.clickToOpen", { source: skillName }) : skillName,
+          open: clickable ? { onOpen: () => { void app.workspace.openLinkText(clickable.path, "", false); } } : undefined,
+        };
       })}
-    </div>
+    />
   );
 }
 

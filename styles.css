@@ -7061,34 +7061,6 @@
   text-align: right;
 }
 
-/* Skills used indicator in message */
-.gemini-helper-skills-used {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 4px;
-  font-size: 0.75em;
-  color: var(--text-muted);
-  padding: 2px 0;
-}
-
-.gemini-helper-skills-indicator {
-  display: inline-flex;
-  align-items: center;
-  gap: 3px;
-}
-
-/* Clickable only when not static (i.e., vault skills) */
-.gemini-helper-skill-chip:not(.is-static):hover {
-  background: var(--background-modifier-active);
-  color: var(--text-normal);
-  cursor: pointer;
-}
-
-.gemini-helper-skill-chip.is-static {
-  cursor: default;
-}
-
 /* Hide thinking details until content arrives (models with no reasoning output). */
 .workflow-generation-thinking-details.is-hidden {
   display: none;
@@ -7752,6 +7724,15 @@
   color: var(--text-on-accent);
 }
 
+.gemini-helper-vault-tool-item.disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.gemini-helper-vault-tool-item.disabled:hover {
+  background: transparent;
+}
+
 .gemini-helper-vault-tool-item-desc {
   margin-top: 2px;
   color: var(--text-muted);
@@ -8191,6 +8172,34 @@
   padding: 1px 6px;
   background: var(--background-modifier-hover);
   border-radius: 3px;
+}
+
+/* Skills used indicator (in message bubble) */
+.gemini-helper-skills-used {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+  font-size: 0.75em;
+  color: var(--text-muted);
+  padding: 2px 0;
+}
+
+.gemini-helper-skills-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+/* Clickable only when not static (i.e., vault skills) */
+.gemini-helper-skill-chip:not(.is-static):hover {
+  background: var(--background-modifier-active);
+  color: var(--text-normal);
+  cursor: pointer;
+}
+
+.gemini-helper-skill-chip.is-static {
+  cursor: default;
 }
 
 /* Tools Used indicator (in message bubble) */

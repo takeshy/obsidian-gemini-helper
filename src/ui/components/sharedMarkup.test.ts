@@ -16,21 +16,13 @@ const STILL_HOST_RENDERED = [
   "chat-container",
   "header-btn",
   "input-container",
-  "rag-indicator",
-  "rag-source",
-  "rag-sources",
-  "rag-used",
   "sidebar-width-btn",
-  "skill-chip",
   "spin",
   "thinking",
   "thinking-content",
   "thinking-summary",
-  "tool-clickable",
-  "tools-used",
   "usage-info",
   "wide-sidebar",
-  "workflow-error-hint",
 ];
 
 const sourceDir = fileURLToPath(new URL("../..", import.meta.url));

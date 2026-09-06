@@ -402,7 +402,12 @@ export function resolveGeminiThinkingLevel(
   // Gemma 4: thinking config not supported via Interactions API
   if (modelLower.includes("gemma-4")) return undefined;
 
-  if (reasoningEffort && reasoningEffort !== "default") return reasoningEffort;
+  // The shared ReasoningEffort covers every provider; Gemini's thinking_level accepts
+  // only these four, so anything outside them falls through to the model's own default.
+  if (reasoningEffort && reasoningEffort !== "default" && reasoningEffort !== "none"
+    && reasoningEffort !== "xhigh" && reasoningEffort !== "max") {
+    return reasoningEffort;
+  }
 
   if (enableThinking === undefined) return undefined;
 

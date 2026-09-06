@@ -1,4 +1,3 @@
-import type { ToolCall, ToolResult, WebSearchSource, GeneratedImage } from "obsidian-llm-hub-common/chat";
 
 export type { Message, ToolCall, ToolResult, Attachment, PendingEditInfo, PendingDeleteInfo, PendingRenameInfo, WebSearchSource, GeneratedImage } from "obsidian-llm-hub-common/chat";
 import type { WorkflowEventTrigger } from "obsidian-llm-hub-common/workflow";
@@ -260,7 +259,6 @@ export interface RagFileInfo {
 }
 
 // Chat thinking level. "default" leaves the choice to the Gemini API.
-export type ReasoningEffort = "default" | "minimal" | "low" | "medium" | "high";
 export const REASONING_EFFORTS: ReasoningEffort[] = ["default", "minimal", "low", "medium", "high"];
 
 // Workspace状態ファイル（.gemini-workspace.json）
@@ -496,28 +494,7 @@ export interface ConversationHistory {
 }
 
 // Tool definition for Function Calling
-export interface ToolPropertyDefinition {
-  type: string;
-  description: string;
-  enum?: string[];
-  properties?: Record<string, ToolPropertyDefinition>;
-  required?: string[];
-  items?: ToolPropertyDefinition | {
-    type: string;
-    properties?: Record<string, ToolPropertyDefinition>;
-    required?: string[];
-  };
-}
 
-export interface ToolDefinition {
-  name: string;
-  description: string;
-  parameters: {
-    type: "object";
-    properties: Record<string, ToolPropertyDefinition>;
-    required?: string[];
-  };
-}
 
 // File Search types
 export interface FileSearchResult {
@@ -534,28 +511,8 @@ export interface SyncStatus {
 }
 
 // Usage info for streaming chunks and messages
-export interface StreamChunkUsage {
-  inputTokens?: number;
-  outputTokens?: number;
-  thinkingTokens?: number;
-  totalTokens?: number;
-  totalCost?: number;       // USD
-}
 
 // Streaming chunk types
-export interface StreamChunk {
-  type: "text" | "thinking" | "tool_call" | "tool_result" | "error" | "done" | "rag_used" | "web_search_used" | "image_generated";
-  content?: string;
-  toolCall?: ToolCall;
-  toolResult?: ToolResult;
-  error?: string;
-  ragSources?: string[];  // RAG検索で見つかったソースファイル
-  ragContexts?: RagContext[];  // RAG検索で取得された抜粋
-  generatedImage?: GeneratedImage;  // 生成された画像
-  usage?: StreamChunkUsage;  // Token usage and cost (populated on "done" chunks)
-  interactionId?: string;  // Interactions API interaction ID (populated on "done" chunks)
-  webSearchSources?: WebSearchSource[];  // Cited web sources in display order
-}
 
 // Default models by plan
 export const DEFAULT_MODEL_FREE: ModelType = "gemma-4-31b-it";
@@ -620,3 +577,16 @@ export const DEFAULT_SETTINGS: GeminiHelperSettings = {
   // Langfuse
   langfuse: DEFAULT_LANGFUSE_SETTINGS,
 };
+
+// These provider-facing shapes live in the shared library so every plugin describes tools
+// and streams responses the same way.
+import type { ReasoningEffort } from "obsidian-llm-hub-common/core";
+
+export type {
+  ToolDefinition,
+  ToolPropertyDefinition,
+  StreamChunk,
+  StreamChunkUsage,
+  ReasoningEffort,
+  WebSearchCitation,
+} from "obsidian-llm-hub-common/core";

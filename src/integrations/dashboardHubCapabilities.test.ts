@@ -1,5 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
-vi.mock("obsidian", () => ({ TFile: class TFile {} }));
+import { describe, expect, it } from "vitest";
 import { listDashboardModels } from "./dashboardHubCapabilities";
 
 describe("Dashboard Hub AI integration contract", () => {

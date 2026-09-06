@@ -766,7 +766,7 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin, onToggleSidebarWidth }, r
 			vaultToolAllowedFolders: plugin.settings.aiVaultToolAllowedFolders,
 			maxNoteChars: plugin.settings.maxNoteChars,
 			readMentionText: (file) => file.extension.toLowerCase() === "pdf"
-				? extractPdfText(plugin.app, file)
+				? extractPdfText(plugin.app, file.path)
 				: plugin.app.vault.read(file),
 		});
 

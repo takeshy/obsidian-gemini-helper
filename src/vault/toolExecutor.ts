@@ -33,12 +33,11 @@ import { DEFAULT_SETTINGS, type PdfInputMode, type RagSyncState } from "src/type
 import { formatError } from "obsidian-llm-hub-common/core";
 import { readTimelineEntriesForDay, sanitizeTimelineName } from "./timelineReader";
 import {
-  AI_VAULT_SCOPE_DENIED_MSG,
-  isFileAllowedForAiVaultTools,
+  VAULT_TOOL_SCOPE_DENIED_MSG,
+  isFileAllowedForVaultTools,
   isPathInAllowedVaultFolders,
-  normalizeAllowedVaultFolders,
-  normalizeVaultScopePath,
-} from "./aiVaultScope";
+  isPathNavigableForVaultTools,
+} from "obsidian-llm-hub-common/core";
 
 /**
  * Whether this host can answer `get_rag_sync_status`. Its RAG store records
@@ -69,31 +68,24 @@ function hasAiVaultToolScope(context: ToolExecutionContext | undefined): boolean
 
 function aiVaultToolFileFilter(context: ToolExecutionContext | undefined): ((file: TFile) => boolean) | undefined {
   if (!hasAiVaultToolScope(context)) return undefined;
-  return (file) => isFileAllowedForAiVaultTools(file, context?.aiVaultToolAllowedFolders);
+  return (file) => isFileAllowedForVaultTools(file, context?.aiVaultToolAllowedFolders);
 }
 
 function aiVaultToolFolderFilter(context: ToolExecutionContext | undefined): ((path: string) => boolean) | undefined {
   if (!hasAiVaultToolScope(context)) return undefined;
-  const allowedFolders = normalizeAllowedVaultFolders(context?.aiVaultToolAllowedFolders);
-  return (path) => {
-    const normalizedPath = normalizeVaultScopePath(path)?.toLowerCase();
-    if (!normalizedPath) return false;
-    return allowedFolders.some((folder) =>
-      normalizedPath === folder ||
-      normalizedPath.startsWith(`${folder}/`) ||
-      folder.startsWith(`${normalizedPath}/`)
-    );
-  };
+  // Ancestors of an allowed folder are listed so the user can navigate to it;
+  // they never authorize reading a file, which goes through isFileAllowed*.
+  return (path) => isPathNavigableForVaultTools(path, context?.aiVaultToolAllowedFolders);
 }
 
 function denyAiVaultToolScope(): ToolResult {
-  return { success: false, error: AI_VAULT_SCOPE_DENIED_MSG };
+  return { success: false, error: VAULT_TOOL_SCOPE_DENIED_MSG };
 }
 
 function denyAiVaultToolScopeForBulk(rejectedPaths: string[]): ToolResult {
   return {
     success: false,
-    error: AI_VAULT_SCOPE_DENIED_MSG,
+    error: VAULT_TOOL_SCOPE_DENIED_MSG,
     rejectedPaths,
   };
 }
@@ -113,7 +105,7 @@ function isFileInAiVaultToolScope(
   if (!hasAiVaultToolScope(context)) return true;
   const lookup = readOnly ? findReadableFileByName : findFileByName;
   const file = activeNote ? app.workspace.getActiveFile() : fileName ? lookup(app, fileName) : null;
-  return !!(file && isFileAllowedForAiVaultTools(file, context?.aiVaultToolAllowedFolders));
+  return !!(file && isFileAllowedForVaultTools(file, context?.aiVaultToolAllowedFolders));
 }
 
 function isPathInAiVaultToolScope(path: string | undefined, context: ToolExecutionContext | undefined): boolean {
@@ -362,7 +354,7 @@ async function executeToolCallInternal(
     case "get_active_note_info": {
       if (hasAiVaultToolScope(context)) {
         const file = app.workspace.getActiveFile();
-        if (!file || !isFileAllowedForAiVaultTools(file, context?.aiVaultToolAllowedFolders)) {
+        if (!file || !isFileAllowedForVaultTools(file, context?.aiVaultToolAllowedFolders)) {
           return denyAiVaultToolScope();
         }
       }

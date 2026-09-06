@@ -1,6 +1,6 @@
 import { Notice, Setting } from "obsidian";
 import { t } from "src/i18n";
-import { normalizeVaultScopePath } from "src/vault/aiVaultScope";
+import { normalizeVaultScopePath } from "obsidian-llm-hub-common/core";
 import type { SettingsContext } from "./settingsContext";
 
 export function displayChatSettings(containerEl: HTMLElement, ctx: SettingsContext): void {

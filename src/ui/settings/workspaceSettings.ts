@@ -2,7 +2,7 @@ import { Setting, Notice } from "obsidian";
 import { t } from "src/i18n";
 import { DEFAULT_SETTINGS, DEFAULT_WORKSPACE_FOLDER } from "src/types";
 import { ConfirmModal } from "src/ui/components/ConfirmModal";
-import { normalizeVaultScopePath } from "src/vault/aiVaultScope";
+import { normalizeVaultScopePath } from "obsidian-llm-hub-common/core";
 import type { SettingsContext } from "./settingsContext";
 
 export function displayWorkspaceSettings(containerEl: HTMLElement, ctx: SettingsContext): void {

@@ -220,3 +220,31 @@ describe("read_note PDF page range", () => {
     })).error)).toContain("less than or equal to");
   });
 });
+
+describe("AI vault tool folder scope edge cases", () => {
+  it("treats folder names that differ only in case as different folders", async () => {
+    // The old private copy lowercased both sides, so an allowed "Public" also
+    // opened a separate "public" folder on a case-sensitive vault.
+    const app = makeApp([makeFile("public/Note.md", "other")]);
+
+    const result = await executeToolCall(app, "read_note", { fileName: "public/Note.md" }, {
+      limitAiVaultToolScope: true,
+      aiVaultToolAllowedFolders: ["Public"],
+    });
+
+    expect(result.success).toBe(false);
+    expect(String(result.error)).toContain("Access denied");
+  });
+
+  it("lists the ancestors needed to reach an allowed folder, and nothing beside them", async () => {
+    const app = makeApp([]);
+
+    const result = await executeToolCall(app, "list_folders", {}, {
+      limitAiVaultToolScope: true,
+      aiVaultToolAllowedFolders: ["Public/Nested"],
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.folders).toEqual(["Public", "Public/Nested"]);
+  });
+});

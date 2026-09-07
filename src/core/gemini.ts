@@ -36,9 +36,6 @@ import {
   buildGeminiInteractionTextStep,
   buildGeminiMessageParts,
   buildGeminiRagRequest,
-  collectGeminiInteractionAnnotationSources,
-  collectGeminiInteractionFileSearchResult,
-  collectGeminiInteractionStepSources,
   buildGeminiThinkingConfig,
   collectGeminiWebSources as collectWebSources,
   extractGeminiInteractionsUsage as extractInteractionsUsage,
@@ -47,10 +44,8 @@ import {
   extractGeminiUsage as extractUsage,
   formatError,
   geminiCorsFetch as corsFetch,
-  GeminiFunctionCallAccumulator,
   GEMINI_SEARCH_GROUNDING_COST as SEARCH_GROUNDING_COST,
   getGeminiFinishReasonError as checkFinishReason,
-  getGeminiInteractionStatusError,
   getGeminiReasoningEffortOptions,
   isGeminiThinkingRequired,
   messagesToGeminiContents,
@@ -59,6 +54,8 @@ import {
   planGeminiFunctionCalls,
   parseGeminiGenerateContentParts,
   parseGeminiFinalInteractionEvent,
+  createGeminiInteractionRound,
+  reduceGeminiInteractionEvent,
   requestGeminiFunctionCallLimitExtension,
   toGeminiStreamChunkUsage as toStreamChunkUsage,
 } from "obsidian-llm-hub-common/core";
@@ -748,164 +745,27 @@ export class GeminiClient {
           generation_config: generationConfig,
         });
 
-        const functionCallsToProcess: Array<{ id: string; name: string; args: Record<string, unknown> }> = [];
-        const accumulatedSources: string[] = [];
-        const accumulatedContexts: RagContext[] = [];
-        let fileSearchUsedInRound = false;
-        let webSearchUsedInRound = false;
+        let roundState = createGeminiInteractionRound("native");
         let roundUsage: TracingUsage | undefined;
-        let hasReceivedEvent = false;
-
-        // v2 steps schema: function call arguments stream as partial JSON via
-        // `arguments_delta` events. We accumulate per-step and finalize on step.stop.
-        const pendingFunctionCalls = new GeminiFunctionCallAccumulator();
-
-        // Process SSE events (v2 "steps" schema event types)
         for await (const event of stream) {
-          hasReceivedEvent = true;
-
-          switch (event.event_type) {
-            case "interaction.created": {
-              currentInteractionId = event.interaction?.id;
-              break;
-            }
-
-            case "step.start": {
-              const step = event.step;
-              if (!step) break;
-              switch (step.type) {
-                case "function_call":
-                  // step.start provides id + name (arguments is {} in streaming;
-                  // actual args arrive via arguments_delta deltas).
-                  pendingFunctionCalls.start(event.index, step.id, step.name, step.arguments ?? {});
-                  break;
-                case "file_search_call":
-                  fileSearchUsedInRound = true;
-                  break;
-                default:
-                  break;
-              }
-              break;
-            }
-
-            case "step.delta": {
-              const delta = event.delta;
-              if (!delta) break;
-
-              switch (delta.type) {
-                case "text":
-                  if ("text" in delta && delta.text) {
-                    accumulatedOutput += delta.text;
-                    yield { type: "text", content: delta.text };
-                  }
-                  break;
-
-                case "text_annotation_delta":
-                  // v2: annotations are delivered in a dedicated delta type
-                  if ("annotations" in delta && delta.annotations) {
-                    collectGeminiInteractionAnnotationSources(accumulatedSources, delta.annotations);
-                  }
-                  break;
-
-                case "thought_summary":
-                  // Thinking content via summary
-                  if ("content" in delta && delta.content) {
-                    const thought = delta.content as { text?: string };
-                    if (thought.text) {
-                      yield { type: "thinking", content: thought.text };
-                    }
-                  }
-                  break;
-
-                case "arguments_delta": {
-                  // Accumulate partial JSON for the pending function call
-                  if ("arguments" in delta && typeof delta.arguments === "string") {
-                    pendingFunctionCalls.appendArguments(event.index, delta.arguments);
-                  }
-                  break;
-                }
-
-                case "file_search_call":
-                  fileSearchUsedInRound = true;
-                  break;
-
-                case "file_search_result":
-                  // RAG results come through file_search_result deltas
-                  if ("result" in delta && Array.isArray(delta.result)) {
-                    for (const r of delta.result) {
-                      collectGeminiInteractionFileSearchResult({
-                        sources: accumulatedSources,
-                        contexts: accumulatedContexts,
-                      }, r);
-                    }
-                  }
-                  break;
-
-                case "google_search_result":
-                  collectWebSources(delta, webSearchSources);
-                  if (!webSearchUsedInRound) {
-                    webSearchUsedInRound = true;
-                    yield { type: "web_search_used" };
-                  }
-                  break;
-
-                default:
-                  break;
-              }
-              break;
-            }
-
-            case "step.stop": {
-              // Finalize pending function call: parse accumulated arguments_delta JSON
-              const functionCall = pendingFunctionCalls.finish(event.index);
-              if (functionCall) functionCallsToProcess.push(functionCall);
-              break;
-            }
-
-            case "interaction.status_update": {
-              // Optional progress/status events; usage may appear in metadata.
-              if (event.metadata?.total_usage) {
-                roundUsage = extractInteractionsUsage(event.metadata.total_usage, this.model);
-              }
-              break;
-            }
-
-            case "interaction.completed": {
-              const interaction = event.interaction;
-              if (interaction?.usage) {
-                roundUsage = extractInteractionsUsage(interaction.usage, this.model);
-              }
-              // v2: interaction.steps in the completed event is empty to reduce payload;
-              // sources were collected from step deltas above. Also collect from any
-              // steps the server does return (e.g. non-streaming-style responses).
-              collectGeminiInteractionStepSources({
-                sources: accumulatedSources,
-                contexts: accumulatedContexts,
-              }, interaction?.steps);
-              // Check for blocked/failed/incomplete status
-              const statusMsg = getGeminiInteractionStatusError(interaction?.status);
-              if (statusMsg) {
-                tracing.spanEnd(roundSpanId, { error: statusMsg, metadata: { usage: roundUsage } });
-                streamErrored = true;
-                yield { type: "error", error: statusMsg };
-                continueLoop = false;
-              }
-              break;
-            }
-
-            case "error": {
-              const errMsg = (event as { error?: { message?: string } }).error?.message ?? "Unknown interaction error";
-              tracing.spanEnd(roundSpanId, { error: errMsg, metadata: { usage: roundUsage } });
+          const reduced = reduceGeminiInteractionEvent(roundState, event);
+          roundState = reduced.state;
+          if (roundState.interactionId !== undefined) currentInteractionId = roundState.interactionId;
+          roundUsage = extractInteractionsUsage(roundState.usage as Interactions.Usage | undefined, this.model);
+          for (const effect of reduced.effects) {
+            if (effect.type === "text") accumulatedOutput += effect.content;
+            if (effect.type === "error") {
+              tracing.spanEnd(roundSpanId, { error: effect.error, metadata: { usage: roundUsage } });
               streamErrored = true;
               continueLoop = false;
-              yield { type: "error", error: errMsg };
-              break;
             }
-
-            default:
-              break;
+            yield effect;
           }
         }
+        const { functionCalls: functionCallsToProcess, sources: accumulatedSources,
+          webSearchUsed: webSearchUsedInRound, hasReceivedEvent } = roundState;
+        const { contexts: accumulatedContexts, fileSearchUsed: fileSearchUsedInRound } = roundState;
+        for (const source of roundState.webSources) collectWebSources(source, webSearchSources);
 
         // Sum round usage into total
         if (roundUsage) accumulateUsage(totalUsage, roundUsage);

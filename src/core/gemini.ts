@@ -29,8 +29,11 @@ import {
   accumulateGeminiUsage as accumulateUsage,
   buildGeminiGenerateContentTools,
   buildGeminiHistoryReplayInput,
+  buildGeminiInteractionAttachmentStep,
+  buildGeminiInteractionFunctionResultStep,
   buildGeminiInteractionTools,
   buildGeminiInteractionInput,
+  buildGeminiInteractionTextStep,
   buildGeminiMessageParts,
   buildGeminiRagRequest,
   collectGeminiInteractionAnnotationSources,
@@ -1027,27 +1030,18 @@ export class GeminiClient {
             // Build FunctionResultStep for the v2 Interactions API input.
             // Use a JSON string result, matching the SDK README examples and
             // avoiding stricter model-side validation of arbitrary objects.
-            functionResults.push({
-              type: "function_result",
-              call_id: fc.id,
-              name: fc.name,
-              result: serializedResult,
-            });
+            functionResults.push(buildGeminiInteractionFunctionResultStep(
+              fc.id,
+              fc.name,
+              serializedResult,
+            ) as Interactions.Step);
             roundAttachments.push(...getToolResultAttachments(result));
           }
 
           // Keep every function_result ahead of the media it produced.
           const roundFiles = dedupeAttachments(roundAttachments);
-          if (roundFiles.length > 0) {
-            functionResults.push({
-              type: "user_input",
-              content: roundFiles.map((attachment) => ({
-                type: "document" as const,
-                data: attachment.data,
-                mime_type: attachment.mimeType,
-              })),
-            });
-          }
+          const attachmentStep = buildGeminiInteractionAttachmentStep(roundFiles);
+          if (attachmentStep) functionResults.push(attachmentStep as Interactions.Step);
 
           functionCallCount += callsToExecute.length;
 
@@ -1061,10 +1055,9 @@ export class GeminiClient {
             };
 
             // Send results + limit message (v2: append a user_input step for the system text)
-            functionResults.push({
-              type: "user_input",
-              content: [{ type: "text", text: "[System: Function call limit reached. Please provide a final answer based on the information gathered so far.]" }],
-            });
+            functionResults.push(buildGeminiInteractionTextStep(
+              "[System: Function call limit reached. Please provide a final answer based on the information gathered so far.]",
+            ) as Interactions.Step);
             nextInput = functionResults;
             tracing.spanEnd(roundSpanId, { metadata: { reason: "function_call_limit_with_skipped", usage: roundUsage } });
 
@@ -1098,10 +1091,9 @@ export class GeminiClient {
           // Add warning if approaching limit (v2: as a user_input step)
           const remainingForNextRound = currentFunctionCallLimit - functionCallCount;
           if (warningEmitted && remainingForNextRound <= warningThreshold) {
-            functionResults.push({
-              type: "user_input",
-              content: [{ type: "text", text: `[System: You have ${remainingForNextRound} function calls remaining. Please complete your task efficiently or provide a summary.]` }],
-            });
+            functionResults.push(buildGeminiInteractionTextStep(
+              `[System: You have ${remainingForNextRound} function calls remaining. Please complete your task efficiently or provide a summary.]`,
+            ) as Interactions.Step);
           }
 
           // Send function results back — next iteration creates a new interaction chained via previous_interaction_id

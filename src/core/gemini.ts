@@ -30,7 +30,13 @@ import {
 } from "src/types";
 import { dedupeAttachments, getToolResultAttachments, withoutToolResultAttachments } from "src/core/toolResultAttachments";
 import { tracing, type TracingUsage } from "src/core/tracingHooks";
-import { formatError } from "obsidian-llm-hub-common/core";
+import {
+  buildGeminiThinkingConfig,
+  formatError,
+  getGeminiReasoningEffortOptions,
+  isGeminiThinkingRequired,
+  resolveGeminiThinkingLevel,
+} from "obsidian-llm-hub-common/core";
 import { Platform, requestUrl } from "obsidian";
 
 // ---------------------------------------------------------------------------
@@ -323,104 +329,15 @@ export interface ChatWithToolsOptions {
   previousInteractionId?: string | null;  // For Interactions API conversation chaining
 }
 
-export type GeminiThinkingLevel = "minimal" | "low" | "medium" | "high";
-
-/**
- * Check if a model requires thinking (cannot be disabled).
- */
-export function isThinkingRequired(model: string): boolean {
-  const lower = model.toLowerCase();
-  return lower.includes("gemini-3-pro") || lower.includes("gemini-3.1-pro");
-}
+export { buildGeminiThinkingConfig, resolveGeminiThinkingLevel };
+export const isThinkingRequired = isGeminiThinkingRequired;
 
 /**
  * Thinking levels selectable in Chat for a model. Empty when the model has no
  * configurable thinking (Gemma 4, image models).
  */
 export function getReasoningEffortOptions(model: string): ReasoningEffort[] {
-  const modelLower = model.toLowerCase();
-  if (modelLower.includes("gemma-4")) return [];
-  if (isImageGenerationModel(model as ModelType)) return [];
-  if (isThinkingRequired(model)) return ["default", "low", "medium", "high"];
-  if (modelLower.includes("gemini-3")) return ["default", "minimal", "low", "medium", "high"];
-  return [];
-}
-
-/**
- * Build `thinkingConfig` for the GenerateContent / SDK Chat path.
- * - An explicit reasoning effort (anything but "default") wins and includes thought summaries.
- * - `enableThinking === undefined` leaves the choice to the API (no config at all).
- * - `enableThinking` true/false keeps the binary behaviour used by workflow and dashboard callers.
- */
-export function buildGeminiThinkingConfig(
-  model: string,
-  enableThinking: boolean | undefined,
-  reasoningEffort?: ReasoningEffort,
-): Record<string, unknown> | undefined {
-  const modelLower = model.toLowerCase();
-
-  // Gemma 4: thinking config not supported
-  if (modelLower.includes("gemma-4")) return undefined;
-
-  const explicitLevel = reasoningEffort && reasoningEffort !== "default" ? reasoningEffort : undefined;
-  if (explicitLevel) {
-    return { includeThoughts: true, thinkingLevel: explicitLevel.toUpperCase() };
-  }
-
-  if (enableThinking === undefined) return undefined;
-
-  // Gemini 3.8 Flash uses thinkingLevel; thinkingBudget is not supported.
-  if (modelLower.includes("gemini-3.8-flash")) {
-    return enableThinking
-      ? { includeThoughts: true, thinkingLevel: "HIGH" }
-      : { thinkingLevel: "LOW" };
-  }
-
-  // Gemini 3.5 Flash Lite uses thinkingLevel; minimal is the API default.
-  if (modelLower.includes("gemini-3.5-flash-lite")) {
-    if (!enableThinking) return undefined;
-    return { includeThoughts: true, thinkingLevel: "HIGH" };
-  }
-
-  // gemini-3-pro / gemini-3.1-pro models require thinking — cannot disable
-  if (!enableThinking && !isThinkingRequired(model)) return { thinkingBudget: 0 };
-
-  return { includeThoughts: true };
-}
-
-/**
- * Resolve `thinking_level` for the Interactions API path. Same precedence as
- * buildGeminiThinkingConfig(); returns undefined to leave the choice to the API.
- */
-export function resolveGeminiThinkingLevel(
-  model: string,
-  enableThinking: boolean | undefined,
-  reasoningEffort?: ReasoningEffort,
-): GeminiThinkingLevel | undefined {
-  const modelLower = model.toLowerCase();
-
-  // Gemma 4: thinking config not supported via Interactions API
-  if (modelLower.includes("gemma-4")) return undefined;
-
-  // The shared ReasoningEffort covers every provider; Gemini's thinking_level accepts
-  // only these four, so anything outside them falls through to the model's own default.
-  if (reasoningEffort && reasoningEffort !== "default" && reasoningEffort !== "none"
-    && reasoningEffort !== "xhigh" && reasoningEffort !== "max") {
-    return reasoningEffort;
-  }
-
-  if (enableThinking === undefined) return undefined;
-
-  if (modelLower.includes("gemini-3.8-flash")) {
-    return enableThinking ? "high" : "low";
-  }
-  // Pro models require thinking — always return high
-  if (isThinkingRequired(model)) return "high";
-  // Gemini 3.5 Flash Lite: "minimal" matches the streaming/SDK path
-  // (buildGeminiThinkingConfig), which omits thinkingLevel entirely when
-  // thinking is disabled and relies on "minimal" being the API default.
-  if (!enableThinking) return "minimal";
-  return "high";
+  return getGeminiReasoningEffortOptions(model, isImageGenerationModel(model as ModelType));
 }
 
 // Sanitize function call results for Gemini API.

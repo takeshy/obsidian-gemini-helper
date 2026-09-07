@@ -28,7 +28,9 @@ import { tracing, type TracingUsage } from "src/core/tracingHooks";
 import {
   accumulateGeminiUsage as accumulateUsage,
   buildGeminiGenerateContentTools,
+  buildGeminiHistoryReplayInput,
   buildGeminiInteractionTools,
+  buildGeminiInteractionInput,
   buildGeminiMessageParts,
   buildGeminiThinkingConfig,
   collectGeminiWebSources as collectWebSources,
@@ -359,54 +361,7 @@ export class GeminiClient {
 
   // Build Interactions API input from a Message (supports text + attachments)
   private static buildInteractionInput(msg: Message): string | Interactions.Content[] {
-    // Simple text-only message
-    if (!msg.attachments || msg.attachments.length === 0) {
-      return msg.content || "";
-    }
-
-    // Multimodal: build Content_2 array
-    const contents: Interactions.Content[] = [];
-    for (const attachment of msg.attachments) {
-      if (attachment.type === "image") {
-        contents.push({
-          type: "image",
-          data: attachment.data,
-          mime_type: attachment.mimeType,
-        });
-      } else if (attachment.type === "audio") {
-        contents.push({
-          type: "audio",
-          data: attachment.data,
-          mime_type: attachment.mimeType,
-        });
-      } else if (attachment.type === "video") {
-        contents.push({
-          type: "video",
-          data: attachment.data,
-          mime_type: attachment.mimeType,
-        });
-      } else if (attachment.type === "pdf") {
-        contents.push({
-          type: "document",
-          data: attachment.data,
-          mime_type: attachment.mimeType,
-        });
-      } else {
-        // Text files — include as text
-        if (attachment.data) {
-          try {
-            const decoded = atob(attachment.data);
-            contents.push({ type: "text", text: `[File: ${attachment.name}]\n${decoded}` });
-          } catch {
-            contents.push({ type: "text", text: `[File: ${attachment.name}]` });
-          }
-        }
-      }
-    }
-    if (msg.content) {
-      contents.push({ type: "text" as const, text: msg.content });
-    }
-    return contents;
+    return buildGeminiInteractionInput(msg) as string | Interactions.Content[];
   }
 
   // Build Interactions API input with local history replay.
@@ -416,40 +371,7 @@ export class GeminiClient {
   private static buildHistoryReplayInput(
     messages: Message[],
   ): string | Interactions.Content[] {
-    const historyMessages = messages.slice(0, -1);
-    const lastMessage = messages[messages.length - 1];
-
-    // No history to replay — just send the last message directly
-    if (historyMessages.length === 0) {
-      return GeminiClient.buildInteractionInput(lastMessage);
-    }
-
-    // Build a conversation transcript from history
-    const lines: string[] = [];
-    for (const msg of historyMessages) {
-      const role = msg.role === "user" ? "User" : "Assistant";
-      if (msg.content) {
-        lines.push(`${role}: ${msg.content}`);
-      }
-    }
-    const historyText = "[Previous conversation]\n" + lines.join("\n\n") + "\n\n[Current message]\n";
-
-    // Simple text-only last message — merge into a single string
-    if (!lastMessage.attachments || lastMessage.attachments.length === 0) {
-      return historyText + (lastMessage.content || "");
-    }
-
-    // Multimodal: history as text prefix, then attachments + text from the last message
-    const contents: Interactions.Content[] = [
-      { type: "text" as const, text: historyText },
-    ];
-    const lastParts = GeminiClient.buildInteractionInput(lastMessage);
-    if (Array.isArray(lastParts)) {
-      contents.push(...lastParts);
-    } else {
-      contents.push({ type: "text" as const, text: lastParts });
-    }
-    return contents;
+    return buildGeminiHistoryReplayInput(messages) as string | Interactions.Content[];
   }
 
   private shouldUseGenerateContentToolsApi(

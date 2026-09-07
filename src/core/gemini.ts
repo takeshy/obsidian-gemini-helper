@@ -41,6 +41,7 @@ import {
   extractGeminiUsage as extractUsage,
   formatError,
   geminiCorsFetch as corsFetch,
+  GeminiFunctionCallAccumulator,
   GEMINI_SEARCH_GROUNDING_COST as SEARCH_GROUNDING_COST,
   getGeminiFinishReasonError as checkFinishReason,
   getGeminiReasoningEffortOptions,
@@ -842,10 +843,7 @@ export class GeminiClient {
 
         // v2 steps schema: function call arguments stream as partial JSON via
         // `arguments_delta` events. We accumulate per-step and finalize on step.stop.
-        const pendingFunctionCalls = new Map<
-          number,
-          { id: string; name: string; argsBuffer: string; startArgs: Record<string, unknown> }
-        >();
+        const pendingFunctionCalls = new GeminiFunctionCallAccumulator();
 
         // Process SSE events (v2 "steps" schema event types)
         for await (const event of stream) {
@@ -864,12 +862,7 @@ export class GeminiClient {
                 case "function_call":
                   // step.start provides id + name (arguments is {} in streaming;
                   // actual args arrive via arguments_delta deltas).
-                  pendingFunctionCalls.set(event.index, {
-                    id: step.id,
-                    name: step.name,
-                    argsBuffer: "",
-                    startArgs: step.arguments ?? {},
-                  });
+                  pendingFunctionCalls.start(event.index, step.id, step.name, step.arguments ?? {});
                   break;
                 case "file_search_call":
                   fileSearchUsedInRound = true;
@@ -911,9 +904,8 @@ export class GeminiClient {
 
                 case "arguments_delta": {
                   // Accumulate partial JSON for the pending function call
-                  const pending = pendingFunctionCalls.get(event.index);
-                  if (pending && "arguments" in delta && typeof delta.arguments === "string") {
-                    pending.argsBuffer += delta.arguments;
+                  if ("arguments" in delta && typeof delta.arguments === "string") {
+                    pendingFunctionCalls.appendArguments(event.index, delta.arguments);
                   }
                   break;
                 }
@@ -947,23 +939,8 @@ export class GeminiClient {
 
             case "step.stop": {
               // Finalize pending function call: parse accumulated arguments_delta JSON
-              const pending = pendingFunctionCalls.get(event.index);
-              if (pending) {
-                let args = pending.startArgs;
-                if (pending.argsBuffer) {
-                  try {
-                    args = JSON.parse(pending.argsBuffer) as Record<string, unknown>;
-                  } catch {
-                    args = pending.startArgs;
-                  }
-                }
-                functionCallsToProcess.push({
-                  id: pending.id,
-                  name: pending.name,
-                  args,
-                });
-                pendingFunctionCalls.delete(event.index);
-              }
+              const functionCall = pendingFunctionCalls.finish(event.index);
+              if (functionCall) functionCallsToProcess.push(functionCall);
               break;
             }
 

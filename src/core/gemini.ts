@@ -35,6 +35,7 @@ import {
   extractGeminiInteractionsUsage as extractInteractionsUsage,
   extractGeminiUsage as extractUsage,
   formatError,
+  geminiCorsFetch as corsFetch,
   GEMINI_SEARCH_GROUNDING_COST as SEARCH_GROUNDING_COST,
   getGeminiFinishReasonError as checkFinishReason,
   getGeminiReasoningEffortOptions,
@@ -43,135 +44,6 @@ import {
   serializeGeminiFunctionResult as serializeFunctionResult,
   toGeminiStreamChunkUsage as toStreamChunkUsage,
 } from "obsidian-llm-hub-common/core";
-import { Platform, requestUrl } from "obsidian";
-
-// ---------------------------------------------------------------------------
-// CORS-free fetch implementations for the Interactions API.
-// The endpoint doesn't return CORS headers, so browser fetch rejects preflight.
-// ---------------------------------------------------------------------------
-
-// Desktop (Electron / Node.js): streaming via https module
-// window.require loads Node.js builtins without triggering the ESM loader (which
-// cannot resolve Node builtins in Electron's renderer process).
-async function nodeFetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
-  const https = (window as unknown as { require: (id: string) => typeof import("https") }).require("https");
-  const url = typeof input === "string" ? new URL(input) : input instanceof URL ? input : new URL(input.url);
-  const method = init?.method ?? "GET";
-  const headers: Record<string, string> = {};
-  if (init?.headers) {
-    if (init.headers instanceof Headers) {
-      init.headers.forEach((v, k) => { headers[k] = v; });
-    } else if (Array.isArray(init.headers)) {
-      for (const [k, v] of init.headers) headers[k] = v;
-    } else {
-      Object.assign(headers, init.headers);
-    }
-  }
-
-  return new Promise((resolve, reject) => {
-    const req = https.request(url, { method, headers }, (res: import("http").IncomingMessage) => {
-      const responseHeaders = new Headers();
-      for (const [k, v] of Object.entries(res.headers)) {
-        if (v) responseHeaders.set(k, Array.isArray(v) ? v.join(", ") : v);
-      }
-
-      const body = new ReadableStream({
-        start(controller) {
-          res.on("data", (chunk: Buffer) => controller.enqueue(new Uint8Array(chunk)));
-          res.on("end", () => controller.close());
-          res.on("error", (err) => controller.error(err));
-        },
-        cancel() {
-          res.destroy();
-        },
-      });
-
-      resolve(new Response(body, {
-        status: res.statusCode ?? 200,
-        statusText: res.statusMessage ?? "",
-        headers: responseHeaders,
-      }));
-    });
-
-    req.on("error", reject);
-
-    if (init?.signal) {
-      init.signal.addEventListener("abort", () => req.destroy());
-    }
-
-    if (init?.body) {
-      if (typeof init.body === "string") {
-        req.end(init.body);
-      } else if (init.body instanceof ArrayBuffer || ArrayBuffer.isView(init.body)) {
-        req.end(Buffer.from(init.body as ArrayBuffer));
-      } else {
-        const readable = init.body as ReadableStream<Uint8Array>;
-        const reader = readable.getReader();
-        const pump = (): void => {
-          reader.read().then(({ done, value }) => {
-            if (done) { req.end(); return; }
-            req.write(value);
-            pump();
-          }).catch((err: Error) => req.destroy(err));
-        };
-        pump();
-      }
-    } else {
-      req.end();
-    }
-  });
-}
-
-// Mobile: buffered fetch via Obsidian's requestUrl (bypasses CORS, no streaming)
-async function mobileFetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
-  const url = typeof input === "string" ? input : input instanceof URL ? input.toString() : input.url;
-  const method = init?.method ?? "GET";
-  const headers: Record<string, string> = {};
-  if (init?.headers) {
-    if (init.headers instanceof Headers) {
-      init.headers.forEach((v, k) => { headers[k] = v; });
-    } else if (Array.isArray(init.headers)) {
-      for (const [k, v] of init.headers) headers[k] = v;
-    } else {
-      Object.assign(headers, init.headers);
-    }
-  }
-
-  let body: string | undefined;
-  if (init?.body) {
-    body = typeof init.body === "string" ? init.body : JSON.stringify(init.body);
-  }
-
-  const res = await requestUrl({ url, method, headers, body, throw: false });
-
-  const responseHeaders = new Headers();
-  for (const [k, v] of Object.entries(res.headers)) {
-    if (v) responseHeaders.set(k, v);
-  }
-
-  // Wrap the buffered response as a ReadableStream so the SDK's SSE parser works
-  const encoder = new TextEncoder();
-  const encoded = encoder.encode(res.text);
-  const stream = new ReadableStream({
-    start(controller) {
-      controller.enqueue(encoded);
-      controller.close();
-    },
-  });
-
-  return new Response(stream, {
-    status: res.status,
-    headers: responseHeaders,
-  });
-}
-
-// Pick the right CORS-free fetch for the current platform
-function corsFetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
-  if (Platform.isMobile) {
-    return mobileFetch(input, init);
-  }
-  return nodeFetch(input, init);
-}
 
 // Default safety settings per Gemini best practices
 // Using BLOCK_MEDIUM_AND_ABOVE as a balanced default

@@ -32,9 +32,11 @@ import {
   buildGeminiInteractionTools,
   buildGeminiInteractionInput,
   buildGeminiMessageParts,
+  buildGeminiRagRequest,
   buildGeminiThinkingConfig,
   collectGeminiWebSources as collectWebSources,
   extractGeminiInteractionsUsage as extractInteractionsUsage,
+  extractGeminiRagContexts,
   extractGeminiUsage as extractUsage,
   formatError,
   geminiCorsFetch as corsFetch,
@@ -288,30 +290,7 @@ export class GeminiClient {
     metadataFilter?: string,
     attachments?: Message["attachments"],
   ): Promise<{ sources: string[]; contexts: RagContext[] }> {
-    const parts: Part[] = [];
-    if (attachments && attachments.length > 0) {
-      for (const attachment of attachments) {
-        parts.push({
-          inlineData: {
-            mimeType: attachment.mimeType,
-            data: attachment.data,
-          },
-        });
-      }
-      if (userMessage) {
-        parts.push({ text: userMessage });
-      }
-    } else {
-      parts.push({ text: userMessage });
-    }
-
-    const tools: Tool[] = [{
-      fileSearch: {
-        fileSearchStoreNames: ragStoreIds,
-        topK,
-        metadataFilter: metadataFilter || undefined,
-      },
-    }];
+    const { parts, tools } = buildGeminiRagRequest(userMessage, ragStoreIds, topK, metadataFilter, attachments);
 
     const response = await this.ai.models.generateContent({
       model: this.model,
@@ -322,41 +301,7 @@ export class GeminiClient {
       },
     });
 
-    const groundingMetadata = (response.candidates?.[0] as {
-      groundingMetadata?: {
-        groundingChunks?: Array<{
-          retrievedContext?: {
-            title?: string;
-            text?: string;
-            uri?: string;
-            fileSearchStore?: string;
-          };
-        }>;
-      };
-    })?.groundingMetadata;
-
-    const chunks = groundingMetadata?.groundingChunks ?? [];
-    const sources: string[] = [];
-    const contexts: RagContext[] = [];
-
-    for (const chunk of chunks) {
-      const ctx = chunk.retrievedContext;
-      if (!ctx) continue;
-      const title = String(ctx.title ?? ctx.uri ?? "").trim();
-      if (!title) continue;
-      if (!sources.includes(title)) {
-        sources.push(title);
-      }
-      const text = String(ctx.text ?? "").replace(/\s+/g, " ").trim();
-      if (text) {
-        const excerpt = text.length > 500 ? text.slice(0, 500) + "..." : text;
-        if (!contexts.some(c => c.source === title && c.text === excerpt)) {
-          contexts.push({ source: title, text: excerpt });
-        }
-      }
-    }
-
-    return { sources, contexts };
+    return extractGeminiRagContexts(response);
   }
 
   // Build Interactions API input from a Message (supports text + attachments)

@@ -3127,6 +3127,129 @@
   opacity: 1;
 }
 
+/* Inline MCP Apps and their movable expanded window. */
+.gemini-helper-mcp-app {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  margin-top: 12px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--background-primary);
+}
+
+.gemini-helper-mcp-app-expanded {
+  position: fixed;
+  right: auto;
+  bottom: auto;
+  z-index: 1000;
+  min-width: 360px;
+  min-height: 280px;
+  max-width: calc(100vw - 16px);
+  max-height: calc(100vh - 16px);
+  margin: 0;
+  border: 2px solid var(--interactive-accent);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+.gemini-helper-mcp-app-header {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: var(--background-secondary);
+  border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.gemini-helper-mcp-app-expanded .gemini-helper-mcp-app-header {
+  cursor: move;
+  touch-action: none;
+  user-select: none;
+}
+
+.gemini-helper-mcp-app-indicator {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.gemini-helper-mcp-app-expand-btn {
+  padding: 4px 8px;
+  border: none;
+  border-radius: 4px;
+  background: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 16px;
+}
+
+.gemini-helper-mcp-app-expand-btn:hover {
+  background: var(--background-modifier-hover);
+  color: var(--text-normal);
+}
+
+.gemini-helper-mcp-app-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 24px;
+  color: var(--text-muted);
+}
+
+.gemini-helper-mcp-app-error {
+  padding: 12px;
+  margin-top: 8px;
+  border-radius: 4px;
+  background: var(--background-modifier-error);
+  color: var(--text-error);
+}
+
+.gemini-helper-mcp-app-iframe {
+  flex: 1 1 auto;
+  width: 100%;
+  height: 400px;
+  min-height: 200px;
+  border: none;
+  background: var(--background-primary);
+}
+
+.gemini-helper-mcp-app-iframe-expanded {
+  height: auto;
+  min-height: 0;
+}
+
+.gemini-helper-mcp-app-resize-handle {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  z-index: 2;
+  width: 20px;
+  height: 20px;
+  cursor: nwse-resize;
+  touch-action: none;
+}
+
+.gemini-helper-mcp-app-resize-handle::after {
+  content: "";
+  position: absolute;
+  right: 4px;
+  bottom: 4px;
+  width: 8px;
+  height: 8px;
+  border-right: 2px solid var(--text-muted);
+  border-bottom: 2px solid var(--text-muted);
+}
+
+.is-mobile .gemini-helper-mcp-app-expanded {
+  min-width: 280px;
+  min-height: 240px;
+}
+
 .gemini-helper-message-content {
   font-size: 14px;
   line-height: 1.6;

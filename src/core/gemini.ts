@@ -47,6 +47,8 @@ import {
   messagesToGeminiContents,
   resolveGeminiThinkingLevel,
   prepareGeminiToolResult,
+  planGeminiFunctionCalls,
+  requestGeminiFunctionCallLimitExtension,
   toGeminiStreamChunkUsage as toStreamChunkUsage,
 } from "obsidian-llm-hub-common/core";
 
@@ -92,31 +94,6 @@ export const isThinkingRequired = isGeminiThinkingRequired;
  */
 export function getReasoningEffortOptions(model: string): ReasoningEffort[] {
   return getGeminiReasoningEffortOptions(model, isImageGenerationModel(model as ModelType));
-}
-
-async function maybeExtendFunctionCallLimit(
-  options: FunctionCallLimitOptions | undefined,
-  functionCallCount: number,
-  currentLimit: number,
-  pendingCalls: number,
-  remaining: number,
-): Promise<number> {
-  const defaultExtensionAmount = options?.maxFunctionCalls ?? DEFAULT_SETTINGS.maxFunctionCalls;
-  if (!options?.requestLimitExtension || defaultExtensionAmount <= 0) {
-    return currentLimit;
-  }
-
-  const requestedExtension = await options.requestLimitExtension({
-    used: functionCallCount,
-    currentLimit,
-    extensionAmount: defaultExtensionAmount,
-    pendingCalls,
-    remaining,
-  });
-  const extensionAmount = typeof requestedExtension === "number"
-    ? Math.max(0, Math.floor(requestedExtension))
-    : requestedExtension ? defaultExtensionAmount : 0;
-  return extensionAmount > 0 ? currentLimit + extensionAmount : currentLimit;
 }
 
 type FileSearchDeltaResult = {
@@ -520,8 +497,9 @@ export class GeminiClient {
 
         if (!warningEmitted && remainingBefore <= warningThreshold) {
           warningEmitted = true;
-          const extendedLimit = await maybeExtendFunctionCallLimit(
+          const extendedLimit = await requestGeminiFunctionCallLimitExtension(
             options?.functionCallLimits,
+            DEFAULT_SETTINGS.maxFunctionCalls,
             functionCallCount,
             currentFunctionCallLimit,
             functionCalls.length,
@@ -534,7 +512,11 @@ export class GeminiClient {
           yield { type: "text", content: `\n\n[Note: ${remainingBefore} function calls remaining. Please work efficiently.]` };
         }
 
-        const callsToExecute = functionCalls.slice(0, remainingBefore);
+        const { callsToExecute } = planGeminiFunctionCalls(
+          functionCalls,
+          functionCallCount,
+          currentFunctionCallLimit,
+        );
 
         const functionResponseParts: Part[] = [];
         const roundAttachments: Attachment[] = [];
@@ -1104,8 +1086,9 @@ export class GeminiClient {
 
           if (!warningEmitted && remainingBefore <= warningThreshold) {
             warningEmitted = true;
-            const extendedLimit = await maybeExtendFunctionCallLimit(
+            const extendedLimit = await requestGeminiFunctionCallLimitExtension(
               options?.functionCallLimits,
+              DEFAULT_SETTINGS.maxFunctionCalls,
               functionCallCount,
               currentFunctionCallLimit,
               functionCallsToProcess.length,
@@ -1121,8 +1104,11 @@ export class GeminiClient {
             };
           }
 
-          const callsToExecute = functionCallsToProcess.slice(0, remainingBefore);
-          const skippedCount = functionCallsToProcess.length - callsToExecute.length;
+          const { callsToExecute, skippedCount } = planGeminiFunctionCalls(
+            functionCallsToProcess,
+            functionCallCount,
+            currentFunctionCallLimit,
+          );
 
           // Execute function calls and build FunctionResultStep inputs (v2 steps schema)
           const functionResults: Interactions.Step[] = [];

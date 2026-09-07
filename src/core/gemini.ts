@@ -1,7 +1,6 @@
 import {
   GoogleGenAI,
   Type,
-  FinishReason,
   HarmCategory,
   HarmBlockThreshold,
   type Content,
@@ -18,7 +17,6 @@ import {
   type ToolDefinition,
   type ToolPropertyDefinition,
   type StreamChunk,
-  type StreamChunkUsage,
   type ToolCall,
   type ModelType,
   type GeneratedImage,
@@ -31,11 +29,17 @@ import {
 import { dedupeAttachments, getToolResultAttachments, withoutToolResultAttachments } from "src/core/toolResultAttachments";
 import { tracing, type TracingUsage } from "src/core/tracingHooks";
 import {
+  accumulateGeminiUsage as accumulateUsage,
   buildGeminiThinkingConfig,
+  extractGeminiUsage as extractUsage,
   formatError,
+  GEMINI_MODEL_PRICING as MODEL_PRICING,
+  GEMINI_SEARCH_GROUNDING_COST as SEARCH_GROUNDING_COST,
+  getGeminiFinishReasonError as checkFinishReason,
   getGeminiReasoningEffortOptions,
   isGeminiThinkingRequired,
   resolveGeminiThinkingLevel,
+  toGeminiStreamChunkUsage as toStreamChunkUsage,
 } from "obsidian-llm-hub-common/core";
 import { Platform, requestUrl } from "obsidian";
 
@@ -198,91 +202,6 @@ function collectWebSources(value: unknown, sources: WebSearchSource[]): void {
   }
 }
 
-// Model pricing per token (USD)
-// Source: https://ai.google.dev/pricing
-const MODEL_PRICING: Record<string, { input: number; output: number }> = {
-  // Introductory pricing through December 31, 2026.
-  "gemini-3.8-flash": { input: 0.75 / 1e6, output: 3.75 / 1e6 },
-  "gemini-3.5-flash-lite": { input: 0.30 / 1e6, output: 2.50 / 1e6 },
-  "gemini-3.1-pro-preview": { input: 2.00 / 1e6, output: 12.00 / 1e6 },
-  "gemini-3.1-pro-preview-customtools": { input: 2.00 / 1e6, output: 12.00 / 1e6 },
-  "gemini-3-pro-image": { input: 2.00 / 1e6, output: 120.00 / 1e6 },
-  "gemini-3.1-flash-image": { input: 0.50 / 1e6, output: 60.00 / 1e6 },
-  "gemini-3.1-flash-lite-image": { input: 0.25 / 1e6, output: 30.00 / 1e6 },
-};
-
-// Grounding with Google Search cost per prompt (USD)
-// Gemini 3 models: $14/1K queries, Gemini 2.x: $35/1K prompts
-// Approximated as per-prompt since exact query count is not exposed by the API
-const SEARCH_GROUNDING_COST: Record<string, number> = {
-  "gemini-3.8-flash": 14 / 1000,
-  "gemini-3.1-pro-preview": 14 / 1000,
-  "gemini-3.1-pro-preview-customtools": 14 / 1000,
-  "gemini-3-pro-image": 14 / 1000,
-  "gemini-3.1-flash-image": 14 / 1000,
-  "gemini-3.5-flash-lite": 14 / 1000,
-};
-
-// Extract usage metadata from Gemini API response and calculate cost
-interface ExtractUsageOptions {
-  model?: string;
-  webSearchUsed?: boolean;
-}
-
-function extractUsage(usageMetadata: { promptTokenCount?: number; candidatesTokenCount?: number; totalTokenCount?: number; thoughtsTokenCount?: number; toolUsePromptTokenCount?: number } | undefined, options?: ExtractUsageOptions): TracingUsage | undefined {
-  if (!usageMetadata) return undefined;
-  const model = options?.model;
-  const inputTokens = usageMetadata.promptTokenCount ?? 0;
-  const outputTokens = usageMetadata.candidatesTokenCount ?? 0;
-  const thinkingTokens = usageMetadata.thoughtsTokenCount ?? 0;
-  const toolUseTokens = usageMetadata.toolUsePromptTokenCount ?? 0;
-  const pricing = model ? MODEL_PRICING[model] : undefined;
-  const inputCost = pricing ? inputTokens * pricing.input : undefined;
-  // candidatesTokenCount already includes thinking tokens in Gemini's accounting
-  const outputCost = pricing ? outputTokens * pricing.output : undefined;
-  let totalCost = inputCost !== undefined && outputCost !== undefined ? inputCost + outputCost : undefined;
-
-  // Add search grounding cost per prompt
-  if (options?.webSearchUsed && model && SEARCH_GROUNDING_COST[model] !== undefined) {
-    totalCost = (totalCost ?? 0) + SEARCH_GROUNDING_COST[model];
-  }
-
-  return {
-    input: usageMetadata.promptTokenCount,
-    output: usageMetadata.candidatesTokenCount,
-    thinking: thinkingTokens > 0 ? thinkingTokens : undefined,
-    toolUsePromptTokens: toolUseTokens > 0 ? toolUseTokens : undefined,
-    total: usageMetadata.totalTokenCount,
-    inputCost,
-    outputCost,
-    totalCost,
-  };
-}
-
-// Accumulate per-round usage into a running total
-function accumulateUsage(total: TracingUsage, round: TracingUsage): void {
-  total.input = (total.input ?? 0) + (round.input ?? 0);
-  total.output = (total.output ?? 0) + (round.output ?? 0);
-  if (round.thinking !== undefined) total.thinking = (total.thinking ?? 0) + round.thinking;
-  if (round.toolUsePromptTokens !== undefined) total.toolUsePromptTokens = (total.toolUsePromptTokens ?? 0) + round.toolUsePromptTokens;
-  total.total = (total.total ?? 0) + (round.total ?? 0);
-  if (round.inputCost !== undefined) total.inputCost = (total.inputCost ?? 0) + round.inputCost;
-  if (round.outputCost !== undefined) total.outputCost = (total.outputCost ?? 0) + round.outputCost;
-  if (round.totalCost !== undefined) total.totalCost = (total.totalCost ?? 0) + round.totalCost;
-}
-
-// Convert TracingUsage to StreamChunkUsage for yielding to the UI
-function toStreamChunkUsage(usage: TracingUsage | undefined): StreamChunkUsage | undefined {
-  if (!usage) return undefined;
-  return {
-    inputTokens: usage.input,
-    outputTokens: usage.output,
-    thinkingTokens: usage.thinking,
-    totalTokens: usage.total,
-    totalCost: usage.totalCost,
-  };
-}
-
 // Default safety settings per Gemini best practices
 // Using BLOCK_MEDIUM_AND_ABOVE as a balanced default
 const DEFAULT_SAFETY_SETTINGS: SafetySetting[] = [
@@ -291,19 +210,6 @@ const DEFAULT_SAFETY_SETTINGS: SafetySetting[] = [
   { category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT, threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE },
   { category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT, threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE },
 ];
-
-// Check finishReason for blocked/filtered responses (best practice: always inspect why generation stopped)
-function checkFinishReason(candidates: Array<{ finishReason?: string }> | undefined): string | null {
-  if (!candidates || candidates.length === 0) return null;
-  const reason = candidates[0].finishReason;
-  if (reason === FinishReason.SAFETY) {
-    return "Response blocked by safety filters. Please rephrase your message.";
-  }
-  if (reason === FinishReason.RECITATION) {
-    return "Response blocked due to potential recitation of copyrighted content.";
-  }
-  return null;
-}
 
 // Function call limit options
 export interface FunctionCallLimitOptions {

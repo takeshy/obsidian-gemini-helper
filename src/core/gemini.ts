@@ -31,6 +31,7 @@ import { tracing, type TracingUsage } from "src/core/tracingHooks";
 import {
   accumulateGeminiUsage as accumulateUsage,
   buildGeminiThinkingConfig,
+  collectGeminiWebSources as collectWebSources,
   extractGeminiUsage as extractUsage,
   formatError,
   GEMINI_MODEL_PRICING as MODEL_PRICING,
@@ -39,6 +40,7 @@ import {
   getGeminiReasoningEffortOptions,
   isGeminiThinkingRequired,
   resolveGeminiThinkingLevel,
+  serializeGeminiFunctionResult as serializeFunctionResult,
   toGeminiStreamChunkUsage as toStreamChunkUsage,
 } from "obsidian-llm-hub-common/core";
 import { Platform, requestUrl } from "obsidian";
@@ -171,37 +173,6 @@ function corsFetch(input: RequestInfo | URL, init?: RequestInit): Promise<Respon
   return nodeFetch(input, init);
 }
 
-function collectWebSources(value: unknown, sources: WebSearchSource[]): void {
-  if (typeof value === "string") {
-    const anchorPattern = /<a\b[^>]*\bhref=["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi;
-    for (const match of value.matchAll(anchorPattern)) {
-      const url = match[1].replace(/&amp;/g, "&");
-      const title = match[2].replace(/<[^>]+>/g, "").replace(/\s+/g, " ").trim() || url;
-      if (/^https?:\/\//i.test(url) && !sources.some(source => source.url === url)) {
-        sources.push({ title, url });
-      }
-    }
-    return;
-  }
-  if (Array.isArray(value)) {
-    for (const item of value) collectWebSources(item, sources);
-    return;
-  }
-  if (!value || typeof value !== "object") return;
-
-  const record = value as Record<string, unknown>;
-  const rawUrl = [record.url, record.uri, record.link].find(candidate => typeof candidate === "string");
-  if (typeof rawUrl === "string" && /^https?:\/\//i.test(rawUrl)) {
-    const rawTitle = [record.title, record.name].find(candidate => typeof candidate === "string");
-    if (!sources.some(source => source.url === rawUrl)) {
-      sources.push({ title: typeof rawTitle === "string" ? rawTitle : rawUrl, url: rawUrl });
-    }
-  }
-  for (const nested of Object.values(record)) {
-    if (nested && typeof nested === "object") collectWebSources(nested, sources);
-  }
-}
-
 // Default safety settings per Gemini best practices
 // Using BLOCK_MEDIUM_AND_ABOVE as a balanced default
 const DEFAULT_SAFETY_SETTINGS: SafetySetting[] = [
@@ -244,36 +215,6 @@ export const isThinkingRequired = isGeminiThinkingRequired;
  */
 export function getReasoningEffortOptions(model: string): ReasoningEffort[] {
   return getGeminiReasoningEffortOptions(model, isImageGenerationModel(model as ModelType));
-}
-
-// Sanitize function call results for Gemini API.
-// The API rejects function_response containing empty arrays ([]).
-// This recursively replaces empty arrays with null.
-function sanitizeFunctionResult(value: unknown): unknown {
-  if (value === undefined || value === null) return value;
-  if (Array.isArray(value)) {
-    return value.length === 0 ? null : value.map(sanitizeFunctionResult);
-  }
-  if (typeof value === "object") {
-    const result: Record<string, unknown> = {};
-    for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
-      result[k] = sanitizeFunctionResult(v);
-    }
-    return result;
-  }
-  return value;
-}
-
-function serializeFunctionResult(value: unknown): string {
-  const sanitized = sanitizeFunctionResult(value);
-  if (typeof sanitized === "string") return sanitized || "null";
-  try {
-    return JSON.stringify(sanitized) || "null";
-  } catch {
-    // Value could not be serialized (e.g. circular reference) — fall back to a
-    // safe constant rather than Object's "[object Object]" stringification.
-    return "null";
-  }
 }
 
 async function maybeExtendFunctionCallLimit(

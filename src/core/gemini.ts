@@ -1,13 +1,11 @@
 import {
   GoogleGenAI,
-  Type,
   HarmCategory,
   HarmBlockThreshold,
   type Content,
   type Part,
   type Tool,
   type SafetySetting,
-  type Schema,
   type Chat,
   type Interactions,
 } from "@google/genai";
@@ -15,7 +13,6 @@ import {
   DEFAULT_SETTINGS,
   type Message,
   type ToolDefinition,
-  type ToolPropertyDefinition,
   type StreamChunk,
   type ToolCall,
   type ModelType,
@@ -30,6 +27,7 @@ import { dedupeAttachments, getToolResultAttachments, withoutToolResultAttachmen
 import { tracing, type TracingUsage } from "src/core/tracingHooks";
 import {
   accumulateGeminiUsage as accumulateUsage,
+  buildGeminiGenerateContentTools,
   buildGeminiInteractionTools,
   buildGeminiMessageParts,
   buildGeminiThinkingConfig,
@@ -454,72 +452,6 @@ export class GeminiClient {
     return contents;
   }
 
-  // Convert tool definitions to Gemini format
-  private toolsToGeminiFormat(tools: ToolDefinition[]): Tool[] {
-    const convertProperty = (value: ToolPropertyDefinition): Schema => {
-      const schema: Schema = {
-        type: value.type.toUpperCase() as Type,
-        description: value.description,
-        enum: value.enum,
-      };
-
-      // Handle array items
-      if (value.type === "array" && value.items) {
-        const items = value.items;
-
-        if (items.type === "object" && items.properties) {
-          // Nested object in array
-          const nestedProperties: Record<string, Schema> = {};
-          for (const [propKey, propValue] of Object.entries(items.properties)) {
-            nestedProperties[propKey] = convertProperty(propValue);
-          }
-          schema.items = {
-            type: Type.OBJECT,
-            properties: nestedProperties,
-            required: items.required,
-          };
-        } else {
-          // Simple type in array (e.g., string[])
-          schema.items = {
-            type: items.type.toUpperCase() as Type,
-          };
-        }
-      }
-
-      if (value.type === "object" && value.properties) {
-        const nestedProperties: Record<string, Schema> = {};
-        for (const [propKey, propValue] of Object.entries(value.properties)) {
-          nestedProperties[propKey] = convertProperty(propValue);
-        }
-        schema.properties = nestedProperties;
-        if (value.required && value.required.length > 0) {
-          schema.required = value.required;
-        }
-      }
-
-      return schema;
-    };
-
-    const functionDeclarations = tools.map((tool) => {
-      const properties: Record<string, Schema> = {};
-      for (const [key, value] of Object.entries(tool.parameters.properties)) {
-        properties[key] = convertProperty(value);
-      }
-
-      return {
-        name: tool.name,
-        description: tool.description,
-        parameters: {
-          type: Type.OBJECT,
-          properties,
-          required: tool.parameters.required,
-        },
-      };
-    });
-
-    return [{ functionDeclarations }];
-  }
-
   private shouldUseGenerateContentToolsApi(
     tools: ToolDefinition[],
     webSearchEnabled?: boolean,
@@ -529,11 +461,7 @@ export class GeminiClient {
   }
 
   private buildGenerateContentTools(tools: ToolDefinition[], webSearchEnabled?: boolean): Tool[] | undefined {
-    const geminiTools = tools.length > 0 ? this.toolsToGeminiFormat(tools) : [];
-    if (webSearchEnabled) {
-      geminiTools.push({ googleSearch: {} });
-    }
-    return geminiTools.length > 0 ? geminiTools : undefined;
+    return buildGeminiGenerateContentTools(tools, webSearchEnabled) as Tool[] | undefined;
   }
 
   private async *chatWithToolsStreamGenerateContent(

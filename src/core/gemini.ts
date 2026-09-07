@@ -33,6 +33,9 @@ import {
   buildGeminiInteractionInput,
   buildGeminiMessageParts,
   buildGeminiRagRequest,
+  collectGeminiInteractionAnnotationSources,
+  collectGeminiInteractionFileSearchResult,
+  collectGeminiInteractionStepSources,
   buildGeminiThinkingConfig,
   collectGeminiWebSources as collectWebSources,
   extractGeminiInteractionsUsage as extractInteractionsUsage,
@@ -97,99 +100,6 @@ export const isThinkingRequired = isGeminiThinkingRequired;
  */
 export function getReasoningEffortOptions(model: string): ReasoningEffort[] {
   return getGeminiReasoningEffortOptions(model, isImageGenerationModel(model as ModelType));
-}
-
-type FileSearchDeltaResult = {
-  title?: string;
-  text?: string;
-  file_search_store?: string;
-};
-
-type FileSearchResultContentLike = {
-  type?: string;
-  result?: unknown[];
-  text?: string;
-  annotations?: Array<{ source?: string }>;
-};
-
-function formatFileSearchSource(raw: unknown): string | null {
-  const result = raw as FileSearchDeltaResult;
-  const title = String(result.title ?? "").trim();
-  return title || null;
-}
-
-function addFileSearchContext(sources: string[], contexts: RagContext[], raw: unknown): void {
-  const result = raw as FileSearchDeltaResult;
-  const source = formatFileSearchSource(raw);
-  if (source && !sources.includes(source)) {
-    sources.push(source);
-  }
-
-  const text = String(result.text ?? "").replace(/\s+/g, " ").trim();
-  if (!source || !text) return;
-  const excerpt = text.length > 500 ? text.slice(0, 500) + "..." : text;
-  if (!contexts.some((ctx) => ctx.source === source && ctx.text === excerpt)) {
-    contexts.push({ source, text: excerpt });
-  }
-}
-
-// Extract a displayable source string from a v2 Annotation
-// (URLCitation.url / FileCitation.file_name / PlaceCitation.name, etc.)
-function addAnnotationSources(sources: string[], annotations: unknown): void {
-  if (!Array.isArray(annotations)) return;
-  for (const annotation of annotations as Array<{
-    source?: string;
-    url?: string;
-    file_name?: string;
-    document_uri?: string;
-    name?: string;
-    place_id?: string;
-  }>) {
-    const source = String(
-      annotation.url ??
-      annotation.file_name ??
-      annotation.document_uri ??
-      annotation.name ??
-      annotation.place_id ??
-      annotation.source ??
-      ""
-    ).trim();
-    if (source && !sources.includes(source)) {
-      sources.push(source);
-    }
-  }
-}
-
-function collectFileSearchSourcesFromContents(contents: unknown, sources: string[], contexts: RagContext[]): void {
-  if (!Array.isArray(contents)) return;
-  for (const content of contents as FileSearchResultContentLike[]) {
-    // v2: file_search_result is a Step type, not a Content type, so this branch
-    // only fires for legacy-shaped payloads. Kept for robustness.
-    if (content?.type === "file_search_result" && Array.isArray(content.result)) {
-      for (const result of content.result) {
-        addFileSearchContext(sources, contexts, result);
-      }
-    }
-    if (content?.type === "text") {
-      addAnnotationSources(sources, content.annotations);
-    }
-  }
-}
-
-// v2 steps schema: collect sources from a Step[] timeline.
-// FileSearchResultStep itself carries no result data (only call_id/signature);
-// the actual snippets arrive via step.delta events. Here we extract annotation
-// sources from model_output text content as a fallback.
-function collectFileSearchSourcesFromSteps(steps: unknown, sources: string[], contexts: RagContext[]): void {
-  if (!Array.isArray(steps)) return;
-  for (const step of steps as Array<{ type?: string; content?: unknown[]; result?: unknown[] }>) {
-    if (step?.type === "file_search_result" && Array.isArray(step.result)) {
-      for (const r of step.result) addFileSearchContext(sources, contexts, r);
-    }
-    if (step?.type === "model_output" && Array.isArray(step.content)) {
-      collectFileSearchSourcesFromContents(step.content, sources, contexts);
-    }
-  }
 }
 
 export class GeminiClient {
@@ -888,7 +798,7 @@ export class GeminiClient {
                 case "text_annotation_delta":
                   // v2: annotations are delivered in a dedicated delta type
                   if ("annotations" in delta && delta.annotations) {
-                    addAnnotationSources(accumulatedSources, delta.annotations);
+                    collectGeminiInteractionAnnotationSources(accumulatedSources, delta.annotations);
                   }
                   break;
 
@@ -918,7 +828,10 @@ export class GeminiClient {
                   // RAG results come through file_search_result deltas
                   if ("result" in delta && Array.isArray(delta.result)) {
                     for (const r of delta.result) {
-                      addFileSearchContext(accumulatedSources, accumulatedContexts, r);
+                      collectGeminiInteractionFileSearchResult({
+                        sources: accumulatedSources,
+                        contexts: accumulatedContexts,
+                      }, r);
                     }
                   }
                   break;
@@ -960,7 +873,10 @@ export class GeminiClient {
               // v2: interaction.steps in the completed event is empty to reduce payload;
               // sources were collected from step deltas above. Also collect from any
               // steps the server does return (e.g. non-streaming-style responses).
-              collectFileSearchSourcesFromSteps(interaction?.steps, accumulatedSources, accumulatedContexts);
+              collectGeminiInteractionStepSources({
+                sources: accumulatedSources,
+                contexts: accumulatedContexts,
+              }, interaction?.steps);
               // Check for blocked/failed/incomplete status
               const status = interaction?.status;
               if (status && status !== "completed" && status !== "requires_action") {

@@ -36,6 +36,7 @@ import {
   buildGeminiThinkingConfig,
   collectGeminiWebSources as collectWebSources,
   extractGeminiInteractionsUsage as extractInteractionsUsage,
+  extractGeminiGroundingWebSearch,
   extractGeminiRagContexts,
   extractGeminiUsage as extractUsage,
   formatError,
@@ -403,19 +404,14 @@ export class GeminiClient {
 
         for await (const chunk of response) {
           hasReceivedChunk = true;
-          const groundingMetadata = chunk.candidates?.[0]?.groundingMetadata;
-          const groundedWebSources = (groundingMetadata?.groundingChunks ?? [])
-            .map(groundingChunk => groundingChunk.web)
-            .filter((web): web is NonNullable<typeof web> => !!web?.uri);
-          if ((groundingMetadata?.webSearchQueries?.length ?? 0) > 0 || groundedWebSources.length > 0) {
+          const groundingSearch = extractGeminiGroundingWebSearch(chunk);
+          if (groundingSearch.used) {
             webSearchUsedInRound = true;
             if (!webSearchUsed) {
               webSearchUsed = true;
               yield { type: "web_search_used" };
             }
-            for (const source of groundedWebSources) {
-              collectWebSources(source, webSearchSources);
-            }
+            for (const source of groundingSearch.sources) collectWebSources(source, webSearchSources);
           }
           if (chunk.usageMetadata) {
             roundUsage = extractUsage(chunk.usageMetadata, { model: this.model, webSearchUsed: webSearchUsedInRound });

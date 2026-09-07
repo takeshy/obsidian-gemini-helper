@@ -16,7 +16,7 @@ interface MessageBubbleProps {
 }
 
 export default function MessageBubble(props: MessageBubbleProps) {
-  return <MessageBubbleView {...props} onOpenWorkflow={() => revealWorkflowTab(props.app, "")} />;
+  return <MessageBubbleView {...props} classPrefix="gemini-helper" onOpenWorkflow={() => revealWorkflowTab(props.app, "")} />;
 }
 
 /** Reveals a workflow file in this plugin's own workflow panel. */

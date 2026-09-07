@@ -2954,7 +2954,8 @@
 }
 
 .gemini-helper-message-user {
-  background: var(--background-secondary);
+  background: var(--interactive-accent);
+  color: var(--text-on-accent);
   margin-left: 20px;
 }
 
@@ -3006,6 +3007,124 @@
 .gemini-helper-copy-btn:hover {
   color: var(--text-normal);
   background: var(--background-modifier-hover);
+}
+
+.gemini-helper-message-user .gemini-helper-copy-btn {
+  color: var(--text-on-accent);
+}
+
+.gemini-helper-message-user .gemini-helper-copy-btn:hover {
+  color: var(--text-on-accent);
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* HTML and generated-image actions rendered below a model response. */
+.gemini-helper-html-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  margin-top: 12px;
+  background: var(--background-secondary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 8px;
+}
+
+.gemini-helper-html-indicator {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-normal);
+}
+
+.gemini-helper-html-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.gemini-helper-html-btn,
+.gemini-helper-image-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.gemini-helper-html-btn {
+  background: var(--interactive-accent);
+  color: var(--text-on-accent);
+}
+
+.gemini-helper-html-btn:hover {
+  opacity: 0.9;
+}
+
+.gemini-helper-generated-images {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 12px;
+  padding: 12px;
+  background: var(--background-primary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 8px;
+}
+
+.gemini-helper-generated-image-container {
+  position: relative;
+  display: inline-block;
+}
+
+.gemini-helper-generated-image {
+  display: block;
+  max-width: 100%;
+  max-height: 400px;
+  border-radius: 8px;
+  object-fit: contain;
+  cursor: pointer;
+}
+
+.gemini-helper-image-actions {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: flex;
+  gap: 8px;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.gemini-helper-generated-image-container:hover .gemini-helper-image-actions {
+  opacity: 1;
+}
+
+.gemini-helper-image-btn {
+  background: var(--background-primary);
+  color: var(--text-normal);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.gemini-helper-image-btn:hover {
+  background: var(--interactive-accent);
+  color: var(--text-on-accent);
+}
+
+.gemini-helper-image-btn svg {
+  flex-shrink: 0;
+}
+
+.is-mobile .gemini-helper-generated-image {
+  max-height: 300px;
+}
+
+.is-mobile .gemini-helper-image-actions {
+  opacity: 1;
 }
 
 .gemini-helper-message-content {

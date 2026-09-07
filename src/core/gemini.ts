@@ -46,7 +46,7 @@ import {
   isGeminiThinkingRequired,
   messagesToGeminiContents,
   resolveGeminiThinkingLevel,
-  serializeGeminiFunctionResult as serializeFunctionResult,
+  prepareGeminiToolResult,
   toGeminiStreamChunkUsage as toStreamChunkUsage,
 } from "obsidian-llm-hub-common/core";
 
@@ -553,9 +553,8 @@ export class GeminiClient {
           tracing.spanEnd(toolSpanId, { output: result });
 
           const cleanResult = withoutToolResultAttachments(result);
-          const serializedResult = serializeFunctionResult(cleanResult);
-          accumulatedOutput += `\n[tool_call: ${fc.name}(${JSON.stringify(fc.args)})]\n`;
-          accumulatedOutput += `[tool_result: ${serializedResult.length > 500 ? serializedResult.slice(0, 500) + "..." : serializedResult}]\n`;
+          const { serializedResult, trace } = prepareGeminiToolResult(fc.name, fc.args, cleanResult);
+          accumulatedOutput += trace;
 
           yield { type: "tool_result", toolResult: { toolCallId: toolCall.id, result: cleanResult } };
 
@@ -1150,17 +1149,13 @@ export class GeminiClient {
             tracing.spanEnd(toolSpanId, { output: result });
 
             const cleanResult = withoutToolResultAttachments(result);
-            const resultForTrace = typeof cleanResult === "string" ? cleanResult : JSON.stringify(cleanResult);
-            const truncatedResult = resultForTrace.length > 500 ? resultForTrace.substring(0, 500) + "..." : resultForTrace;
-            accumulatedOutput += `\n[tool_call: ${fc.name}(${JSON.stringify(fc.args)})]\n`;
-            accumulatedOutput += `[tool_result: ${truncatedResult}]\n`;
+            const { serializedResult, trace } = prepareGeminiToolResult(fc.name, fc.args, cleanResult);
+            accumulatedOutput += trace;
 
             yield {
               type: "tool_result",
               toolResult: { toolCallId: toolCall.id, result: cleanResult },
             };
-
-            const serializedResult = serializeFunctionResult(cleanResult);
 
             // Build FunctionResultStep for the v2 Interactions API input.
             // Use a JSON string result, matching the SDK README examples and

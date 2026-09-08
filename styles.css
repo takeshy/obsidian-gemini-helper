@@ -3009,6 +3009,38 @@
   background: var(--background-modifier-hover);
 }
 
+.gemini-helper-speech-btn {
+  margin-left: auto;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 2px;
+  border-radius: 3px;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.gemini-helper-message:hover .gemini-helper-speech-btn {
+  opacity: 1;
+}
+
+.gemini-helper-speech-btn:hover {
+  color: var(--text-normal);
+  background: var(--background-modifier-hover);
+}
+
+.gemini-helper-speech-btn-speaking {
+  opacity: 1;
+  color: var(--text-accent);
+}
+
+.gemini-helper-speech-btn + .gemini-helper-copy-btn {
+  margin-left: 0;
+}
+
 .gemini-helper-message-user .gemini-helper-copy-btn {
   color: var(--text-on-accent);
 }
@@ -3606,6 +3638,16 @@
   color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.5px;
+}
+
+.gemini-helper-vault-tool-speech-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 5px 12px;
+  font-size: 12px;
+  cursor: pointer;
 }
 
 .gemini-helper-mcp-server-item {

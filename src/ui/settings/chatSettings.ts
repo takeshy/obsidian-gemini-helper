@@ -1,12 +1,14 @@
 import { Notice, Setting } from "obsidian";
 import { t } from "src/i18n";
 import { normalizeVaultScopePath } from "obsidian-llm-hub-common/core";
+import { addVoiceSubmitSettings } from "obsidian-llm-hub-common/settings";
 import type { SettingsContext } from "./settingsContext";
 
 export function displayChatSettings(containerEl: HTMLElement, ctx: SettingsContext): void {
   const { plugin } = ctx;
 
   new Setting(containerEl).setName(t("settings.chat")).setHeading();
+  addVoiceSubmitSettings(containerEl, ctx);
 
   new Setting(containerEl)
     .setName(t("settings.manualChatSaveFolder"))

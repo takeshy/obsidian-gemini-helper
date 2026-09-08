@@ -635,6 +635,7 @@ export class GeminiHelperPlugin extends Plugin {
     this.settings = {
       ...DEFAULT_SETTINGS,
       ...loaded,
+      voiceChat: { ...DEFAULT_SETTINGS.voiceChat, ...loaded.voiceChat },
       // Preserve existing behavior on upgrade: history pruning is opt-in for
       // users whose settings predate maxSavedChatHistories.
       maxSavedChatHistories: loaded.maxSavedChatHistories

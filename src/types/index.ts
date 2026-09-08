@@ -1,4 +1,5 @@
 import type { McpServerConfig } from "obsidian-llm-hub-common/core";
+import { DEFAULT_VOICE_CHAT_SETTINGS, type VoiceChatSettings } from "obsidian-llm-hub-common/core";
 export type { McpServerConfig, McpTransport, McpFraming } from "obsidian-llm-hub-common/core";
 
 export type { Message, ToolCall, ToolResult, Attachment, PendingEditInfo, PendingDeleteInfo, PendingRenameInfo, WebSearchSource, GeneratedImage } from "obsidian-llm-hub-common/chat";
@@ -144,6 +145,7 @@ export interface GeminiHelperSettings {
   /** Maximum automatically saved chats. Zero keeps all chats. */
   maxSavedChatHistories: number;
   systemPrompt: string;
+  voiceChat: VoiceChatSettings;
 
   // Slash commands
   slashCommands: SlashCommand[];
@@ -560,6 +562,7 @@ export const DEFAULT_SETTINGS: GeminiHelperSettings = {
   saveChatHistory: true,
   maxSavedChatHistories: 100,
   systemPrompt: "",
+  voiceChat: { ...DEFAULT_VOICE_CHAT_SETTINGS },
   slashCommands: DEFAULT_SLASH_COMMANDS,
   knowledgeSources: [],
   enabledWorkflowHotkeys: [],

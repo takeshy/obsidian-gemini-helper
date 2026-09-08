@@ -4572,6 +4572,42 @@
   max-height: 400px;
 }
 
+.gemini-helper-workflow-execution-node {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+  padding: 10px 12px;
+  background: var(--background-primary);
+  border: 1px solid var(--background-modifier-border);
+  border-left: 3px solid var(--text-faint);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.gemini-helper-workflow-execution-node:hover {
+  background: var(--background-primary-alt);
+  border-color: var(--background-modifier-border-hover);
+}
+
+.gemini-helper-workflow-execution-node-pending {
+  opacity: 0.72;
+}
+
+.gemini-helper-workflow-execution-node-running {
+  border-left-color: var(--interactive-accent);
+  background: var(--background-primary-alt);
+}
+
+.gemini-helper-workflow-execution-node-completed {
+  border-left-color: var(--color-green);
+}
+
+.gemini-helper-workflow-execution-node-error {
+  border-left-color: var(--color-red);
+}
+
 .gemini-helper-workflow-execution-node-type {
   font-size: 10px;
   font-weight: 600;
@@ -4611,12 +4647,12 @@
   margin-top: 4px;
 }
 
-.gemini-helper-workflow-execution-node-connections .gemini-helper-conn-true {
+.gemini-helper-workflow-execution-node-connections .gemini-helper-workflow-execution-conn-true {
   color: var(--color-green);
   margin-right: 8px;
 }
 
-.gemini-helper-workflow-execution-node-connections .gemini-helper-conn-false {
+.gemini-helper-workflow-execution-node-connections .gemini-helper-workflow-execution-conn-false {
   color: var(--color-red);
 }
 
@@ -4977,9 +5013,19 @@
 }
 
 /* History Modal Styles */
+.gemini-helper-workflow-history-modal-container {
+  width: min(900px, calc(100vw - 32px));
+  max-width: calc(100vw - 32px);
+  height: min(680px, calc(100vh - 48px));
+  max-height: calc(100vh - 48px);
+  box-sizing: border-box;
+}
+
 .gemini-helper-workflow-history-modal {
   padding: 20px;
-  min-width: 700px;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
   display: flex;
   flex-direction: column;
   flex: 1;
@@ -5153,6 +5199,7 @@
 /* History Detail Panel */
 .gemini-helper-workflow-history-detail-panel {
   flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -5165,6 +5212,7 @@
 
 .gemini-helper-workflow-history-detail {
   flex: 1;
+  min-width: 0;
   overflow-y: auto;
   border: 1px solid var(--background-modifier-border);
   border-radius: 6px;
@@ -5251,6 +5299,13 @@
 .is-mobile .gemini-helper-workflow-history-modal {
   min-width: unset;
   padding: 12px;
+}
+
+.is-mobile .gemini-helper-workflow-history-modal-container {
+  width: 100vw;
+  max-width: 100vw;
+  height: 100vh;
+  max-height: 100vh;
 }
 
 .is-mobile .gemini-helper-workflow-history-container {
@@ -5585,8 +5640,26 @@
    =============================================== */
 
 .gemini-helper-workflow-preview-modal {
+  width: min(760px, calc(100vw - 32px));
   min-width: 600px;
   max-width: 900px;
+  max-height: calc(100vh - 48px);
+}
+
+.gemini-helper-workflow-preview-modal-content {
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100vh - 80px);
+  min-height: 0;
+  overflow: hidden;
+}
+
+.gemini-helper-workflow-preview-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-right: 8px;
 }
 
 .gemini-helper-workflow-preview-modal-content .modal-drag-handle {
@@ -5817,9 +5890,13 @@
 }
 
 .gemini-helper-workflow-preview-buttons {
+  flex: 0 0 auto;
   display: flex;
   justify-content: flex-end;
   gap: 8px;
+  padding-top: 12px;
+  border-top: 1px solid var(--background-modifier-border);
+  background: var(--background-primary);
 }
 
 .gemini-helper-workflow-preview-buttons button {
@@ -5829,6 +5906,20 @@
 /* Workflow Preview Modal - Mobile */
 .is-mobile .gemini-helper-workflow-preview-name {
   flex-shrink: 0;
+}
+
+.is-mobile .gemini-helper-workflow-preview-modal {
+  width: 100vw;
+  min-width: 0;
+  max-width: 100vw;
+  max-height: 100vh;
+}
+
+.is-mobile .gemini-helper-workflow-preview-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .is-mobile .gemini-helper-workflow-preview-nodes {
@@ -7736,7 +7827,11 @@
 .gemini-helper-workflow-node-list {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 14px;
+}
+
+.gemini-helper-workflow-node-wrapper {
+  min-width: 0;
 }
 
 .gemini-helper-workflow-empty-state {
@@ -7805,6 +7900,20 @@
   background-color: var(--background-secondary);
   padding: 2px 6px;
   border-radius: 4px;
+}
+
+.gemini-helper-workflow-node-type {
+  display: inline-flex;
+  align-items: center;
+  min-height: 20px;
+  padding: 2px 7px;
+  border-radius: 4px;
+  background: var(--interactive-accent);
+  color: var(--text-on-accent);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
 }
 
 /* Node Summary */
@@ -8156,12 +8265,21 @@
   gap: 4px;
 }
 
+.gemini-helper-workflow-selector-node-wrapper {
+  min-width: 0;
+}
+
 .gemini-helper-workflow-selector-nodes .gemini-helper-workflow-node-header {
   margin-left: 0;
 }
 
 .gemini-helper-workflow-selector-nodes .gemini-helper-workflow-node-summary {
   margin-left: 0;
+}
+
+.gemini-helper-workflow-selector-nodes .gemini-helper-workflow-node-comment {
+  margin-left: 0;
+  white-space: pre-wrap;
 }
 
 /* Workflow Selector - AI Workflow History */
@@ -8234,16 +8352,21 @@
 
 /* Node Card */
 .gemini-helper-workflow-node-card {
-  background-color: var(--background-secondary);
+  background-color: var(--background-primary);
   border: 1px solid var(--background-modifier-border);
-  border-radius: 6px;
-  padding: 10px 12px;
+  border-left: 3px solid var(--interactive-accent);
+  border-radius: 8px;
+  padding: 12px 14px;
   cursor: pointer;
   position: relative;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+  transition: background-color 0.15s, border-color 0.15s, box-shadow 0.15s;
 }
 
 .gemini-helper-workflow-node-card:hover {
   background-color: var(--background-secondary-alt);
+  border-color: var(--interactive-accent);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.18);
 }
 
 /* Node Comment */

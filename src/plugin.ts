@@ -156,6 +156,7 @@ export class GeminiHelperPlugin extends Plugin {
       getWorkflowSpecification: () => getWorkflowSpecification(buildWorkflowSpecContext(this)),
       getWorkspaceFolder: () => this.settings.workspaceFolder,
       getSkillsFolder: () => this.settings.skillsFolder || SKILLS_FOLDER,
+      notifySkillsChanged: () => this.settingsEmitter.emit("skills-changed"),
       getHistoryEncryption: () => this.settings.encryption,
       getPluginVersion: () => this.manifest.version,
       getWorkflowHotkeys: () => this.settings.enabledWorkflowHotkeys,

@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { GeminiClient } from "./gemini";
-import type { StreamChunk } from "src/types";
+import type { StreamChunk, ModelType, ReasoningEffort } from "src/types";
 
 const { create, generateContent, generateContentStream, sendMessageStream, createChat } = vi.hoisted(() => ({
   create: vi.fn(), generateContent: vi.fn(), generateContentStream: vi.fn(), sendMessageStream: vi.fn(), createChat: vi.fn(),
@@ -83,7 +83,7 @@ describe("Gemini shared runner wiring", () => {
     expect(chunks.map(chunk => chunk.type)).toEqual(["web_search_used", "image_generated", "done"]);
     expect(generateContent.mock.calls[0][0].config).toMatchObject({ responseModalities: ["TEXT", "IMAGE"], tools: [{ googleSearch: {} }] });
   });
-  it("executes a GenerateContent tool round and disables tools for the final request", async () => {
+  it("executes a GenerateContent tool round and keeps grounding without function tools for the final request", async () => {
     generateContentStream.mockResolvedValueOnce(events([{ candidates: [{ content: { parts: [{ functionCall: { id: "call", name: "read", args: { path: "note" } }, thoughtSignature: "signature" }] } }] }]))
       .mockResolvedValueOnce(events([{ candidates: [{ content: { parts: [{ text: "answer" }] } }] }]));
     const execute = vi.fn().mockResolvedValue({ ok: true });
@@ -91,8 +91,48 @@ describe("Gemini shared runner wiring", () => {
     expect(execute).toHaveBeenCalledWith("read", { path: "note" });
     expect(generateContentStream).toHaveBeenCalledTimes(2);
     expect(generateContentStream.mock.calls[0][0].config.thinkingConfig).toBeUndefined();
-    expect(generateContentStream.mock.calls[1][0].config.tools).toBeUndefined();
+    expect(generateContentStream.mock.calls[1][0].config.tools).toEqual([{ googleSearch: {} }]);
     expect(generateContentStream.mock.calls[1][0].contents[1].parts[0].thoughtSignature).toBe("signature");
     expect(chunks.at(-1)?.type).toBe("done");
+  });
+});
+
+
+describe("shared thinking and final-round SDK requests", () => {
+  const messages = [{ role: "user" as const, content: "question", timestamp: 0 }];
+  async function all(stream: AsyncIterable<StreamChunk>) { for await (const _chunk of stream) { /* consume */ } }
+  it.each([
+    ["gemini-3.8-flash", undefined, undefined, undefined],
+    ["gemini-3.8-flash", false, undefined, "low"],
+    ["gemini-3.5-flash-lite", false, undefined, "minimal"],
+    ["gemini-3-pro-preview", false, undefined, "high"],
+    ["gemini-3.1-pro-preview", false, undefined, "high"],
+    ["gemini-3.1-pro-preview", undefined, undefined, undefined],
+    ["gemini-3.1-pro-preview", false, "default", undefined],
+    ["gemini-3.8-flash", true, "default", undefined],
+    ["gemini-3.8-flash", false, "high", "high"],
+    ["gemma-4-31b-it", true, undefined, undefined],
+  ] as const)("resolves %s thinking=%s effort=%s", async (model, enableThinking, effort, expected) => {
+    create.mockResolvedValue(events([{ event_type: "interaction.completed", interaction: { status: "completed" } }]));
+    await all(new GeminiClient("key", model as ModelType).chatWithToolsStream(messages, [], undefined, undefined, undefined, false,
+      { enableThinking, reasoningEffort: effort as ReasoningEffort | undefined }));
+    expect(create).toHaveBeenCalledOnce();
+    expect(create.mock.calls[0][0].generation_config?.thinking_level).toBe(expected);
+  });
+  it.each([0, 1, 2])("keeps only native search in the final Interactions request for budget %i", async maxFunctionCalls => {
+    create.mockResolvedValueOnce(events([...["1", "2"].flatMap(id => [
+      { event_type: "step.start", index: Number(id), step: { type: "function_call", id, name: "read", arguments: {} } },
+      { event_type: "step.stop", index: Number(id) },
+    ]), { event_type: "interaction.completed", interaction: { status: "completed" } }]))
+      .mockResolvedValueOnce(events([{ event_type: "interaction.completed", interaction: { status: "completed" } }]));
+    const execute = vi.fn().mockResolvedValue({});
+    await all(new GeminiClient("key", "gemini-3.5-flash-lite").chatWithToolsStream(messages,
+      [{ name: "read", description: "read", parameters: { type: "object", properties: {} } }], undefined,
+      execute, undefined, true, { functionCallLimits: { maxFunctionCalls } }));
+    expect(execute).toHaveBeenCalledTimes(maxFunctionCalls);
+    expect(create).toHaveBeenCalledTimes(2);
+    expect(create.mock.calls[0][0].tools.some((tool: { type: string }) => tool.type === "function")).toBe(true);
+    expect(create.mock.calls[1][0].tools).toEqual([{ type: "google_search" }]);
+    expect(create.mock.calls[1][0].generation_config?.tool_choice).toBeUndefined();
   });
 });

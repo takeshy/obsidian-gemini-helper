@@ -79,6 +79,8 @@ O recurso de Chat com IA fornece uma interface de conversação interativa com o
 - Ao encerrar, a janela continua aberta. O que ela colar depois perde apenas a marca: o texto fica no campo de texto sem ser enviado, que é como se dita uma mensagem longa em partes e se envia manualmente.
 - Se o PATH do Obsidian não encontrar o aplicativo, informe o caminho completo em Configurações → Chat → *Comando speech-popup*. As falhas são informadas com o comando e o erro correspondente.
 
+[Assista à demonstração da conversa por voz no YouTube](https://www.youtube.com/watch?v=w8uyateB-0s)
+
 ## Comandos de Barra
 
 Crie templates de prompts reutilizáveis acionados por `/`:

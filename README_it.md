@@ -78,6 +78,8 @@ La funzionalità Chat AI fornisce un'interfaccia di conversazione interattiva co
 - Al termine la finestra resta aperta. Ciò che incolla in seguito perde solo il contrassegno: il testo finisce nel campo di testo senza essere inviato, ed è così che si detta un messaggio lungo in più parti inviandolo da soli.
 - Se il PATH di Obsidian non trova l'app, indica il percorso completo in Impostazioni → Chat → *Comando speech-popup*. Gli errori vengono mostrati con il comando e il relativo messaggio.
 
+[Guarda la demo della conversazione vocale su YouTube](https://www.youtube.com/watch?v=w8uyateB-0s)
+
 ## Comandi Slash
 
 Crea template di prompt riutilizzabili attivati con `/`:

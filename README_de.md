@@ -78,6 +78,8 @@ Die KI-Chat-Funktion bietet eine interaktive Konversationsschnittstelle mit Goog
 - Nach dem Beenden bleibt das Popup offen. Was es danach einfügt, verliert nur die Markierung: Der Text landet im Eingabefeld, ohne gesendet zu werden - so diktieren Sie eine lange Nachricht in mehreren Teilen und senden sie selbst.
 - Findet der PATH von Obsidian die App nicht, tragen Sie den vollständigen Pfad unter Einstellungen → Chat → *speech-popup-Befehl* ein. Fehler werden mit Befehl und Fehlermeldung angezeigt.
 
+[Demo der Sprachunterhaltung auf YouTube ansehen](https://www.youtube.com/watch?v=w8uyateB-0s)
+
 ## Slash-Befehle
 
 Erstellen Sie wiederverwendbare Prompt-Vorlagen, die mit `/` ausgelöst werden:

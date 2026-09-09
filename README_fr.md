@@ -78,6 +78,8 @@ La fonctionnalite Chat IA fournit une interface de conversation interactive avec
 - Après la fin, la fenêtre reste ouverte. Ce qu'elle colle ensuite perd seulement la marque : le texte arrive dans la zone de saisie sans être envoyé, ce qui permet de dicter un long message en plusieurs fois et de l'envoyer soi-même.
 - Si le PATH d'Obsidian ne trouve pas l'application, indiquez le chemin complet dans Paramètres → Chat → *Commande speech-popup*. Les échecs sont signalés avec la commande et son erreur.
 
+[Voir la démonstration de la conversation vocale sur YouTube](https://www.youtube.com/watch?v=w8uyateB-0s)
+
 ## Commandes Slash
 
 Creez des modeles de prompts reutilisables declenches par `/` :

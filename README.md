@@ -81,6 +81,8 @@ The AI Chat feature provides an interactive conversation interface with Google G
 - Finishing leaves the popup open. What it pastes afterwards keeps its words and loses the marker: the text lands in the composer without being sent, which is how you dictate a long message in several parts and send it yourself.
 - If Obsidian's PATH does not find the app, set the full path in Settings → Chat → *speech-popup command*. Failures are reported with the command and its own error.
 
+[Watch the voice conversation demo on YouTube](https://www.youtube.com/watch?v=w8uyateB-0s)
+
 ## Slash Commands
 
 Create reusable prompt templates triggered by `/`:

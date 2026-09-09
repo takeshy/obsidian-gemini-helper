@@ -77,6 +77,7 @@ AI 聊天功能提供与 Google Gemini 的交互式对话界面，与您的 Obsi
 - **结束方式**：不说别的，只说发送短语（默认 `I'm done speaking`）即可。speech-popup 照常关闭，聊天收到一个空回合并将其理解为“我说完了”，完全不需要点击。在空的弹窗中按 Enter、点击标签的 ✕、或打开另一个聊天同样可以结束。
 - 结束后弹窗仍然保持打开。之后它粘贴的内容只会去掉标记，文字进入输入框而不发送——需要分几次口述一段长文再自己发送时，就这样用。
 - 如果 Obsidian 的 PATH 找不到该应用，请在设置 → 聊天 → 「speech-popup 命令」中填写完整路径。失败时会连同命令和错误内容一起提示。
+- 在 Linux 上，Flatpak 版 Obsidian 运行在沙箱中，看不到宿主机上安装的程序，因此命令会自动通过 `flatpak-spawn --host` 执行。请先用 `flatpak override --user --talk-name=org.freedesktop.Flatpak md.obsidian.Obsidian` 授权一次。Snap 版没有对应的通道，请改用 AppImage 或 Flatpak 版。
 
 [在 YouTube 上观看语音对话演示](https://www.youtube.com/watch?v=w8uyateB-0s)
 

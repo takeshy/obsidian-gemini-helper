@@ -63,6 +63,21 @@ La funzionalità Chat AI fornisce un'interfaccia di conversazione interattiva co
 - **Pulsante +** - Nuova chat
 - **Pulsante Cronologia** - Carica chat precedenti
 
+## Input vocale e lettura ad alta voce
+
+**Leggere le risposte** — Attiva *Leggi automaticamente le risposte* nel menu degli strumenti del Vault. Mentre è attivo, un chip sopra l'input lo segnala e la sua ✕ lo disattiva. Ogni fumetto di risposta ha inoltre un pulsante altoparlante per leggerla su richiesta o interromperla a metà frase. La velocità di lettura si regola subito sotto l'interruttore e in Impostazioni → Chat (da 0,5x a 5x; quanto accelera davvero dipende dalla voce: le voci di Windows di solito smettono di accelerare oltre circa 4x). Durante la lettura, il prompt di sistema chiede al modello una risposta parlata e breve invece di Markdown, titoli, elenchi, codice o URL.
+
+**Inviare il testo dettato** — Attiva *Invia automaticamente il testo dettato* nelle impostazioni: l'invio avviene quando il testo incollato o dettato termina con la frase di invio (`invia` in italiano, modificabile per lingua). Funziona con la dettatura di sistema, Aqua Voice e strumenti simili.
+
+**Conversazione vocale** — Installa [speech-popup](https://github.com/takeshy/speech-popup) e sopra il pulsante di invio comparirà un microfono. Si limita sempre ad aprire la finestra, quindi una finestra chiusa è a un clic di distanza. Durante una conversazione:
+
+- Parla e invia dalla finestra. speech-popup marca ciò che incolla con `⟦voice-chat⟧` (`show --append`), quindi viene inviato come il tuo messaggio; un normale incolla dagli appunti resta nel campo di testo, così come uno che arriva mentre una risposta è ancora in corso.
+- La risposta viene letta ad alta voce (si attiva con la conversazione) e la finestra si riapre circa 2,5 secondi dopo la fine della lettura, così la tua stessa voce sintetizzata non viene registrata.
+- Disattivando la lettura dal suo chip la conversazione prosegue: la finestra si riapre dopo ogni risposta, in silenzio.
+- **Per terminare**: premi Invio con la finestra vuota, fai clic sulla ✕ del chip della conversazione vocale, oppure apri una chat nuova o diversa.
+- Al termine la finestra resta aperta. Ciò che incolla in seguito perde solo il contrassegno: il testo finisce nel campo di testo senza essere inviato, ed è così che si detta un messaggio lungo in più parti inviandolo da soli.
+- Se il PATH di Obsidian non trova l'app, indica il percorso completo in Impostazioni → Chat → *Comando speech-popup*. Gli errori vengono mostrati con il comando e il relativo messaggio.
+
 ## Comandi Slash
 
 Crea template di prompt riutilizzabili attivati con `/`:

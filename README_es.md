@@ -63,6 +63,21 @@ La funcion de Chat con IA proporciona una interfaz de conversacion interactiva c
 - **Boton +** - Nuevo chat
 - **Boton History** - Cargar chats anteriores
 
+## Entrada de voz y lectura en voz alta
+
+**Leer las respuestas** — Activa *Leer las respuestas automáticamente* en el menú de herramientas del Vault. Mientras está activo, un chip sobre la entrada lo indica y su ✕ lo desactiva. Cada burbuja de respuesta tiene además un botón de altavoz para leerla cuando quieras o detenerla a mitad de frase. La velocidad de lectura se ajusta justo debajo del interruptor y en Ajustes → Chat (de 0,5x a 5x; cuánto acelera realmente depende de la voz: las voces de Windows suelen dejar de acelerar a partir de 4x). Mientras la lectura está activa, el prompt del sistema pide al modelo una respuesta hablada y breve en lugar de Markdown, encabezados, listas, código o URL.
+
+**Enviar el texto dictado** — Activa *Enviar automáticamente el texto dictado* en los ajustes para enviar cuando el texto pegado o dictado termina con la frase de envío (`envíalo` en español, editable por idioma). Funciona con el dictado del sistema, Aqua Voice y herramientas similares.
+
+**Conversación por voz** — Instala [speech-popup](https://github.com/takeshy/speech-popup) y aparecerá un botón de micrófono sobre el botón de enviar. Siempre se limita a abrir la ventana emergente, así que una ventana cerrada está a un clic. Durante una conversación:
+
+- Habla y envía desde la ventana emergente. speech-popup marca lo que pega con `⟦voice-chat⟧` (`show --append`), así que se envía como tu mensaje; un pegado normal del portapapeles se queda en el campo de texto, igual que uno que llega mientras aún se genera una respuesta.
+- La respuesta se lee en voz alta (se activa con la conversación) y la ventana vuelve a abrirse unos 2,5 segundos después de terminar la lectura, para que tu propia voz sintetizada no se grabe.
+- Si desactivas la lectura con su chip, la conversación continúa: la ventana sigue abriéndose tras cada respuesta, en silencio.
+- **Para terminar**: pulsa Enter con la ventana vacía, haz clic en ✕ del chip de conversación por voz, o abre un chat nuevo o distinto.
+- Al terminar, la ventana sigue abierta. Lo que pegue después pierde solo la marca: el texto queda en el campo de texto sin enviarse, que es como se dicta un mensaje largo por partes y se envía a mano.
+- Si el PATH de Obsidian no encuentra la aplicación, indica la ruta completa en Ajustes → Chat → *Comando speech-popup*. Los fallos se informan con el comando y su propio error.
+
 ## Comandos Slash
 
 Crea plantillas de prompts reutilizables activadas con `/`:

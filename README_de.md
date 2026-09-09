@@ -63,6 +63,21 @@ Die KI-Chat-Funktion bietet eine interaktive Konversationsschnittstelle mit Goog
 - **+-Schaltfläche** - Neuer Chat
 - **Verlauf-Schaltfläche** - Frühere Chats laden
 
+## Spracheingabe und Vorlesen
+
+**Antworten vorlesen** — Aktivieren Sie *Antworten automatisch vorlesen* im Vault-Werkzeugmenü. Solange es an ist, weist ein Chip über der Eingabe darauf hin, und sein ✕ schaltet es wieder aus. Jede Antwortblase hat außerdem eine Lautsprecher-Schaltfläche, die diese Antwort vorliest oder mitten im Satz stoppt. Die Vorlesegeschwindigkeit lässt sich direkt unter dem Schalter und in Einstellungen → Chat ändern (0,5x bis 5x; wie schnell eine Stimme tatsächlich wird, hängt von ihr ab - Windows-Stimmen werden ab etwa 4x meist nicht schneller). Solange vorgelesen wird, bittet der System-Prompt das Modell um eine kurze gesprochene Antwort statt Markdown, Überschriften, Listen, Code oder URLs.
+
+**Diktiertes automatisch senden** — Aktivieren Sie *Diktierten Text automatisch senden* in den Einstellungen: Endet eingefügter oder diktierter Text mit der Sendefloskel (`absenden` auf Deutsch, je Sprache editierbar), wird gesendet. Das funktioniert mit der Diktierfunktion des Betriebssystems, Aqua Voice und ähnlichen Werkzeugen.
+
+**Sprachunterhaltung** — Installieren Sie [speech-popup](https://github.com/takeshy/speech-popup), dann erscheint über der Senden-Schaltfläche ein Mikrofon. Es öffnet immer nur das Popup, ein geschlossenes Fenster ist also einen Klick entfernt. Während einer Unterhaltung:
+
+- Sprechen Sie und senden Sie aus dem Popup. speech-popup markiert mit `⟦voice-chat⟧`, was es einfügt (`show --append`), daher wird es als Ihre Nachricht gesendet; ein gewöhnliches Einfügen aus der Zwischenablage bleibt im Eingabefeld, ebenso eines, das während einer laufenden Antwort eintrifft.
+- Die Antwort wird vorgelesen (mit der Unterhaltung eingeschaltet), und das Popup öffnet sich etwa 2,5 Sekunden nach dem Ende des Vorlesens erneut, damit die eigene Sprachausgabe nicht mit aufgenommen wird.
+- Schalten Sie das Vorlesen über seinen Chip aus, läuft die Unterhaltung weiter: Das Popup öffnet sich nach jeder Antwort weiterhin, nur still.
+- **Beenden**: Enter in einem leeren Popup, ✕ auf dem Chip der Sprachunterhaltung, oder einen neuen bzw. anderen Chat öffnen.
+- Nach dem Beenden bleibt das Popup offen. Was es danach einfügt, verliert nur die Markierung: Der Text landet im Eingabefeld, ohne gesendet zu werden - so diktieren Sie eine lange Nachricht in mehreren Teilen und senden sie selbst.
+- Findet der PATH von Obsidian die App nicht, tragen Sie den vollständigen Pfad unter Einstellungen → Chat → *speech-popup-Befehl* ein. Fehler werden mit Befehl und Fehlermeldung angezeigt.
+
 ## Slash-Befehle
 
 Erstellen Sie wiederverwendbare Prompt-Vorlagen, die mit `/` ausgelöst werden:

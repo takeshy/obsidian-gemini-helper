@@ -66,6 +66,21 @@ The AI Chat feature provides an interactive conversation interface with Google G
 - **Expand / shrink button** - Toggle the sidebar between its normal width and a wider reading layout
 - **Save as note button** - Export the current conversation as compact Markdown. Re-saving the same chat overwrites its exported note
 
+## Voice Input and Read-Aloud
+
+**Read answers aloud** — Turn on *Read responses aloud* in the Vault tool menu. While it is on, a chip above the input says so and its ✕ switches it off. Each assistant bubble also has a speaker button to read that answer on demand, or stop one mid-sentence. Reading speed is adjustable right under the switch, and in Settings → Chat (0.5x to 5x; how fast a voice actually goes varies by voice - Windows voices typically stop speeding up past about 4x). While reading is on, the system prompt asks the model for a short spoken answer instead of Markdown, headings, lists, code or URLs.
+
+**Send dictated text** — Turn on *Send dictated text automatically* in Settings to submit when pasted or dictated text ends with the send phrase (`send it` in English, editable per language). It works with OS dictation, Aqua Voice and similar tools.
+
+**Voice conversation** — Install [speech-popup](https://github.com/takeshy/speech-popup) and a microphone button appears above the send button. It always just opens the popup, so a popup you closed is one click away. While a conversation runs:
+
+- Speak, then send from the popup. speech-popup marks what it pastes with `⟦voice-chat⟧` (`show --append`), so the chat submits it as your message; an ordinary clipboard paste is left in the composer, and so is one that arrives while an answer is still being generated.
+- The answer is read aloud (turned on with the conversation), and the popup reopens about 2.5 seconds after the reading stops, so your own speech is not recorded back.
+- Turning read-aloud off with its chip keeps the conversation going: the popup still reopens after each answer, silently.
+- **To finish**: press Enter on an empty popup, click ✕ on the voice conversation chip, or start/open another chat.
+- Finishing leaves the popup open. What it pastes afterwards keeps its words and loses the marker: the text lands in the composer without being sent, which is how you dictate a long message in several parts and send it yourself.
+- If Obsidian's PATH does not find the app, set the full path in Settings → Chat → *speech-popup command*. Failures are reported with the command and its own error.
+
 ## Slash Commands
 
 Create reusable prompt templates triggered by `/`:

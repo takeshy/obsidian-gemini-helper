@@ -63,6 +63,21 @@ La fonctionnalite Chat IA fournit une interface de conversation interactive avec
 - **Bouton +** - Nouveau chat
 - **Bouton Historique** - Charger les chats precedents
 
+## Saisie vocale et lecture à voix haute
+
+**Lire les réponses** — Activez *Lire automatiquement les réponses* dans le menu des outils du coffre. Tant que c'est actif, une puce au-dessus de la saisie l'indique, et son ✕ la désactive. Chaque bulle de réponse comporte aussi un bouton haut-parleur pour la lire à la demande ou l'arrêter en cours de phrase. La vitesse de lecture se règle juste sous l'interrupteur et dans Paramètres → Chat (de 0,5x à 5x ; la vitesse réellement atteinte dépend de la voix : les voix Windows cessent généralement d'accélérer au-delà de 4x environ). Pendant la lecture, l'invite système demande au modèle une réponse orale et brève plutôt que du Markdown, des titres, des listes, du code ou des URL.
+
+**Envoyer le texte dicté** — Activez *Envoyer automatiquement le texte dicté* dans les paramètres : l'envoi se fait lorsque le texte collé ou dicté se termine par la phrase d'envoi (`envoie` en français, modifiable par langue). Cela fonctionne avec la dictée du système, Aqua Voice et d'autres outils vocaux.
+
+**Conversation vocale** — Installez [speech-popup](https://github.com/takeshy/speech-popup) : un bouton micro apparaît au-dessus du bouton d'envoi. Il ne fait qu'ouvrir la fenêtre, donc une fenêtre fermée revient en un clic. Pendant une conversation :
+
+- Parlez, puis envoyez depuis la fenêtre. speech-popup marque ce qu'il colle avec `⟦voice-chat⟧` (`show --append`), le texte est donc envoyé comme votre message ; un collage ordinaire du presse-papiers reste dans la zone de saisie, tout comme un collage qui arrive pendant la génération d'une réponse.
+- La réponse est lue à voix haute (activée avec la conversation) et la fenêtre se rouvre environ 2,5 secondes après la fin de la lecture, pour que votre propre voix de synthèse ne soit pas enregistrée.
+- Si vous coupez la lecture avec sa puce, la conversation continue : la fenêtre se rouvre après chaque réponse, en silence.
+- **Pour terminer** : appuyez sur Entrée dans une fenêtre vide, cliquez sur ✕ de la puce de conversation vocale, ou ouvrez un nouveau chat ou un autre chat.
+- Après la fin, la fenêtre reste ouverte. Ce qu'elle colle ensuite perd seulement la marque : le texte arrive dans la zone de saisie sans être envoyé, ce qui permet de dicter un long message en plusieurs fois et de l'envoyer soi-même.
+- Si le PATH d'Obsidian ne trouve pas l'application, indiquez le chemin complet dans Paramètres → Chat → *Commande speech-popup*. Les échecs sont signalés avec la commande et son erreur.
+
 ## Commandes Slash
 
 Creez des modeles de prompts reutilisables declenches par `/` :

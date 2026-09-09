@@ -78,7 +78,7 @@ import { resolveAgentPluginMcpServers } from "src/core/agentPlugins";
 import { buildBuiltinOkfSystemPrompt, buildOkfSystemPrompt, discoverOkfBundles, getBuiltinOkfBundle, isBuiltinOkfBundleId, type OkfBundle } from "src/core/okfLoader";
 import { executeReadOkfDocumentTool, READ_OKF_DOCUMENT_TOOL, READ_OKF_DOCUMENT_TOOL_NAME } from "src/core/okfDocumentTool";
 import { GET_WORKFLOW_SPEC_TOOL, GET_WORKFLOW_SPEC_TOOL_NAME, handleGetWorkflowSpec } from "src/workflow/workflowSpec";
-import { DEFAULT_BUILTIN_SKILL_IDS, builtinFolderPath, getBuiltinSkillMetadata } from "src/core/builtinSkills";
+import { DEFAULT_BUILTIN_SKILL_IDS, builtinFolderPath, restoredSkillPaths, prunedSkillPaths, getBuiltinSkillMetadata } from "src/core/builtinSkills";
 import { runtimeSkillPath } from "src/core/runtimeSkills";
 import { promptForValue } from "./workflow/ValuePromptModal";
 import { promptForDialog } from "./workflow/DialogPromptModal";
@@ -88,7 +88,7 @@ import {
 	parseMarkdownToMessages,
 	formatHistoryDate,
 } from "./chat/chatHistory";
-import { resolveEffectiveSkillPaths } from "./chat/contextSkills";
+import { resolveEffectiveSkillPaths, useSkillPathPersistence } from "./chat/contextSkills";
 
 export interface ChatRef {
 	getActiveChat: () => TFile | null;
@@ -268,9 +268,15 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin, onToggleSidebarWidth }, r
 
 	// Agent Skills state (initialise with built-in skills so they are available synchronously)
 	const [availableSkills, setAvailableSkills] = useState<SkillMetadata[]>(getBuiltinSkillMetadata);
+	// A selection the user built from their own skills is a standing preference;
+	// one that holds only built-in skills is left to the shipped defaults.
 	const [activeSkillPaths, setActiveSkillPaths] = useState<string[]>(
-		() => DEFAULT_BUILTIN_SKILL_IDS.map(builtinFolderPath)
+		() => restoredSkillPaths(plugin.settings.activeSkillPaths, DEFAULT_BUILTIN_SKILL_IDS.map(builtinFolderPath)),
 	);
+	useSkillPathPersistence(activeSkillPaths, (paths) => {
+		plugin.settings.activeSkillPaths = [...paths];
+		void plugin.saveSettings();
+	});
 	const effectiveActiveSkillPaths = useMemo(() => resolveEffectiveSkillPaths(
 		activeSkillPaths,
 		activeContextSkillPath,
@@ -370,7 +376,15 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin, onToggleSidebarWidth }, r
 
 	// Discover skills (on mount + when skills-changed is emitted)
 	const refreshSkills = useCallback(() => {
-		void discoverSkills(plugin.app).then(setAvailableSkills);
+		void discoverSkills(plugin.app).then((skills) => {
+			setAvailableSkills(skills);
+			// A saved selection outlives the folders it names: a skill can be
+			// renamed, deleted, or belong to an agent plugin that is now off.
+			setActiveSkillPaths((previous) => {
+				const pruned = prunedSkillPaths(previous, skills);
+				return pruned.length === previous.length ? previous : pruned;
+			});
+		});
 	}, [plugin]);
 
 	useEffect(() => {

@@ -146,6 +146,13 @@ export interface GeminiHelperSettings {
   maxSavedChatHistories: number;
   systemPrompt: string;
   voiceChat: VoiceChatSettings;
+  /**
+   * The skills the user turned on or off in the chat skill list, as folder paths.
+   * A selection built from the user's own skills is a standing preference and is
+   * restored as it was; one that holds only built-in skills is left to the
+   * defaults (see restoredSkillPaths).
+   */
+  activeSkillPaths?: string[];
 
   // Slash commands
   slashCommands: SlashCommand[];

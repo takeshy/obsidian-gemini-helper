@@ -1,7 +1,7 @@
 import { CollapsedInput } from "obsidian-llm-hub-common";
 import ModelSelector from "./ModelSelector";
 import { InputArea as SharedInputArea } from "obsidian-llm-hub-common";
-import { Composer, Autocomplete, Attachments, VaultToolControl, EnabledMcpServers, InputButtons, SearchSelector, ModelRow, ModelDropdown } from "obsidian-llm-hub-common";
+import { Composer, Autocomplete, Attachments, VaultToolControl, EnabledMcpServers, ReadAloudChip, InputButtons, SearchSelector, ModelRow, ModelDropdown } from "obsidian-llm-hub-common";
 import { useState, useRef, useEffect, KeyboardEvent, ChangeEvent, forwardRef, useImperativeHandle } from "react";
 import { Eye } from "lucide-react";
 import { Notice, Platform, type App } from "obsidian";
@@ -18,7 +18,7 @@ import {
   fileToAttachment,
   isAttachmentRejection,
 } from "obsidian-llm-hub-common/chat";
-import type { VoiceChatSettings } from "obsidian-llm-hub-common/chat";
+import type { VoiceChatSettings, VoiceConversationSession } from "obsidian-llm-hub-common/chat";
 
 // Built-in command definition (not user-configurable)
 interface BuiltInCommand {
@@ -70,6 +70,7 @@ interface InputAreaProps {
   inputHistory: string[];
   onInputHistoryAdd: (prompt: string) => void;
   voiceChatSettings: VoiceChatSettings;
+  voiceConversation: VoiceConversationSession;
   onAutoReadAloudChange: (enabled: boolean) => void;
 }
 
@@ -137,6 +138,7 @@ const InputArea = forwardRef<InputAreaHandle, InputAreaProps>(function InputArea
   inputHistory,
   onInputHistoryAdd,
   voiceChatSettings,
+  voiceConversation,
   onAutoReadAloudChange,
 }, ref) {
   const [input, setInput] = useState("");
@@ -526,6 +528,14 @@ const InputArea = forwardRef<InputAreaHandle, InputAreaProps>(function InputArea
   return (
     <SharedInputArea classPrefix="gemini-helper" modifiers={[isCollapsed && "collapsed"]} collapsed={isCollapsed}
       beforeInput={<>
+      {/* Reading aloud stays visible outside the transcript while it is on */}
+      {!isCollapsed && voiceChatSettings.autoReadAloud && <ReadAloudChip
+        classPrefix="gemini-helper"
+        label={t("input.readAloudChip")}
+        removeTitle={t("input.readAloudChipOff")}
+        onDisable={() => onAutoReadAloudChange(false)}
+      />}
+
       {/* MCP servers enabled for this chat */}
       {!isCollapsed && (
         <EnabledMcpServers
@@ -636,6 +646,16 @@ const InputArea = forwardRef<InputAreaHandle, InputAreaProps>(function InputArea
           disabled: isCompacting }}
           isLoading={isLoading} isCompacting={isCompacting} compactingLabel={t("chat.compacting")}
           canSend={!!input.trim() || pendingAttachments.length > 0}
+          voiceConversation={{
+            available: voiceConversation.available,
+            active: voiceConversation.active,
+            phrase: voiceChatSettings.submitPhrase,
+            label: t("input.voiceConversation"),
+            activeLabel: t("input.voiceConversationActive"),
+            onToggle: voiceConversation.toggle,
+            onSubmit: handleVoiceSubmit,
+            onEnd: voiceConversation.end,
+          }}
           voiceSubmit={{
             enabled: voiceChatSettings.submitOnPaste && !isLoading,
             phrase: voiceChatSettings.submitPhrase,

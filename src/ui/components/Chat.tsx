@@ -56,6 +56,8 @@ import {
 	runChatTurn,
 	withRateLimitRetry,
 	useAutoReadAloud,
+	useReadAloudRate,
+	useVoiceConversation,
 	buildReadAloudSystemPrompt,
 	type ChatTurnOutcome,
 } from "obsidian-llm-hub-common/chat";
@@ -210,6 +212,7 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin, onToggleSidebarWidth }, r
 	const inputAreaRef = useRef<InputAreaHandle>(null);
 	const [voiceChatSettings, setVoiceChatSettings] = useState(() => ({ ...plugin.settings.voiceChat }));
 	useAutoReadAloud(messages, isLoading, voiceChatSettings.autoReadAloud);
+	useReadAloudRate(voiceChatSettings.readAloudRate);
 	const handleAutoReadAloudChange = useCallback((enabled: boolean) => {
 		setVoiceChatSettings((previous) => {
 			const next = { ...previous, autoReadAloud: enabled };
@@ -218,6 +221,15 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin, onToggleSidebarWidth }, r
 			return next;
 		});
 	}, [plugin]);
+	// The transcript arrives as a paste from speech-popup, so the session only
+	// has to open the popup again once each answer lands.
+	const voiceConversation = useVoiceConversation(messages, isLoading, {
+		command: voiceChatSettings.speechPopupCommand,
+		readAloud: voiceChatSettings.autoReadAloud,
+		onError: (message: string) => { new Notice(message); },
+		onOpened: () => inputAreaRef.current?.focus(),
+		onStarted: () => handleAutoReadAloudChange(true),
+	});
 	const pendingExternalSelectionRef = useRef<{ text: string; sourcePath?: string } | null>(null);
 	const currentSlashCommandRef = useRef<SlashCommand | null>(null);
 	// A slash command with confirmEdits off writes without asking.
@@ -1759,6 +1771,7 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin, onToggleSidebarWidth }, r
 							});
 						}}
 						voiceChatSettings={voiceChatSettings}
+						voiceConversation={voiceConversation}
 						onAutoReadAloudChange={handleAutoReadAloudChange}
 					/>
 				</>

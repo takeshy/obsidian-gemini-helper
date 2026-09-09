@@ -3475,6 +3475,51 @@
   opacity: 0.5;
 }
 
+.gemini-helper-read-aloud-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.gemini-helper-read-aloud-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  max-width: min(240px, 80vw);
+  padding: 3px 6px;
+  border: 1px solid color-mix(in srgb, var(--color-blue) 35%, var(--background-modifier-border));
+  border-radius: 5px;
+  background: color-mix(in srgb, var(--color-blue) 10%, var(--background-secondary));
+  color: var(--color-blue);
+  font-size: 11px;
+}
+
+.gemini-helper-read-aloud-chip-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gemini-helper-read-aloud-chip-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+
+.gemini-helper-read-aloud-chip-remove:hover {
+  background: color-mix(in srgb, var(--color-blue) 20%, transparent);
+}
+
 .gemini-helper-pending-attachments {
   display: flex;
   flex-wrap: wrap;
@@ -3706,6 +3751,7 @@
   gap: 4px;
 }
 
+.gemini-helper-mic-btn,
 .gemini-helper-send-btn,
 .gemini-helper-stop-btn {
   background: transparent;
@@ -3733,6 +3779,20 @@
 .gemini-helper-send-btn:hover:not(:disabled),
 .gemini-helper-stop-btn:hover {
   background: var(--background-modifier-hover);
+}
+
+.gemini-helper-mic-btn {
+  color: var(--text-muted);
+}
+
+.gemini-helper-mic-btn:hover {
+  background: var(--background-modifier-hover);
+  color: var(--text-normal);
+}
+
+/* A live session must be obvious: the popup itself may be behind Obsidian. */
+.gemini-helper-mic-btn-active {
+  color: var(--interactive-accent);
 }
 
 /* Autocomplete */

@@ -77,7 +77,7 @@ AI Chat 기능은 Obsidian vault와 통합된 Google Gemini와의 대화형 인�
 - **종료**는 다른 말을 하지 않고 전송 문구(기본값 `I'm done speaking`)만 말하면 됩니다. speech-popup은 평소처럼 닫히고, 채팅은 빈 차례를 "말이 끝났다"로 받아들이므로 클릭이 필요 없습니다. 팝업에서 아무 말 없이 Enter, 칩의 ✕, 다른 채팅 열기로도 종료됩니다.
 - 종료해도 팝업은 열린 채로 남습니다. 그 뒤에 붙여넣은 문장은 표시만 제거되어 입력창에 들어가고 전송되지 않습니다. 긴 문장을 여러 번에 나눠 말한 뒤 직접 보낼 때 이렇게 씁니다.
 - Obsidian의 PATH에서 앱을 찾지 못하면 설정 → 채팅 → *speech-popup 명령*에 전체 경로를 입력하세요. 실패하면 명령과 오류 내용이 알림으로 표시됩니다.
-- Linux의 Flatpak 버전 Obsidian은 샌드박스에서 실행되어 호스트에 설치된 프로그램을 볼 수 없으므로, 명령은 자동으로 `flatpak-spawn --host`를 거칩니다. `flatpak override --user --talk-name=org.freedesktop.Flatpak md.obsidian.Obsidian`으로 한 번 허용하세요. Snap 버전에는 이에 해당하는 포털이 없으니 AppImage나 Flatpak을 사용하세요.
+- Flatpak 버전 Obsidian에서는 먼저 `flatpak override --user --talk-name=org.freedesktop.Flatpak md.obsidian.Obsidian`으로 호스트 포털을 한 번 허용하고, 위 명령 칸에 호스트의 전체 경로(예: `/home/you/.local/bin/speech-popup`)를 입력하세요. 명령은 `flatpak-spawn --host`를 거쳐 실행됩니다. Snap에는 해당하는 포털이 없으니 AppImage나 Flatpak을 사용하세요.
 
 [음성 대화 데모를 YouTube에서 보기](https://www.youtube.com/watch?v=w8uyateB-0s)
 

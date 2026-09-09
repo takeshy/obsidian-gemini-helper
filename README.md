@@ -80,7 +80,7 @@ The AI Chat feature provides an interactive conversation interface with Google G
 - **To finish**: say the send phrase without dictating anything else (`I'm done speaking` by default). speech-popup closes as it always does, the chat receives an empty turn and reads it as "I'm done", so nothing has to be clicked. Pressing Enter on an empty popup, the ✕ on the voice conversation chip, and opening another chat end it too.
 - Finishing leaves the popup open. What it pastes afterwards keeps its words and loses the marker: the text lands in the composer without being sent, which is how you dictate a long message in several parts and send it yourself.
 - If Obsidian's PATH does not find the app, set the full path in Settings → Chat → *speech-popup command*. Failures are reported with the command and its own error.
-- On Linux, a Flatpak Obsidian is sandboxed and cannot see programs installed on the host, so commands are sent through `flatpak-spawn --host` automatically. Allow it once with `flatpak override --user --talk-name=org.freedesktop.Flatpak md.obsidian.Obsidian`. A Snap build has no equivalent portal; use the AppImage or the Flatpak.
+- On Flatpak Obsidian, allow the host portal once with `flatpak override --user --talk-name=org.freedesktop.Flatpak md.obsidian.Obsidian`, then set the binary's full host path (for example `/home/you/.local/bin/speech-popup`) as the command above; the plugin sends its commands through `flatpak-spawn --host`. Snap has no equivalent portal - use the AppImage or the Flatpak.
 
 [Watch the voice conversation demo on YouTube](https://www.youtube.com/watch?v=w8uyateB-0s)
 

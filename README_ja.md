@@ -80,7 +80,7 @@ AI チャット機能は、Obsidian Vault と統合された Google Gemini と�
 - **終了**は、ほかに何も話さずに送信フレーズ（既定は「これで終わります」）を言うだけです。speech-popup はいつもどおり閉じ、チャットは空のターンを「話し終わり」と受け取るので、クリックは要りません。ポップアップで何も話さずに Enter、音声会話チップの✕、新規チャット・別のチャットを開く操作でも終了します。
 - 終了してもポップアップは開いたままです。そのあとに貼り付けられた文章は、印だけを外して入力欄に入り、送信されません。長い文章を何回かに分けて口述し、最後に自分で送るときはこれを使います。
 - Obsidian の PATH でアプリが見つからない場合は、設定 → チャット → 「speech-popupコマンド」にフルパスを入れてください。失敗時はコマンドとエラー内容が通知に出ます。
-- Linux の Flatpak 版 Obsidian はサンドボックス内で動き、ホストにインストールされたプログラムが見えません。そのためコマンドは自動的に `flatpak-spawn --host` 経由で実行します。最初に一度 `flatpak override --user --talk-name=org.freedesktop.Flatpak md.obsidian.Obsidian` で許可してください。Snap 版には同等の仕組みが無いので、AppImage 版か Flatpak 版を使ってください。
+- Flatpak 版 Obsidian では、最初に一度 `flatpak override --user --talk-name=org.freedesktop.Flatpak md.obsidian.Obsidian` でホストへのポータルを許可し、上のコマンド欄にホスト側のフルパス（例: `/home/you/.local/bin/speech-popup`）を入れてください。コマンドは `flatpak-spawn --host` 経由で実行します。Snap 版には同等の仕組みが無いので、AppImage 版か Flatpak 版を使ってください。
 
 [音声会話のデモを YouTube で見る](https://www.youtube.com/watch?v=w8uyateB-0s)
 

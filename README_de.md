@@ -77,7 +77,7 @@ Die KI-Chat-Funktion bietet eine interaktive Konversationsschnittstelle mit Goog
 - **Beenden**: Sagen Sie die Sendefloskel, ohne sonst etwas zu diktieren (Standard: `I'm done speaking`). speech-popup schließt wie immer, der Chat erhält einen leeren Zug und liest ihn als "fertig" - ohne einen Klick. Enter in einem leeren Popup, das ✕ auf dem Chip und das Öffnen eines anderen Chats beenden sie ebenfalls.
 - Nach dem Beenden bleibt das Popup offen. Was es danach einfügt, verliert nur die Markierung: Der Text landet im Eingabefeld, ohne gesendet zu werden - so diktieren Sie eine lange Nachricht in mehreren Teilen und senden sie selbst.
 - Findet der PATH von Obsidian die App nicht, tragen Sie den vollständigen Pfad unter Einstellungen → Chat → *speech-popup-Befehl* ein. Fehler werden mit Befehl und Fehlermeldung angezeigt.
-- Unter Linux läuft ein Flatpak-Obsidian in einer Sandbox und sieht keine auf dem Host installierten Programme; Befehle werden daher automatisch über `flatpak-spawn --host` gesendet. Erlauben Sie das einmalig mit `flatpak override --user --talk-name=org.freedesktop.Flatpak md.obsidian.Obsidian`. Ein Snap-Build hat kein entsprechendes Portal - nutzen Sie das AppImage oder das Flatpak.
+- Erlauben Sie bei Flatpak-Obsidian einmalig das Host-Portal mit `flatpak override --user --talk-name=org.freedesktop.Flatpak md.obsidian.Obsidian` und tragen Sie oben den vollständigen Host-Pfad der Binärdatei ein (z. B. `/home/you/.local/bin/speech-popup`); die Befehle laufen dann über `flatpak-spawn --host`. Snap hat kein entsprechendes Portal - nutzen Sie das AppImage oder das Flatpak.
 
 [Demo der Sprachunterhaltung auf YouTube ansehen](https://www.youtube.com/watch?v=w8uyateB-0s)
 

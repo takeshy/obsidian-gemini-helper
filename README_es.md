@@ -77,7 +77,7 @@ La funcion de Chat con IA proporciona una interfaz de conversacion interactiva c
 - **Para terminar**: di la frase de envío sin dictar nada más (`I'm done speaking` por defecto). speech-popup se cierra como siempre, el chat recibe un turno vacío y lo interpreta como "he terminado", sin ningún clic. Pulsar Enter con la ventana vacía, el ✕ del chip y abrir otro chat también terminan la conversación.
 - Al terminar, la ventana sigue abierta. Lo que pegue después pierde solo la marca: el texto queda en el campo de texto sin enviarse, que es como se dicta un mensaje largo por partes y se envía a mano.
 - Si el PATH de Obsidian no encuentra la aplicación, indica la ruta completa en Ajustes → Chat → *Comando speech-popup*. Los fallos se informan con el comando y su propio error.
-- En Linux, un Obsidian de Flatpak está aislado y no ve los programas instalados en el host, así que los comandos se envían automáticamente por `flatpak-spawn --host`. Permítelo una vez con `flatpak override --user --talk-name=org.freedesktop.Flatpak md.obsidian.Obsidian`. La versión Snap no tiene un portal equivalente: usa el AppImage o el Flatpak.
+- En Obsidian de Flatpak, permite el portal al host una vez con `flatpak override --user --talk-name=org.freedesktop.Flatpak md.obsidian.Obsidian` y pon arriba la ruta completa del ejecutable en el host (por ejemplo `/home/you/.local/bin/speech-popup`); los comandos se envían por `flatpak-spawn --host`. Snap no tiene un portal equivalente: usa el AppImage o el Flatpak.
 
 [Ver la demostración de la conversación por voz en YouTube](https://www.youtube.com/watch?v=w8uyateB-0s)
 

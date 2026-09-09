@@ -74,7 +74,7 @@ Die KI-Chat-Funktion bietet eine interaktive Konversationsschnittstelle mit Goog
 - Sprechen Sie und senden Sie aus dem Popup. speech-popup markiert mit `⟦voice-chat⟧`, was es einfügt (`show --append`), daher wird es als Ihre Nachricht gesendet; ein gewöhnliches Einfügen aus der Zwischenablage bleibt im Eingabefeld, ebenso eines, das während einer laufenden Antwort eintrifft.
 - Die Antwort wird vorgelesen (mit der Unterhaltung eingeschaltet), und das Popup öffnet sich etwa 2,5 Sekunden nach dem Ende des Vorlesens erneut, damit die eigene Sprachausgabe nicht mit aufgenommen wird.
 - Schalten Sie das Vorlesen über seinen Chip aus, läuft die Unterhaltung weiter: Das Popup öffnet sich nach jeder Antwort weiterhin, nur still.
-- **Beenden**: Enter in einem leeren Popup, ✕ auf dem Chip der Sprachunterhaltung, oder einen neuen bzw. anderen Chat öffnen.
+- **Beenden**: Sagen Sie die Sendefloskel, ohne sonst etwas zu diktieren (Standard: `I'm done speaking`). speech-popup schließt wie immer, der Chat erhält einen leeren Zug und liest ihn als "fertig" - ohne einen Klick. Enter in einem leeren Popup, das ✕ auf dem Chip und das Öffnen eines anderen Chats beenden sie ebenfalls.
 - Nach dem Beenden bleibt das Popup offen. Was es danach einfügt, verliert nur die Markierung: Der Text landet im Eingabefeld, ohne gesendet zu werden - so diktieren Sie eine lange Nachricht in mehreren Teilen und senden sie selbst.
 - Findet der PATH von Obsidian die App nicht, tragen Sie den vollständigen Pfad unter Einstellungen → Chat → *speech-popup-Befehl* ein. Fehler werden mit Befehl und Fehlermeldung angezeigt.
 

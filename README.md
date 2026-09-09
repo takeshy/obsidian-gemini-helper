@@ -77,7 +77,7 @@ The AI Chat feature provides an interactive conversation interface with Google G
 - Speak, then send from the popup. speech-popup marks what it pastes with `⟦voice-chat⟧` (`show --append`), so the chat submits it as your message; an ordinary clipboard paste is left in the composer, and so is one that arrives while an answer is still being generated.
 - The answer is read aloud (turned on with the conversation), and the popup reopens about 2.5 seconds after the reading stops, so your own speech is not recorded back.
 - Turning read-aloud off with its chip keeps the conversation going: the popup still reopens after each answer, silently.
-- **To finish**: press Enter on an empty popup, click ✕ on the voice conversation chip, or start/open another chat.
+- **To finish**: say the send phrase without dictating anything else (`I'm done speaking` by default). speech-popup closes as it always does, the chat receives an empty turn and reads it as "I'm done", so nothing has to be clicked. Pressing Enter on an empty popup, the ✕ on the voice conversation chip, and opening another chat end it too.
 - Finishing leaves the popup open. What it pastes afterwards keeps its words and loses the marker: the text lands in the composer without being sent, which is how you dictate a long message in several parts and send it yourself.
 - If Obsidian's PATH does not find the app, set the full path in Settings → Chat → *speech-popup command*. Failures are reported with the command and its own error.
 

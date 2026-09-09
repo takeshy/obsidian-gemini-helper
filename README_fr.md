@@ -74,7 +74,7 @@ La fonctionnalite Chat IA fournit une interface de conversation interactive avec
 - Parlez, puis envoyez depuis la fenêtre. speech-popup marque ce qu'il colle avec `⟦voice-chat⟧` (`show --append`), le texte est donc envoyé comme votre message ; un collage ordinaire du presse-papiers reste dans la zone de saisie, tout comme un collage qui arrive pendant la génération d'une réponse.
 - La réponse est lue à voix haute (activée avec la conversation) et la fenêtre se rouvre environ 2,5 secondes après la fin de la lecture, pour que votre propre voix de synthèse ne soit pas enregistrée.
 - Si vous coupez la lecture avec sa puce, la conversation continue : la fenêtre se rouvre après chaque réponse, en silence.
-- **Pour terminer** : appuyez sur Entrée dans une fenêtre vide, cliquez sur ✕ de la puce de conversation vocale, ou ouvrez un nouveau chat ou un autre chat.
+- **Pour terminer** : dites la phrase d'envoi sans rien dicter d'autre (`I'm done speaking` par défaut). speech-popup se ferme comme d'habitude, le chat reçoit un tour vide et le lit comme « j'ai fini », sans le moindre clic. Entrée dans une fenêtre vide, le ✕ de la puce et l'ouverture d'un autre chat y mettent fin également.
 - Après la fin, la fenêtre reste ouverte. Ce qu'elle colle ensuite perd seulement la marque : le texte arrive dans la zone de saisie sans être envoyé, ce qui permet de dicter un long message en plusieurs fois et de l'envoyer soi-même.
 - Si le PATH d'Obsidian ne trouve pas l'application, indiquez le chemin complet dans Paramètres → Chat → *Commande speech-popup*. Les échecs sont signalés avec la commande et son erreur.
 

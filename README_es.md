@@ -74,7 +74,7 @@ La funcion de Chat con IA proporciona una interfaz de conversacion interactiva c
 - Habla y envía desde la ventana emergente. speech-popup marca lo que pega con `⟦voice-chat⟧` (`show --append`), así que se envía como tu mensaje; un pegado normal del portapapeles se queda en el campo de texto, igual que uno que llega mientras aún se genera una respuesta.
 - La respuesta se lee en voz alta (se activa con la conversación) y la ventana vuelve a abrirse unos 2,5 segundos después de terminar la lectura, para que tu propia voz sintetizada no se grabe.
 - Si desactivas la lectura con su chip, la conversación continúa: la ventana sigue abriéndose tras cada respuesta, en silencio.
-- **Para terminar**: pulsa Enter con la ventana vacía, haz clic en ✕ del chip de conversación por voz, o abre un chat nuevo o distinto.
+- **Para terminar**: di la frase de envío sin dictar nada más (`I'm done speaking` por defecto). speech-popup se cierra como siempre, el chat recibe un turno vacío y lo interpreta como "he terminado", sin ningún clic. Pulsar Enter con la ventana vacía, el ✕ del chip y abrir otro chat también terminan la conversación.
 - Al terminar, la ventana sigue abierta. Lo que pegue después pierde solo la marca: el texto queda en el campo de texto sin enviarse, que es como se dicta un mensaje largo por partes y se envía a mano.
 - Si el PATH de Obsidian no encuentra la aplicación, indica la ruta completa en Ajustes → Chat → *Comando speech-popup*. Los fallos se informan con el comando y su propio error.
 

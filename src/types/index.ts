@@ -121,6 +121,7 @@ export interface SlashCommand {
   searchSetting?: string | null;
   confirmEdits?: boolean;       // undefined/true = 編集確認を表示, false = 自動適用
   vaultToolMode?: VaultToolMode | null; // null = 現在の設定, "all" = すべて, "noSearch" = 検索なし, "none" = オフ
+  skillPath?: string | null;            // null = 現在のスキル選択を維持, path = 使用時に自動選択
   enabledMcpServers?: string[] | null;  // null = 現在の設定, [] = すべてオフ, ["name1", "name2"] = 指定のサーバーのみ有効
 }
 

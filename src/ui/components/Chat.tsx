@@ -837,6 +837,11 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin, onToggleSidebarWidth }, r
 			setVaultToolNoneReason(command.vaultToolMode === "none" ? "manual" : null);
 		}
 
+		if (command.skillPath) {
+			const skillPath = command.skillPath;
+			setActiveSkillPaths(paths => paths.includes(skillPath) ? paths : [...paths, skillPath]);
+		}
+
 		// Optionally change MCP server enabled state (null = keep current)
 		if (command.enabledMcpServers !== null && command.enabledMcpServers !== undefined) {
 			const enabledSet = new Set(command.enabledMcpServers);

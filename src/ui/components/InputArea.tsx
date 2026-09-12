@@ -3,7 +3,7 @@ import ModelSelector from "./ModelSelector";
 import { InputArea as SharedInputArea } from "obsidian-llm-hub-common";
 import { Composer, Autocomplete, Attachments, VaultToolControl, EnabledMcpServers, ChipRow, ReadAloudChip, VoiceConversationChip, InputButtons, SearchSelector, ModelRow, ModelDropdown } from "obsidian-llm-hub-common";
 import { useState, useRef, useEffect, KeyboardEvent, ChangeEvent, forwardRef, useImperativeHandle } from "react";
-import { Eye } from "lucide-react";
+import { Eye, StopCircle } from "lucide-react";
 import { Notice, Platform, type App } from "obsidian";
 import { isImageGenerationModel, type ModelInfo, type ModelType, type Attachment, type SlashCommand, type McpServerConfig, type VaultToolMode, type ReasoningEffort } from "src/types";
 import type { SkillMetadata } from "src/core/skillsLoader";
@@ -162,6 +162,18 @@ const InputArea = forwardRef<InputAreaHandle, InputAreaProps>(function InputArea
   const vaultToolMenuRef = useRef<HTMLDivElement>(null);
   const historyIndexRef = useRef<number | null>(null);
   const historyDraftRef = useRef("");
+
+  // Keep the response visible on mobile, then restore the normal input area.
+  useEffect(() => {
+    if (!Platform.isMobile) return;
+    setIsCollapsed(isLoading);
+    if (isLoading) {
+      textareaRef.current?.blur();
+      setShowAutocomplete(false);
+      setShowMentionAutocomplete(false);
+      setShowVaultToolMenu(false);
+    }
+  }, [isLoading]);
 
   // Scroll to selected mention item
   useEffect(() => {
@@ -708,9 +720,15 @@ const InputArea = forwardRef<InputAreaHandle, InputAreaProps>(function InputArea
         />}
       footer={<>
 
-      {/* Collapsed state: show only expand button */}
+      {/* Keep stop available while the input area is collapsed during a response. */}
       {isCollapsed && Platform.isMobile && (
-        <CollapsedInput classPrefix="gemini-helper" label={t("input.expand")} onExpand={() => setIsCollapsed(false)} />
+        isLoading ? (
+          <div className="gemini-helper-collapsed-bar">
+            <button className="gemini-helper-stop-btn" onClick={onStop} title={t("input.stop")} aria-label={t("input.stop")}>
+              <StopCircle size={18} />
+            </button>
+          </div>
+        ) : <CollapsedInput classPrefix="gemini-helper" label={t("input.expand")} onExpand={() => setIsCollapsed(false)} />
       )}
 
       {!isCollapsed && (

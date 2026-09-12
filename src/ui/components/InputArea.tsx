@@ -1,7 +1,6 @@
-import { CollapsedInput } from "obsidian-llm-hub-common";
 import ModelSelector from "./ModelSelector";
 import { InputArea as SharedInputArea } from "obsidian-llm-hub-common";
-import { Composer, Autocomplete, Attachments, VaultToolControl, EnabledMcpServers, InputButtons, SearchSelector, ModelRow, ModelDropdown } from "obsidian-llm-hub-common";
+import { Composer, CollapsedInput, Autocomplete, Attachments, VaultToolControl, EnabledMcpServers, InputButtons, SearchSelector, ModelRow, ModelDropdown } from "obsidian-llm-hub-common";
 import { useState, useRef, useEffect, KeyboardEvent, ChangeEvent, forwardRef, useImperativeHandle } from "react";
 import { Eye } from "lucide-react";
 import { Notice, Platform, type App } from "obsidian";
@@ -191,6 +190,12 @@ const InputArea = forwardRef<InputAreaHandle, InputAreaProps>(function InputArea
   useEffect(() => {
     const textarea = textareaRef.current;
     if (textarea) {
+      // The expanded composer owns its height and follows the visual viewport.
+      // Do not replace that height with the compact composer's 200px auto-size.
+      if (textarea.classList.contains("gemini-helper-input-expanded")) {
+        textarea.style.removeProperty("height");
+        return;
+      }
       // Use Obsidian's setCssProps for dynamic height adjustment
       textarea.setCssProps({ height: "auto" });
       const height = `${Math.min(textarea.scrollHeight, 200)}px`;
@@ -512,8 +517,7 @@ const InputArea = forwardRef<InputAreaHandle, InputAreaProps>(function InputArea
     <SharedInputArea classPrefix="gemini-helper" modifiers={[isCollapsed && "collapsed"]} collapsed={isCollapsed}
       beforeInput={<>
       {/* MCP servers enabled for this chat */}
-      {!isCollapsed && (
-        <EnabledMcpServers
+      {!isCollapsed && <EnabledMcpServers
           classPrefix="gemini-helper"
           disabled={isLoading || vaultToolModeOnlyNone}
           onDisable={(id) => onMcpServerToggle(id, false)}
@@ -523,8 +527,7 @@ const InputArea = forwardRef<InputAreaHandle, InputAreaProps>(function InputArea
             title: t("input.mcpServerEnabled", { name: server.name }),
             removeTitle: t("input.mcpServerDisable", { name: server.name }),
           }))}
-        />
-      )}
+        />}
 
       {/* Pending attachments display */}
       {!isCollapsed && pendingAttachments.length > 0 && (
@@ -618,16 +621,12 @@ const InputArea = forwardRef<InputAreaHandle, InputAreaProps>(function InputArea
           canSend={!!input.trim() || pendingAttachments.length > 0}
           onSend={handleSubmit} onStop={onStop}
           sendLabel={t("input.send")} stopLabel={t("input.stop")}
-          collapse={Platform.isMobile ? { collapsed: isCollapsed, onToggle: () => setIsCollapsed(!isCollapsed), label: isCollapsed ? t("input.expand") : t("input.collapse") } : undefined}
+          expand={Platform.isMobile ? { label: t("input.expand"), closeLabel: t("input.collapse") } : undefined}
+          collapse={Platform.isMobile ? { label: t("input.collapse"), onCollapse: () => setIsCollapsed(true) } : undefined}
         />}
       footer={<>
-
-      {/* Collapsed state: show only expand button */}
-      {isCollapsed && Platform.isMobile && (
-        <CollapsedInput classPrefix="gemini-helper" label={t("input.expand")} onExpand={() => setIsCollapsed(false)} />
-      )}
-
-      {!isCollapsed && (
+      {isCollapsed && Platform.isMobile && <CollapsedInput classPrefix="gemini-helper" label={t("input.expand")} onExpand={() => setIsCollapsed(false)} />}
+      {!isCollapsed && <>
         <ModelRow classPrefix="gemini-helper">
           <ModelSelector models={availableModels} value={model} onChange={onModelChange} disabled={isLoading} />
           {reasoningEffortOptions.length > 0 && (
@@ -668,8 +667,7 @@ const InputArea = forwardRef<InputAreaHandle, InputAreaProps>(function InputArea
             }}
           />
         </ModelRow>
-      )}
-      {!isCollapsed && availableSkills.length > 0 && (
+      {availableSkills.length > 0 && (
         <SkillSelector
           skills={availableSkills}
           activeSkillPaths={activeSkillPaths}
@@ -678,7 +676,7 @@ const InputArea = forwardRef<InputAreaHandle, InputAreaProps>(function InputArea
           app={app}
         />
       )}
-      {!isCollapsed && okfBundles.length > 0 && (
+      {okfBundles.length > 0 && (
         <OkfSelector
           bundles={okfBundles}
           activeBundleIds={activeOkfBundleIds}
@@ -686,6 +684,7 @@ const InputArea = forwardRef<InputAreaHandle, InputAreaProps>(function InputArea
           disabled={isLoading}
         />
       )}
+      </>}
     </>}
     />
   );

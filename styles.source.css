@@ -625,6 +625,8 @@
 
 .is-mobile .gemini-helper-send-btn,
 .is-mobile .gemini-helper-stop-btn,
+.is-mobile .gemini-helper-expand-input-btn,
+.is-mobile .gemini-helper-shrink-input-btn,
 .is-mobile .gemini-helper-attachment-btn {
   width: 44px;
   height: 44px;

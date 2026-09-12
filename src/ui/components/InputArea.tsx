@@ -201,6 +201,10 @@ const InputArea = forwardRef<InputAreaHandle, InputAreaProps>(function InputArea
   useEffect(() => {
     const textarea = textareaRef.current;
     if (textarea) {
+      if (textarea.closest('[role="dialog"]')) {
+        textarea.style.removeProperty("height");
+        return;
+      }
       // Use Obsidian's setCssProps for dynamic height adjustment
       textarea.setCssProps({ height: "auto" });
       const height = `${Math.min(textarea.scrollHeight, 200)}px`;
@@ -699,6 +703,7 @@ const InputArea = forwardRef<InputAreaHandle, InputAreaProps>(function InputArea
           }}
           onSend={handleSubmit} onStop={onStop}
           sendLabel={t("input.send")} stopLabel={t("input.stop")}
+          expand={Platform.isMobile ? { label: t("input.expand"), closeLabel: t("input.collapse") } : undefined}
           collapse={Platform.isMobile ? { collapsed: isCollapsed, onToggle: () => setIsCollapsed(!isCollapsed), label: isCollapsed ? t("input.expand") : t("input.collapse") } : undefined}
         />}
       footer={<>

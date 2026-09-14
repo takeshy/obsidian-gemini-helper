@@ -15,7 +15,6 @@ import { displayKnowledgeSettings } from "src/ui/settings/knowledgeSettings";
 import { displayMcpServersSettings } from "src/ui/settings/mcpServersSettings";
 import { displayAgentPluginSettings } from "src/ui/settings/agentPluginSettings";
 
-// Keep the imperative section renderers for compatibility with older Obsidian.
 const SETTINGS_SECTIONS = [
   { name: "Gemini API", aliases: ["API key", "plan"], render: displayApiSettings },
   { name: "Workspace", aliases: ["folder", "chat history"], render: displayWorkspaceSettings },
@@ -42,15 +41,14 @@ export class SettingsTab extends PluginSettingTab {
   private createContext(): SettingsContext {
     return {
       plugin: this.plugin,
-      display: () => {
-        if (typeof this.update === "function") this.update();
-        else this.renderLegacySettings();
-      },
+      display: () => this.update(),
       syncCancelRef: this.syncCancelRef,
     };
   }
 
   getSettingDefinitions(): SettingDefinitionItem[] {
+    // Normalizes edit history defaults; it renders no UI, so run it once per rebuild.
+    displayEditHistorySettings(this.containerEl, this.createContext());
     return SETTINGS_SECTIONS.map(({ name, aliases, render }) => ({
       name,
       aliases,
@@ -58,22 +56,8 @@ export class SettingsTab extends PluginSettingTab {
         // Each existing renderer owns a whole section, including its heading.
         setting.settingEl.empty();
         setting.settingEl.removeClass("setting-item");
-        const ctx = this.createContext();
-        displayEditHistorySettings(setting.settingEl, ctx);
-        render(setting.settingEl, ctx);
+        render(setting.settingEl, this.createContext());
       },
     }));
-  }
-
-  /** Compatibility fallback for Obsidian versions before 1.13.0. */
-  display(): void {
-    this.renderLegacySettings();
-  }
-
-  private renderLegacySettings(): void {
-    this.containerEl.empty();
-    const ctx = this.createContext();
-    displayEditHistorySettings(this.containerEl, ctx);
-    for (const section of SETTINGS_SECTIONS) section.render(this.containerEl, ctx);
   }
 }

@@ -484,8 +484,11 @@ export class FileSearchManager {
             }
           }
         }
-      } catch {
-        // If listing fails, continue without store-based cleanup
+      } catch (error) {
+        // A failed listing cannot establish that the saved index is accessible.
+        // Otherwise unchanged local files can make an inaccessible store appear
+        // successfully synced, and partial listings can lead to unsafe cleanup.
+        throw new Error(`Cannot sync File Search Store ${this.storeName}: ${formatError(error)}`);
       }
 
       // Also find files in sync state but not in vault (for sync state cleanup)

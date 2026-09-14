@@ -3,7 +3,7 @@ import ModelSelector from "./ModelSelector";
 import { InputArea as SharedInputArea } from "obsidian-llm-hub-common";
 import { Composer, Autocomplete, Attachments, VaultToolControl, EnabledMcpServers, ChipRow, ReadAloudChip, VoiceConversationChip, InputButtons, SearchSelector, ModelRow, ModelDropdown } from "obsidian-llm-hub-common";
 import { useState, useRef, useEffect, KeyboardEvent, ChangeEvent, forwardRef, useImperativeHandle } from "react";
-import { Eye, StopCircle } from "lucide-react";
+import { Eye } from "lucide-react";
 import { Notice, Platform, type App } from "obsidian";
 import { isImageGenerationModel, type ModelInfo, type ModelType, type Attachment, type SlashCommand, type McpServerConfig, type VaultToolMode, type ReasoningEffort } from "src/types";
 import type { SkillMetadata } from "src/core/skillsLoader";
@@ -146,7 +146,9 @@ const InputArea = forwardRef<InputAreaHandle, InputAreaProps>(function InputArea
 }, ref) {
   const [input, setInput] = useState("");
   const [pendingAttachments, setPendingAttachments] = useState<Attachment[]>([]);
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [collapseRequested, setIsCollapsed] = useState(false);
+  // Keep the shared composer and its stop control accessible throughout a response.
+  const isCollapsed = collapseRequested && !isLoading;
   const [showAutocomplete, setShowAutocomplete] = useState(false);
   const [autocompleteIndex, setAutocompleteIndex] = useState(0);
   const [filteredCommands, setFilteredCommands] = useState<(SlashCommand | BuiltInCommand)[]>([]);
@@ -716,19 +718,12 @@ const InputArea = forwardRef<InputAreaHandle, InputAreaProps>(function InputArea
           onSend={handleSubmit} onStop={onStop}
           sendLabel={t("input.send")} stopLabel={t("input.stop")}
           expand={Platform.isMobile ? { label: t("input.expand"), closeLabel: t("input.collapse") } : undefined}
-          collapse={Platform.isMobile ? { collapsed: isCollapsed, onToggle: () => setIsCollapsed(!isCollapsed), label: isCollapsed ? t("input.expand") : t("input.collapse") } : undefined}
+          collapse={Platform.isMobile && !isLoading ? { collapsed: isCollapsed, onToggle: () => setIsCollapsed(!isCollapsed), label: isCollapsed ? t("input.expand") : t("input.collapse") } : undefined}
         />}
       footer={<>
 
-      {/* Keep stop available while the input area is collapsed during a response. */}
       {isCollapsed && Platform.isMobile && (
-        isLoading ? (
-          <div className="gemini-helper-collapsed-bar">
-            <button className="gemini-helper-stop-btn" onClick={onStop} title={t("input.stop")} aria-label={t("input.stop")}>
-              <StopCircle size={18} />
-            </button>
-          </div>
-        ) : <CollapsedInput classPrefix="gemini-helper" label={t("input.expand")} onExpand={() => setIsCollapsed(false)} />
+        <CollapsedInput classPrefix="gemini-helper" label={t("input.expand")} onExpand={() => setIsCollapsed(false)} />
       )}
 
       {!isCollapsed && (

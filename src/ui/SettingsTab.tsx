@@ -1,4 +1,4 @@
-import { PluginSettingTab, App } from "obsidian";
+import { PluginSettingTab, App, type SettingDefinitionItem } from "obsidian";
 import type { GeminiHelperPlugin } from "src/plugin";
 import type { SettingsContext } from "src/ui/settings/settingsContext";
 import { displayApiSettings } from "src/ui/settings/apiSettings";
@@ -15,19 +15,19 @@ import { displayKnowledgeSettings } from "src/ui/settings/knowledgeSettings";
 import { displayMcpServersSettings } from "src/ui/settings/mcpServersSettings";
 import { displayAgentPluginSettings } from "src/ui/settings/agentPluginSettings";
 
-// Sections rendered under the main tab heading (edit history has no UI of its own).
-const SETTINGS_SECTIONS: Array<(containerEl: HTMLElement, ctx: SettingsContext) => void> = [
-  displayApiSettings,
-  displayWorkspaceSettings,
-  displayChatSettings,
-  displayEncryptionSettings,
-  displayLangfuseSettings,
-  displaySlashCommandSettings,
-  displayExternalSkillSettings,
-  displayAgentPluginSettings,
-  displayKnowledgeSettings,
-  displayRagSettings,
-  displayMcpServersSettings,
+// Keep the imperative section renderers for compatibility with older Obsidian.
+const SETTINGS_SECTIONS = [
+  { name: "Gemini API", aliases: ["API key", "plan"], render: displayApiSettings },
+  { name: "Workspace", aliases: ["folder", "chat history"], render: displayWorkspaceSettings },
+  { name: "Chat", aliases: ["model", "tools", "thinking"], render: displayChatSettings },
+  { name: "Encryption", aliases: ["password"], render: displayEncryptionSettings },
+  { name: "Langfuse", aliases: ["tracing"], render: displayLangfuseSettings },
+  { name: "Slash commands", render: displaySlashCommandSettings },
+  { name: "External skills", render: displayExternalSkillSettings },
+  { name: "Agent plugins", aliases: ["GitHub", "install"], render: displayAgentPluginSettings },
+  { name: "Knowledge", aliases: ["wiki", "OKF"], render: displayKnowledgeSettings },
+  { name: "Semantic search (RAG)", aliases: ["stores", "sync"], render: displayRagSettings },
+  { name: "MCP servers", aliases: ["tools"], render: displayMcpServersSettings },
 ];
 
 export class SettingsTab extends PluginSettingTab {
@@ -39,15 +39,41 @@ export class SettingsTab extends PluginSettingTab {
     this.plugin = plugin;
   }
 
-  /** Render settings using the API available at the declared minimum version. */
-  display(): void {
-    this.containerEl.empty();
-    const ctx: SettingsContext = {
+  private createContext(): SettingsContext {
+    return {
       plugin: this.plugin,
-      display: () => this.display(),
+      display: () => {
+        if (typeof this.update === "function") this.update();
+        else this.renderLegacySettings();
+      },
       syncCancelRef: this.syncCancelRef,
     };
+  }
+
+  getSettingDefinitions(): SettingDefinitionItem[] {
+    return SETTINGS_SECTIONS.map(({ name, aliases, render }) => ({
+      name,
+      aliases,
+      render: setting => {
+        // Each existing renderer owns a whole section, including its heading.
+        setting.settingEl.empty();
+        setting.settingEl.removeClass("setting-item");
+        const ctx = this.createContext();
+        displayEditHistorySettings(setting.settingEl, ctx);
+        render(setting.settingEl, ctx);
+      },
+    }));
+  }
+
+  /** Compatibility fallback for Obsidian versions before 1.13.0. */
+  display(): void {
+    this.renderLegacySettings();
+  }
+
+  private renderLegacySettings(): void {
+    this.containerEl.empty();
+    const ctx = this.createContext();
     displayEditHistorySettings(this.containerEl, ctx);
-    for (const renderSection of SETTINGS_SECTIONS) renderSection(this.containerEl, ctx);
+    for (const section of SETTINGS_SECTIONS) section.render(this.containerEl, ctx);
   }
 }

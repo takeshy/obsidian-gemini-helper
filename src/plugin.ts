@@ -150,7 +150,7 @@ export class GeminiHelperPlugin extends Plugin {
       getCurrentModel: () => this.getSelectedModel(),
       getLastWorkflowModel: () => this.settings.lastAIWorkflowModel,
       setLastWorkflowModel: (model) => {
-        this.settings.lastAIWorkflowModel = model as ModelType;
+        this.settings.lastAIWorkflowModel = model;
         void this.saveSettings();
       },
       getWorkflowSpecification: () => getWorkflowSpecification(buildWorkflowSpecContext(this)),

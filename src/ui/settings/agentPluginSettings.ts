@@ -1,4 +1,5 @@
 import { Notice, Setting } from "obsidian";
+import { ConfirmModal } from "src/ui/components/ConfirmModal";
 import { clearMcpToolsCache } from "src/core/mcpTools";
 import { agentPluginRoot, installAgentPlugin, previewAgentPlugin, uninstallAgentPlugin } from "src/core/agentPlugins";
 import type { AgentPluginInstall, McpServerConfig } from "src/types";
@@ -46,7 +47,7 @@ export function displayAgentPluginSettings(containerEl: HTMLElement, ctx: Settin
       try { const next = await previewAgentPlugin(item.repo); new Notice(next.commitSha === item.commitSha ? `${item.name} is up to date.` : `Update available for ${item.name}: ${next.version}. Use Preview and install above to review it.`); } catch (error) { new Notice(String(error)); }
     })(); }));
     setting.addExtraButton(button => button.setIcon("trash").setTooltip("Uninstall").onClick(() => { void (async () => {
-      if (!window.confirm(`Uninstall ${item.name}?`)) return;
+      if (!await new ConfirmModal(plugin.app, `Uninstall ${item.name}?`, "Uninstall").openAndWait()) return;
       await uninstallAgentPlugin(plugin.app, item.name);
       plugin.settings.agentPlugins = plugin.settings.agentPlugins.filter((v: AgentPluginInstall) => v.name !== item.name);
       plugin.settings.mcpServers = plugin.settings.mcpServers.filter(v => v.agentPlugin?.pluginName !== item.name);

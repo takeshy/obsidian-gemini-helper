@@ -5,8 +5,6 @@ import {
   type Content,
   type Tool,
   type SafetySetting,
-  type GenerateContentParameters,
-  type CreateChatParameters,
   type Interactions,
 } from "@google/genai";
 import {
@@ -92,9 +90,9 @@ export class GeminiClient extends GeminiGenerationClient<ModelType> {
   constructor(apiKey: string, model: ModelType = "gemini-3.8-flash") {
     const ai = new GoogleGenAI({ apiKey });
     super(model, {
-      generate: request => ai.models.generateContent(request as GenerateContentParameters),
-      stream: request => ai.models.generateContentStream(request as GenerateContentParameters),
-      chat: request => ai.chats.create(request as CreateChatParameters),
+      generate: request => ai.models.generateContent(request),
+      stream: request => ai.models.generateContentStream(request),
+      chat: request => ai.chats.create(request),
       createResearch: request => ai.interactions.create(request),
       getResearch: id => ai.interactions.get(id),
       delay: milliseconds => new Promise(resolve => window.setTimeout(resolve, milliseconds)),
@@ -131,7 +129,7 @@ export class GeminiClient extends GeminiGenerationClient<ModelType> {
 
   // Convert our Message format to Gemini Content format
   private messagesToContents(messages: Message[]): Content[] {
-    return messagesToGeminiContents(messages) as Content[];
+    return messagesToGeminiContents(messages);
   }
 
   // Convert tool definitions to Interactions API format (Tool_2[])
@@ -148,7 +146,7 @@ export class GeminiClient extends GeminiGenerationClient<ModelType> {
       ragTopK,
       ragMetadataFilter,
       webSearchEnabled,
-    }) as Interactions.Tool[];
+    });
   }
 
   // Retrieve RAG context for the GenerateContent fallback path. The normal
@@ -176,7 +174,7 @@ export class GeminiClient extends GeminiGenerationClient<ModelType> {
 
   // Build Interactions API input from a Message (supports text + attachments)
   private static buildInteractionInput(msg: Message): string | Interactions.Content[] {
-    return buildGeminiInteractionInput(msg) as string | Interactions.Content[];
+    return buildGeminiInteractionInput(msg);
   }
 
   // Build Interactions API input with local history replay.
@@ -186,7 +184,7 @@ export class GeminiClient extends GeminiGenerationClient<ModelType> {
   private static buildHistoryReplayInput(
     messages: Message[],
   ): string | Interactions.Content[] {
-    return buildGeminiHistoryReplayInput(messages) as string | Interactions.Content[];
+    return buildGeminiHistoryReplayInput(messages);
   }
 
   private shouldUseGenerateContentToolsApi(
@@ -397,7 +395,7 @@ export class GeminiClient extends GeminiGenerationClient<ModelType> {
       executeToolCall,
       create: request => this.ai.interactions.create({
         model: interactionModel,
-        input: request.input as string | Interactions.Content[] | Interactions.Step[],
+        input: request.input,
         stream: true, store: true,
         previous_interaction_id: request.previousInteractionId,
         tools: selectGeminiInteractionTools(interactionTools, request.toolMode),

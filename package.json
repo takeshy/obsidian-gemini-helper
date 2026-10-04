@@ -1,6 +1,6 @@
 {
   "name": "obsidian-gemini-helper",
-  "version": "1.23.8",
+  "version": "1.23.9",
   "description": "AI-powered assistant using Google Gemini with File Search RAG capabilities",
   "main": "main.js",
   "scripts": {
@@ -53,7 +53,7 @@
     "diff": "^8.0.2",
     "fflate": "^0.8.3",
     "lucide-react": "^0.503.0",
-    "obsidian-llm-hub-common": "github:takeshy/obsidian-llm-hub-common#205ccc6e6d172d8784ec1beea642a150c05f9af5",
+    "obsidian-llm-hub-common": "file:vendor/obsidian-llm-hub-common-0.1.2.tgz",
     "pdf-lib": "^1.17.1",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"

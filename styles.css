@@ -7797,18 +7797,19 @@
   color: var(--text-on-accent);
 }
 
-/* Plan section grows when active */
+/* Size the plan card to its capped content without leaving unused space inside. */
 .gemini-helper-workflow-generation-modal-content > .gemini-helper-workflow-generation-plan-section:not(.is-collapsed):not(.is-hidden) {
-  flex: 1;
+  flex: 0 1 auto;
   display: flex;
   flex-direction: column;
   min-height: 0;
 }
 
 .gemini-helper-workflow-generation-modal-content > .gemini-helper-workflow-generation-plan-section:not(.is-collapsed):not(.is-hidden) .gemini-helper-workflow-generation-plan {
-  flex: 1 1 0;
+  /* Use the content height in auto-height modals and shrink to fit smaller screens. */
+  flex: 1 1 auto;
   min-height: 0;
-  max-height: none;
+  max-height: 50vh;
   overflow-y: auto;
 }
 

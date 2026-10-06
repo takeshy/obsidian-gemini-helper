@@ -78,8 +78,7 @@ import { resolveAgentPluginMcpServers } from "src/core/agentPlugins";
 import { buildBuiltinOkfSystemPrompt, buildOkfSystemPrompt, discoverOkfBundles, getBuiltinOkfBundle, isBuiltinOkfBundleId, type OkfBundle } from "src/core/okfLoader";
 import { executeReadOkfDocumentTool, READ_OKF_DOCUMENT_TOOL, READ_OKF_DOCUMENT_TOOL_NAME } from "src/core/okfDocumentTool";
 import { GET_WORKFLOW_SPEC_TOOL, GET_WORKFLOW_SPEC_TOOL_NAME, handleGetWorkflowSpec } from "src/workflow/workflowSpec";
-import { DEFAULT_BUILTIN_SKILL_IDS, builtinFolderPath, restoredSkillPaths, prunedSkillPaths, getBuiltinSkillMetadata } from "src/core/builtinSkills";
-import { runtimeSkillPath } from "src/core/runtimeSkills";
+import { DEFAULT_BUILTIN_SKILL_IDS, builtinFolderPath, restoredSkillPaths, prunedSkillPaths, getBuiltinSkillMetadata, fileSkillFor, type FileSkill } from "src/core/builtinSkills";
 import { promptForValue } from "./workflow/ValuePromptModal";
 import { promptForDialog } from "./workflow/DialogPromptModal";
 import { t } from "src/i18n";
@@ -88,7 +87,7 @@ import {
 	parseMarkdownToMessages,
 	formatHistoryDate,
 } from "./chat/chatHistory";
-import { resolveEffectiveSkillPaths, useSkillPathPersistence } from "./chat/contextSkills";
+import { withRequestedSkillPath, useSkillPathPersistence } from "./chat/contextSkills";
 
 export interface ChatRef {
 	getActiveChat: () => TFile | null;
@@ -96,22 +95,6 @@ export interface ChatRef {
 	askSelection: (selection: { text: string; sourcePath?: string }) => void;
 	setDraft: (content: string) => void;
 }
-
-const MARKDOWN_SKILL_PATH = builtinFolderPath("obsidian-markdown");
-const DASHBOARD_SKILL_PATH = runtimeSkillPath("dashboard-hub", "dashboard");
-const CANVAS_SKILL_PATH = builtinFolderPath("json-canvas");
-const BASE_SKILL_PATH = builtinFolderPath("base");
-const CONTEXT_SKILL_BY_EXTENSION: Record<string, string> = {
-	dashboard: DASHBOARD_SKILL_PATH,
-	canvas: CANVAS_SKILL_PATH,
-	base: BASE_SKILL_PATH,
-};
-const CONTEXT_BUILTIN_SKILL_PATHS = new Set([
-	MARKDOWN_SKILL_PATH,
-	DASHBOARD_SKILL_PATH,
-	CANVAS_SKILL_PATH,
-	BASE_SKILL_PATH,
-]);
 
 // Files that can be @-mentioned: Markdown plus PDFs (text layer extracted on demand).
 // Extensions are compared lower-cased to match the vault-layer lookups.
@@ -251,10 +234,9 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin, onToggleSidebarWidth }, r
 	const hasCompletedInitialRestoreRef = useRef(false);
 	const [vaultFiles, setVaultFiles] = useState<string[]>([]);
 	const [currentDashboard, setCurrentDashboard] = useState<TFile | null>(null);
-	const [activeContextSkillPath, setActiveContextSkillPath] = useState<string | null>(null);
-	const [disabledContextSkillPaths, setDisabledContextSkillPaths] = useState<Set<string>>(
-		() => new Set(),
-	);
+	// The file open in the editor and the skill that fits it. The skill is only
+	// offered on the empty chat; opening a file never switches it on.
+	const [editorFile, setEditorFile] = useState<{ file: TFile; skill: FileSkill } | null>(null);
 	const [hasSelection, setHasSelection] = useState(false);
 	const [hasApiKey, setHasApiKey] = useState(!!plugin.settings.googleApiKey);
 	const [decryptingChatId, setDecryptingChatId] = useState<string | null>(null);
@@ -268,8 +250,8 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin, onToggleSidebarWidth }, r
 
 	// Agent Skills state (initialise with built-in skills so they are available synchronously)
 	const [availableSkills, setAvailableSkills] = useState<SkillMetadata[]>(getBuiltinSkillMetadata);
-	// A selection the user built from their own skills is a standing preference;
-	// one that holds only built-in skills is left to the shipped defaults.
+	// Chats carry over the previous skill selection, even an empty one; only a
+	// user who never touched the list starts from the shipped defaults.
 	const [activeSkillPaths, setActiveSkillPaths] = useState<string[]>(
 		() => restoredSkillPaths(plugin.settings.activeSkillPaths, DEFAULT_BUILTIN_SKILL_IDS.map(builtinFolderPath)),
 	);
@@ -277,19 +259,23 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin, onToggleSidebarWidth }, r
 		plugin.settings.activeSkillPaths = [...paths];
 		void plugin.saveSettings();
 	});
-	const effectiveActiveSkillPaths = useMemo(() => resolveEffectiveSkillPaths(
-		activeSkillPaths,
-		activeContextSkillPath,
-		disabledContextSkillPaths,
-		CONTEXT_BUILTIN_SKILL_PATHS,
-	), [activeSkillPaths, activeContextSkillPath, disabledContextSkillPaths]);
-	const getEffectiveSkillPathsForSend = useCallback((skillPath?: string) => resolveEffectiveSkillPaths(
-		activeSkillPaths,
-		activeContextSkillPath,
-		disabledContextSkillPaths,
-		CONTEXT_BUILTIN_SKILL_PATHS,
-		skillPath,
-	), [activeSkillPaths, activeContextSkillPath, disabledContextSkillPaths]);
+	const getEffectiveSkillPathsForSend = useCallback((skillPath?: string) =>
+		withRequestedSkillPath(activeSkillPaths, skillPath), [activeSkillPaths]);
+	const handleEnableSkill = useCallback((folderPath: string) => {
+		setActiveSkillPaths(prev => prev.includes(folderPath) ? prev : [...prev, folderPath]);
+	}, []);
+	const editorFileSkill = useMemo(() => {
+		if (!editorFile) return null;
+		const skill = availableSkills.find(s => s.folderPath === editorFile.skill.skillPath);
+		if (!skill) return null;
+		return {
+			fileName: editorFile.file.name,
+			kind: editorFile.skill.kind,
+			skillName: skill.name,
+			enabled: activeSkillPaths.includes(skill.folderPath),
+			onEnable: () => handleEnableSkill(skill.folderPath),
+		};
+	}, [editorFile, availableSkills, activeSkillPaths, handleEnableSkill]);
 	// OKF knowledge bundles discovered under the configured root directory.
 	const [okfBundles, setOkfBundles] = useState<OkfBundle[]>([]);
 	const [activeOkfBundleIds, setActiveOkfBundleIds] = useState<string[]>([]);
@@ -488,26 +474,23 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin, onToggleSidebarWidth }, r
 			return file instanceof TFile ? file : null;
 		};
 
-		const findContext = (): { dashboardFile: TFile | null; skillPath: string | null } => {
+		const findContext = (): { dashboardFile: TFile | null; editorFile: TFile | null } => {
 			let dashboardFile: TFile | null = null;
-			let skillPath: string | null = null;
 
-			const considerOpenFile = (file: TFile | null) => {
-				if (!file) return;
-				if (file.extension === "dashboard" && !dashboardFile) {
+			// The chat lives in a sidebar, so the editor file is the one in the most
+			// recent leaf of the main area, not whatever leaf has focus.
+			const recentLeaf = plugin.app.workspace.getMostRecentLeaf();
+			const editorFile = recentLeaf ? readLeafFile(recentLeaf) : null;
+
+			const considerDashboardFile = (file: TFile | null) => {
+				if (file?.extension === "dashboard" && !dashboardFile) {
 					dashboardFile = file;
-				}
-				const contextSkill = CONTEXT_SKILL_BY_EXTENSION[file.extension];
-				if (contextSkill && !skillPath) {
-					skillPath = contextSkill;
 				}
 			};
 
-			const activeFile = plugin.app.workspace.getActiveFile();
-			considerOpenFile(activeFile);
-
+			considerDashboardFile(editorFile);
 			plugin.app.workspace.iterateAllLeaves((leaf) => {
-				considerOpenFile(readLeafFile(leaf));
+				considerDashboardFile(readLeafFile(leaf));
 			});
 
 			if (!dashboardFile) {
@@ -518,13 +501,14 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin, onToggleSidebarWidth }, r
 				dashboardFile = dashboards[0] ?? null;
 			}
 
-			return { dashboardFile, skillPath };
+			return { dashboardFile, editorFile };
 		};
 
 		const refreshContext = () => {
 			const context = findContext();
 			setCurrentDashboard(context.dashboardFile);
-			setActiveContextSkillPath(context.skillPath);
+			const skill = fileSkillFor(context.editorFile?.extension);
+			setEditorFile(context.editorFile && skill ? { file: context.editorFile, skill } : null);
 		};
 
 		refreshContext();
@@ -535,12 +519,14 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin, onToggleSidebarWidth }, r
 		plugin.app.vault.on("delete", onVaultChange);
 		plugin.app.vault.on("rename", onVaultChange);
 		plugin.app.workspace.on("active-leaf-change", onLeafChange);
+		plugin.app.workspace.on("file-open", onLeafChange);
 
 		return () => {
 			plugin.app.vault.off("create", onVaultChange);
 			plugin.app.vault.off("delete", onVaultChange);
 			plugin.app.vault.off("rename", onVaultChange);
 			plugin.app.workspace.off("active-leaf-change", onLeafChange);
+			plugin.app.workspace.off("file-open", onLeafChange);
 		};
 	}, [plugin]);
 
@@ -1604,14 +1590,12 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin, onToggleSidebarWidth }, r
 			void plugin.createDashboard(name).then((file) => {
 				if (file) {
 					setCurrentDashboard(file);
-					setActiveContextSkillPath(DASHBOARD_SKILL_PATH);
 					return;
 				}
 				window.setTimeout(() => {
 					const activeFile = plugin.app.workspace.getActiveFile();
 					if (activeFile?.extension === "dashboard") {
 						setCurrentDashboard(activeFile);
-						setActiveContextSkillPath(DASHBOARD_SKILL_PATH);
 					}
 				}, 100);
 			});
@@ -1711,6 +1695,7 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin, onToggleSidebarWidth }, r
 						onOpenDashboard={currentDashboard ? handleOpenDashboard : undefined}
 						onCreateDashboard={handleCreateDashboard}
 						onAskGeminiHelperHelp={handleAskGeminiHelperHelp}
+						fileSkill={editorFileSkill}
 					/>
 
 					<InputArea
@@ -1753,25 +1738,8 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin, onToggleSidebarWidth }, r
 						slashCommands={plugin.settings.slashCommands}
 						onSlashCommand={handleSlashCommand}
 						availableSkills={availableSkills}
-						activeSkillPaths={effectiveActiveSkillPaths}
+						activeSkillPaths={activeSkillPaths}
 						onToggleSkill={(folderPath) => {
-							if (folderPath === activeContextSkillPath && CONTEXT_BUILTIN_SKILL_PATHS.has(folderPath)) {
-								setDisabledContextSkillPaths(prev => {
-									const next = new Set(prev);
-									if (next.has(folderPath)) next.delete(folderPath);
-									else next.add(folderPath);
-									return next;
-								});
-								setActiveSkillPaths(prev =>
-									prev.filter(path => !CONTEXT_BUILTIN_SKILL_PATHS.has(path))
-								);
-								return;
-							}
-							if (
-								activeContextSkillPath
-								&& !disabledContextSkillPaths.has(activeContextSkillPath)
-								&& CONTEXT_BUILTIN_SKILL_PATHS.has(folderPath)
-							) return;
 							setActiveSkillPaths(prev =>
 								prev.includes(folderPath)
 									? prev.filter(p => p !== folderPath)

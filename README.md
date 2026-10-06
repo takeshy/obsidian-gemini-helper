@@ -290,7 +290,7 @@ Extend the AI with custom instructions, reference materials, and executable work
 - **Agent Plugins** - Install portable Agent Plugins from public GitHub repositories, including namespaced skills and supported MCP servers
 - **Slash command** - Type `/folder-name` to instantly invoke a skill and send
 - **Selective activation** - Choose which skills are active per conversation
-- **Context-aware skills** - When a Dashboard, Canvas, or Base file is open, chat automatically uses the matching skill instead of the generic Markdown skill; Dashboard context is available when Dashboard Hub is enabled
+- **Context-aware skill suggestions** - When a Markdown, Dashboard, Canvas, or Base file is open, the empty chat offers the matching skill for editing it; nothing is switched on automatically. The Dashboard skill is available when Dashboard Hub is enabled
 - **Clickable skill chips** - Active skill chips in the input area and on assistant messages are clickable and jump to the matching `SKILL.md` (built-in skills are shown as static labels)
 - **Workflow error recovery** - If a skill workflow fails during a chat, the failing tool call shows an **Open workflow** button that opens the file *and* switches the Gemini view to the Workflow / skill tab so you can immediately edit and re-run
 

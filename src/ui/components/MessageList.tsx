@@ -1,5 +1,5 @@
 import { forwardRef } from "react";
-import { MessageList as SharedMessageList, Welcome } from "obsidian-llm-hub-common";
+import { MessageList as SharedMessageList, Welcome, type WelcomeProps } from "obsidian-llm-hub-common";
 import type { App } from "obsidian";
 import type { Message } from "src/types";
 import MessageBubble from "./MessageBubble";
@@ -22,6 +22,7 @@ interface MessageListProps {
   onOpenDashboard?: () => void;
   onCreateDashboard?: () => void;
   onAskGeminiHelperHelp?: () => void;
+  fileSkill?: WelcomeProps["fileSkill"];
 }
 
 const MessageList = forwardRef<HTMLDivElement, MessageListProps>((props, ref) => (
@@ -38,6 +39,7 @@ const MessageList = forwardRef<HTMLDivElement, MessageListProps>((props, ref) =>
       title={t("chat.welcomeTitle")} hint={t("chat.welcomeHint")}
       help={{ title: t("chat.helpTitle"), description: t("chat.helpDescription"), label: t("chat.askGeminiHelperHelp"), onClick: props.onAskGeminiHelperHelp }}
       dashboard={{ title: t("chat.dashboardTitle"), description: t("chat.dashboardDescription"), openLabel: t("chat.openCurrentDashboard"), createLabel: t("chat.createDashboard"), current: props.currentDashboard, onOpen: props.onOpenDashboard, onCreate: props.onCreateDashboard }}
+      fileSkill={props.fileSkill}
       tips={[{ text: t("chat.welcomeImage") }, { text: t("chat.welcomeCompact") }, { text: t("chat.welcomeNewChat") }]}
     />}
     renderMessage={(message, index, sourceFileName) => <MessageBubble

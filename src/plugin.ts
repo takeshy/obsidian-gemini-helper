@@ -59,7 +59,7 @@ import { formatError, configureClassPrefix } from "obsidian-llm-hub-common/core"
 import { DEFAULT_EDIT_HISTORY_SETTINGS, DEFAULT_LANGFUSE_SETTINGS, DEFAULT_WORKSPACE_FOLDER } from "src/types";
 import { initLocale, t } from "src/i18n";
 import { registerWorkflowCodeBlockProcessor } from "src/ui/workflowCodeBlock";
-import { generateDashboardBase, generateDashboardWorkflow, listDashboardModels, rewriteDashboardText, runDashboardWorkflow } from "src/integrations/dashboardHubCapabilities";
+import { answerDashboardTimeline, generateDashboardBase, generateDashboardWorkflow, getDashboardTimelineOptions, listDashboardModels, rewriteDashboardText, runDashboardWorkflow, type TimelineAnswerOptions, type TimelineAnswerRequest } from "src/integrations/dashboardHubCapabilities";
 import { REGISTER_RUNTIME_SKILL_EVENT, REQUEST_RUNTIME_SKILLS_EVENT, UNREGISTER_RUNTIME_SKILL_EVENT, registerRuntimeSkill, unregisterRuntimeSkill } from "src/core/runtimeSkills";
 import { registerDiscussionHubIntegration } from "src/integrations/discussionHubCapabilities";
 
@@ -74,6 +74,8 @@ interface DashboardHubIntegration {
   runWorkflow?: (request: { workflowPath: string; outputVariable?: string; abortSignal?: AbortSignal }) => Promise<string>;
   generateBase?: (request: Parameters<typeof generateDashboardBase>[1]) => Promise<string>;
   rewriteText?: (request: Parameters<typeof rewriteDashboardText>[1]) => Promise<string>;
+  answerTimeline?: (request: TimelineAnswerRequest) => Promise<string>;
+  getTimelineAnswerOptions?: (modelId: string) => Promise<TimelineAnswerOptions>;
   generateWorkflow?: (request: Parameters<typeof generateDashboardWorkflow>[1]) => Promise<string>;
 }
 
@@ -922,6 +924,8 @@ export class GeminiHelperPlugin extends Plugin {
       runWorkflow: (request) => runDashboardWorkflow(this, request),
       generateBase: (request) => generateDashboardBase(this, request),
       rewriteText: (request) => rewriteDashboardText(this, request),
+      answerTimeline: (request) => answerDashboardTimeline(this, request),
+      getTimelineAnswerOptions: (modelId) => getDashboardTimelineOptions(this, modelId),
       generateWorkflow: (request) => generateDashboardWorkflow(this, request),
     };
     const workspace = this.app.workspace as unknown as DashboardWorkspaceEvents;

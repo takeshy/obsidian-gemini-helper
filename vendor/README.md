@@ -1,16 +1,16 @@
 # Shared library package
 
-`obsidian-llm-hub-common-0.1.3.tgz` contains the prebuilt shared library, including
+`obsidian-llm-hub-common-0.1.4.tgz` contains the prebuilt shared library, including
 its JavaScript and TypeScript declarations. Using the archive allows review
 tools to install the dependency with `npm ci --ignore-scripts`; installing from
 Git requires the library's `prepare` script to generate its `dist` directory.
 
-Source: https://github.com/takeshy/obsidian-llm-hub-common/tree/c55004ea35ad8bc559e7b8d09cac915fd584e34c
+Source: https://github.com/takeshy/obsidian-llm-hub-common/tree/08ce16eaef127ffad922e3297a642b584c51d27d
 
 Archive integrity:
 
 ```text
-sha512-jsSmToiWuuA+w1N0hX1HRvbTf1rvgC8Wp9FEdloXSL1wAkYYuh37xXfnOCzEY6yr88Wwut8lf+a9n7XV6iPHdQ==
+sha512-Vyro9yUZ0bX7mATe8t57XclKTWxxgN/Tajk/AP5yWepe0IZCiWzqGS9BfajqtdGpEy0qQ/wzJKF9von91MKR8Q==
 ```
 
 To update it, build and test the shared library at the intended commit, then

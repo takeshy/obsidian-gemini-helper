@@ -1,3 +1,4 @@
+import { displayWebSearchSettings } from "src/ui/settings/webSearchSettings";
 import { PluginSettingTab, App, type SettingDefinitionItem } from "obsidian";
 import type { GeminiHelperPlugin } from "src/plugin";
 import type { SettingsContext } from "src/ui/settings/settingsContext";
@@ -17,6 +18,7 @@ import { displayAgentPluginSettings } from "src/ui/settings/agentPluginSettings"
 
 const SETTINGS_SECTIONS = [
   { name: "Gemini API", aliases: ["API key", "plan"], render: displayApiSettings },
+  { name: "Web search", aliases: ["Tavily", "Brave", "検索"], render: displayWebSearchSettings },
   { name: "Workspace", aliases: ["folder", "chat history"], render: displayWorkspaceSettings },
   { name: "Chat", aliases: ["model", "tools", "thinking"], render: displayChatSettings },
   { name: "Encryption", aliases: ["password"], render: displayEncryptionSettings },
@@ -56,7 +58,7 @@ export class SettingsTab extends PluginSettingTab {
         // Each existing renderer owns a whole section, including its heading.
         setting.settingEl.empty();
         setting.settingEl.removeClass("setting-item");
-        render(setting.settingEl, this.createContext());
+        return render(setting.settingEl, this.createContext());
       },
     }));
   }

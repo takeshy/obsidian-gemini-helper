@@ -1,5 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { GeminiClient } from "./gemini";
+import { DEFAULT_WEB_SEARCH_SETTINGS } from "./webSearch";
+import { requestUrl } from "obsidian";
+vi.mock("obsidian", async importOriginal => ({ ...await importOriginal<typeof import("obsidian")>(), requestUrl: vi.fn() }));
+const searchSettings = { ...DEFAULT_WEB_SEARCH_SETTINGS, provider: "tavily" as const, tavilyApiKey: "search-key" };
 import type { StreamChunk, ModelType, ReasoningEffort } from "src/types";
 
 const { create, generateContent, generateContentStream, sendMessageStream, createChat } = vi.hoisted(() => ({
@@ -26,6 +30,8 @@ async function consume(client: GeminiClient) {
 beforeEach(() => {
   vi.clearAllMocks();
   create.mockReset();
+  generateContent.mockReset();
+  vi.mocked(requestUrl).mockReset();
   createChat.mockReturnValue({ sendMessageStream });
 });
 describe("Interactions stream integration", () => {
@@ -77,23 +83,31 @@ describe("Gemini shared runner wiring", () => {
     expect(await all(client.generateWorkflowStream([]))).toEqual([{ type: "error", error: "No user message to send" }]);
     expect(createChat).toHaveBeenCalledTimes(1);
   });
-  it("routes image modalities and emits generated image parts", async () => {
+  it("generates images without native search tools", async () => {
     generateContent.mockResolvedValue({ candidates: [{ content: { parts: [{ inlineData: { mimeType: "image/png", data: "abc" } }] } }] });
-    const chunks = await all(new GeminiClient("key").generateImageStream(messages, "gemini-3.1-flash-image", "instructions", true));
-    expect(chunks.map(chunk => chunk.type)).toEqual(["web_search_used", "image_generated", "done"]);
-    expect(generateContent.mock.calls[0][0].config).toMatchObject({ responseModalities: ["TEXT", "IMAGE"], tools: [{ googleSearch: {} }] });
+    const chunks = await all(new GeminiClient("key").generateImageStream(messages, "gemini-3.1-flash-image", "instructions", false));
+    expect(chunks.map(chunk => chunk.type)).toEqual(["image_generated", "done"]);
+    expect(generateContent.mock.calls[0][0].config).toMatchObject({ responseModalities: ["TEXT", "IMAGE"] });
+    expect(generateContent.mock.calls[0][0].config.tools).toBeUndefined();
   });
-  it("executes a GenerateContent tool round and keeps grounding without function tools for the final request", async () => {
-    generateContentStream.mockResolvedValueOnce(events([{ candidates: [{ content: { parts: [{ functionCall: { id: "call", name: "read", args: { path: "note" } }, thoughtSignature: "signature" }] } }] }]))
-      .mockResolvedValueOnce(events([{ candidates: [{ content: { parts: [{ text: "answer" }] } }] }]));
-    const execute = vi.fn().mockResolvedValue({ ok: true });
-    const chunks = await all(new GeminiClient("key").chatWithToolsStream(messages, [{ name: "read", description: "read", parameters: { type: "object", properties: {} } }], "instructions", execute, undefined, true, { functionCallLimits: { maxFunctionCalls: 1 } }));
-    expect(execute).toHaveBeenCalledWith("read", { path: "note" });
-    expect(generateContentStream).toHaveBeenCalledTimes(2);
-    expect(generateContentStream.mock.calls[0][0].config.thinkingConfig).toBeUndefined();
-    expect(generateContentStream.mock.calls[1][0].config.tools).toEqual([{ googleSearch: {} }]);
-    expect(generateContentStream.mock.calls[1][0].contents[1].parts[0].thoughtSignature).toBe("signature");
-    expect(chunks.at(-1)?.type).toBe("done");
+  it("resolves image references through external function calling", async () => {
+    vi.mocked(requestUrl).mockResolvedValue({ status: 200, json: { results: [{ title: "Reference", url: "https://example.com", content: "Facts" }] } } as never);
+    create.mockResolvedValueOnce(events([
+      { event_type: "step.start", index: 0, step: { type: "function_call", id: "search", name: "web_search", arguments: { query: "reference" } } },
+      { event_type: "step.stop", index: 0 },
+      { event_type: "interaction.completed", interaction: { status: "completed" } },
+    ])).mockResolvedValueOnce(events([
+      { event_type: "step.delta", delta: { type: "text", text: "Reference facts https://example.com" } },
+      { event_type: "interaction.completed", interaction: { status: "completed" } },
+    ]));
+    generateContent.mockResolvedValue({ candidates: [{ content: { parts: [{ inlineData: { mimeType: "image/png", data: "abc" } }] } }] });
+    const chunks = await all(new GeminiClient("key", "gemini-3.1-flash-image", searchSettings)
+      .generateImageStream(messages, "gemini-3.1-flash-image", "instructions", true));
+    expect(vi.mocked(requestUrl)).toHaveBeenCalledOnce();
+    expect(chunks.filter(chunk => chunk.type === "done")).toHaveLength(1);
+    expect(chunks.at(-1)?.webSearchSources).toEqual([{ title: "Reference", url: "https://example.com" }]);
+    expect(generateContent.mock.calls.at(-1)?.[0].config.tools).toBeUndefined();
+    expect(generateContent.mock.calls.at(-1)?.[0].config.systemInstruction).toContain("Reference facts");
   });
 });
 
@@ -119,20 +133,73 @@ describe("shared thinking and final-round SDK requests", () => {
     expect(create).toHaveBeenCalledOnce();
     expect(create.mock.calls[0][0].generation_config?.thinking_level).toBe(expected);
   });
-  it.each([0, 1, 2])("keeps only native search in the final Interactions request for budget %i", async maxFunctionCalls => {
+  it.each([0, 1, 2])("removes all function tools including external search in the final Interactions request for budget %i", async maxFunctionCalls => {
     create.mockResolvedValueOnce(events([...["1", "2"].flatMap(id => [
       { event_type: "step.start", index: Number(id), step: { type: "function_call", id, name: "read", arguments: {} } },
       { event_type: "step.stop", index: Number(id) },
     ]), { event_type: "interaction.completed", interaction: { status: "completed" } }]))
       .mockResolvedValueOnce(events([{ event_type: "interaction.completed", interaction: { status: "completed" } }]));
     const execute = vi.fn().mockResolvedValue({});
-    await all(new GeminiClient("key", "gemini-3.5-flash-lite").chatWithToolsStream(messages,
+    await all(new GeminiClient("key", "gemini-3.5-flash-lite", searchSettings).chatWithToolsStream(messages,
       [{ name: "read", description: "read", parameters: { type: "object", properties: {} } }], undefined,
       execute, undefined, true, { functionCallLimits: { maxFunctionCalls } }));
     expect(execute).toHaveBeenCalledTimes(maxFunctionCalls);
     expect(create).toHaveBeenCalledTimes(2);
     expect(create.mock.calls[0][0].tools.some((tool: { type: string }) => tool.type === "function")).toBe(true);
-    expect(create.mock.calls[1][0].tools).toEqual([{ type: "google_search" }]);
+    expect(create.mock.calls[1][0].tools).toBeUndefined();
     expect(create.mock.calls[1][0].generation_config?.tool_choice).toBeUndefined();
+  });
+});
+
+
+describe("external Web search integration", () => {
+  const messages = [{ role: "user" as const, content: "news", timestamp: 0 }];
+  async function all(stream: AsyncIterable<StreamChunk>) {
+    const chunks: StreamChunk[] = [];
+    for await (const chunk of stream) chunks.push(chunk);
+    return chunks;
+  }
+  it("fails before calling Gemini when the selected search provider is unconfigured", async () => {
+    const chunks = await all(new GeminiClient("key").chatWithToolsStream(messages, [], undefined, undefined, undefined, true));
+    expect(chunks[0].type).toBe("error");
+    expect(create).not.toHaveBeenCalled();
+    expect(requestUrl).not.toHaveBeenCalled();
+  });
+  it.each(["gemini-3.8-flash", "gemini-3.1-pro-preview", "gemma-4-31b-it"] as const)("uses search only on a function call for %s", async model => {
+    vi.mocked(requestUrl).mockResolvedValue({ status: 200, json: { results: [{ title: "Source", url: "https://example.com", content: "Facts" }] } } as never);
+    create.mockResolvedValueOnce(events([
+      { event_type: "step.start", index: 0, step: { type: "function_call", id: "search", name: "web_search", arguments: { query: "news" } } },
+      { event_type: "step.stop", index: 0 },
+      { event_type: "interaction.completed", interaction: { status: "completed" } },
+    ])).mockResolvedValueOnce(events([
+      { event_type: "step.delta", delta: { type: "text", text: "answer" } },
+      { event_type: "interaction.completed", interaction: { status: "completed" } },
+    ]));
+    const chunks = await all(new GeminiClient("key", model, searchSettings).chatWithToolsStream(messages, [], undefined, undefined, undefined, true));
+    expect(requestUrl).toHaveBeenCalledOnce();
+    expect(create.mock.calls[0][0].tools).toEqual([expect.objectContaining({ type: "function", name: "web_search" })]);
+    expect(create.mock.calls[1][0].input).toEqual(expect.arrayContaining([expect.objectContaining({ type: "function_result", name: "web_search" })]));
+    expect(chunks.filter(chunk => chunk.type === "web_search_used")).toHaveLength(1);
+    expect(chunks.at(-1)?.webSearchSources).toEqual([{ title: "Source", url: "https://example.com" }]);
+  });
+  it("makes no search request or search-used claim when the model does not call it", async () => {
+    create.mockResolvedValue(events([{ event_type: "interaction.completed", interaction: { status: "completed" } }]));
+    const chunks = await all(new GeminiClient("key", "gemini-3.8-flash", searchSettings).chatWithToolsStream(messages, [], undefined, undefined, undefined, true));
+    expect(requestUrl).not.toHaveBeenCalled();
+    expect(chunks.some(chunk => chunk.type === "web_search_used")).toBe(false);
+  });
+  it("counts external searches toward the call budget and removes search after exhaustion", async () => {
+    vi.mocked(requestUrl).mockResolvedValue({ status: 200, json: { results: [] } } as never);
+    create.mockResolvedValueOnce(events([
+      ...[0, 1].flatMap(index => [
+        { event_type: "step.start", index, step: { type: "function_call", id: String(index), name: "web_search", arguments: { query: "news" } } },
+        { event_type: "step.stop", index },
+      ]),
+      { event_type: "interaction.completed", interaction: { status: "completed" } },
+    ])).mockResolvedValueOnce(events([{ event_type: "interaction.completed", interaction: { status: "completed" } }]));
+    await all(new GeminiClient("key", "gemini-3.8-flash", searchSettings).chatWithToolsStream(messages, [], undefined, undefined, undefined, true,
+      { disableTools: true, functionCallLimits: { maxFunctionCalls: 1 } }));
+    expect(requestUrl).toHaveBeenCalledOnce();
+    expect(create.mock.calls[1][0].tools).toBeUndefined();
   });
 });

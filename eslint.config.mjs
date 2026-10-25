@@ -5,7 +5,7 @@ import { DEFAULT_BRANDS } from 'eslint-plugin-obsidianmd/dist/lib/rules/ui/brand
 
 // Extend the built-in acronym list so project-specific acronyms render uppercase.
 const ACRONYMS = [...DEFAULT_ACRONYMS, 'MCP', 'OKF'];
-const BRANDS = [...DEFAULT_BRANDS, 'Dashboard Hub', 'Gemini Helper'];
+const BRANDS = [...DEFAULT_BRANDS, 'Dashboard Hub', 'Gemini Helper', 'Brave Search'];
 
 export default tseslint.config(
   {

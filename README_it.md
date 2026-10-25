@@ -842,7 +842,7 @@ Richiede: `pip install cryptography`
 **Dati inviati a Google:**
 - Tutti i messaggi della chat e gli allegati vengono inviati all'API Google Gemini per l'elaborazione
 - Quando RAG è abilitato, i file del vault vengono caricati su Google File Search
-- Quando la Ricerca Web è abilitata, le query vengono inviate a Google Search
+- Quando la Ricerca Web è abilitata, le query vengono inviate a Tavily / Brave Search
 
 **Dati inviati a servizi di terze parti:**
 - I nodi `http` dei workflow possono inviare dati a qualsiasi URL specificato nel workflow

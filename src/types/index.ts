@@ -1,3 +1,5 @@
+import type { WebSearchSettings } from "src/core/webSearch";
+import { DEFAULT_WEB_SEARCH_SETTINGS } from "src/core/webSearch";
 import type { McpServerConfig } from "obsidian-llm-hub-common/core";
 import { DEFAULT_VOICE_CHAT_SETTINGS, type VoiceChatSettings } from "obsidian-llm-hub-common/core";
 export type { McpServerConfig, McpTransport, McpFraming } from "obsidian-llm-hub-common/core";
@@ -128,6 +130,7 @@ export interface SlashCommand {
 // Settings interface
 export interface GeminiHelperSettings {
   skillsFolder?: string;      // Vault folder holding skills (defaults to SKILLS_FOLDER)
+  webSearch: WebSearchSettings;
   googleApiKey: string;
   /** Non-secret marker used to detect a missing device-local SecretStorage value. */
   googleApiKeyConfigured: boolean;
@@ -559,6 +562,7 @@ export const WORKFLOWS_FOLDER = "workflows";
 
 // Default settings
 export const DEFAULT_SETTINGS: GeminiHelperSettings = {
+  webSearch: { ...DEFAULT_WEB_SEARCH_SETTINGS },
   googleApiKey: "",
   googleApiKeyConfigured: false,
   apiPlan: "paid",

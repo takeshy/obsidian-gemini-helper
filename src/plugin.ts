@@ -1,3 +1,4 @@
+import { DEFAULT_WEB_SEARCH_SETTINGS, WEB_SEARCH_SECRET_IDS } from "src/core/webSearch";
 import { configureMcpClientInfo } from "obsidian-llm-hub-common/mcp";
 import { setMcpApprovalHandler, sameMcpConnection } from "./core/mcpApproval";
 import { McpApprovalModal } from "./ui/components/McpApprovalModal";
@@ -638,6 +639,12 @@ export class GeminiHelperPlugin extends Plugin {
       ...DEFAULT_SETTINGS,
       ...loaded,
       voiceChat: { ...DEFAULT_SETTINGS.voiceChat, ...loaded.voiceChat },
+      webSearch: {
+        ...DEFAULT_WEB_SEARCH_SETTINGS,
+        provider: loaded.webSearch?.provider ?? "none",
+        tavilyApiKey: this.app.secretStorage.getSecret(WEB_SEARCH_SECRET_IDS.tavilyApiKey)?.trim() ?? "",
+        braveApiKey: this.app.secretStorage.getSecret(WEB_SEARCH_SECRET_IDS.braveApiKey)?.trim() ?? "",
+      },
       // Preserve existing behavior on upgrade: history pruning is opt-in for
       // users whose settings predate maxSavedChatHistories.
       maxSavedChatHistories: loaded.maxSavedChatHistories
@@ -695,10 +702,18 @@ export class GeminiHelperPlugin extends Plugin {
     // inside a synced or Git-tracked vault.
     this.app.secretStorage.setSecret(GOOGLE_API_KEY_SECRET_ID, this.settings.googleApiKey.trim());
 
+    for (const key of ["tavilyApiKey", "braveApiKey"] as const) {
+      this.app.secretStorage.setSecret(WEB_SEARCH_SECRET_IDS[key], this.settings.webSearch[key].trim());
+    }
+
     // Only save values that differ from defaults
     const dataToSave: Partial<GeminiHelperSettings> = {};
     for (const key of Object.keys(this.settings) as (keyof GeminiHelperSettings)[]) {
       if (key === "googleApiKey") continue;
+      if (key === "webSearch") {
+        dataToSave.webSearch = { ...DEFAULT_WEB_SEARCH_SETTINGS, provider: this.settings.webSearch.provider };
+        continue;
+      }
       const currentValue = this.settings[key];
       const defaultValue = DEFAULT_SETTINGS[key];
       // Use JSON.stringify for arrays/objects comparison
@@ -845,7 +860,7 @@ export class GeminiHelperPlugin extends Plugin {
 
   private initializeClients() {
     if (this.settings.googleApiKey) {
-      initGeminiClient(this.settings.googleApiKey, getDefaultModelForPlan(this.settings.apiPlan));
+      initGeminiClient(this.settings.googleApiKey, getDefaultModelForPlan(this.settings.apiPlan), this.settings.webSearch);
       initFileSearchManager(this.settings.googleApiKey, this.app);
     } else {
       resetGeminiClient();

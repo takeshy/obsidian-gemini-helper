@@ -1,3 +1,4 @@
+import { isWebSearchConfigured } from "src/core/webSearch";
 import { Trash2 } from "lucide-react";
 import { ChatHeader } from "obsidian-llm-hub-common";
 import { ChatLayout, HistoryList, HeaderButton, SidebarWidthButton, SaveNoteButton } from "obsidian-llm-hub-common";
@@ -158,9 +159,7 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin, onToggleSidebarWidth }, r
 	);
 	const [webSearchEnabled, setWebSearchEnabled] = useState(plugin.workspaceState.webSearchEnabled === true);
 	// Vault tool mode: "all" = use all tools, "noSearch" = exclude search_notes/list_notes, "none" = no vault tools
-	const supportsWebSearch = (model: string) =>
-		!model.toLowerCase().includes("gemma-4")
-		&& !/^gemini-3\.1-flash-lite-image(?:-|$)/i.test(model);
+	const supportsWebSearch = (_model: string) => isWebSearchConfigured(plugin.settings.webSearch);
 	const [vaultToolMode, setVaultToolMode] = useState<"all" | "noSearch" | "readOnly" | "none">("all");
 	// Reason why vault tools are "none" - determines whether MCP should also be disabled
 	const [, setVaultToolNoneReason] = useState<VaultToolNoneReason | null>(null);
@@ -687,7 +686,7 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin, onToggleSidebarWidth }, r
 		}
 	}, [pendingEditFeedback, isLoading]);
 
-	// Gemma 4 cannot combine Google Search with Function Calling in one request
+	// Gemma 4 has no native File Search support.
 	const isGemma4 = (model: string) => model.toLowerCase().includes("gemma-4");
 
 	// `persist` is false for slash-command overrides: they last for the message,
@@ -751,11 +750,10 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin, onToggleSidebarWidth }, r
 			setVaultToolMode("all");
 			setVaultToolNoneReason(null);
 		} else if (isGemma4(model)) {
-			// Gemma 4: file_search and Web Search are not supported here
+			// Gemma 4 does not support file_search.
 			if (selectedRagSetting) {
 				handleRagSettingChange(null);
 			}
-			if (webSearchEnabled) handleWebSearchChange(false, model);
 		} else {
 			// Normal models: restore vault tools
 			setVaultToolMode("all");
@@ -1270,7 +1268,7 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin, onToggleSidebarWidth }, r
 						return undefined;
 					})();
 
-					// Some models cannot combine google_search with function calling.
+					// Web search is added by the client as a function tool.
 					const effectiveTools = tools;
 
 					// Use image generation stream or regular chat stream

@@ -105,7 +105,7 @@ export class WorkspaceStateManager {
       this.workspaceState.selectedRagSetting = null;
       this.workspaceState.webSearchEnabled = true;
     }
-    // Google File Search RAG and Google Search are intentionally exclusive.
+    // Chat keeps RAG and external Web search as separate search choices.
     // Prefer the explicitly selected RAG setting when loading legacy state
     // that has both enabled.
     if (this.workspaceState.selectedRagSetting && this.workspaceState.webSearchEnabled) {

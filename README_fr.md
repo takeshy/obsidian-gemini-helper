@@ -842,7 +842,7 @@ Requis : `pip install cryptography`
 **Donnees envoyees a Google :**
 - Tous les messages de chat et pieces jointes sont envoyes a l'API Google Gemini pour traitement
 - Quand le RAG est active, les fichiers du coffre sont uploades vers Google File Search
-- Quand la Recherche Web est activee, les requetes sont envoyees a Google Search
+- Quand la Recherche Web est activee, les requetes sont envoyees a Tavily / Brave Search
 
 **Donnees envoyees a des services tiers :**
 - Les noeuds `http` des workflows peuvent envoyer des donnees a n'importe quelle URL specifiee dans le workflow

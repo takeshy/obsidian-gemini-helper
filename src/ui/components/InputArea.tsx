@@ -753,7 +753,7 @@ const InputArea = forwardRef<InputAreaHandle, InputAreaProps>(function InputArea
             webSearch={{
               checked: webSearchEnabled,
               disabled: !allowWebSearch,
-              // Gemini answers with grounding or with the vault index, never both.
+              // Keep the existing single-source search selection.
               combinable: false,
             }}
             rag={{

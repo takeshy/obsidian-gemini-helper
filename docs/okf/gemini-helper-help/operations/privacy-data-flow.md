@@ -10,7 +10,7 @@ timestamp: 2026-07-04T00:00:00Z
 
 Data stored locally includes the Google API key in Obsidian settings, chat history Markdown files when saving is enabled, workflow execution history, workspace RAG state, and encryption settings. Chat and workflow history can be encrypted. Data owned by integrated plugins such as Dashboard Hub is covered by those plugins' documentation.
 
-Data sent to Google includes chat messages, selected context, tool results included in the model conversation, and file attachments sent to the Gemini API. When RAG is enabled and synced, selected vault files are uploaded to Google File Search. When Web Search is enabled, search queries are sent to Google Search.
+Data sent to Google includes chat messages, selected context, tool results included in the model conversation, and file attachments sent to the Gemini API. When RAG is enabled and synced, selected vault files are uploaded to Google File Search. When Web Search is enabled, search queries are sent to the active Tavily or Brave Search provider configured in Settings → Web search. Retrieved results are sent to Gemini as function-call results. The two providers have separate API keys stored in device-local Obsidian SecretStorage.
 
 Data sent to third parties can include any payload sent by workflow `http` nodes, any data sent to configured MCP servers, and content loaded by web embeds or MCP Apps. Users should review workflows and MCP server configuration before running them with sensitive data.
 

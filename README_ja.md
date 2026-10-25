@@ -153,7 +153,15 @@ AI が Chat でノートを扱う際は Vault ツールを経由します。添�
 - **Vault: 検索なし** - RAG のみで検索したい場合や、対象ファイルが事前にわかっている場合に使用。Vault 検索を省略することでトークンを節約し、レスポンスも速くなります。
 - **Vault: オフ** - Vault へのアクセスが不要な場合に使用。
 
-> **Note:** RAG、Web Search、Vault ツール、MCP は Interactions API により同時使用可能です。
+> **Note:** RAG と Web 検索はどちらかを選択します。いずれも Vault ツールや MCP と併用できます。
+
+### Web 検索
+
+**設定 → Web検索** で **Tavily** と **Brave Search** のAPIキーを登録し、使用するサービスを1つ選択します。切り替えても両方のキーは保持されます。APIキーは端末ごとの Obsidian SecretStorage に保存されます。
+
+Chat の検索選択、スラッシュコマンド、Workflow の command ノード（`ragSetting: __websearch__`）で Web 検索を有効にすると、選択したサービスを使用します。Dashboard Hub の Timeline 回答も同じ設定を使います。検索は `web_search` の function calling で実行され、ツール呼び出し回数の制限に含まれます。Google Search grounding は使用しません。出典リンクはチャット履歴にも保持します。Tavily は basic 検索で、両サービスとも1回につき最大5件を取得します。画像生成ではテキストモデルで Web 上の参考情報を取得してから画像を生成します（検索は最大3回）。この追加のテキストモデル利用分もトークン使用量に含まれます。
+
+API仕様：[Tavily Search](https://docs.tavily.com/documentation/api-reference/endpoint/search)、[Brave Web Search](https://api-dashboard.search.brave.com/app/documentation/web-search)。
 
 ### AI フォルダアクセス
 
@@ -788,7 +796,7 @@ if __name__ == "__main__":
 
 - すべてのチャットメッセージと添付ファイルは Google Gemini API に送信されます
 - RAGを有効にすると、Vault ファイルが Google File Search にアップロードされます
-- Web 検索を有効にすると、検索クエリが Google Search に送信されます
+- Web 検索を有効にすると、検索クエリが選択中の Tavily または Brave Search に送信され、取得結果はツールの参照情報として Gemini に送信されます
 
 **サードパーティサービスへの送信：**
 
@@ -842,3 +850,5 @@ MIT
 MCP ツールは初期状態では実行ごとに承認が必要です。承認画面でサーバー名・ツール名・実行引数を確認し、「今回だけ許可」「このツールを常に許可」「拒否」を選べます。画面を閉じた場合も拒否になります。サーバー設定の「常に承認」は初期状態ではオフです。オンにするとそのサーバーの全ツールを承認なしで実行できます。個別に許可したツールは設定の許可リストから削除できます。ワークフローの `command` / `mcp` ノードで `confirm: "false"` を指定すると、自動実行を含め、そのノードの MCP 承認を省略します。その後の MCP App 操作には通常のサーバー設定が適用されます。read-only モードでは組み込みの読み取り・一覧・検索のみが使え、タイムライン追記を含む書き込みは禁止されます。外部 MCP やスキル内のワークフローはそれぞれの権限設定に従います。接続テスト中は編集操作が無効になり、失敗時のエラーを確認して修正できます。
 
 MCP は HTTP 接続に対応しています。stdio コマンドの解析は対象外です。
+
+Web検索の設定では、各APIキーの下に使用量を表示します。Tavilyは **残りクレジットを表示** ボタンを押したときだけ取得し、プラン・APIキー・従量課金枠を分けて表示します。Braveは実際の検索時に取得した残り回数と取得日時を表示し、確認用の追加検索は実行しません。取得情報はAPIキーごとにメモリに保持し、プラグイン再読み込みで消去します。Braveの値はリクエスト枠であり、金額としての残高ではありません。

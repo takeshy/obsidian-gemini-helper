@@ -1,5 +1,11 @@
 // Japanese translations
 export const ja: Record<string, string> = {
+  "settings.webSearch": "Web検索",
+  "settings.webSearch.provider": "使用するサービス",
+  "settings.webSearch.desc": "両方のAPIキーを登録し、使用先を1つ選択します。検索はfunction callingで実行され、ツール呼び出し回数の制限に含まれます。Tavilyはbasic検索で最大5件を取得します。",
+  "settings.webSearch.apiKey": "{{name}} APIキー",
+  "settings.webSearch.apiKey.desc": "この端末のObsidian SecretStorageに保存されます。端末ごとに設定してください。",
+
   // Settings - Headings
   "settings.externalSkills": "外部skills",
 

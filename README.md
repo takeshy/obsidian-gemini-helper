@@ -153,7 +153,15 @@ When the AI handles notes in Chat, it uses Vault tools. Control which vault tool
 - **Vault: No search** - Use when you want to search only with RAG, or when you already know the target file. This avoids redundant vault searches, saving tokens and improving response time.
 - **Vault: Off** - Use when you don't need vault access at all.
 
-> **Note:** RAG, Web Search, Vault tools, and MCP can all be used simultaneously via the Interactions API.
+> **Note:** Select either RAG or Web Search. Both can be combined with Vault tools and MCP.
+
+### Web Search
+
+In **Settings → Web search**, register your **Tavily** and/or **Brave Search** API keys, then select one active provider. Both keys are retained when switching providers. Keys are stored in Obsidian SecretStorage on each device.
+
+Enable **Web Search** in Chat's search selector, a slash command, or a Workflow command node (`ragSetting: __websearch__`). Dashboard Hub Timeline answers use the same active provider. Search runs as the `web_search` function tool and counts toward the function call limit; Google Search grounding is no longer used. Search results retain source links in chat history. Tavily uses basic search, and each provider returns up to five results. Image generation resolves Web references with a text model before generating the image (up to three search calls); this adds text-model usage, included in the reported token usage.
+
+API references: [Tavily Search](https://docs.tavily.com/documentation/api-reference/endpoint/search), [Brave Web Search](https://api-dashboard.search.brave.com/app/documentation/web-search).
 
 ### AI Folder Access
 
@@ -770,7 +778,7 @@ Requires: `pip install cryptography`
 **Data sent to Google:**
 - All chat messages and file attachments are sent to Google Gemini API for processing
 - When RAG is enabled, vault files are uploaded to Google File Search
-- When Web Search is enabled, queries are sent to Google Search
+- When Web Search is enabled, queries are sent to the selected Tavily or Brave Search provider; retrieved results are sent to Gemini as tool context
 
 **Data sent to third-party services:**
 - Workflow `http` nodes can send data to any URL specified in the workflow
@@ -817,3 +825,5 @@ If you find this plugin useful, consider buying me a coffee!
 ## MCP approval and read-only Vault tools
 
 MCP calls require approval by default. The dialog shows the server, tool, and arguments with Allow once, Always allow this tool, and Deny. Closing denies the call. Enable Always approve in server settings to skip all confirmations, or remove an allowed tool and save to require approval again. Workflow command and mcp nodes support `confirm: "false"` for automatic execution. Vault read-only mode permits search and reading while external MCP and skill tools keep separate permissions. Connection testing locks editing and saving and keeps errors visible for correction. HTTP transport is supported; local stdio command parsing does not apply.
+
+Web search usage: each API key has its own usage row in Settings → Web search. Tavily fetches plan, API-key and pay-as-you-go credits only when **Show remaining credits** is clicked. Brave displays the last observed request quota and timestamp from real searches, without sending an extra search. Values are kept in memory, isolated by API key; they are cleared on plugin reload. Brave quota is a request allowance, not a monetary balance.

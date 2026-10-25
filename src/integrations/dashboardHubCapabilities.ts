@@ -1,3 +1,4 @@
+import { isWebSearchConfigured } from "src/core/webSearch";
 import { buildSkillSystemPrompt, type LoadedSkill } from "src/core/skillsLoader";
 import type { GeminiHelperPlugin } from "src/plugin";
 import { GeminiClient } from "src/core/gemini";
@@ -32,7 +33,7 @@ export function runDashboardWorkflow(plugin: GeminiHelperPlugin, request: Dashbo
 
 async function generate(plugin: GeminiHelperPlugin, modelId: string, prompt: string | Message[], systemPrompt: string, signal?: AbortSignal, vaultRead = false, search: SearchOptions = {}): Promise<string> {
   if (!plugin.settings.googleApiKey) throw new Error("Gemini API key is not configured.");
-  const client = new GeminiClient(plugin.settings.googleApiKey, modelId as ModelType);
+  const client = new GeminiClient(plugin.settings.googleApiKey, modelId as ModelType, plugin.settings.webSearch);
   const messages: Message[] = typeof prompt === "string" ? [{ role: "user", content: prompt, timestamp: Date.now() }] : prompt;
   const vaultTools = vaultRead ? getEnabledVaultTools({ allowWrite: false, allowDelete: false, ragSyncStatus: false }) : [];
   const vaultExecute = vaultRead ? createToolExecutor(plugin.app, { listNotesLimit: plugin.settings.listNotesLimit, maxNoteChars: plugin.settings.maxNoteChars,
@@ -75,21 +76,20 @@ export function generateDashboardWorkflow(plugin: GeminiHelperPlugin, request: D
   return generate(plugin, request.modelId, prompt, systemPrompt, request.abortSignal, request.allowVaultRead);
 }
 
-// Same rule as Chat: Gemma 4 and the Flash Lite image model cannot use google_search.
-function supportsWebSearch(modelId: string): boolean {
-  return !modelId.toLowerCase().includes("gemma-4") && !/^gemini-3\.1-flash-lite-image(?:-|$)/i.test(modelId);
+function supportsWebSearch(plugin: GeminiHelperPlugin): boolean {
+  return isWebSearchConfigured(plugin.settings.webSearch);
 }
 function usableRagSettings(plugin: GeminiHelperPlugin): string[] {
   if (!plugin.settings.ragEnabled) return [];
   return plugin.getRagSettingNames().filter((name) => plugin.getStoreIdsForRagSetting(plugin.getRagSetting(name)).length > 0);
 }
-export async function getDashboardTimelineOptions(plugin: GeminiHelperPlugin, modelId: string): Promise<TimelineAnswerOptions> {
-  return { vaultRead: true, webSearch: supportsWebSearch(modelId), ragSettings: usableRagSettings(plugin),
+export async function getDashboardTimelineOptions(plugin: GeminiHelperPlugin, _modelId: string): Promise<TimelineAnswerOptions> {
+  return { vaultRead: true, webSearch: supportsWebSearch(plugin), ragSettings: usableRagSettings(plugin),
     mcpServers: (plugin.settings.mcpServers ?? []).map((server) => server.name),
     skills: await listDashboardSkills(plugin.app, plugin.settings.skillsFolder) };
 }
 export async function answerDashboardTimeline(plugin: GeminiHelperPlugin, request: TimelineAnswerRequest): Promise<string> {
-  assertTimelineAnswerSupported(request, { webSearch: supportsWebSearch(request.modelId) });
+  assertTimelineAnswerSupported(request, { webSearch: supportsWebSearch(plugin) });
   const search: SearchOptions = { webSearch: request.webSearch === true };
   let ragContext: string | undefined;
   if (request.ragSetting) {

@@ -1,9 +1,8 @@
+import { DEFAULT_WEB_SEARCH_SETTINGS, type WebSearchSettings } from "./webSearch";
 import {
   GoogleGenAI,
   HarmCategory,
   HarmBlockThreshold,
-  type Content,
-  type Tool,
   type SafetySetting,
   type Interactions,
 } from "@google/genai";
@@ -13,31 +12,25 @@ import {
   type ToolDefinition,
   type StreamChunk,
   type ModelType,
-  type RagContext,
   type ReasoningEffort,
   isImageGenerationModel,
 } from "src/types";
 import { tracing } from "src/core/tracingHooks";
 import {
-  buildGeminiGenerateContentTools,
+  createWebSearchSession,
+  generateWithWebReferences,
   buildGeminiHistoryReplayInput,
   buildGeminiInteractionTools,
   buildGeminiInteractionInput,
-  buildGeminiRagRequest,
   buildGeminiThinkingConfig,
-  extractGeminiRagContexts,
   formatError,
   geminiCorsFetch as corsFetch,
   getGeminiReasoningEffortOptions,
   isGeminiThinkingRequired,
-  messagesToGeminiContents,
   resolveGeminiThinkingLevel,
   GeminiGenerationClient,
-  selectGeminiGenerationTools,
   selectGeminiInteractionTools,
-  type GeminiToolMode,
   runGeminiInteractions,
-  runGeminiGenerateContentTools,
 } from "obsidian-llm-hub-common/core";
 
 // Default safety settings per Gemini best practices
@@ -87,7 +80,8 @@ export function getReasoningEffortOptions(model: string): ReasoningEffort[] {
 export class GeminiClient extends GeminiGenerationClient<ModelType> {
   private ai: GoogleGenAI;
 
-  constructor(apiKey: string, model: ModelType = "gemini-3.8-flash") {
+  constructor(private readonly apiKey: string, model: ModelType = "gemini-3.8-flash",
+    private readonly webSearchSettings: WebSearchSettings = DEFAULT_WEB_SEARCH_SETTINGS) {
     const ai = new GoogleGenAI({ apiKey });
     super(model, {
       generate: request => ai.models.generateContent(request),
@@ -122,56 +116,6 @@ export class GeminiClient extends GeminiGenerationClient<ModelType> {
     return this.model;
   }
 
-  // Build thinking config based on model capabilities (shared across streaming methods)
-  private buildThinkingConfig(enableThinking: boolean | undefined, reasoningEffort?: ReasoningEffort): Record<string, unknown> | undefined {
-    return buildGeminiThinkingConfig(this.model, enableThinking, reasoningEffort);
-  }
-
-  // Convert our Message format to Gemini Content format
-  private messagesToContents(messages: Message[]): Content[] {
-    return messagesToGeminiContents(messages);
-  }
-
-  // Convert tool definitions to Interactions API format (Tool_2[])
-  // Each function is an individual tool with { type: 'function', name, description, parameters }
-  private toolsToInteractionsFormat(
-    tools: ToolDefinition[],
-    ragStoreIds?: string[],
-    ragTopK?: number,
-    ragMetadataFilter?: string,
-    webSearchEnabled?: boolean,
-  ): Interactions.Tool[] {
-    return buildGeminiInteractionTools(tools, {
-      ragStoreIds,
-      ragTopK,
-      ragMetadataFilter,
-      webSearchEnabled,
-    });
-  }
-
-  // Retrieve RAG context for the GenerateContent fallback path. The normal
-  // Interactions path uses its native file_search tool directly.
-  private async retrieveRagContext(
-    userMessage: string,
-    ragStoreIds: string[],
-    topK: number,
-    metadataFilter?: string,
-    attachments?: Message["attachments"],
-  ): Promise<{ sources: string[]; contexts: RagContext[] }> {
-    const { parts, tools } = buildGeminiRagRequest(userMessage, ragStoreIds, topK, metadataFilter, attachments);
-
-    const response = await this.ai.models.generateContent({
-      model: this.model,
-      contents: [{ role: "user", parts }],
-      config: {
-        tools,
-        safetySettings: DEFAULT_SAFETY_SETTINGS,
-      },
-    });
-
-    return extractGeminiRagContexts(response);
-  }
-
   // Build Interactions API input from a Message (supports text + attachments)
   private static buildInteractionInput(msg: Message): string | Interactions.Content[] {
     return buildGeminiInteractionInput(msg);
@@ -187,97 +131,22 @@ export class GeminiClient extends GeminiGenerationClient<ModelType> {
     return buildGeminiHistoryReplayInput(messages);
   }
 
-  private shouldUseGenerateContentToolsApi(
-    tools: ToolDefinition[],
-    webSearchEnabled?: boolean,
-  ): boolean {
-    const modelLower = this.model.toLowerCase();
-    return modelLower.includes("gemini-3.8-flash") && !!webSearchEnabled && tools.length > 0;
-  }
-
-  private buildGenerateContentTools(tools: ToolDefinition[], webSearchEnabled?: boolean): Tool[] | undefined {
-    return buildGeminiGenerateContentTools(tools, webSearchEnabled) as Tool[] | undefined;
-  }
-
-  private async *chatWithToolsStreamGenerateContent(
-    messages: Message[],
-    tools: ToolDefinition[],
-    systemPrompt?: string,
+  // External Web search uses the same function-call budget as vault and MCP tools.
+  async *chatWithToolsStream(messages: Message[], tools: ToolDefinition[], systemPrompt?: string,
     executeToolCall?: (name: string, args: Record<string, unknown>) => Promise<unknown>,
-    ragStoreIds?: string[],
-    webSearchEnabled?: boolean,
-    options?: ChatWithToolsOptions,
-  ): AsyncGenerator<StreamChunk> {
-    const maxFunctionCalls = options?.functionCallLimits?.maxFunctionCalls ?? DEFAULT_SETTINGS.maxFunctionCalls;
-    const warningThreshold = Math.min(
-      options?.functionCallLimits?.functionCallWarningThreshold ?? DEFAULT_SETTINGS.functionCallWarningThreshold,
-      maxFunctionCalls,
-    );
-    const traceId = options?.traceId ?? null;
-    const lastMsg = messages[messages.length - 1];
-    const generationId = tracing.generationStart(traceId, "chatWithToolsStreamGenerateContent", {
-      model: this.model,
-      input: lastMsg?.content,
-      metadata: { useGenerateContentApi: true, toolCount: tools.length, webSearchEnabled: !!webSearchEnabled },
-    });
-    let ragSystemPrompt = systemPrompt;
-    if (ragStoreIds && ragStoreIds.length > 0 && lastMsg?.role === "user") {
-      const rawTopK = options?.ragTopK ?? DEFAULT_SETTINGS.ragTopK;
-      const clampedTopK = Number.isFinite(rawTopK)
-        ? Math.min(20, Math.max(1, rawTopK))
-        : DEFAULT_SETTINGS.ragTopK;
-      try {
-        const ragResult = await this.retrieveRagContext(
-          lastMsg.content || "",
-          ragStoreIds,
-          clampedTopK,
-          options?.ragMetadataFilter,
-          lastMsg.attachments,
-        );
-        if (ragResult.contexts.length > 0) {
-          const contextBlock = ragResult.contexts
-            .map(context => `--- Source: ${context.source} ---\n${context.text}`)
-            .join("\n\n");
-          ragSystemPrompt = (systemPrompt || "")
-            + `\n\n[Semantic search results — use these retrieved passages as reference context]\n${contextBlock}`;
-        }
-        yield {
-          type: "rag_used",
-          ragSources: ragResult.sources,
-          ragContexts: ragResult.contexts,
-        };
-      } catch (ragError) {
-        yield { type: "error", error: `RAG retrieval failed: ${formatError(ragError)}` };
-        return;
-      }
+    ragStoreIds?: string[], webSearchEnabled?: boolean, options?: ChatWithToolsOptions): AsyncGenerator<StreamChunk> {
+    if (!webSearchEnabled) {
+      yield* this.chatWithToolsStreamInternal(messages, tools, systemPrompt, executeToolCall, ragStoreIds, false, options);
+      return;
     }
-
-    const contents = this.messagesToContents(messages);
-    const generationTools = this.buildGenerateContentTools(tools, webSearchEnabled);
-    const thinkingConfig = this.buildThinkingConfig(options?.enableThinking, options?.reasoningEffort);
-    // Gemini rejects mixing a built-in/server-side tool (googleSearch) with
-    // function-calling declarations unless this flag is set.
-    const mixesBuiltInWithFunctionCalling = !options?.disableTools && tools.length > 0 && !!webSearchEnabled;
-
-    yield* runGeminiGenerateContentTools({
-      contents, model: this.model, traceId, generationId,
-      maxFunctionCalls, warningThreshold, limitPolicy: { kind: "extendable", options: options?.functionCallLimits, defaultExtensionAmount: DEFAULT_SETTINGS.maxFunctionCalls },
-      executeToolCall,
-      create: (roundContents, toolMode) => this.ai.models.generateContentStream({
-        model: this.model, contents: roundContents as Content[],
-        config: {
-          systemInstruction: ragSystemPrompt,
-          tools: selectGeminiGenerationTools(generationTools, toolMode),
-          toolConfig: toolMode === "all" && mixesBuiltInWithFunctionCalling ? { includeServerSideToolInvocations: true } : undefined,
-          safetySettings: DEFAULT_SAFETY_SETTINGS, thinkingConfig,
-        },
-      }),
-    });
+    try {
+      const session = createWebSearchSession({ settings: this.webSearchSettings }, options?.disableTools ? [] : tools, systemPrompt, executeToolCall);
+      yield* session.wrap(this.chatWithToolsStreamInternal(messages, session.tools, session.systemPrompt, session.execute,
+        ragStoreIds, true, { ...options, disableTools: false }));
+    } catch (error) { yield { type: "error", error: formatError(error) }; }
   }
 
-  // Streaming chat with Function Calling using Interactions API (SSE-based streaming)
-  // Supports: function calling + RAG + Google Search simultaneously, server-side conversation state
-  async *chatWithToolsStream(
+  private async *chatWithToolsStreamInternal(
     messages: Message[],
     tools: ToolDefinition[],
     systemPrompt?: string,
@@ -288,20 +157,6 @@ export class GeminiClient extends GeminiGenerationClient<ModelType> {
   ): AsyncGenerator<StreamChunk> {
     if (webSearchEnabled && ragStoreIds?.length) {
       yield { type: "error", error: "RAG and Web Search cannot be used at the same time. Select one search source." };
-      return;
-    }
-
-    const enabledFunctionTools = options?.disableTools ? [] : tools;
-    if (this.shouldUseGenerateContentToolsApi(enabledFunctionTools, webSearchEnabled)) {
-      yield* this.chatWithToolsStreamGenerateContent(
-        messages,
-        enabledFunctionTools,
-        systemPrompt,
-        executeToolCall,
-        ragStoreIds,
-        webSearchEnabled,
-        options,
-      );
       return;
     }
 
@@ -316,29 +171,17 @@ export class GeminiClient extends GeminiGenerationClient<ModelType> {
       ? Math.min(20, Math.max(1, rawTopK))
       : DEFAULT_SETTINGS.ragTopK;
 
+    tools = options?.disableTools ? [] : tools;
     const ragEnabled = ragStoreIds && ragStoreIds.length > 0;
 
-    // Build tools for Interactions API. File Search is a native Interactions
-    // tool and can run alongside function tools.
-    // Gemma 4: cannot combine google_search with function calling
-    const modelLower = this.model.toLowerCase();
-    const isGemma4Model = modelLower.includes("gemma-4");
-    const effectiveRagEnabled = ragEnabled && !isGemma4Model;
-    const effectiveWebSearch = webSearchEnabled ?? false;
-    const hasFunctionTools = !options?.disableTools && tools.length > 0;
-    const combinesBuiltInAndFunctionTools = effectiveWebSearch && hasFunctionTools;
-    const interactionModel = this.getInteractionsModel(hasFunctionTools);
-    let interactionTools: Interactions.Tool[] | undefined;
-    // disableTools only disables client-side function tools. Server-side tools
-    // (File Search and Google Search) remain independently available.
-    interactionTools = this.toolsToInteractionsFormat(
-      options?.disableTools ? [] : tools,
-      effectiveRagEnabled ? ragStoreIds : undefined,
-      effectiveRagEnabled ? clampedTopK : undefined,
-      effectiveRagEnabled ? options?.ragMetadataFilter : undefined,
-      effectiveWebSearch,
-    );
-    if (interactionTools.length === 0) interactionTools = undefined;
+    const effectiveRagEnabled = ragEnabled && !this.model.toLowerCase().includes("gemma-4");
+    const interactionModel = this.getInteractionsModel(tools.length > 0);
+    const builtTools = buildGeminiInteractionTools(tools, {
+      ragStoreIds: effectiveRagEnabled ? ragStoreIds : undefined,
+      ragTopK: effectiveRagEnabled ? clampedTopK : undefined,
+      ragMetadataFilter: effectiveRagEnabled ? options?.ragMetadataFilter : undefined,
+    });
+    const interactionTools = builtTools.length ? builtTools : undefined;
 
     // Get the last user message
     const lastMessage = messages[messages.length - 1];
@@ -352,13 +195,8 @@ export class GeminiClient extends GeminiGenerationClient<ModelType> {
     const enableThinking = this.supportsThinking() ? options?.enableThinking : false;
     const reasoningEffort = this.supportsThinking() ? options?.reasoningEffort : undefined;
     const thinkingLevel = resolveGeminiThinkingLevel(this.model, enableThinking, reasoningEffort);
-    const generationConfig = (toolMode: GeminiToolMode) => thinkingLevel || (toolMode === "all" && combinesBuiltInAndFunctionTools)
-      ? {
-          ...(thinkingLevel
-            ? { thinking_level: thinkingLevel, thinking_summaries: "auto" as const }
-            : {}),
-          ...(toolMode === "all" && combinesBuiltInAndFunctionTools ? { tool_choice: "validated" as const } : {}),
-        }
+    const generationConfig = thinkingLevel
+      ? { thinking_level: thinkingLevel, thinking_summaries: "auto" as const }
       : undefined;
 
     // Resolve previous_interaction_id for conversation chaining
@@ -399,13 +237,29 @@ export class GeminiClient extends GeminiGenerationClient<ModelType> {
         stream: true, store: true,
         previous_interaction_id: request.previousInteractionId,
         tools: selectGeminiInteractionTools(interactionTools, request.toolMode),
-        system_instruction: systemPrompt, generation_config: generationConfig(request.toolMode),
+        system_instruction: systemPrompt, generation_config: generationConfig,
       }),
     });
   }
 
-
+  // Image models cannot call functions. Resolve references with a text model,
+  // then pass that context to image generation without any native search tools.
+  async *generateImageStream(messages: Message[], imageModel: ModelType, systemPrompt?: string,
+    webSearchEnabled?: boolean, ragStoreIds?: string[], traceId?: string | null): AsyncGenerator<StreamChunk> {
+    if (!webSearchEnabled) {
+      yield* super.generateImageStream(messages, imageModel, systemPrompt, false, ragStoreIds, traceId);
+      return;
+    }
+    const planner = new GeminiClient(this.apiKey, "gemini-3.8-flash", this.webSearchSettings);
+    yield* generateWithWebReferences({ systemPrompt,
+      search: () => planner.chatWithToolsStream(messages, [],
+        "Use web_search to find references relevant to the image request. Summarize useful facts and cite URLs.",
+        undefined, undefined, true, { traceId, functionCallLimits: { maxFunctionCalls: 3 } }),
+      generate: prompt => super.generateImageStream(messages, imageModel, prompt, false, ragStoreIds, traceId),
+    });
+  }
 }
+
 
 // Singleton instance
 let geminiClientInstance: GeminiClient | null = null;
@@ -414,8 +268,8 @@ export function getGeminiClient(): GeminiClient | null {
   return geminiClientInstance;
 }
 
-export function initGeminiClient(apiKey: string, model: ModelType): GeminiClient {
-  geminiClientInstance = new GeminiClient(apiKey, model);
+export function initGeminiClient(apiKey: string, model: ModelType, webSearchSettings?: WebSearchSettings): GeminiClient {
+  geminiClientInstance = new GeminiClient(apiKey, model, webSearchSettings);
   return geminiClientInstance;
 }
 

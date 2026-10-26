@@ -1,3 +1,4 @@
+import { resolveChatFileMentions, messagesForModel, FILE_MENTION_TOOL_PROMPT } from "obsidian-llm-hub-common/chat";
 import { requestGoogleSearchConsent } from "src/core/groundingConsent";
 import { GoogleSearchConsentModal } from "./GoogleSearchConsentModal";
 import { GroundingAutoSaveNotice, canRenderGoogleSearchSuggestions } from "obsidian-llm-hub-common";
@@ -69,7 +70,6 @@ import {
 import { runSkillWorkflow } from "obsidian-llm-hub-common/workflow";
 import { extractPdfText } from "src/vault/pdfText";
 import {
-	resolveMessageVariables as resolveMessageVariablesShared,
 	useChatHistories,
 	useChatStreamSessions,
 	generateChatId,
@@ -106,10 +106,6 @@ const MENTIONABLE_EXTENSIONS = new Set(["md", "pdf"]);
 
 const isMentionableFile = (file: TFile): boolean =>
 	MENTIONABLE_EXTENSIONS.has(file.extension.toLowerCase());
-
-// File mentions stay as bare vault paths whenever the model has vault tools
-// (see resolveMessageVariables), so it has to fetch their contents itself.
-const FILE_MENTION_TOOL_PROMPT = "\n\nA bare vault-relative path in the user's message (for example `folder/note.md` or `folder/document.pdf`) is a file the user referenced by mention, not a literal string. Its content is not inlined into the message. Call read_note with that exact path before answering anything that depends on it.";
 
 interface ChatProps {
 	plugin: GeminiHelperPlugin;
@@ -801,8 +797,8 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin, onToggleSidebarWidth }, r
 		}
 	};
 
-	// Both resolvers live in the shared library; the host only supplies its selection
-	// sources, PDF extraction and vault-tool scope.
+	// Resolve explicit references to vault paths; the shared resolver applies
+	// the host's selection sources, PDF extraction and vault-tool scope.
 	const commandVariableSources = (): CommandVariableSources => ({
 		takeExternalSelection: () => {
 			const pending = pendingExternalSelectionRef.current;
@@ -813,9 +809,8 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin, onToggleSidebarWidth }, r
 		getSelectionLocation: () => plugin.getSelectionLocation(),
 	});
 
-	const resolveMessageVariables = (content: string, inlineFileMentions: boolean): Promise<string> =>
-		resolveMessageVariablesShared(plugin.app, content, {
-			...commandVariableSources(),
+	const resolveMessageVariables = (content: string, inlineFileMentions: boolean): ReturnType<typeof resolveChatFileMentions> =>
+		resolveChatFileMentions(plugin.app, content, commandVariableSources(), {
 			inlineFileMentions,
 			vaultToolAllowedFolders: plugin.settings.aiVaultToolAllowedFolders,
 			maxNoteChars: plugin.settings.maxNoteChars,
@@ -1016,13 +1011,13 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin, onToggleSidebarWidth }, r
 				client.setModel(allowedModel);
 
 				// Resolve variables in the content ({selection}, {content}, file paths)
-				const resolvedContent = await resolveMessageVariables(
+				const { displayContent: resolvedDisplayContent, llmContent: resolvedContent } = await resolveMessageVariables(
 					content,
 					vaultToolMode === "none" || isImageGenerationModel(allowedModel),
 				);
 
 				// When skill is invoked without message, use skill name as trigger
-				let displayContent = resolvedContent.trim();
+				let displayContent = resolvedDisplayContent.trim();
 				if (!displayContent && skillPath) {
 					const skillMeta = availableSkills.find(s => s.folderPath === skillPath);
 					displayContent = skillMeta ? `/${skillMeta.name}` : "/skill";
@@ -1032,6 +1027,7 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin, onToggleSidebarWidth }, r
 				const userMessage: Message = {
 					role: "user",
 					content: displayContent || (attachments ? `[${attachments.length} file(s) attached]` : ""),
+					llmContent: resolvedContent || undefined,
 					timestamp: Date.now(),
 					attachments,
 				};
@@ -1300,7 +1296,7 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin, onToggleSidebarWidth }, r
 
 					if (plugin.settings.voiceChat.autoReadAloud) systemPrompt += buildReadAloudSystemPrompt();
 
-					const allMessages = limitConversationHistory([...messages, userMessage], maxPreviousMessages);
+					const allMessages = messagesForModel(limitConversationHistory([...messages, userMessage], maxPreviousMessages));
 
 					// Use streaming with tools
 					// Everything the stream says, gathered by the shared accumulator.

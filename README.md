@@ -102,7 +102,7 @@ Reference files and variables by typing `@`:
 
 - `{selection}` - Selected text
 - `{content}` - Active note content
-- Any vault file - Browse and insert (path only; AI reads content via tools)
+- Vault notes and PDFs - Browse and insert as `[[vault-relative/path]]`
 
 > [!NOTE]
 > **How `{selection}` and `{content}` work:** When you switch from Markdown View to Chat View, the selection would normally be cleared due to focus change. To preserve your selection, the plugin captures it when switching views and highlights the selected area with a background color in the Markdown View. The `{selection}` option only appears in @ suggestions when text was selected.
@@ -110,7 +110,9 @@ Reference files and variables by typing `@`:
 > Both `{selection}` and `{content}` are intentionally **not expanded** in the input area—since the chat input is compact, expanding long text would make typing difficult. The content is expanded when you send the message, which you can verify by checking your sent message in the chat.
 
 > [!NOTE]
-> Vault file @mentions insert only the file path — the AI reads content via tools.
+> Selecting a file with `@` inserts a visible wikilink. Sent chat messages retain the original references, including paths with spaces and multiple files. Only the model request adds type and byte size beside each tool-readable reference; file contents and reading instructions are not added to the displayed message. You can also type `[[Note]]`, `[[folder/Note.md]]`, or `@folder/Note.md` (full vault-relative path). On send, references are resolved to exact paths, with file type and byte size taken from vault metadata without reading the body. With Vault tools enabled, the model is instructed to fetch contents using `read_note`; this requires tool calling support. Avoiding automatic full-file expansion prevents large files from consuming excessive tokens and keeps chat history readable instead of filling messages with long file contents. The model can read text by line range (`startLine` / `endLine`) or PDFs by page range (`startPage` / `endPage`). When Vault tools are disabled or an image generation model is selected, the text is included directly instead. Explicit references outside the allowed vault tool folders are also inlined. References do not appear as attachment chips. Use the attachment button to supply content directly regardless of Vault tool settings.
+
+`read_note` accepts inclusive, 1-based `startLine` / `endLine` ranges for text files, for example `{"fileName":"Notes/Large Note.md","startLine":100,"endLine":150}`. Results include the selected range and total line count so the model can request additional lines as needed. Omitting `startLine` starts at line 1; omitting `endLine` reads to the end. Omitting both preserves full-text reads subject to the configured note character limit. PDFs use `startPage` / `endPage`; line and page ranges cannot be combined.
 
 ## File Attachments
 

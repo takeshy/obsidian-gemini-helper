@@ -2961,6 +2961,23 @@
   margin-left: 20px;
 }
 
+/* Keep links readable on the user's accent-colored message background. */
+.gemini-helper-message-user {
+  --link-color: var(--text-on-accent);
+  --link-color-hover: var(--text-on-accent);
+  --link-unresolved-color: var(--text-on-accent);
+  --link-unresolved-opacity: 1;
+  --link-external-color: var(--text-on-accent);
+  --link-external-color-hover: var(--text-on-accent);
+}
+
+.gemini-helper-message-user .gemini-helper-message-content a,
+.gemini-helper-message-user .gemini-helper-message-content a:hover {
+  color: var(--text-on-accent);
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
+}
+
 .gemini-helper-message-assistant {
   background: var(--background-primary-alt);
   margin-right: 20px;
@@ -2988,7 +3005,13 @@
   font-size: 11px;
 }
 
-.gemini-helper-copy-btn {
+button.gemini-helper-copy-btn {
+  --icon-color: currentColor;
+  --icon-color-hover: currentColor;
+  --icon-opacity: 1;
+  --icon-opacity-hover: 1;
+  box-shadow: none;
+  height: auto;
   margin-left: auto;
   background: transparent;
   border: none;
@@ -3011,7 +3034,13 @@
   background: var(--background-modifier-hover);
 }
 
-.gemini-helper-speech-btn {
+button.gemini-helper-speech-btn {
+  --icon-color: currentColor;
+  --icon-color-hover: currentColor;
+  --icon-opacity: 1;
+  --icon-opacity-hover: 1;
+  box-shadow: none;
+  height: auto;
   margin-left: auto;
   background: transparent;
   border: none;
@@ -3043,11 +3072,13 @@
   margin-left: 0;
 }
 
-.gemini-helper-message-user .gemini-helper-copy-btn {
+.gemini-helper-message-user .gemini-helper-copy-btn,
+.gemini-helper-message-user .gemini-helper-speech-btn {
   color: var(--text-on-accent);
 }
 
-.gemini-helper-message-user .gemini-helper-copy-btn:hover {
+.gemini-helper-message-user .gemini-helper-copy-btn:hover,
+.gemini-helper-message-user .gemini-helper-speech-btn:hover {
   color: var(--text-on-accent);
   background: rgba(255, 255, 255, 0.2);
 }

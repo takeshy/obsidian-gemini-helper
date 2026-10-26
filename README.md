@@ -64,7 +64,7 @@ The AI Chat feature provides an interactive conversation interface with Google G
 - **+ button** - New chat
 - **History button** - Load previous chats
 - **Expand / shrink button** - Toggle the sidebar between its normal width and a wider reading layout
-- **Save as note button** - Export the current conversation as compact Markdown. Re-saving the same chat overwrites its exported note
+- **Save as note button** - Export the current conversation as Markdown to the configured manual save folder. Re-saving to the same folder updates the exported note with the current conversation
 
 ## Voice Input and Read-Aloud
 
@@ -157,11 +157,39 @@ When the AI handles notes in Chat, it uses Vault tools. Control which vault tool
 
 ### Web Search
 
-In **Settings → Web search**, register your **Tavily** and/or **Brave Search** API keys, then select one active provider. Both keys are retained when switching providers. Keys are stored in Obsidian SecretStorage on each device.
+In **Settings → Web search**, select **Gemini Google Search**, **Tavily**, **Brave Search**, or **Disabled**. **Gemini Google Search** is the default. Existing external-provider selections and explicitly disabled settings are preserved. Only the selected provider's settings are displayed. Existing Tavily/Brave Search keys, their selected external provider, and quota displays are retained when switching modes.
 
-Enable **Web Search** in Chat's search selector, a slash command, or a Workflow command node (`ragSetting: __websearch__`). Dashboard Hub Timeline answers use the same active provider. Search runs as the `web_search` function tool and counts toward the function call limit; Google Search grounding is no longer used. Search results retain source links in chat history. Tavily uses basic search, and each provider returns up to five results. Image generation resolves Web references with a text model before generating the image (up to three search calls); this adds text-model usage, included in the reported token usage.
+Enabling Google Search in Chat asks for confirmation. Approval disables automatic saving for the entire conversation, even if no search is executed. Turning search off or switching providers does not restore automatic saving. A persistent notice remains above the messages; use the header's **Save conversation** button to save a complete snapshot explicitly. Restricted manual saves keep the restriction when reopened and exclude Search Suggestions and opaque search metadata. Manual saves follow **Settings → Chat → Manual chat save folder**, or the vault root when blank. Existing automatic history files remain untouched, including when saving manually. A new conversation starts without the restriction.
 
-API references: [Tavily Search](https://docs.tavily.com/documentation/api-reference/endpoint/search), [Brave Web Search](https://api-dashboard.search.brave.com/app/documentation/web-search).
+Google Search Suggestions are displayed from the original API HTML in a sandbox, separately from source badges. Both GenerateContent and Interactions are supported. A grounded answer without the required display data is not shown. Google Search is limited to the consented Chat view; choose external search for text-only Workflow/Dashboard integrations.
+
+External search uses the selected Tavily or Brave Search function tool and preserves normal automatic history. Tavily uses basic search and both return up to five results. External image-reference retrieval uses a text model with up to three searches; its extra token usage is included in the reported total.
+
+Web search usage: the selected external provider has a usage row below its API key in Settings → Web search. Tavily fetches plan, API-key and pay-as-you-go credits only when **Show remaining credits** is clicked. Brave displays the last observed request quota and timestamp from real searches, without sending an extra search. Values are kept in memory, isolated by API key; they are cleared on plugin reload. Brave quota is a request allowance, not a monetary balance.
+
+#### Free search allowances and costs
+
+External search providers offer monthly free allowances (checked October 26, 2026):
+
+| Provider | Monthly free allowance | Notes |
+| --- | --- | --- |
+| [Tavily](https://docs.tavily.com/documentation/api-credits) | **1,000 credits** | No credit card required. This plugin uses basic search at 1 credit per search request, equivalent to 1,000 searches if used only for basic search. |
+| [Brave Search](https://brave.com/search/api/) | **$5 in Search plan credits**, equivalent to **1,000 search requests** at the current rate | Credit card registration is required. See the [Brave billing FAQ](https://api-dashboard.search.brave.com/documentation/resources/help-feedback) for free-credit and spending settings. |
+
+**In the developer's own usage, some individual questions with Gemini Web Search enabled cost ¥20 or more.** Costs vary with the model, search activity, token usage and exchange rate.
+
+See [Web search and chat storage](docs/web-search-storage.md) for the policy, metadata handling and release-time checks.
+
+#### Google Search terms and storage
+
+Google Search Grounding has additional rules beyond ordinary Gemini responses. The [Gemini API terms — Grounding with Google Search](https://ai.google.dev/gemini-api/terms#grounding-with-google-search) include these requirements (checked October 26, 2026):
+
+- Display grounded answers with their associated Search Suggestions. Google restricts modifications and interference with answers, suggestions and destination links; ordinary source badges are not a substitute.
+- Copying and storage are restricted. Exceptions include grounded-result text retained for up to **two years** for specified purposes, such as letting users view their chat history. This is not blanket permission for permanent PKM storage or reuse.
+- Users may save individual displayed grounded results, subject to restrictions on automated collection and database creation.
+- Google retains grounding prompts, supplied context and output for **30 days** for grounding-related purposes, including debugging/testing. This is separate from local note storage.
+
+Gemini Helper therefore disables automatic saving after approval and requires explicit manual saves. The plugin does not automatically delete notes after two years; consult the current terms when retaining or reusing grounded content. See Google's [grounding documentation](https://ai.google.dev/gemini-api/docs/google-search) for API and display details.
 
 ### AI Folder Access
 
@@ -623,7 +651,7 @@ npm run build
 ![Basic Settings](docs/images/setting_basic.png)
 
 ### Workspace Settings
-- **Automatically save chat history** - Keep restorable chat files in the workspace folder
+- **Automatically save chat history** - Keep restorable chat files in the workspace folder. Conversations with approved Google Search remain excluded regardless of this setting
 - **Maximum saved chat histories** - Delete the oldest automatic histories above the limit. Existing users default to unlimited (`0`); new installs default to `100`
 - **System Prompt** - Additional AI instructions
 - **Folders AI can access automatically** - Optional folder allowlist for automatic AI vault access. Leave empty to allow the whole vault; use Encryption for files the AI should never read
@@ -633,7 +661,8 @@ npm run build
 
 ### Chat Settings
 - **Manual chat save folder** - Vault-relative destination used by the Chat **Save as note** button. Leave blank to save in the vault root
-- Manual exports use `YYYYMMDD-HHmmss_Chat title.md` and contain only compact conversation content, without history frontmatter or restoration metadata
+- Manual exports use `YYYYMMDD-HHmmss_Chat title.md`. Re-saving to the same folder updates the note; changing the folder applies to the next manual save
+- Ordinary conversations export compact content without frontmatter. Google-restricted conversations use restorable Markdown that preserves the saving restriction and excludes Search Suggestions and raw search metadata. Manual saving never restarts automatic saving
 
 ### Encryption
 
@@ -778,7 +807,7 @@ Requires: `pip install cryptography`
 **Data sent to Google:**
 - All chat messages and file attachments are sent to Google Gemini API for processing
 - When RAG is enabled, vault files are uploaded to Google File Search
-- When Web Search is enabled, queries are sent to the selected Tavily or Brave Search provider; retrieved results are sent to Gemini as tool context
+- When Web Search is enabled, Google mode uses Gemini Google Search Grounding; external mode sends queries to Tavily or Brave Search and supplies results to Gemini as tool context
 
 **Data sent to third-party services:**
 - Workflow `http` nodes can send data to any URL specified in the workflow
@@ -825,5 +854,3 @@ If you find this plugin useful, consider buying me a coffee!
 ## MCP approval and read-only Vault tools
 
 MCP calls require approval by default. The dialog shows the server, tool, and arguments with Allow once, Always allow this tool, and Deny. Closing denies the call. Enable Always approve in server settings to skip all confirmations, or remove an allowed tool and save to require approval again. Workflow command and mcp nodes support `confirm: "false"` for automatic execution. Vault read-only mode permits search and reading while external MCP and skill tools keep separate permissions. Connection testing locks editing and saving and keeps errors visible for correction. HTTP transport is supported; local stdio command parsing does not apply.
-
-Web search usage: each API key has its own usage row in Settings → Web search. Tavily fetches plan, API-key and pay-as-you-go credits only when **Show remaining credits** is clicked. Brave displays the last observed request quota and timestamp from real searches, without sending an extra search. Values are kept in memory, isolated by API key; they are cleared on plugin reload. Brave quota is a request allowance, not a monetary balance.

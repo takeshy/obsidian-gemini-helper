@@ -131,6 +131,7 @@ export interface SlashCommand {
 export interface GeminiHelperSettings {
   skillsFolder?: string;      // Vault folder holding skills (defaults to SKILLS_FOLDER)
   webSearch: WebSearchSettings;
+  webSearchMode: "google" | "external" | "none";
   googleApiKey: string;
   /** Non-secret marker used to detect a missing device-local SecretStorage value. */
   googleApiKeyConfigured: boolean;
@@ -278,6 +279,8 @@ export const REASONING_EFFORTS: ReasoningEffort[] = ["default", "minimal", "low"
 
 // Workspace状態ファイル（.gemini-workspace.json）
 export interface WorkspaceState {
+  /** Policy only; never contains messages or search results. */
+  groundingRestrictedChatIds?: string[];
   selectedRagSetting: string | null;  // 現在選択中のRAG設定名
   webSearchEnabled: boolean;          // Web SearchはRAGとは独立して保持
   selectedModel: ModelType | null;    // 現在選択中のモデル
@@ -563,6 +566,7 @@ export const WORKFLOWS_FOLDER = "workflows";
 // Default settings
 export const DEFAULT_SETTINGS: GeminiHelperSettings = {
   webSearch: { ...DEFAULT_WEB_SEARCH_SETTINGS },
+  webSearchMode: "google",
   googleApiKey: "",
   googleApiKeyConfigured: false,
   apiPlan: "paid",

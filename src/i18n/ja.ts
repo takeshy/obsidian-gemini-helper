@@ -1,5 +1,15 @@
 // Japanese translations
 export const ja: Record<string, string> = {
+  "settings.webSearch.google.desc": "ChatでGoogle検索を有効にすると、その会話の自動保存を停止します。手動保存は可能です。",
+  "settings.webSearch.disabled.desc": "Web検索は無効です。",
+  "settings.webSearch.tavily.desc": "function callingでbasic検索を実行し、最大5件を取得します。検索はツール呼び出し回数の制限に含まれます。",
+  "settings.webSearch.brave.desc": "function callingで検索し、最大5件を取得します。検索はツール呼び出し回数の制限に含まれます。",
+
+  "settings.webSearch.disabled": "無効",
+  "settings.webSearch.mode.desc": "Gemini Google Search・外部Web検索・無効を選択できます。ChatでGoogle検索を有効にすると、その会話の自動保存を停止します。手動保存は可能です。",
+  "settings.webSearch.external": "外部Web検索",
+  "settings.webSearch.externalProvider": "外部検索サービス",
+
   "settings.webSearch": "Web検索",
   "settings.webSearch.provider": "使用するサービス",
   "settings.webSearch.desc": "両方のAPIキーを登録し、使用先を1つ選択します。検索はfunction callingで実行され、ツール呼び出し回数の制限に含まれます。Tavilyはbasic検索で最大5件を取得します。",

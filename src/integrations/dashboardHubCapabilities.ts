@@ -33,7 +33,7 @@ export function runDashboardWorkflow(plugin: GeminiHelperPlugin, request: Dashbo
 
 async function generate(plugin: GeminiHelperPlugin, modelId: string, prompt: string | Message[], systemPrompt: string, signal?: AbortSignal, vaultRead = false, search: SearchOptions = {}): Promise<string> {
   if (!plugin.settings.googleApiKey) throw new Error("Gemini API key is not configured.");
-  const client = new GeminiClient(plugin.settings.googleApiKey, modelId as ModelType, plugin.settings.webSearch);
+  const client = new GeminiClient(plugin.settings.googleApiKey, modelId as ModelType, plugin.settings.webSearch, plugin.settings.webSearchMode);
   const messages: Message[] = typeof prompt === "string" ? [{ role: "user", content: prompt, timestamp: Date.now() }] : prompt;
   const vaultTools = vaultRead ? getEnabledVaultTools({ allowWrite: false, allowDelete: false, ragSyncStatus: false }) : [];
   const vaultExecute = vaultRead ? createToolExecutor(plugin.app, { listNotesLimit: plugin.settings.listNotesLimit, maxNoteChars: plugin.settings.maxNoteChars,
@@ -77,7 +77,7 @@ export function generateDashboardWorkflow(plugin: GeminiHelperPlugin, request: D
 }
 
 function supportsWebSearch(plugin: GeminiHelperPlugin): boolean {
-  return isWebSearchConfigured(plugin.settings.webSearch);
+  return plugin.settings.webSearchMode === "external" && isWebSearchConfigured(plugin.settings.webSearch);
 }
 function usableRagSettings(plugin: GeminiHelperPlugin): string[] {
   if (!plugin.settings.ragEnabled) return [];

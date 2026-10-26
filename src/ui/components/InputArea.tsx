@@ -763,7 +763,7 @@ const InputArea = forwardRef<InputAreaHandle, InputAreaProps>(function InputArea
             }}
             onChange={(selection) => {
               onWebSearchChange(selection.webSearch);
-              onRagSettingChange(selection.ragSetting);
+              if (!selection.webSearch) onRagSettingChange(selection.ragSetting);
             }}
           />
         </ModelRow>

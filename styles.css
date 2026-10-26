@@ -9051,3 +9051,16 @@
   resize: vertical;
 }
 
+/* A notice outside the scrolling message list, with no dismiss action. */
+.gemini-helper-grounding-save-notice {
+  flex: 0 0 auto;
+  padding: 10px 14px;
+  background: var(--background-secondary);
+  border-bottom: 1px solid var(--background-modifier-border);
+  color: var(--text-muted);
+  font-size: var(--font-ui-small);
+}
+.gemini-helper-grounding-save-notice strong { color: var(--text-normal); }
+.gemini-helper-grounding-save-notice p { margin: 4px 0 0; }
+.gemini-helper-google-search-suggestions { display: block; width: 100%; border: 0; }
+

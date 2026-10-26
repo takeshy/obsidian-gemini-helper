@@ -2,6 +2,16 @@ import type { SharedTranslationKey } from "obsidian-llm-hub-common/i18n";
 
 // English translations (base language)
 export const en = {
+  "settings.webSearch.google.desc": "Enabling Google Search in chat disables automatic saving for that conversation. You can still save it manually.",
+  "settings.webSearch.disabled.desc": "Web search is disabled.",
+  "settings.webSearch.tavily.desc": "Uses function calling with basic search and up to 5 results. Searches count toward the tool call limit.",
+  "settings.webSearch.brave.desc": "Uses function calling with up to 5 results. Searches count toward the tool call limit.",
+
+  "settings.webSearch.disabled": "Disabled",
+  "settings.webSearch.mode.desc": "Choose Gemini Google Search, external web search, or disabled. Enabling Google Search in chat disables automatic saving for that conversation; you can still save it manually.",
+  "settings.webSearch.external": "External web search",
+  "settings.webSearch.externalProvider": "External provider",
+
   "settings.webSearch": "Web search",
   "settings.webSearch.provider": "Active provider",
   "settings.webSearch.desc": "Register both API keys and select one provider. Web search uses function calls and counts toward the tool call limit. Tavily uses basic search with up to 5 results.",

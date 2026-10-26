@@ -34,3 +34,7 @@ The Save as note button is separate from automatic history. It exports the curre
 - [OKF Knowledge Sources](./okf.md) explains curated prompt context.
 - [MCP](./mcp.md) explains external tools.
 - [Security and Privacy](../operations/security-privacy.md) explains confirmations and folder limits.
+
+# Google Web search and saving
+
+Select Google, external, or disabled in Settings → Web search. Enabling Google search asks for confirmation and disables automatic saving for the whole conversation. The notice stays visible even after search is turned off or the provider changes. Use Save conversation for an explicit full-conversation snapshot; it stays restricted when reopened. Google Search Suggestions are rendered in the Chat view only and never saved in Markdown. External search preserves ordinary saving.

@@ -1,9 +1,11 @@
-import { DEFAULT_WEB_SEARCH_SETTINGS, type WebSearchSettings } from "./webSearch";
+import { DEFAULT_WEB_SEARCH_SETTINGS, supportsGoogleSearch, type WebSearchSettings } from "./webSearch";
 import {
   GoogleGenAI,
   HarmCategory,
   HarmBlockThreshold,
   type SafetySetting,
+  type Content,
+  type Tool,
   type Interactions,
 } from "@google/genai";
 import {
@@ -17,6 +19,11 @@ import {
 } from "src/types";
 import { tracing } from "src/core/tracingHooks";
 import {
+  withGoogleSearchSuggestions,
+  runGeminiGenerateContentTools,
+  runGeminiImageGeneration,
+  selectGeminiGenerationTools,
+  messagesToGeminiContents,
   createWebSearchSession,
   generateWithWebReferences,
   buildGeminiHistoryReplayInput,
@@ -56,6 +63,8 @@ export interface FunctionCallLimitOptions {
 }
 
 export interface ChatWithToolsOptions {
+  /** Set only by a consented Chat view that renders Search Suggestions. */
+  googleSearchAllowed?: boolean;
   ragTopK?: number;
   ragMetadataFilter?: string;
   functionCallLimits?: FunctionCallLimitOptions;
@@ -81,7 +90,8 @@ export class GeminiClient extends GeminiGenerationClient<ModelType> {
   private ai: GoogleGenAI;
 
   constructor(private readonly apiKey: string, model: ModelType = "gemini-3.8-flash",
-    private readonly webSearchSettings: WebSearchSettings = DEFAULT_WEB_SEARCH_SETTINGS) {
+    private readonly webSearchSettings: WebSearchSettings = DEFAULT_WEB_SEARCH_SETTINGS,
+    private readonly webSearchMode: "google" | "external" | "none" = "external") {
     const ai = new GoogleGenAI({ apiKey });
     super(model, {
       generate: request => ai.models.generateContent(request),
@@ -139,6 +149,15 @@ export class GeminiClient extends GeminiGenerationClient<ModelType> {
       yield* this.chatWithToolsStreamInternal(messages, tools, systemPrompt, executeToolCall, ragStoreIds, false, options);
       return;
     }
+    if (this.webSearchMode === "none") { yield { type: "error", error: "Web search is disabled in Settings." }; return; }
+    if (this.webSearchMode === "google") {
+      if (!options?.googleSearchAllowed || !supportsGoogleSearch(this.model)) {
+        yield { type: "error", error: "Google Search requires a consented Chat view with Search Suggestions. Use external Web search for this operation." };
+        return;
+      }
+      yield* withGoogleSearchSuggestions(this.chatWithToolsStreamInternal(messages, tools, systemPrompt, executeToolCall, ragStoreIds, true, options));
+      return;
+    }
     try {
       const session = createWebSearchSession({ settings: this.webSearchSettings }, options?.disableTools ? [] : tools, systemPrompt, executeToolCall);
       yield* session.wrap(this.chatWithToolsStreamInternal(messages, session.tools, session.systemPrompt, session.execute,
@@ -160,6 +179,11 @@ export class GeminiClient extends GeminiGenerationClient<ModelType> {
       return;
     }
 
+    const useGoogleSearch = !!webSearchEnabled && this.webSearchMode === "google" && options?.googleSearchAllowed === true;
+    if (useGoogleSearch && this.model.includes("gemini-3.8-flash") && !options?.disableTools && tools.length > 0) {
+      yield* this.chatWithGoogleSearchGenerateContent(messages, tools, systemPrompt, executeToolCall, options);
+      return;
+    }
     // Function call limit settings
     const maxFunctionCalls = options?.functionCallLimits?.maxFunctionCalls ?? DEFAULT_SETTINGS.maxFunctionCalls;
     const warningThreshold = Math.min(
@@ -180,6 +204,7 @@ export class GeminiClient extends GeminiGenerationClient<ModelType> {
       ragStoreIds: effectiveRagEnabled ? ragStoreIds : undefined,
       ragTopK: effectiveRagEnabled ? clampedTopK : undefined,
       ragMetadataFilter: effectiveRagEnabled ? options?.ragMetadataFilter : undefined,
+      webSearchEnabled: useGoogleSearch,
     });
     const interactionTools = builtTools.length ? builtTools : undefined;
 
@@ -237,7 +262,30 @@ export class GeminiClient extends GeminiGenerationClient<ModelType> {
         stream: true, store: true,
         previous_interaction_id: request.previousInteractionId,
         tools: selectGeminiInteractionTools(interactionTools, request.toolMode),
-        system_instruction: systemPrompt, generation_config: generationConfig,
+        system_instruction: systemPrompt, generation_config: useGoogleSearch && tools.length > 0
+          ? { ...generationConfig, tool_choice: "validated" } : generationConfig,
+      }),
+    });
+  }
+
+  private async *chatWithGoogleSearchGenerateContent(messages: Message[], tools: ToolDefinition[], systemPrompt?: string,
+    executeToolCall?: (name: string, args: Record<string, unknown>) => Promise<unknown>, options?: ChatWithToolsOptions): AsyncGenerator<StreamChunk> {
+    const generationTools: Tool[] = [
+      { functionDeclarations: tools.map(tool => ({ name: tool.name, description: tool.description, parametersJsonSchema: tool.parameters })) },
+      { googleSearch: {} },
+    ];
+    yield* runGeminiGenerateContentTools({
+      contents: messagesToGeminiContents(messages), model: this.model, traceId: options?.traceId ?? null, generationId: null,
+      maxFunctionCalls: options?.functionCallLimits?.maxFunctionCalls ?? DEFAULT_SETTINGS.maxFunctionCalls,
+      warningThreshold: options?.functionCallLimits?.functionCallWarningThreshold ?? DEFAULT_SETTINGS.functionCallWarningThreshold,
+      limitPolicy: { kind: "extendable", options: options?.functionCallLimits, defaultExtensionAmount: DEFAULT_SETTINGS.maxFunctionCalls },
+      executeToolCall,
+      create: (contents, toolMode) => this.ai.models.generateContentStream({ model: this.model, contents: contents as Content[],
+        config: { systemInstruction: systemPrompt, safetySettings: DEFAULT_SAFETY_SETTINGS,
+          thinkingConfig: buildGeminiThinkingConfig(this.model, options?.enableThinking, options?.reasoningEffort),
+          tools: selectGeminiGenerationTools(generationTools, toolMode),
+          toolConfig: toolMode === "all" ? { includeServerSideToolInvocations: true } : undefined,
+        },
       }),
     });
   }
@@ -245,12 +293,27 @@ export class GeminiClient extends GeminiGenerationClient<ModelType> {
   // Image models cannot call functions. Resolve references with a text model,
   // then pass that context to image generation without any native search tools.
   async *generateImageStream(messages: Message[], imageModel: ModelType, systemPrompt?: string,
-    webSearchEnabled?: boolean, ragStoreIds?: string[], traceId?: string | null): AsyncGenerator<StreamChunk> {
+    webSearchEnabled?: boolean, ragStoreIds?: string[], traceId?: string | null, options?: Pick<ChatWithToolsOptions, "googleSearchAllowed">): AsyncGenerator<StreamChunk> {
     if (!webSearchEnabled) {
       yield* super.generateImageStream(messages, imageModel, systemPrompt, false, ragStoreIds, traceId);
       return;
     }
-    const planner = new GeminiClient(this.apiKey, "gemini-3.8-flash", this.webSearchSettings);
+    if (this.webSearchMode === "none") { yield { type: "error", error: "Web search is disabled in Settings." }; return; }
+    if (this.webSearchMode === "google") {
+      if (!options?.googleSearchAllowed || !supportsGoogleSearch(imageModel)) {
+        yield { type: "error", error: "Google Search requires a consented Chat view with Search Suggestions. Use external Web search for this operation." };
+        return;
+      }
+      yield* withGoogleSearchSuggestions(runGeminiImageGeneration({ model: imageModel, traceId, webSearchEnabled: true, requireSearchSuggestions: true,
+        generate: () => this.ai.models.generateContent({ model: imageModel, contents: messagesToGeminiContents(messages) as Content[],
+          config: { systemInstruction: systemPrompt, safetySettings: DEFAULT_SAFETY_SETTINGS,
+            responseModalities: ["TEXT", "IMAGE"], tools: [{ googleSearch: {} }],
+          },
+        }),
+      }));
+      return;
+    }
+    const planner = new GeminiClient(this.apiKey, "gemini-3.8-flash", this.webSearchSettings, "external");
     yield* generateWithWebReferences({ systemPrompt,
       search: () => planner.chatWithToolsStream(messages, [],
         "Use web_search to find references relevant to the image request. Summarize useful facts and cite URLs.",
@@ -268,8 +331,8 @@ export function getGeminiClient(): GeminiClient | null {
   return geminiClientInstance;
 }
 
-export function initGeminiClient(apiKey: string, model: ModelType, webSearchSettings?: WebSearchSettings): GeminiClient {
-  geminiClientInstance = new GeminiClient(apiKey, model, webSearchSettings);
+export function initGeminiClient(apiKey: string, model: ModelType, webSearchSettings?: WebSearchSettings, webSearchMode: "google" | "external" | "none" = "external"): GeminiClient {
+  geminiClientInstance = new GeminiClient(apiKey, model, webSearchSettings, webSearchMode);
   return geminiClientInstance;
 }
 

@@ -39,7 +39,7 @@ export function registerDiscussionHubIntegration(plugin: GeminiHelperPlugin): vo
       .map((model) => ({ id: model.name, name: model.displayName }))),
     streamText: async ({ modelId, messages, systemPrompt, abortSignal, onChunk }) => {
       if (!plugin.settings.googleApiKey) throw new Error("Gemini API key is not configured.");
-      const client = new GeminiClient(plugin.settings.googleApiKey, modelId as ModelType, plugin.settings.webSearch);
+      const client = new GeminiClient(plugin.settings.googleApiKey, modelId as ModelType, plugin.settings.webSearch, plugin.settings.webSearchMode);
       const converted: Message[] = messages.map((message) => ({
         role: message.role,
         content: message.content,

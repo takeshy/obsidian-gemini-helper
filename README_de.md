@@ -842,7 +842,7 @@ Benötigt: `pip install cryptography`
 **An Google gesendete Daten:**
 - Alle Chat-Nachrichten und Dateianhänge werden zur Verarbeitung an die Google Gemini API gesendet
 - Bei aktiviertem RAG werden Vault-Dateien zu Google File Search hochgeladen
-- Bei aktivierter Websuche werden Anfragen an Tavily / Brave Search gesendet
+- Bei aktivierter Websuche werden Anfragen an Google Search / Tavily / Brave Search gesendet
 
 **An Drittanbieter gesendete Daten:**
 - Workflow-`http`-Nodes können Daten an jede im Workflow angegebene URL senden

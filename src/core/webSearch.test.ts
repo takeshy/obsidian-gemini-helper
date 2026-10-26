@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { requestUrl } from "obsidian";
-import { DEFAULT_WEB_SEARCH_SETTINGS, isWebSearchConfigured, searchWeb } from "./webSearch";
+import { DEFAULT_WEB_SEARCH_SETTINGS, isWebSearchConfigured, searchWeb, resolveWebSearchMode } from "./webSearch";
 
 vi.mock("obsidian", () => ({ requestUrl: vi.fn() }));
 const request = vi.mocked(requestUrl);
@@ -52,5 +52,20 @@ describe("Web search providers", () => {
   it("rejects malformed provider payloads", async () => {
     request.mockResolvedValue({ status: 200, json: { results: "bad" } } as never);
     await expect(searchWeb(tavily, "query")).rejects.toThrow("Invalid Web search response");
+  });
+});
+
+
+describe("default Web search provider migration", () => {
+  it.each([
+    [undefined, undefined, "google"],
+    [undefined, "none", "google"],
+    [undefined, "tavily", "external"],
+    [undefined, "brave", "external"],
+    ["google", "brave", "google"],
+    ["none", "tavily", "none"],
+    ["external", "tavily", "external"],
+  ] as const)("restores mode %s with external provider %s as %s", (mode, provider, expected) => {
+    expect(resolveWebSearchMode(mode, provider)).toBe(expected);
   });
 });

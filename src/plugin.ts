@@ -1,4 +1,4 @@
-import { DEFAULT_WEB_SEARCH_SETTINGS, WEB_SEARCH_SECRET_IDS } from "src/core/webSearch";
+import { DEFAULT_WEB_SEARCH_SETTINGS, WEB_SEARCH_SECRET_IDS, resolveWebSearchMode } from "src/core/webSearch";
 import { configureMcpClientInfo } from "obsidian-llm-hub-common/mcp";
 import { setMcpApprovalHandler, sameMcpConnection } from "./core/mcpApproval";
 import { McpApprovalModal } from "./ui/components/McpApprovalModal";
@@ -639,6 +639,7 @@ export class GeminiHelperPlugin extends Plugin {
       ...DEFAULT_SETTINGS,
       ...loaded,
       voiceChat: { ...DEFAULT_SETTINGS.voiceChat, ...loaded.voiceChat },
+      webSearchMode: resolveWebSearchMode(loaded.webSearchMode, loaded.webSearch?.provider),
       webSearch: {
         ...DEFAULT_WEB_SEARCH_SETTINGS,
         provider: loaded.webSearch?.provider ?? "none",
@@ -860,7 +861,7 @@ export class GeminiHelperPlugin extends Plugin {
 
   private initializeClients() {
     if (this.settings.googleApiKey) {
-      initGeminiClient(this.settings.googleApiKey, getDefaultModelForPlan(this.settings.apiPlan), this.settings.webSearch);
+      initGeminiClient(this.settings.googleApiKey, getDefaultModelForPlan(this.settings.apiPlan), this.settings.webSearch, this.settings.webSearchMode);
       initFileSearchManager(this.settings.googleApiKey, this.app);
     } else {
       resetGeminiClient();

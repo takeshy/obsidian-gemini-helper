@@ -31,6 +31,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   create.mockReset();
   generateContent.mockReset();
+  generateContentStream.mockReset();
   vi.mocked(requestUrl).mockReset();
   createChat.mockReturnValue({ sendMessageStream });
 });
@@ -201,5 +202,64 @@ describe("external Web search integration", () => {
       { disableTools: true, functionCallLimits: { maxFunctionCalls: 1 } }));
     expect(requestUrl).toHaveBeenCalledOnce();
     expect(create.mock.calls[1][0].tools).toBeUndefined();
+  });
+});
+
+
+describe("native Google Search display contract", () => {
+  const messages = [{ role: "user" as const, content: "latest news", timestamp: 0 }];
+  const html = '<style>.google{color:blue}</style><a href="https://www.google.com/search?q=news">Google</a>';
+  async function all(stream: AsyncIterable<StreamChunk>) { const chunks: StreamChunk[] = []; for await (const chunk of stream) chunks.push(chunk); return chunks; }
+  it("enables native Interactions search only for a consented display-capable Chat and retains its HTML", async () => {
+    create.mockResolvedValue(events([
+      { event_type: "step.delta", delta: { type: "text", text: "grounded answer" } },
+      { event_type: "step.delta", delta: { type: "google_search_result", result: [{ search_suggestions: html }] } },
+      { event_type: "interaction.completed", interaction: { status: "completed" } },
+    ]));
+    const chunks = await all(new GeminiClient("key", "gemini-3.5-flash-lite", undefined, "google")
+      .chatWithToolsStream(messages, [], undefined, undefined, undefined, true, { googleSearchAllowed: true }));
+    expect(create.mock.calls[0][0].tools).toEqual([{ type: "google_search" }]);
+    expect(chunks.findIndex(chunk => chunk.type === "search_suggestions")).toBeLessThan(chunks.findIndex(chunk => chunk.type === "text"));
+    expect(chunks.at(-1)?.searchSuggestions).toEqual([html]);
+    expect(chunks.at(-1)?.googleSearchGrounding).toBe(true);
+  });
+  it("preserves Search Suggestions across GenerateContent function calling rounds", async () => {
+    generateContentStream.mockResolvedValueOnce(events([{ candidates: [{ content: { parts: [
+      { functionCall: { id: "call", name: "read", args: {} }, thoughtSignature: "signature" },
+    ] }, groundingMetadata: { webSearchQueries: ["news"], searchEntryPoint: { renderedContent: html } } }] }]))
+      .mockResolvedValueOnce(events([{ candidates: [{ content: { parts: [{ text: "answer" }] } }] }]));
+    const execute = vi.fn().mockResolvedValue({ ok: true });
+    const chunks = await all(new GeminiClient("key", "gemini-3.8-flash", undefined, "google").chatWithToolsStream(messages,
+      [{ name: "read", description: "read", parameters: { type: "object", properties: {} } }], undefined, execute, undefined, true,
+      { googleSearchAllowed: true, functionCallLimits: { maxFunctionCalls: 1 } }));
+    expect(execute).toHaveBeenCalledOnce();
+    expect(generateContentStream.mock.calls[0][0].config.tools).toContainEqual({ googleSearch: {} });
+    expect(generateContentStream.mock.calls[1][0].config.tools).toEqual([{ googleSearch: {} }]);
+    expect(chunks.find(chunk => chunk.type === "search_suggestions")?.searchSuggestions).toEqual([html]);
+    expect(chunks.at(-1)?.type).toBe("done");
+  });
+  it("fails closed before calling an API when the caller cannot display the required UI", async () => {
+    const chunks = await all(new GeminiClient("key", "gemini-3.8-flash", undefined, "google")
+      .chatWithToolsStream(messages, [], undefined, undefined, undefined, true));
+    expect(chunks[0].type).toBe("error"); expect(create).not.toHaveBeenCalled(); expect(generateContentStream).not.toHaveBeenCalled();
+  });
+  it("does not display a grounded result that has no Search Suggestions", async () => {
+    create.mockResolvedValue(events([
+      { event_type: "step.delta", delta: { type: "text", text: "hidden answer" } },
+      { event_type: "step.delta", delta: { type: "google_search_result", result: [] } },
+      { event_type: "interaction.completed", interaction: { status: "completed" } },
+    ]));
+    const chunks = await all(new GeminiClient("key", "gemini-3.5-flash-lite", undefined, "google")
+      .chatWithToolsStream(messages, [], undefined, undefined, undefined, true, { googleSearchAllowed: true }));
+    expect(chunks.some(chunk => chunk.type === "text")).toBe(false);
+    expect(chunks.at(-1)?.type).toBe("error");
+  });
+  it("uses the same required display data for native image generation", async () => {
+    generateContent.mockResolvedValue({ candidates: [{ content: { parts: [{ inlineData: { mimeType: "image/png", data: "abc" } }] },
+      groundingMetadata: { webSearchQueries: ["news"], searchEntryPoint: { renderedContent: html } } }] });
+    const chunks = await all(new GeminiClient("key", "gemini-3.1-flash-image", undefined, "google")
+      .generateImageStream(messages, "gemini-3.1-flash-image", undefined, true, undefined, null, { googleSearchAllowed: true }));
+    expect(chunks.find(chunk => chunk.type === "search_suggestions")?.searchSuggestions).toEqual([html]);
+    expect(chunks.findIndex(chunk => chunk.type === "search_suggestions")).toBeLessThan(chunks.findIndex(chunk => chunk.type === "image_generated"));
   });
 });

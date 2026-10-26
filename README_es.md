@@ -843,7 +843,7 @@ Requiere: `pip install cryptography`
 **Datos enviados a Google:**
 - Todos los mensajes de chat y archivos adjuntos se envian a la API de Google Gemini para procesamiento
 - Cuando RAG esta habilitado, los archivos del vault se suben a Google File Search
-- Cuando la Busqueda Web esta habilitada, las consultas se envian a Tavily / Brave Search
+- Cuando la Busqueda Web esta habilitada, las consultas se envian a Google Search / Tavily / Brave Search
 
 **Datos enviados a servicios de terceros:**
 - Los nodos `http` de flujos de trabajo pueden enviar datos a cualquier URL especificada en el flujo de trabajo

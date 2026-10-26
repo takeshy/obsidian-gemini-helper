@@ -1,13 +1,13 @@
 # Shared library package
 
-`obsidian-llm-hub-common-0.1.6.tgz` contains the prebuilt shared library, including JavaScript and TypeScript declarations, so `npm ci --ignore-scripts` works.
+`obsidian-llm-hub-common-0.1.8.tgz` contains prebuilt JavaScript and TypeScript declarations for `npm ci --ignore-scripts`.
 
-Source commit: `5d9ebd9f70f12ec2d554bd67d4f3c7a172dfd3a2` in [obsidian-llm-hub-common](https://github.com/takeshy/obsidian-llm-hub-common). This archive was built locally from that source; the package has not been published.
+Source: [`obsidian-llm-hub-common` commit `e7eeb536901fb5f3140b3c4410caad0170276ac3`](https://github.com/takeshy/obsidian-llm-hub-common/commit/e7eeb536901fb5f3140b3c4410caad0170276ac3), including Google Search display, conversation-storage and manual-save-folder changes. This local package has not been published. LLM Hub remains on its existing 0.1.6 archive.
 
 Archive integrity:
 
 ```text
-sha512-k6X9ApFq3maj2eaLU7ajDI/afCYDfRrcWGDXXk1mrSVkKcfL/MHqUpfAlwOc45qv2wJ8dzRe/LsAuKriblEpYw==
+sha512-YfEqflXuoT8y8VYG0LXQjqCiBlzKUmhcnrPHYlPL+pHMSjwPiKKD9vOjeHvkupGUhywnTWVnEWw/SivHvj6KKA==
 ```
 
-Built and tested using `npm pack` (the prepack script runs build and the full test suite). To update, build and test the library, create its archive with `npm pack`, and update both the dependency and lockfile alongside this source commit and integrity. The MIT license is included in the archive.
+Created with `npm pack`, whose prepack script runs the build and full tests. The MIT license is included in the archive.

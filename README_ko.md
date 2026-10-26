@@ -842,7 +842,7 @@ if __name__ == "__main__":
 **Google로 전송되는 데이터:**
 - 모든 채팅 메시지와 파일 첨부는 처리를 위해 Google Gemini API로 전송됩니다
 - RAG가 활성화되면 vault 파일이 Google File Search에 업로드됩니다
-- Web Search가 활성화되면 쿼리가 Tavily / Brave Search로 전송됩니다
+- Web Search가 활성화되면 쿼리가 Google Search / Tavily / Brave Search로 전송됩니다
 
 **타사 서비스로 전송되는 데이터:**
 - 워크플로우 `http` 노드는 워크플로우에 지정된 모든 URL로 데이터를 전송할 수 있습니다

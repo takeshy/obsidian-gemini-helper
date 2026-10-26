@@ -14,6 +14,7 @@ interface MessageListProps {
   messages: Message[];
   streamingContent: string;
   streamingThinking: string;
+  streamingSearchSuggestions?: string[];
   isLoading: boolean;
   onApplyEdit?: (messageIndex: number) => Promise<void>;
   onDiscardEdit?: (messageIndex: number) => void;
@@ -48,7 +49,7 @@ const MessageList = forwardRef<HTMLDivElement, MessageListProps>((props, ref) =>
       onApplyEdit={props.onApplyEdit ? () => props.onApplyEdit!(index) : undefined}
       onDiscardEdit={props.onDiscardEdit ? () => props.onDiscardEdit!(index) : undefined}
     />}
-    renderStreamingMessage={message => <MessageBubble message={message} isStreaming app={props.app}  />}
+    renderStreamingMessage={message => <MessageBubble message={{ ...message, searchSuggestions: props.streamingSearchSuggestions }} isStreaming app={props.app}  />}
   />
 ));
 export default MessageList;

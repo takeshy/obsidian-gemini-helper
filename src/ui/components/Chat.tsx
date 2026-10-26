@@ -1,4 +1,7 @@
-import { isWebSearchConfigured } from "src/core/webSearch";
+import { requestGoogleSearchConsent } from "src/core/groundingConsent";
+import { GoogleSearchConsentModal } from "./GoogleSearchConsentModal";
+import { GroundingAutoSaveNotice, canRenderGoogleSearchSuggestions } from "obsidian-llm-hub-common";
+import { supportsGoogleSearch, isWebSearchConfigured } from "src/core/webSearch";
 import { Trash2 } from "lucide-react";
 import { ChatHeader } from "obsidian-llm-hub-common";
 import { ChatLayout, HistoryList, HeaderButton, SidebarWidthButton, SaveNoteButton } from "obsidian-llm-hub-common";
@@ -132,6 +135,13 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin, onToggleSidebarWidth }, r
 		getChatHistoryFolder: () => plugin.settings.workspaceFolder || DEFAULT_WORKSPACE_FOLDER,
 		getManualChatSaveFolder: () => plugin.settings.manualChatSaveFolder,
 		isHistoryEnabled: () => plugin.settings.saveChatHistory,
+		isChatAutoSaveDisabled: id => plugin.workspaceState.groundingRestrictedChatIds?.includes(id) === true,
+		onGroundingChatRestricted: async id => {
+			const ids = new Set(plugin.workspaceState.groundingRestrictedChatIds ?? []);
+			ids.add(id);
+			plugin.workspaceState.groundingRestrictedChatIds = [...ids];
+			await plugin.saveWorkspaceState();
+		},
 		getMaxSavedChatHistories: () => plugin.settings.maxSavedChatHistories,
 		getEncryption: () => plugin.settings.encryption,
 	};
@@ -146,6 +156,7 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin, onToggleSidebarWidth }, r
 		deleteChat: deleteChatFromHistory,
 		saveAsNote,
 		decryptChat,
+		autoSaveDisabledByGrounding, getCurrentChatId, getChatSession, disableAutoSaveByGrounding, restoreChatSession,
 	} = useChatHistories(chatStorageHost);
 	const [showHistory, setShowHistory] = useState(false);
 	const [isSidebarWide, setIsSidebarWide] = useState(false);
@@ -157,9 +168,15 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin, onToggleSidebarWidth }, r
 	const [selectedRagSetting, setSelectedRagSetting] = useState<string | null>(
 		plugin.workspaceState.selectedRagSetting
 	);
-	const [webSearchEnabled, setWebSearchEnabled] = useState(plugin.workspaceState.webSearchEnabled === true);
+	const [webSearchEnabled, setWebSearchEnabledState] = useState(plugin.settings.webSearchMode === "external" && plugin.workspaceState.webSearchEnabled === true);
+	const webSearchEnabledRef = useRef(webSearchEnabled);
+	const updateWebSearchEnabled = (enabled: boolean) => { webSearchEnabledRef.current = enabled; setWebSearchEnabledState(enabled); };
+	const groundingConsentRef = useRef<Promise<boolean> | null>(null);
+	const [streamingSearchSuggestions, setStreamingSearchSuggestions] = useState<string[]>([]);
 	// Vault tool mode: "all" = use all tools, "noSearch" = exclude search_notes/list_notes, "none" = no vault tools
-	const supportsWebSearch = (_model: string) => isWebSearchConfigured(plugin.settings.webSearch);
+	const supportsWebSearch = (model: string) => plugin.settings.webSearchMode === "google"
+		? supportsGoogleSearch(model) && canRenderGoogleSearchSuggestions()
+		: plugin.settings.webSearchMode === "external" && isWebSearchConfigured(plugin.settings.webSearch);
 	const [vaultToolMode, setVaultToolMode] = useState<"all" | "noSearch" | "readOnly" | "none">("all");
 	// Reason why vault tools are "none" - determines whether MCP should also be disabled
 	const [, setVaultToolNoneReason] = useState<VaultToolNoneReason | null>(null);
@@ -183,6 +200,7 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin, onToggleSidebarWidth }, r
 		setMessages,
 		saveChatToDisk,
 		currentChatId,
+		getCurrentChatId,
 		// A backgrounded stream owns the executor it is still using; just let go of it.
 		onDetachStream: () => { mcpExecutorRef.current = null; },
 		onLeaveIdle: () => {
@@ -342,6 +360,7 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin, onToggleSidebarWidth }, r
 				if (parsed?.messages && parsed.messages.length > 0) {
 					// Final check before touching state
 					if (activeSessionIdRef.current !== mountSessionId) return;
+					restoreChatSession(lastId, parsed);
 					setMessages(parsed.messages);
 					setCurrentChatId(lastId);
 				}
@@ -625,7 +644,7 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin, onToggleSidebarWidth }, r
 		const handleWorkspaceStateLoaded = () => {
 			setRagSettingNames(plugin.getRagSettingNames());
 			setSelectedRagSetting(plugin.workspaceState.selectedRagSetting);
-			setWebSearchEnabled(plugin.workspaceState.webSearchEnabled === true);
+			updateWebSearchEnabled(plugin.workspaceState.webSearchEnabled === true && (plugin.settings.webSearchMode !== "google" || getChatSession().autoSaveDisabledByGrounding));
 			setReasoningEffortByModel({ ...(plugin.workspaceState.reasoningEffortByModel ?? {}) });
 		};
 
@@ -633,7 +652,7 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin, onToggleSidebarWidth }, r
 			setSelectedRagSetting(name);
 		};
 		const handleWebSearchChanged = (enabled: boolean) => {
-			setWebSearchEnabled(enabled);
+			updateWebSearchEnabled(enabled && (plugin.settings.webSearchMode !== "google" || getChatSession().autoSaveDisabledByGrounding));
 		};
 
 		plugin.settingsEmitter.on("workspace-state-loaded", handleWorkspaceStateLoaded);
@@ -649,6 +668,7 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin, onToggleSidebarWidth }, r
 
 	useEffect(() => {
 		const handleSettingsUpdated = () => {
+			if (plugin.settings.webSearchMode === "google" && !getChatSession().autoSaveDisabledByGrounding) updateWebSearchEnabled(false);
 			setApiPlan(plugin.settings.apiPlan);
 			setCurrentModel(plugin.getSelectedModel());
 			setRagEnabledState(plugin.settings.ragEnabled);
@@ -691,11 +711,31 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin, onToggleSidebarWidth }, r
 
 	// `persist` is false for slash-command overrides: they last for the message,
 	// and must not rewrite the workspace's remembered search preferences.
-	const handleWebSearchChange = (enabled: boolean, modelForSupport = currentModel, persist = true) => {
+	const ensureGroundingConsent = async (): Promise<boolean> => {
+		if (getChatSession().autoSaveDisabledByGrounding) return true;
+		if (groundingConsentRef.current) return groundingConsentRef.current;
+		if (!canRenderGoogleSearchSuggestions()) { new Notice(t("grounding.unsupported")); return false; }
+		const sessionId = activeSessionIdRef.current;
+		const pending = requestGoogleSearchConsent({
+			isRestricted: () => getChatSession().autoSaveDisabledByGrounding,
+			isCurrent: () => activeSessionIdRef.current === sessionId && plugin.settings.webSearchMode === "google",
+			confirm: () => new GoogleSearchConsentModal(plugin.app).openAndWait(),
+			restrict: disableAutoSaveByGrounding,
+		});
+		groundingConsentRef.current = pending;
+		try { return await pending; }
+		catch (error) { new Notice(formatError(error)); return false; }
+		finally { if (groundingConsentRef.current === pending) groundingConsentRef.current = null; }
+	};
+
+	const handleWebSearchChange = async (enabled: boolean, modelForSupport = currentModel, persist = true) => {
 		const nextEnabled = enabled && supportsWebSearch(modelForSupport);
+		const sessionId = activeSessionIdRef.current;
+		if (nextEnabled && plugin.settings.webSearchMode === "google" && !await ensureGroundingConsent()) return;
+		if (sessionId !== activeSessionIdRef.current) return;
 		if (nextEnabled) setSelectedRagSetting(null);
-		setWebSearchEnabled(nextEnabled);
-		if (persist) void plugin.selectWebSearchEnabled(nextEnabled);
+		updateWebSearchEnabled(nextEnabled);
+		if (persist) await plugin.selectWebSearchEnabled(nextEnabled);
 	};
 
 	const handleReasoningEffortChange = (effort: ReasoningEffort) => {
@@ -710,7 +750,7 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin, onToggleSidebarWidth }, r
 
 	// Handle RAG setting change from UI
 	const handleRagSettingChange = (name: string | null, persist = true) => {
-		if (name) setWebSearchEnabled(false);
+		if (name) updateWebSearchEnabled(false);
 		setSelectedRagSetting(name);
 		if (persist) void plugin.selectRagSetting(name);
 	};
@@ -806,10 +846,9 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin, onToggleSidebarWidth }, r
 		// getSlashCommandSearchSelection reads for us.
 		if (commandSearch !== null) {
 			if (commandSearch.webSearch) {
-				handleWebSearchChange(true, nextModel, false);
-				handleRagSettingChange(null, false);
+				void handleWebSearchChange(true, nextModel, false);
 			} else {
-				handleWebSearchChange(false, nextModel, false);
+				void handleWebSearchChange(false, nextModel, false);
 				handleRagSettingChange(commandSearch.ragSetting, false);
 			}
 		}
@@ -847,6 +886,8 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin, onToggleSidebarWidth }, r
 
 		setMessages([]);
 		setCurrentChatId(null);
+		if (plugin.settings.webSearchMode === "google") updateWebSearchEnabled(false);
+		setStreamingSearchSuggestions([]);
 		// Keep the user's currently selected skills when starting a new chat
 		// (skills are a session-level selection, not per-chat state).
 		setStreamingContent("");
@@ -859,6 +900,8 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin, onToggleSidebarWidth }, r
 		leaveCurrentChat();
 		try {
 			const parsed = await decryptChat(chatId, password);
+			restoreChatSession(chatId, parsed);
+			if (plugin.settings.webSearchMode === "google" && !parsed.autoSaveDisabledByGrounding) updateWebSearchEnabled(false);
 			setMessages(parsed.messages);
 			setCurrentChatId(chatId);
 			setStreamingContent("");
@@ -888,6 +931,9 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin, onToggleSidebarWidth }, r
 			setDecryptPassword("");
 			return;
 		}
+		restoreChatSession(history.id, history);
+		if (plugin.settings.webSearchMode === "google" && !getChatSession(history.id).autoSaveDisabledByGrounding) updateWebSearchEnabled(false);
+		setStreamingSearchSuggestions([]);
 		setMessages(history.messages);
 		setCurrentChatId(history.id);
 		setStreamingContent("");
@@ -912,10 +958,17 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin, onToggleSidebarWidth }, r
 		allowedModel: ModelType;
 		autoSwitchedToImage: boolean;
 		originalModel: ModelType;
+		requestWebSearch: boolean;
+		googleSearchAllowed: boolean;
 	}
 
 	const sendMessage = async (content: string, attachments?: Attachment[], skillPath?: string) => {
 		if ((!content.trim() && !skillPath && (!attachments || attachments.length === 0)) || isLoading) return;
+		if (groundingConsentRef.current && !await groundingConsentRef.current) return;
+		if (webSearchEnabledRef.current && plugin.settings.webSearchMode === "google" && !await ensureGroundingConsent()) return;
+		const requestWebSearch = webSearchEnabledRef.current;
+		const googleSearchAllowed = plugin.settings.webSearchMode === "google" && getChatSession().autoSaveDisabledByGrounding && canRenderGoogleSearchSuggestions();
+		setStreamingSearchSuggestions([]);
 
 		// Kept out here so the teardown can reach it even when the stream was
 		// pushed to the background mid-turn.
@@ -986,6 +1039,7 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin, onToggleSidebarWidth }, r
 				return {
 					userMessage,
 					trace: {
+						enabled: !getChatSession().autoSaveDisabledByGrounding,
 						name: "chat-message",
 						sessionId: currentChatId ?? undefined,
 						input: resolvedContent,
@@ -998,11 +1052,11 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin, onToggleSidebarWidth }, r
 							pluginVersion: plugin.manifest.version,
 						},
 					},
-					context: { client, allowedModel, autoSwitchedToImage, originalModel },
+					context: { client, allowedModel, autoSwitchedToImage, originalModel, requestWebSearch, googleSearchAllowed },
 				};
 			},
 
-			run: async (turn, { client, allowedModel }) => {
+			run: async (turn, { client, allowedModel, requestWebSearch, googleSearchAllowed }) => {
 				const { isActive, abortController, traceId, userMessage } = turn;
 				let result: ChatTurnOutcome | undefined;
 				const runStreamOnce = async () => {
@@ -1172,7 +1226,7 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin, onToggleSidebarWidth }, r
 
 						// Check if Web Search or Image Generation model is selected
 					const isImageGeneration = isImageGenerationModel(allowedModel);
-					const isWebSearch = supportsWebSearch(allowedModel) && webSearchEnabled;
+					const isWebSearch = supportsWebSearch(allowedModel) && requestWebSearch;
 					const requestRagEnabled = allowRag && !isImageGeneration;
 
 					// Pass RAG store IDs if RAG is enabled and a setting is selected (not web search)
@@ -1273,7 +1327,7 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin, onToggleSidebarWidth }, r
 
 					// Use image generation stream or regular chat stream
 					const chunkStream = isImageGeneration
-						? client.generateImageStream(allMessages, allowedModel, systemPrompt, isWebSearch, ragStoreIds, traceId)
+						? client.generateImageStream(allMessages, allowedModel, systemPrompt, isWebSearch, ragStoreIds, traceId, { googleSearchAllowed })
 						: client.chatWithToolsStream(
 							allMessages,
 							effectiveTools,
@@ -1282,6 +1336,7 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin, onToggleSidebarWidth }, r
 							ragStoreIds,
 							isWebSearch,
 							{
+								googleSearchAllowed,
 								ragTopK: settings.ragTopK,
 								functionCallLimits: {
 									maxFunctionCalls: settings.maxFunctionCalls,
@@ -1323,7 +1378,8 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin, onToggleSidebarWidth }, r
 
 					accumulateStreamChunk(stream, chunk);
 					if (isActive()) {
-						if (chunk.type === "text") setStreamingContent(stream.text);
+						if (chunk.type === "search_suggestions") setStreamingSearchSuggestions([...stream.searchSuggestions]);
+							else if (chunk.type === "text") setStreamingContent(stream.text);
 						else if (chunk.type === "thinking") setStreamingThinking(stream.thinking);
 					}
 					}
@@ -1350,6 +1406,8 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin, onToggleSidebarWidth }, r
 						ragUsed: stream.ragUsed || undefined,
 						ragSources: stream.ragSources.length > 0 ? stream.ragSources : undefined,
 						ragContexts: stream.ragContexts.length > 0 ? stream.ragContexts : undefined,
+						searchSuggestions: stream.searchSuggestions.length ? stream.searchSuggestions : undefined,
+						googleSearchGrounding: stream.googleSearchGrounding,
 						webSearchUsed: stream.webSearchUsed || undefined,
 						webSearchSources: stream.webSearchSources.length > 0 ? stream.webSearchSources : undefined,
 						imageGenerationUsed: stream.imageGenerationUsed || undefined,
@@ -1470,7 +1528,7 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin, onToggleSidebarWidth }, r
 				timestamp: Date.now(),
 			};
 
-			const compactTraceId = tracing.traceStart("chat-compact", {
+			const compactTraceId = getChatSession().autoSaveDisabledByGrounding ? null : tracing.traceStart("chat-compact", {
 				sessionId: currentChatId ?? undefined,
 				input: `Compacting ${messages.length} messages`,
 				metadata: { messageCount: messages.length, pluginVersion: plugin.manifest.version },
@@ -1502,7 +1560,9 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin, onToggleSidebarWidth }, r
 
 			const newMessages = [userMessage, compactedMessage];
 			const newChatId = generateChatId();
+			const restricted = getChatSession().autoSaveDisabledByGrounding;
 			setCurrentChatId(newChatId);
+			if (restricted) await disableAutoSaveByGrounding();
 			setMessages(newMessages);
 
 			// Save as a new chat with explicit new ID (avoids stale closure of currentChatId)
@@ -1622,7 +1682,7 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin, onToggleSidebarWidth }, r
 						classPrefix="gemini-helper"
 						state={saveNoteState}
 						disabled={messages.length === 0}
-						title={saveNoteState === "saved" ? t("chat.savedAsNote", { path: "" }) : t("chat.saveAsNote")}
+						title={saveNoteState === "saved" ? t("chat.savedAsNote", { path: "" }) : autoSaveDisabledByGrounding ? t("grounding.save") : t("chat.saveAsNote")}
 						onClick={() => { void saveAsNote(messages); }}
 					/>
 					<HeaderButton classPrefix="gemini-helper" title={t("chat.newChat")} onClick={startNewChat}>
@@ -1632,6 +1692,8 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin, onToggleSidebarWidth }, r
 						<History size={16} />
 					</HeaderButton>
 				</ChatHeader>
+
+			{autoSaveDisabledByGrounding && <GroundingAutoSaveNotice classPrefix="gemini-helper" />}
 
 			{showHistory && <HistoryList classPrefix="gemini-helper"
         entries={chatHistories.map(history => ({ ...history, dateLabel: formatHistoryDate(history.updatedAt), encrypted: history.isEncrypted }))}
@@ -1682,6 +1744,7 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin, onToggleSidebarWidth }, r
 						messages={messages}
 						streamingContent={streamingContent}
 						streamingThinking={streamingThinking}
+						streamingSearchSuggestions={streamingSearchSuggestions}
 						isLoading={isLoading}
 						onApplyEdit={handleApplyEdit}
 						onDiscardEdit={handleDiscardEdit}
@@ -1708,7 +1771,7 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin, onToggleSidebarWidth }, r
 						availableModels={availableModels}
 						allowWebSearch={allowWebSearch}
 						webSearchEnabled={webSearchEnabled}
-						onWebSearchChange={handleWebSearchChange}
+						onWebSearchChange={enabled => { void handleWebSearchChange(enabled); }}
 						ragEnabled={allowRag}
 						ragSettings={allowRag ? ragSettingNames : []}
 						selectedRagSetting={selectedRagSetting}
@@ -1758,6 +1821,7 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin, onToggleSidebarWidth }, r
 						}}
 						inputHistory={sentPromptHistory}
 						onInputHistoryAdd={(prompt) => {
+							if (getChatSession().autoSaveDisabledByGrounding || groundingConsentRef.current) return;
 							setSentPromptHistory(previous => {
 								const next = [...previous, prompt].slice(-100);
 								plugin.workspaceState.sentPromptHistory = next;

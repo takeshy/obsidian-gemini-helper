@@ -17,6 +17,8 @@ Use RAG when the user wants broad retrieval over vault files, PDFs, Office docum
 Internal sync supports:
 
 - Markdown: `md`
+- HTML: `html`, `htm` (uploaded as `text/html`)
+- Plain text: `txt` (uploaded as `text/plain`)
 - PDF: `pdf`
 - Images: `png`, `jpg`, `jpeg`
 - Microsoft Office: `doc`, `docx`, `xls`, `xlsx`, `pptx`

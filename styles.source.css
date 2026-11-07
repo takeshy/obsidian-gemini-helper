@@ -2735,3 +2735,54 @@
 }
 
 /* @chat-ui-styles */
+
+/* Live voice conversation */
+
+.gemini-helper-live-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: var(--background-modifier-cover);
+}
+
+.gemini-helper-live-dialog {
+  display: flex;
+  flex-direction: column;
+  width: min(560px, 100%);
+  max-height: 90vh;
+  padding: 16px;
+  gap: 12px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--radius-l);
+  background: var(--background-primary);
+  color: var(--text-normal);
+  box-shadow: var(--shadow-l);
+}
+
+.gemini-helper-live-heading,
+.gemini-helper-live-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.gemini-helper-live-heading h3 { margin: 0; }
+.gemini-helper-live-body { min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
+.gemini-helper-live-description { font-size: var(--font-ui-small); color: var(--text-muted); }
+.gemini-helper-live-options { display: flex; flex-wrap: wrap; gap: 12px; }
+.gemini-helper-live-options label,
+.gemini-helper-live-rag { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.gemini-helper-live-options select { max-width: 100%; }
+.gemini-helper-live-check { display: flex; align-items: flex-start; gap: 6px; margin: 12px 0; }
+.gemini-helper-live-check input { flex: 0 0 auto; margin: 2px 0 0; }
+.gemini-helper-live-actions { justify-content: flex-start; flex-wrap: wrap; }
+.gemini-helper-live-actions button { display: inline-flex; align-items: center; gap: 6px; }
+.gemini-helper-live-error { color: var(--text-error); }
+.gemini-helper-live-transcript { user-select: text; -webkit-user-select: text; overflow-wrap: anywhere; }
+.gemini-helper-live-transcript p { white-space: pre-wrap; }

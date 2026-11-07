@@ -1,6 +1,7 @@
 # Features
 
 - [Chat](./chat.md) - Chat controls, attachments, mentions, slash commands, vault tools, and safe editing.
+- [Live Voice Conversation](./live-conversation.md) - Gemini Live audio, model and voice selection, read-only Vault access, File Search, and transcript saving.
 - [Vault Tools](./vault-tools.md) - Chat function-calling tools, tool modes, confirmation behavior, and folder access.
 - [Agent Skills](./agent-skills.md) - Built-in, external, and vault-authored skills.
 - [Skill Authoring](./skill-authoring.md) - Vault skill folder structure, SKILL.md format, references, capabilities, and examples.

@@ -21,7 +21,7 @@ export function normalizeFileSearchStoreName(storeName: string | null | undefine
 // Supported file extensions for RAG upload
 const SUPPORTED_EXTENSIONS = [
   // Text
-  "md",
+  "md", "html", "htm", "txt",
   // PDF
   "pdf",
   // Images supported by Gemini File Search multimodal embeddings
@@ -34,6 +34,9 @@ const SUPPORTED_EXTENSIONS = [
 function getMimeType(extension: string): string {
   const mimeTypes: Record<string, string> = {
     md: "text/markdown",
+    html: "text/html",
+    htm: "text/html",
+    txt: "text/plain",
     pdf: "application/pdf",
     png: "image/png",
     jpg: "image/jpeg",
@@ -448,7 +451,7 @@ export class FileSearchManager {
     };
 
     try {
-      // Get all supported files from vault (markdown, PDF, images)
+      // Get all supported files from the vault
       const vaultFiles = this.getSupportedFiles();
 
       // Filter to included files only

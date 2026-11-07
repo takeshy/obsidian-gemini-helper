@@ -3,7 +3,7 @@ import { requestGoogleSearchConsent } from "src/core/groundingConsent";
 import { GoogleSearchConsentModal } from "./GoogleSearchConsentModal";
 import { GroundingAutoSaveNotice, canRenderGoogleSearchSuggestions } from "obsidian-llm-hub-common";
 import { supportsGoogleSearch, isWebSearchConfigured } from "src/core/webSearch";
-import { Trash2 } from "lucide-react";
+import { Mic, Trash2 } from "lucide-react";
 import { ChatHeader } from "obsidian-llm-hub-common";
 import { ChatLayout, HistoryList, HeaderButton, SidebarWidthButton, SaveNoteButton } from "obsidian-llm-hub-common";
 import {
@@ -65,6 +65,7 @@ import {
 	clampReadAloudRate,
 	useVoiceConversation,
 	buildReadAloudSystemPrompt,
+	stopReadingAloud,
 	type ChatTurnOutcome,
 } from "obsidian-llm-hub-common/chat";
 import { runSkillWorkflow } from "obsidian-llm-hub-common/workflow";
@@ -86,6 +87,7 @@ import { DEFAULT_BUILTIN_SKILL_IDS, builtinFolderPath, restoredSkillPaths, prune
 import { promptForValue } from "./workflow/ValuePromptModal";
 import { promptForDialog } from "./workflow/DialogPromptModal";
 import { t } from "src/i18n";
+import LiveConversation from "./LiveConversation";
 import { PAID_RATE_LIMIT_RETRY_DELAYS_MS, buildErrorMessage, limitConversationHistory, shouldUseImageModel, type ChatHistory } from "./chat/chatUtils";
 import {
 	parseMarkdownToMessages,
@@ -157,6 +159,9 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin, onToggleSidebarWidth }, r
 	const [showHistory, setShowHistory] = useState(false);
 	const [isSidebarWide, setIsSidebarWide] = useState(false);
 	const [isCompacting, setIsCompacting] = useState(false);
+	const [liveCall, setLiveCall] = useState<{
+		messages: Message[]; chatId: string; ragSetting: string | null; historyEnabled: boolean;
+	} | null>(null);
 	const [currentModel, setCurrentModel] = useState<ModelType>(plugin.getSelectedModel());
 	const [apiPlan, setApiPlan] = useState(plugin.settings.apiPlan);
 	const [ragEnabledState, setRagEnabledState] = useState(plugin.settings.ragEnabled);
@@ -208,7 +213,7 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin, onToggleSidebarWidth }, r
 	});
 	const inputAreaRef = useRef<InputAreaHandle>(null);
 	const [voiceChatSettings, setVoiceChatSettings] = useState(() => ({ ...plugin.settings.voiceChat }));
-	useAutoReadAloud(messages, isLoading, voiceChatSettings.autoReadAloud);
+	useAutoReadAloud(messages, isLoading, voiceChatSettings.autoReadAloud && !liveCall);
 	useReadAloudRate(voiceChatSettings.readAloudRate);
 	const handleAutoReadAloudChange = useCallback((enabled: boolean) => {
 		setVoiceChatSettings((previous) => {
@@ -1665,6 +1670,27 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin, onToggleSidebarWidth }, r
 		inputAreaRef.current?.focus();
 	}, []);
 
+	const openLive = () => {
+		if (!plugin.settings.googleApiKey.trim() || isLoading || isCompacting || liveCall) return;
+		voiceConversation.end();
+		stopReadingAloud();
+		const chatId = currentChatId ?? generateChatId();
+		setCurrentChatId(chatId);
+		setLiveCall({ messages: [...messages], chatId, ragSetting: selectedRagSetting,
+			historyEnabled: plugin.settings.saveChatHistory && !getChatSession(chatId).autoSaveDisabledByGrounding });
+	};
+	const closeLive = (transcript: Message[]) => {
+		if (!liveCall) return;
+		setLiveCall(null);
+		if (!transcript.length) return;
+		const nextMessages = [...liveCall.messages, ...transcript];
+		const foreground = getCurrentChatId() === liveCall.chatId;
+		if (foreground) setMessages(nextMessages);
+		void saveChatToDisk(nextMessages, liveCall.chatId, { foreground }).catch((error: unknown) => {
+			new Notice(formatError(error));
+		});
+	};
+
 	return (
 		<ChatLayout classPrefix="gemini-helper" modifiers={[isKeyboardVisible && "keyboard-visible", isDecryptInputFocused && "decrypt-input-focused"]}>
 			<ChatHeader classPrefix="gemini-helper">
@@ -1687,7 +1713,13 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin, onToggleSidebarWidth }, r
 					<HeaderButton classPrefix="gemini-helper" title={t("chat.chatHistory")} onClick={() => setShowHistory(!showHistory)}>
 						<History size={16} />
 					</HeaderButton>
+					{plugin.settings.googleApiKey.trim() && <HeaderButton classPrefix="gemini-helper" title={t("live.title")} disabled={isLoading || isCompacting || !!liveCall} onClick={openLive}>
+						<Mic size={16} />
+					</HeaderButton>}
 				</ChatHeader>
+
+			{liveCall && <LiveConversation plugin={plugin} messages={liveCall.messages} historyEnabled={liveCall.historyEnabled}
+				selectedRagSetting={liveCall.ragSetting} initialFileAccess={vaultToolMode === "all" || vaultToolMode === "readOnly"} onClose={closeLive} />}
 
 			{autoSaveDisabledByGrounding && <GroundingAutoSaveNotice classPrefix="gemini-helper" />}
 

@@ -68,6 +68,8 @@ The AI Chat feature provides an interactive conversation interface with Google G
 
 ## Voice Input and Read-Aloud
 
+**Gemini Live** — Click the microphone in the chat header to start a real-time voice conversation using your saved Google API key. Choose a Live model and voice separately from the text chat model. You can interrupt, mute, stop and restart, and optionally use recent chat context, read-only Vault tools, and a selected Gemini File Search setting. Finishing adds the transcript to the same chat and follows your history/encryption settings. Audio goes directly to Google; raw audio is not saved. API charges apply. No speech-popup installation is needed. See [Live voice conversation](docs/okf/gemini-helper-help/features/live-conversation.md).
+
 **Read answers aloud** — Turn on *Read responses aloud* in the Vault tool menu. While it is on, a chip above the input says so and its ✕ switches it off. Each assistant bubble also has a speaker button to read that answer on demand, or stop one mid-sentence. Reading speed is adjustable right under the switch, and in Settings → Chat (0.5x to 5x; how fast a voice actually goes varies by voice - Windows voices typically stop speeding up past about 4x). While reading is on, the system prompt asks the model for a short spoken answer instead of Markdown, headings, lists, code or URLs.
 
 **Send dictated text** — Turn on *Send dictated text automatically* in Settings to submit when pasted or dictated text ends with the send phrase (`send it` in English, editable per language). It works with OS dictation, Aqua Voice and similar tools.
@@ -255,7 +257,7 @@ Edit history uses a snapshot-based approach:
 
 Retrieval-Augmented Generation for intelligent vault search:
 
-- **Supported files** - Markdown, PDF, Office documents (Doc, Docx, XLS, XLSX, PPTX)
+- **Supported files** - Markdown, HTML (`html`, `htm`), plain text (`txt`), PDF, Office documents (Doc, Docx, XLS, XLSX, PPTX)
 - **Internal mode** - Sync vault files to Google File Search
 - **External mode** - Use existing store IDs
 - **Incremental sync** - Only upload changed files

@@ -30,6 +30,7 @@ The Save as note button is separate from automatic history. It exports the curre
 
 # Related
 
+- [Live Voice Conversation](./live-conversation.md) explains the chat header microphone, real-time audio, and transcript history.
 - [RAG Semantic Search](./rag.md) explains semantic retrieval.
 - [OKF Knowledge Sources](./okf.md) explains curated prompt context.
 - [MCP](./mcp.md) explains external tools.

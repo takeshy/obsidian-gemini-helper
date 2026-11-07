@@ -10,6 +10,8 @@ timestamp: 2026-07-04T00:00:00Z
 
 Gemini Helper requires a Google Gemini API key. Chat requests, attachments, RAG uploads, web search, and tool results may be sent to Gemini according to the user's selected features and Google API behavior.
 
+Gemini Live sends microphone audio directly to Google and plays AI-generated responses. Optional prior chat context and read-only file tool results are sent to the Live model. File tools respect AI Folder Access; optional File Search uses the selected stores and metadata filter independently of those folder limits. Finishing appends the transcript to the chat under its existing history, encryption, and Google Web search saving restrictions. Raw audio is not saved. Stopping or closing releases microphone and playback resources.
+
 Safe editing is the default for chat tools. `propose_edit`, `bulk_propose_edit`, `propose_delete`, `bulk_propose_delete`, and `bulk_propose_rename` show confirmation UI before modifying files. The legacy direct `update_note` tool is disabled in favor of proposal-based editing.
 
 AI Folder Access is configured in Settings -> Workspace -> Folders AI can access automatically. Empty means automatic vault tools may access the whole vault. Non-empty values restrict automatic chat and AI command workflow vault operations to listed vault-relative folders. This restriction does not limit RAG retrieval, manual attachments, explicit mentions, MCP tools, scripts, or direct workflow note nodes.

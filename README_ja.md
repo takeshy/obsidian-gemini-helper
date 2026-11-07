@@ -68,6 +68,8 @@ AI チャット機能は、Obsidian Vault と統合された Google Gemini と�
 
 ## 音声入力と読み上げ
 
+**Gemini Live** — チャット上部のマイクから、保存済みのGoogle APIキーでリアルタイム音声会話を開始できます。通常のチャットとは別にLive用モデルと声を選択し、割り込み・ミュート・停止・再開ができます。直近のチャット履歴、読み取り専用のVaultツール、選択したGemini File Search設定を個別に使用できます。終了時は文字起こしを同じチャットへ追加し、履歴保存・暗号化設定に従って保存します。音声はGoogleへ直接送信され、音声データ自体は保存しません。API利用料がかかります。speech-popupの導入は不要です。[Live会話の詳細](docs/okf/gemini-helper-help/features/live-conversation.md)。
+
 **回答の読み上げ** — Vault ツールメニューの「回答を自動で読み上げる」をONにします。ON の間は入力欄の上にチップが出て、✕ でOFFにできます。各回答のバブルにもスピーカーボタンがあり、その回答だけを読み上げたり、途中で止めたりできます。読み上げ速度はチェックボックスのすぐ下でも、設定（設定 → チャット）でも変更できます（0.5倍〜5倍。実際にどこまで速くなるかは音声次第で、Windows の音声はおおむね4倍以上では変わりません）。読み上げがONの間は、Markdown や見出し・箇条書き・コード・URL を避けて短く話すよう、システムプロンプトでモデルに指示します。
 
 **音声入力の自動送信** — 設定の「音声入力を自動送信」をONにすると、貼り付け・入力されたテキストが送信フレーズ（日本語の既定は「送信して」、言語ごとに変更可）で終わったときに送信します。OS の音声入力や Aqua Voice などで使えます。
@@ -258,7 +260,7 @@ AI が `propose_edit` を使用時：
 
 Vault の知的検索（Retrieval-Augmented Generation）：
 
-- **対応ファイル** - Markdown、PDF、Office文書（Doc、Docx、XLS、XLSX、PPTX）
+- **対応ファイル** - Markdown、HTML（`html`、`htm`）、プレーンテキスト（`txt`）、PDF、Office文書（Doc、Docx、XLS、XLSX、PPTX）
 - **Internal モード** - Vault ファイルを Google File Search に同期
 - **External モード** - 既存のストア ID を使用
 - **差分同期** - 変更ファイルのみアップロード

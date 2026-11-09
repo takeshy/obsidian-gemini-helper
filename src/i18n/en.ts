@@ -2,9 +2,11 @@ import type { SharedTranslationKey } from "obsidian-llm-hub-common/i18n";
 
 // English translations (base language)
 export const en = {
+  "live.settings": "Call settings",
+  "live.showCall": "Show live conversation",
   "live.title": "Live conversation",
   "live.stop": "Stop",
-  "live.switchHint": "Choose the live model independently of the chat model. Stop before switching models or voices; the transcript is kept.",
+  "live.switchHint": "Starting a call moves the conversation into this chat sidebar. Choose the live model independently of text chat. Stop before changing call settings; the transcript is kept.",
   "live.description": "Talk with Gemini by voice using your saved Google API key. Audio is sent directly to Google. API charges apply. The voice is AI generated.",
   "live.model": "Model",
   "live.voice": "Voice",
@@ -24,8 +26,8 @@ export const en = {
   "live.ragNotRun": "Semantic search has not been called in this session.",
   "live.ragResults": "RAG search returned {{count}} results.",
   "live.ragFailed": "RAG search failed: {{error}}",
-  "live.historySaved": "The transcript is added to this chat and saved to chat history when you finish. Vault files are read-only and follow the configured allowed folders.",
-  "live.historyDisabled": "The transcript is added to this chat when you finish. Automatic chat history is disabled. Vault files are read-only and follow the configured allowed folders.",
+  "live.historySaved": "Speech appears in this chat as you talk and is saved to chat history. End the call to continue by text. Vault files are read-only and follow the configured allowed folders.",
+  "live.historyDisabled": "Speech appears in this chat as you talk. Automatic chat history is disabled. End the call to continue by text. Vault files are read-only and follow the configured allowed folders.",
   "live.connecting": "Connecting…",
   "live.connected": "Connected",
   "live.stopped": "Stopped",

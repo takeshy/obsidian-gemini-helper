@@ -88,6 +88,7 @@ import { promptForValue } from "./workflow/ValuePromptModal";
 import { promptForDialog } from "./workflow/DialogPromptModal";
 import { t } from "src/i18n";
 import LiveConversation from "./LiveConversation";
+import { LiveChatHistory } from "./liveChatHistory";
 import { PAID_RATE_LIMIT_RETRY_DELAYS_MS, buildErrorMessage, limitConversationHistory, shouldUseImageModel, type ChatHistory } from "./chat/chatUtils";
 import {
 	parseMarkdownToMessages,
@@ -112,9 +113,10 @@ const isMentionableFile = (file: TFile): boolean =>
 interface ChatProps {
 	plugin: GeminiHelperPlugin;
 	onToggleSidebarWidth: () => boolean;
+	onRevealChat: () => void;
 }
 
-const Chat = forwardRef<ChatRef, ChatProps>(({ plugin, onToggleSidebarWidth }, ref) => {
+const Chat = forwardRef<ChatRef, ChatProps>(({ plugin, onToggleSidebarWidth, onRevealChat }, ref) => {
 	const [messages, setMessages] = useState<Message[]>([]);
 	const [maxPreviousMessages, setMaxPreviousMessages] = useState(() => {
 		const saved = plugin.workspaceState.maxPreviousMessages;
@@ -143,25 +145,35 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin, onToggleSidebarWidth }, r
 		getMaxSavedChatHistories: () => plugin.settings.maxSavedChatHistories,
 		getEncryption: () => plugin.settings.encryption,
 	};
+	const pendingLiveSaveRef = useRef<Promise<void>>(Promise.resolve());
 	const {
 		chatHistories,
 		currentChatId,
 		setCurrentChatId,
 		saveNoteState,
 		loadChatHistories,
-		saveChatToDisk,
+		saveChatToDisk: saveHistoryToDisk,
 		saveCurrentChat,
 		deleteChat: deleteChatFromHistory,
 		saveAsNote,
 		decryptChat,
 		autoSaveDisabledByGrounding, getCurrentChatId, getChatSession, disableAutoSaveByGrounding, restoreChatSession,
 	} = useChatHistories(chatStorageHost);
+	const saveChatToDisk = useCallback<typeof saveHistoryToDisk>((value, chatId, options = {}) => {
+		const revision = activeSessionIdRef.current;
+		return pendingLiveSaveRef.current.then(() => saveHistoryToDisk(value, chatId, {
+			...options, foreground: options.foreground && revision === activeSessionIdRef.current,
+		}));
+	}, [saveHistoryToDisk]);
 	const [showHistory, setShowHistory] = useState(false);
 	const [isSidebarWide, setIsSidebarWide] = useState(false);
 	const [isCompacting, setIsCompacting] = useState(false);
 	const [liveCall, setLiveCall] = useState<{
 		messages: Message[]; chatId: string; ragSetting: string | null; historyEnabled: boolean;
+		started: boolean; history: LiveChatHistory;
 	} | null>(null);
+	const liveCallRef = useRef(liveCall);
+	liveCallRef.current = liveCall;
 	const [currentModel, setCurrentModel] = useState<ModelType>(plugin.getSelectedModel());
 	const [apiPlan, setApiPlan] = useState(plugin.settings.apiPlan);
 	const [ragEnabledState, setRagEnabledState] = useState(plugin.settings.ragEnabled);
@@ -577,9 +589,9 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin, onToggleSidebarWidth }, r
 			if (container) {
 				container.scrollTop = container.scrollHeight;
 			}
-		}, 150);
+		}, liveCall?.started ? 0 : 150);
 		return () => window.clearTimeout(timer);
-	}, [messages, streamingContent]);
+	}, [messages, streamingContent, liveCall?.started]);
 
 	// Handle iOS keyboard visibility using focus events
 	const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
@@ -882,6 +894,7 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin, onToggleSidebarWidth }, r
 	// Start new chat (works even while a stream is running — the old stream
 	// continues in the background and saves its result to history when done).
 	const startNewChat = () => {
+		if (liveCallRef.current) return;
 		leaveCurrentChat();
 
 		setMessages([]);
@@ -897,9 +910,11 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin, onToggleSidebarWidth }, r
 
 	// Decrypt and load encrypted chat
 	const decryptAndLoadChat = async (chatId: string, password: string) => {
+		if (liveCallRef.current) return;
 		leaveCurrentChat();
 		try {
 			const parsed = await decryptChat(chatId, password);
+			if (liveCallRef.current) return;
 			restoreChatSession(chatId, parsed);
 			if (plugin.settings.webSearchMode === "google" && !parsed.autoSaveDisabledByGrounding) updateWebSearchEnabled(false);
 			setMessages(parsed.messages);
@@ -918,6 +933,7 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin, onToggleSidebarWidth }, r
 
 	// Load a chat from history
 	const loadChat = (history: ChatHistory) => {
+		if (liveCallRef.current) return;
 		leaveCurrentChat();
 		if (history.isEncrypted) {
 			// If password is cached, try to decrypt automatically
@@ -944,6 +960,7 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin, onToggleSidebarWidth }, r
 	// Delete a chat from history
 	const deleteChat = async (chatId: string, e: React.MouseEvent) => {
 		e.stopPropagation();
+		if (liveCallRef.current) return;
 		await deleteChatFromHistory(chatId);
 		if (currentChatId === chatId) {
 			startNewChat();
@@ -963,7 +980,7 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin, onToggleSidebarWidth }, r
 	}
 
 	const sendMessage = async (content: string, attachments?: Attachment[], skillPath?: string) => {
-		if ((!content.trim() && !skillPath && (!attachments || attachments.length === 0)) || isLoading) return;
+		if ((!content.trim() && !skillPath && (!attachments || attachments.length === 0)) || isLoading || liveCallRef.current) return;
 		if (groundingConsentRef.current && !await groundingConsentRef.current) return;
 		if (webSearchEnabledRef.current && plugin.settings.webSearchMode === "google" && !await ensureGroundingConsent()) return;
 		const requestWebSearch = webSearchEnabledRef.current;
@@ -1502,7 +1519,7 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin, onToggleSidebarWidth }, r
 	// Compact/compress conversation history
 	// Saves current chat as-is, then starts a new chat with the summary as context
 	const handleCompact = async () => {
-		if (messages.length < 2 || isLoading || isCompacting) return;
+		if (messages.length < 2 || isLoading || isCompacting || liveCallRef.current) return;
 
 		const client = getGeminiClient();
 		if (!client) {
@@ -1514,6 +1531,7 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin, onToggleSidebarWidth }, r
 
 		try {
 			// Save current chat first (preserves full history)
+			await pendingLiveSaveRef.current;
 			await saveCurrentChat(messages);
 
 			// Build conversation text for summarization
@@ -1671,24 +1689,39 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin, onToggleSidebarWidth }, r
 	}, []);
 
 	const openLive = () => {
-		if (!plugin.settings.googleApiKey.trim() || isLoading || isCompacting || liveCall) return;
+		if (liveCallRef.current) { onRevealChat(); return; }
+		if (!plugin.settings.googleApiKey.trim() || isLoading || isCompacting) return;
+		leaveCurrentChat();
 		voiceConversation.end();
 		stopReadingAloud();
+		setShowHistory(false);
 		const chatId = currentChatId ?? generateChatId();
 		setCurrentChatId(chatId);
-		setLiveCall({ messages: [...messages], chatId, ragSetting: selectedRagSetting,
-			historyEnabled: plugin.settings.saveChatHistory && !getChatSession(chatId).autoSaveDisabledByGrounding });
+		const precedingSave = pendingLiveSaveRef.current;
+		const history = new LiveChatHistory(messages,
+			value => precedingSave.then(() => saveHistoryToDisk(value, chatId, { foreground: false })),
+			error => { new Notice(formatError(error)); },
+		);
+		const call = { messages: [...messages], chatId, ragSetting: selectedRagSetting,
+			historyEnabled: plugin.settings.saveChatHistory && !getChatSession(chatId).autoSaveDisabledByGrounding,
+			started: false, history };
+		liveCallRef.current = call;
+		setLiveCall(call);
+	};
+	const updateLiveTranscript = (transcript: Message[]) => {
+		const call = liveCallRef.current;
+		if (!call) return;
+		const next = call.history.update(transcript);
+		if (next && getCurrentChatId() === call.chatId) setMessages(next);
 	};
 	const closeLive = (transcript: Message[]) => {
-		if (!liveCall) return;
+		const call = liveCallRef.current;
+		if (!call) return;
+		liveCallRef.current = null;
 		setLiveCall(null);
-		if (!transcript.length) return;
-		const nextMessages = [...liveCall.messages, ...transcript];
-		const foreground = getCurrentChatId() === liveCall.chatId;
-		if (foreground) setMessages(nextMessages);
-		void saveChatToDisk(nextMessages, liveCall.chatId, { foreground }).catch((error: unknown) => {
-			new Notice(formatError(error));
-		});
+		pendingLiveSaveRef.current = call.history.finish(transcript);
+		if (transcript.length && getCurrentChatId() === call.chatId) setMessages(call.history.messages);
+		window.setTimeout(() => inputAreaRef.current?.focus(), 0);
 	};
 
 	return (
@@ -1707,19 +1740,17 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin, onToggleSidebarWidth }, r
 						title={saveNoteState === "saved" ? t("chat.savedAsNote", { path: "" }) : autoSaveDisabledByGrounding ? t("grounding.save") : t("chat.saveAsNote")}
 						onClick={() => { void saveAsNote(messages); }}
 					/>
-					<HeaderButton classPrefix="gemini-helper" title={t("chat.newChat")} onClick={startNewChat}>
+					<HeaderButton classPrefix="gemini-helper" title={t("chat.newChat")} disabled={!!liveCall} onClick={startNewChat}>
 						<Plus size={16} />
 					</HeaderButton>
-					<HeaderButton classPrefix="gemini-helper" title={t("chat.chatHistory")} onClick={() => setShowHistory(!showHistory)}>
+					<HeaderButton classPrefix="gemini-helper" title={t("chat.chatHistory")} disabled={!!liveCall} onClick={() => setShowHistory(!showHistory)}>
 						<History size={16} />
 					</HeaderButton>
-					{plugin.settings.googleApiKey.trim() && <HeaderButton classPrefix="gemini-helper" title={t("live.title")} disabled={isLoading || isCompacting || !!liveCall} onClick={openLive}>
+					{(liveCall || plugin.settings.googleApiKey.trim()) && <HeaderButton classPrefix="gemini-helper" title={t(liveCall?.started ? "live.showCall" : "live.title")} disabled={isLoading || isCompacting} onClick={openLive}>
 						<Mic size={16} />
 					</HeaderButton>}
 				</ChatHeader>
 
-			{liveCall && <LiveConversation plugin={plugin} messages={liveCall.messages} historyEnabled={liveCall.historyEnabled}
-				selectedRagSetting={liveCall.ragSetting} initialFileAccess={vaultToolMode === "all" || vaultToolMode === "readOnly"} onClose={closeLive} />}
 
 			{autoSaveDisabledByGrounding && <GroundingAutoSaveNotice classPrefix="gemini-helper" />}
 
@@ -1774,8 +1805,8 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin, onToggleSidebarWidth }, r
 						streamingThinking={streamingThinking}
 						streamingSearchSuggestions={streamingSearchSuggestions}
 						isLoading={isLoading}
-						onApplyEdit={handleApplyEdit}
-						onDiscardEdit={handleDiscardEdit}
+						onApplyEdit={liveCall ? undefined : handleApplyEdit}
+						onDiscardEdit={liveCall ? undefined : handleDiscardEdit}
 						app={plugin.app}
 						currentDashboard={currentDashboard ? {
 							basename: currentDashboard.basename,
@@ -1787,6 +1818,7 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin, onToggleSidebarWidth }, r
 						fileSkill={editorFileSkill}
 					/>
 
+					<div className="gemini-helper-text-composer" hidden={liveCall?.started === true}>
 					<InputArea
 						ref={inputAreaRef}
 						onSend={(content, attachments, skillPath) => {
@@ -1862,6 +1894,7 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin, onToggleSidebarWidth }, r
 						onAutoReadAloudChange={handleAutoReadAloudChange}
 						onReadAloudRateChange={handleReadAloudRateChange}
 					/>
+					</div>
 				</>
 			) : (
 				<div className="gemini-helper-config-required">
@@ -1875,6 +1908,10 @@ const Chat = forwardRef<ChatRef, ChatProps>(({ plugin, onToggleSidebarWidth }, r
 					</div>
 				</div>
 			)}
+			{liveCall && <LiveConversation plugin={plugin} messages={liveCall.messages} historyEnabled={liveCall.historyEnabled}
+				selectedRagSetting={liveCall.ragSetting} initialFileAccess={vaultToolMode === "all" || vaultToolMode === "readOnly"}
+				onStart={() => setLiveCall(previous => previous ? { ...previous, started: true } : null)}
+				onTranscript={updateLiveTranscript} onReveal={onRevealChat} onClose={closeLive} />}
 		</ChatLayout>
 	);
 });

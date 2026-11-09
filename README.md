@@ -88,6 +88,12 @@ The AI Chat feature provides an interactive conversation interface with Google G
 
 [Watch the voice conversation demo on YouTube](https://www.youtube.com/watch?v=w8uyateB-0s)
 
+## Live Voice Conversation
+
+Save your Google API key, click the microphone in the chat header, and choose a Gemini Live model, voice, microphone, and audio output. **Start conversation** closes setup and shows the transcript in the existing chat sidebar. Use **Mute**, **Stop**, and **End conversation** below the messages. While stopped, **Call settings** lets you change devices, model, voice, and optional read-only Vault/File Search access.
+
+The call continues while you edit notes, hide the sidebar, or switch to Workflow. Use the Obsidian status bar to return or stop. End the call to continue by text with your draft preserved. History checkpoints and the final transcript follow existing encryption and automatic-save settings, including Google Web search restrictions. Finish the call before starting or loading another chat. Live does not require speech-popup; API charges apply, and the voice is AI generated.
+
 ## Slash Commands
 
 Create reusable prompt templates triggered by `/`:

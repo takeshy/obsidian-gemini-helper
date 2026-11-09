@@ -2737,6 +2737,14 @@
 /* @chat-ui-styles */
 
 /* Live voice conversation */
+.gemini-helper-text-composer { display: contents; }
+.gemini-helper-text-composer[hidden] { display: none; }
+.gemini-helper-live-controls { flex: 0 0 auto; padding: 12px; border-top: 1px solid var(--background-modifier-border); max-height: 45vh; overflow-y: auto; }
+.gemini-helper-live-controls p { margin: 6px 0; }
+.gemini-helper-live-call-info { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; overflow-wrap: anywhere; }
+.gemini-helper-live-call-info span { color: var(--text-muted); font-size: var(--font-ui-small); }
+.gemini-helper-live-status-bar { gap: 6px; }
+.gemini-helper-live-status-bar button { font-size: var(--font-ui-smaller); height: auto; padding: 2px 6px; }
 
 .gemini-helper-live-backdrop {
   position: fixed;

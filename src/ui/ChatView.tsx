@@ -43,6 +43,7 @@ export class ChatView extends ItemView {
         }}
         plugin={this.plugin}
         onToggleSidebarWidth={() => this.toggleSidebarWidth()}
+        onReveal={() => { void this.app.workspace.revealLeaf(this.leaf); }}
       />
     );
     this.reactRoot = root;

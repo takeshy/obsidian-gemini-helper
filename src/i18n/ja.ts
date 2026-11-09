@@ -1,8 +1,10 @@
 // Japanese translations
 export const ja: Record<string, string> = {
+  "live.settings": "通話設定",
+  "live.showCall": "ライブ会話を表示",
   "live.title": "ライブ会話",
   "live.stop": "停止",
-  "live.switchHint": "通常のチャットモデルとは別に選択できます。会話中は一度停止してからモデルや声を切り替えてください。文字起こしは保持されます。",
+  "live.switchHint": "通話を開始すると、このチャット用サイドバーで会話できます。ライブ用のモデルは通常のチャットとは別に選択できます。通話設定の変更は一度停止してから行ってください。文字起こしは保持されます。",
   "live.description": "保存済みのGoogle APIキーで、Geminiと音声で会話します。音声はGoogleへ直接送信され、API利用料がかかります。応答音声はAIが生成しています。",
   "live.model": "モデル",
   "live.voice": "声",
@@ -22,8 +24,8 @@ export const ja: Record<string, string> = {
   "live.ragNotRun": "この会話ではRAG検索はまだ実行されていません。",
   "live.ragResults": "RAG検索結果：{{count}}件",
   "live.ragFailed": "RAG検索エラー：{{error}}",
-  "live.historySaved": "終了時に文字起こしをこのチャットへ追加し、チャット履歴へ保存します。Vaultファイルは読み取り専用で、設定した許可フォルダの範囲内で参照します。",
-  "live.historyDisabled": "終了時に文字起こしをこのチャットへ追加します。チャット履歴の自動保存は無効です。Vaultファイルは読み取り専用で、設定した許可フォルダの範囲内で参照します。",
+  "live.historySaved": "文字起こしは会話中にこのチャットへ順次表示し、チャット履歴へ保存します。通話終了後はそのままテキストで続きを話せます。Vaultファイルは読み取り専用で、設定した許可フォルダの範囲内で参照します。",
+  "live.historyDisabled": "文字起こしは会話中にこのチャットへ順次表示します。チャット履歴の自動保存は無効です。通話終了後はそのままテキストで続きを話せます。Vaultファイルは読み取り専用で、設定した許可フォルダの範囲内で参照します。",
   "live.connecting": "接続中…",
   "live.connected": "会話中",
   "live.stopped": "停止中",

@@ -9,6 +9,11 @@ import { GEMINI_LIVE_MODELS, GEMINI_LIVE_VOICES } from "src/core/live/gemini-liv
 import type { LiveSession, LiveState, LiveTranscript } from "src/core/live/live-session";
 import { liveToolInstructions } from "src/core/live/live-tool-definitions";
 import { createLiveVaultToolRunner, liveTranscriptMessages } from "src/core/live/live-vault-tools";
+import { listLiveAudioDevices, supportsLiveAudioOutput } from "src/core/live/live-audio";
+import { getLiveDevicePreference, setLiveDevicePreference, type LiveDeviceKind } from "./liveDevicePreference";
+
+/** Coalesce device changes into one enumeration. */
+const DEVICE_CHANGE_DEBOUNCE_MS = 200;
 
 interface Props {
   plugin: GeminiHelperPlugin; messages: Message[]; historyEnabled: boolean;
@@ -24,6 +29,13 @@ export default function LiveConversation({ plugin, messages, historyEnabled, sel
   const [state, setState] = useState<LiveState>("idle");
   const [muted, setMuted] = useState(false);
   const [error, setError] = useState("");
+  const [inputDeviceId, setInputDeviceId] = useState(() => getLiveDevicePreference(plugin.app, "input"));
+  const [outputDeviceId, setOutputDeviceId] = useState(() => getLiveDevicePreference(plugin.app, "output"));
+  const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
+  const [outputSupported] = useState(() => supportsLiveAudioOutput());
+  const [refreshingDevices, setRefreshingDevices] = useState(false);
+  const [deviceError, setDeviceError] = useState("");
+  const deviceRequestRef = useRef(0);
   const [includeContext, setIncludeContext] = useState(true);
   const [fileAccess, setFileAccess] = useState(initialFileAccess);
   const [ragName, setRagName] = useState(selectedRagSetting ?? "");
@@ -42,6 +54,49 @@ export default function LiveConversation({ plugin, messages, historyEnabled, sel
   const runnerRef = useRef<ReturnType<typeof createLiveVaultToolRunner> | null>(null);
   const activeToolsRef = useRef(new Map<string, { status: string }>());
   const ragNames = plugin.getRagSettingNames();
+  const inputs = devices.filter(device => device.kind === "audioinput");
+  const outputs = devices.filter(device => device.kind === "audiooutput");
+
+  const chooseDevice = (deviceKind: LiveDeviceKind, deviceId: string) => {
+    (deviceKind === "input" ? setInputDeviceId : setOutputDeviceId)(deviceId);
+    setLiveDevicePreference(plugin.app, deviceKind, deviceId);
+  };
+
+  /**
+   * An explicit refresh opens a temporary microphone so labels and IDs are exposed. A passive
+   * refresh (devicechange) runs without permission, where some environments return nothing
+   * usable, so it must never replace a populated list with an empty one or hide an unread error.
+   */
+  const refreshDevices = async (requestAccess = false) => {
+    if (refreshingDevices) return;
+    const request = ++deviceRequestRef.current;
+    if (requestAccess) { setRefreshingDevices(true); setDeviceError(""); }
+    try {
+      const available = await listLiveAudioDevices(requestAccess);
+      if (finishedRef.current || request !== deviceRequestRef.current) return;
+      if (requestAccess || available.length > 0) setDevices(available);
+    } catch (cause) {
+      if (requestAccess && !finishedRef.current && request === deviceRequestRef.current) {
+        setDeviceError(t("live.deviceError", { error: cause instanceof Error ? cause.message : String(cause) }));
+      }
+    } finally {
+      if (requestAccess && !finishedRef.current) setRefreshingDevices(false);
+    }
+  };
+  const refreshDevicesRef = useRef(refreshDevices);
+  refreshDevicesRef.current = refreshDevices;
+
+  useEffect(() => {
+    void refreshDevicesRef.current();
+    const media = navigator.mediaDevices;
+    let pending: number | undefined;
+    const onDeviceChange = () => {
+      window.clearTimeout(pending);
+      pending = window.setTimeout(() => { pending = undefined; void refreshDevicesRef.current(); }, DEVICE_CHANGE_DEBOUNCE_MS);
+    };
+    media?.addEventListener("devicechange", onDeviceChange);
+    return () => { deviceRequestRef.current++; window.clearTimeout(pending); media?.removeEventListener("devicechange", onDeviceChange); };
+  }, []);
 
   const finish = () => {
     if (finishedRef.current) return;
@@ -74,7 +129,7 @@ export default function LiveConversation({ plugin, messages, historyEnabled, sel
   };
 
   const start = () => {
-    if (state !== "idle") return;
+    if (state !== "idle" || refreshingDevices) return;
     const run = ++runSequenceRef.current;
     sessionRef.current?.stop();
     const previousTranscript = [...transcriptRef.current];
@@ -123,6 +178,7 @@ export default function LiveConversation({ plugin, messages, historyEnabled, sel
     const context = includeContext ? contextMessages.slice(-20).map(item => `${item.role}: ${item.content}`).join("\n").slice(-40_000) : "";
     void session.start({
       ...access, model, voice, language: getLocale() === "ja" ? "ja" : "en",
+      inputDeviceId, outputDeviceId: outputSupported ? outputDeviceId : "",
       instructions: [
         "You are a helpful voice assistant integrated with Obsidian. Follow the user's preferred language and speaking style. If speech is unclear, ask for clarification instead of guessing.",
         plugin.settings.systemPrompt, liveToolInstructions(access),
@@ -151,6 +207,22 @@ export default function LiveConversation({ plugin, messages, historyEnabled, sel
           <label>{t("live.voice")}<select aria-label={t("live.voice")} value={voice} disabled={state !== "idle"} onChange={event => setVoice(event.target.value)}>{voices.map(value => <option key={value}>{value}</option>)}</select></label>
         </div>
         <p className="gemini-helper-live-description">{t("live.switchHint")}</p>
+        <div className="gemini-helper-live-options">
+          <label>{t("live.microphone")}<select aria-label={t("live.microphone")} value={inputDeviceId} disabled={state !== "idle" || refreshingDevices} onChange={event => chooseDevice("input", event.target.value)}>
+            <option value="">{t("live.systemDefault")}</option>
+            {inputDeviceId && !inputs.some(device => device.deviceId === inputDeviceId) && <option value={inputDeviceId}>{t("live.deviceUnavailable")}</option>}
+            {inputs.map((device, index) => <option key={device.deviceId} value={device.deviceId}>{device.label || `${t("live.microphone")} ${index + 1}`}</option>)}
+          </select></label>
+          <label>{t("live.audioOutput")}<select aria-label={t("live.audioOutput")} value={outputSupported ? outputDeviceId : ""} disabled={state !== "idle" || refreshingDevices || !outputSupported} onChange={event => chooseDevice("output", event.target.value)}>
+            <option value="">{t("live.systemDefault")}</option>
+            {outputSupported && outputDeviceId && !outputs.some(device => device.deviceId === outputDeviceId) && <option value={outputDeviceId}>{t("live.deviceUnavailable")}</option>}
+            {outputs.map((device, index) => <option key={device.deviceId} value={device.deviceId}>{device.label || `${t("live.audioOutput")} ${index + 1}`}</option>)}
+          </select></label>
+          <button type="button" disabled={state !== "idle" || refreshingDevices} onClick={() => { void refreshDevices(true); }}>{t(refreshingDevices ? "live.loadingDevices" : "live.refreshDevices")}</button>
+        </div>
+        <p className="gemini-helper-live-description">{t("live.deviceHint")}</p>
+        {!outputSupported && <p className="gemini-helper-live-description">{t("live.outputUnsupported")}</p>}
+        {deviceError && <p className="gemini-helper-live-error" role="alert">{deviceError}</p>}
         <label className="gemini-helper-live-check"><input type="checkbox" checked={includeContext} disabled={state !== "idle"} onChange={event => setIncludeContext(event.target.checked)} />{t("live.includeContext")}</label>
         <label className="gemini-helper-live-check"><input type="checkbox" checked={fileAccess} disabled={state !== "idle"} onChange={event => setFileAccess(event.target.checked)} />{t("live.fileAccess")}</label>
         {ragNames.length > 0 && <label className="gemini-helper-live-rag">RAG<select aria-label="RAG" value={ragName} disabled={state !== "idle"} onChange={event => { setRagName(event.target.value); setRagReport(null); }}><option value="">{t("live.noRag")}</option>{ragNames.map(name => <option key={name}>{name}</option>)}</select></label>}
@@ -167,7 +239,7 @@ export default function LiveConversation({ plugin, messages, historyEnabled, sel
       </div>
       <div className="gemini-helper-live-actions">
         {state === "idle" ? <>
-          <button type="button" className="mod-cta" onClick={start}>{t("live.start")}</button>
+          <button type="button" className="mod-cta" disabled={refreshingDevices} onClick={start}>{t("live.start")}</button>
           {transcript.length > 0 && <button type="button" onClick={finish}>{t("live.returnToChat")}</button>}
         </> : <>
           <button type="button" disabled={state !== "connected"} aria-pressed={muted} onClick={() => { sessionRef.current?.mute(!muted); setMuted(!muted); }}>{muted ? <MicOff size={16} /> : <Mic size={16} />}{t(muted ? "live.unmute" : "live.mute")}</button>

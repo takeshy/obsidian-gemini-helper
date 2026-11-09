@@ -2779,6 +2779,7 @@
 .gemini-helper-live-options label,
 .gemini-helper-live-rag { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
 .gemini-helper-live-options select { max-width: 100%; }
+.gemini-helper-live-options button { align-self: flex-end; white-space: normal; }
 .gemini-helper-live-check { display: flex; align-items: flex-start; gap: 6px; margin: 12px 0; }
 .gemini-helper-live-check input { flex: 0 0 auto; margin: 2px 0 0; }
 .gemini-helper-live-actions { justify-content: flex-start; flex-wrap: wrap; }

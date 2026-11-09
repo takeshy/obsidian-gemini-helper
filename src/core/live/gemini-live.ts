@@ -1,5 +1,6 @@
 // Ported from KiokuFlow; provider transports run locally in Obsidian.
 import { createGeminiLiveToken } from "./live-connection";
+import { liveMicrophoneConstraints, openLiveMicrophone, setLiveAudioOutput } from "./live-audio";
 import { GEMINI_LIVE_RECORDER_SOURCE } from "./gemini-recorder";
 import type { LiveConnectionConfig } from "./live-session";
 import { geminiLiveSetup } from "./gemini-live-config";
@@ -216,11 +217,15 @@ export class GeminiLiveSession implements LiveSession {
       void this.callbacks.audio.play().catch(() => { if (current()) this.callbacks.onError("Tap the conversation screen to enable audio."); });
       await context.resume();
       if (!current()) return;
-      const token = await createGeminiLiveToken(options, this.connection, this.abort.signal);
-      if (!current()) return;
-      const microphone = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, channelCount: 1 }, video: false });
+      const microphone = await openLiveMicrophone({ ...liveMicrophoneConstraints(options.inputDeviceId), channelCount: 1 });
       if (!current()) { microphone.getTracks().forEach(track => track.stop()); return; }
       this.microphone = microphone;
+      // Chromium only authorizes a non-default sink once microphone capture has been granted,
+      // so select the output after the microphone and before spending a token.
+      await setLiveAudioOutput(this.callbacks.audio, options.outputDeviceId);
+      if (!current()) return;
+      const token = await createGeminiLiveToken(options, this.connection, this.abort.signal);
+      if (!current()) return;
       const workletUrl = URL.createObjectURL(new Blob([GEMINI_LIVE_RECORDER_SOURCE], { type: "text/javascript" }));
       try { await context.audioWorklet.addModule(workletUrl); }
       finally { URL.revokeObjectURL(workletUrl); }

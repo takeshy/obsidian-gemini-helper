@@ -16,7 +16,8 @@ function fixture(t: import("vitest").TestContext, pendingMic?: Promise<unknown>,
   const track = { enabled: true, stop() { microphoneStops++; } };
   const stream = { getTracks: () => [track], getAudioTracks: () => [track] };
   const output = { stream: { getTracks: () => [{ stop() { outputStops++; } }] }, disconnect() {} };
-  const audio = { pause() {}, play: async () => {}, srcObject: null };
+  const audio = { pause() {}, play: async () => {}, srcObject: null, setSinkId: vi.fn().mockResolvedValue(undefined) };
+  const getUserMedia = vi.fn(async (_constraints: MediaStreamConstraints) => { micRequests++; return pendingMic || stream; });
   const states: LiveState[] = [], errors: string[] = [];
   let transcript: LiveTranscript[] = [];
   const sources: { buffer?: { duration: number }; startTime?: number; stopped: boolean; connect(): void; disconnect(): void; start(time: number): void; stop(): void; onended: (() => void) | null }[] = [];
@@ -38,7 +39,7 @@ function fixture(t: import("vitest").TestContext, pendingMic?: Promise<unknown>,
     send(body: string) { this.sent.push(body); }
     close() { this.closed = true; }
   }
-  for (const [name, value] of Object.entries({ window: { AudioContext: function () { return context; }, setTimeout, clearTimeout }, navigator: { mediaDevices: { getUserMedia: async () => { micRequests++; return pendingMic || stream; } } }, AudioWorkletNode: function () { return recorder; }, WebSocket: FakeSocket })) {
+  for (const [name, value] of Object.entries({ window: { AudioContext: function () { return context; }, setTimeout, clearTimeout }, navigator: { mediaDevices: { getUserMedia } }, AudioWorkletNode: function () { return recorder; }, WebSocket: FakeSocket })) {
     const previous = Object.getOwnPropertyDescriptor(globalThis, name);
     Object.defineProperty(globalThis, name, { configurable: true, writable: true, value });
     t.onTestFinished(() => { if (previous) Object.defineProperty(globalThis, name, previous); else Reflect.deleteProperty(globalThis, name); });
@@ -57,9 +58,44 @@ function fixture(t: import("vitest").TestContext, pendingMic?: Promise<unknown>,
     assert.equal(states.at(-1), "connecting");
     await event({ setupComplete: {} }); await starting;
   };
-  return { session, states, errors, sockets, sources, recorder, track, context, stream, event, connect,
+  return { session, audio, getUserMedia, states, errors, sockets, sources, recorder, track, context, stream, event, connect,
     get transcript() { return transcript; }, get microphoneStops() { return microphoneStops; }, get outputStops() { return outputStops; }, get contextCloses() { return contextCloses; }, get micRequests() { return micRequests; } };
 }
+
+test("Gemini uses the selected microphone and speaker", async t => {
+  const f = fixture(t, undefined, undefined, { inputDeviceId: "usb-mic", outputDeviceId: "headphones" });
+  await f.connect();
+  assert.deepEqual(f.getUserMedia.mock.calls[0][0], { audio: { echoCancellation: true, noiseSuppression: true, channelCount: 1, deviceId: { exact: "usb-mic" } }, video: false });
+  assert.equal(f.audio.setSinkId.mock.calls[0][0], "headphones");
+});
+
+test("Gemini selects the output after microphone permission and releases everything when it fails before requesting credentials", async t => {
+  const f = fixture(t);
+  createToken.mockClear();
+  f.audio.setSinkId.mockImplementation(async () => { assert.equal(f.micRequests, 1); throw new Error("Device missing"); });
+  await f.session.start({ ...options, outputDeviceId: "disconnected" });
+  assert.equal(f.contextCloses, 1); assert.equal(f.outputStops, 1); assert.equal(f.microphoneStops, 1);
+  assert.equal(createToken.mock.calls.length, 0);
+  assert.match(f.errors[0], /selected audio output/);
+});
+
+test("Gemini explains a disconnected saved microphone even when the browser error is empty", async t => {
+  const f = fixture(t, undefined, undefined, { inputDeviceId: "disconnected" });
+  f.getUserMedia.mockRejectedValue({ name: "OverconstrainedError", message: "", constraint: "deviceId" });
+  await f.session.start({ ...options, inputDeviceId: "disconnected" });
+  assert.equal(f.sockets.length, 0);
+  assert.match(f.errors[0], /selected microphone is unavailable/);
+});
+
+test("Gemini reports a missing selected microphone and releases playback without retrying", async t => {
+  const f = fixture(t, undefined, undefined, { inputDeviceId: "disconnected" });
+  f.getUserMedia.mockRejectedValue(new Error("Requested microphone is unavailable"));
+  await f.session.start({ ...options, inputDeviceId: "disconnected" });
+  assert.equal(f.getUserMedia.mock.calls.length, 1);
+  assert.equal(f.contextCloses, 1); assert.equal(f.outputStops, 1);
+  assert.equal(f.sockets.length, 0);
+  assert.equal(f.errors[0], "Requested microphone is unavailable");
+});
 
 test("Gemini Live waits for setup, streams PCM with an ephemeral token, mutes and releases all resources", async t => {
   const f = fixture(t); await f.connect();
@@ -173,10 +209,17 @@ test("cancelling Gemini setup closes the negotiating socket and ignores late mes
   assert.equal(f.sockets[0].closed, true); assert.ok(!f.states.includes("connected")); assert.equal(f.microphoneStops, 1);
 });
 
-test("locked Gemini keys clean up playback before recording", async t => {
+test("locked Gemini keys release the microphone and playback without opening a socket", async t => {
   const f = fixture(t);
   createToken.mockRejectedValue(new Error("Unlock Gemini"));
-  await f.session.start(options); assert.equal(f.errors.at(-1), "Unlock Gemini"); assert.equal(f.micRequests, 0); assert.equal(f.contextCloses, 1);
+  await f.session.start(options);
+  assert.equal(f.errors.at(-1), "Unlock Gemini");
+  assert.equal(f.micRequests, 1);
+  assert.equal(f.microphoneStops, 1);
+  assert.equal(f.outputStops, 1);
+  assert.equal(f.contextCloses, 1);
+  assert.equal(f.sockets.length, 0);
+  assert.equal(f.states.at(-1), "idle");
 });
 
 test("excessive Gemini send buffering stops the microphone", async t => {

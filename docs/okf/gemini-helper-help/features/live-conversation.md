@@ -3,10 +3,12 @@ type: Feature
 title: Live Voice Conversation
 description: Gemini Live voice sessions with optional chat context, read-only Vault tools, File Search, and transcript history.
 tags: [live, voice, audio, gemini, rag]
-timestamp: 2026-11-07T00:00:00Z
+timestamp: 2026-11-09T00:00:00Z
 ---
 
 # Live voice conversation
+
+Select a microphone and audio output, or keep System default. Use Allow microphone and refresh devices if devices or names are missing; this briefly opens the microphone locally without sending audio. Selections are saved on this device. Stop before changing devices. If output selection is unavailable, choose the output in system sound settings. If a saved device is disconnected, reconnect it or select another device. Check system microphone permission if access is denied.
 
 Save your Google API key in Gemini Helper settings, then click the microphone in the chat header. Choose a Live model and voice independently of the normal chat model, then select Start conversation and allow microphone access. Gemini Live does not require speech-popup. API charges apply and the voice is AI generated.
 

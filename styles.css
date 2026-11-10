@@ -7482,7 +7482,10 @@ button.gemini-helper-speech-btn {
 .gemini-helper-workflow-generation-modal-content > .gemini-helper-workflow-generation-request,
 .gemini-helper-workflow-generation-modal-content > .gemini-helper-workflow-generation-history-info,
 .gemini-helper-workflow-generation-modal-content > .gemini-helper-workflow-generation-phase-indicator,
-.gemini-helper-workflow-generation-modal-content > .gemini-helper-workflow-generation-status,
+.gemini-helper-workflow-generation-modal-content > .gemini-helper-workflow-generation-status {
+  flex-shrink: 0;
+}
+
 .gemini-helper-workflow-generation-buttons button.is-hidden {
   display: none;
 }
@@ -7844,18 +7847,19 @@ button.gemini-helper-speech-btn {
   overflow-y: auto;
 }
 
-/* Review section grows when visible */
+/* Preserve the review's content height in auto-height modals. A zero flex
+   basis collapses the body to its padding before the modal has a fixed height. */
 .gemini-helper-workflow-generation-modal-content > .gemini-helper-workflow-generation-review-section:not(.is-hidden) {
-  flex: 1;
+  flex: 0 1 auto;
   display: flex;
   flex-direction: column;
   min-height: 0;
 }
 
 .gemini-helper-workflow-generation-modal-content > .gemini-helper-workflow-generation-review-section:not(.is-hidden) .gemini-helper-workflow-generation-review {
-  flex: 1 1 0;
+  flex: 1 1 auto;
   min-height: 0;
-  max-height: none;
+  max-height: 50vh;
   overflow-y: auto;
 }
 

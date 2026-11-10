@@ -9,12 +9,13 @@ export async function handleRagSyncNode(
   context: ExecutionContext,
   _app: App,
   plugin: GeminiHelperPlugin
-): Promise<void> {
+): Promise<{ ragSetting: string }> {
   const saveTo = node.properties["saveTo"];
   const pathRaw = node.properties["path"] || "";
   const requestedPath = pathRaw ? replaceVariables(pathRaw, context) : undefined;
   const ragSettingRaw = node.properties["ragSetting"] || "";
-  const ragSetting = (ragSettingRaw ? replaceVariables(ragSettingRaw, context) : "")
+  // Variable values often carry stray whitespace; blank means "use the selected setting".
+  const ragSetting = (ragSettingRaw ? replaceVariables(ragSettingRaw, context).trim() : "")
     || plugin.workspaceState.selectedRagSetting;
 
   if (!ragSetting) {
@@ -39,6 +40,8 @@ export async function handleRagSyncNode(
       mode: "full-incremental",
     }));
   }
+  // The executor records this in logs and history instead of the unresolved property.
+  return { ragSetting };
 }
 
 // Handle obsidian-command node - execute an Obsidian command

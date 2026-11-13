@@ -396,6 +396,35 @@ Markdown ファイル内で自動化ワークフローを構築。**プログラ
 
 ![履歴キャンバスビュー](docs/images/history_canvas.png)
 
+## AI判定による分岐
+
+判定方式は **Boolean／Noul（確率）／Score（採点）／Choice（選択）／複数質問** に対応します。Score・Noulは生の数値を保存し閾値で分岐、Choiceは選択肢ごとのノードへ分岐します。複数質問は1回のAPI呼び出しでまとめて判定し、JSONの結果を `{{result.urgency}}` などで後続の条件から参照できます。詳細と例は[ノードのヘルプ](docs/okf/gemini-helper-help/features/workflow-nodes.md#decision-branching)を参照してください。
+
+`decision` ノードの `prompt` に判定指示、`input` に対象データを指定すると、結果に応じて `trueNext`／`falseNext` に分岐します。`{{変数}}` を展開でき、Booleanの `saveTo` には `"true"`／`"false"` が保存されます。Gemini APIキーが登録済みなら、チャットで使うモデルに関係なく `gemini-decision-1` 固定で利用できます。APIエラー・不正な応答・キャンセル時は分岐せず停止します。判定はクラウドAPIを利用します。
+
+```hub-workflow
+name: Decision routing
+nodes:
+  - id: input
+    type: variable
+    name: text
+  - id: judge
+    type: decision
+    prompt: "Does this message request urgent action?"
+    input: "{{text}}"
+    saveTo: isUrgent
+    trueNext: urgent
+    falseNext: normal
+  - id: urgent
+    type: dialog
+    message: "Urgent request"
+    next: end
+  - id: normal
+    type: dialog
+    message: "Normal request"
+    next: end
+```
+
 ## AI によるワークフロー & スキル作成
 
 **YAML 構文やノードタイプを学ぶ必要はありません。** やりたいことを自然言語で説明するだけ：

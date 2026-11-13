@@ -10,6 +10,7 @@ import { EncryptionManager } from "src/plugin/encryptionManager";
 import { configureMcpAppViewer, configureStoragePrefix } from "obsidian-llm-hub-common/modals";
 import { showMcpApp } from "src/ui/components/workflow/McpAppModal";
 import type { McpAppInfo } from "src/types";
+import { getDecisionModelOptions, handleDecisionNode } from "./workflow/handlers/decision";
 import { configureWorkflowHost } from "obsidian-llm-hub-common/workflow";
 import { streamWorkflowChat } from "src/core/workflowChat";
 import { tracing } from "src/core/tracingHooks";
@@ -147,6 +148,8 @@ export class GeminiHelperPlugin extends Plugin {
     configureAgentPluginBase(".gemini-helper");
     configureMcpClientInfo({ name: "obsidian-gemini-helper", version: this.manifest.version });
     configureWorkflowHost({
+      getDecisionModelOptions: () => getDecisionModelOptions(this.settings),
+      runDecisionNode: request => handleDecisionNode(request, this),
       getModelOptions: () => getAvailableModels(this.settings.apiPlan).map(model => ({ value: model.name, label: model.displayName })),
       getRagSettingNames: () => Object.keys(this.workspaceState.ragSettings || {}),
       getMcpServerNames: () => (this.settings.mcpServers || []).map(server => server.name),

@@ -1,5 +1,6 @@
 // The workflow format the AI writes against lives in the shared library, beside the
 // executor it describes. This file only tells it what this plugin offers.
+import { getDecisionModelOptions } from "./handlers/decision";
 import { getAvailableModels } from "src/types";
 import type { GeminiHelperPlugin } from "src/plugin";
 import {
@@ -25,6 +26,7 @@ export function buildWorkflowSpecContext(plugin: GeminiHelperPlugin): WorkflowSp
     : [];
   return {
     modelNames,
+    decisionModelNames: getDecisionModelOptions(plugin.settings).map(model => model.value),
     mcpServers: plugin.settings.mcpServers || [],
     ragSettingNames: Object.keys(plugin.workspaceState.ragSettings || {}),
   };

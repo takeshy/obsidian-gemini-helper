@@ -275,7 +275,7 @@ export interface RagFileInfo {
 }
 
 // Chat thinking level. "default" leaves the choice to the Gemini API.
-export const REASONING_EFFORTS: ReasoningEffort[] = ["default", "minimal", "low", "medium", "high"];
+export const REASONING_EFFORTS: ReasoningEffort[] = ["default", "minimal", "low", "medium", "high", "xhigh"];
 
 // Workspace状態ファイル（.gemini-workspace.json）
 export interface WorkspaceState {
@@ -337,6 +337,9 @@ export type ApiPlan = "paid" | "free";
 
 // Model types (includes both chat and image generation models)
 export type ModelType =
+  | "gemini-4-hydrogen"
+  | "gemini-4-argon"
+  | "gemini-4-carbon"
   | "gemini-3.8-flash"
   | "gemini-3.1-pro-preview"
   | "gemini-3.1-pro-preview-customtools"
@@ -360,6 +363,24 @@ export interface ModelInfo {
 }
 
 export const PAID_MODELS: ModelInfo[] = [
+  {
+    name: "gemini-4-argon",
+    displayName: "Gemini 4 Argon",
+    description: "Efficient frontier reasoning model with 1M unified context",
+    acceptsPdf: true,
+  },
+  {
+    name: "gemini-4-carbon",
+    displayName: "Gemini 4 Carbon",
+    description: "Deep reasoning model for complex tasks with 1M unified context",
+    acceptsPdf: true,
+  },
+  {
+    name: "gemini-4-hydrogen",
+    displayName: "Gemini 4 Hydrogen",
+    description: "Fast agentic model with 1M unified context and xhigh thinking",
+    acceptsPdf: true,
+  },
   {
     name: "gemini-3.8-flash",
     displayName: "Gemini 3.8 Flash",
@@ -415,6 +436,12 @@ export const PAID_MODELS: ModelInfo[] = [
 ];
 
 export const FREE_MODELS: ModelInfo[] = [
+  {
+    name: "gemini-4-hydrogen",
+    displayName: "Gemini 4 Hydrogen",
+    description: "Free tier fast agentic model with 1M unified context",
+    acceptsPdf: true,
+  },
   {
     name: "gemini-3.8-flash",
     displayName: "Gemini 3.8 Flash",

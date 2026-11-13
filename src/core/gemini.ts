@@ -1,5 +1,11 @@
 import { DEFAULT_WEB_SEARCH_SETTINGS, supportsGoogleSearch, type WebSearchSettings } from "./webSearch";
 import {
+  buildGeminiThinkingConfig,
+  getGeminiReasoningEffortOptions,
+  isGeminiThinkingRequired,
+  resolveGeminiThinkingLevel,
+} from "./geminiThinking";
+import {
   GoogleGenAI,
   HarmCategory,
   HarmBlockThreshold,
@@ -29,12 +35,8 @@ import {
   buildGeminiHistoryReplayInput,
   buildGeminiInteractionTools,
   buildGeminiInteractionInput,
-  buildGeminiThinkingConfig,
   formatError,
   geminiCorsFetch as corsFetch,
-  getGeminiReasoningEffortOptions,
-  isGeminiThinkingRequired,
-  resolveGeminiThinkingLevel,
   GeminiGenerationClient,
   selectGeminiInteractionTools,
   runGeminiInteractions,

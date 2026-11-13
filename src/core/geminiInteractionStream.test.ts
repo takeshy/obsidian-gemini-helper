@@ -117,6 +117,17 @@ describe("shared thinking and final-round SDK requests", () => {
   const messages = [{ role: "user" as const, content: "question", timestamp: 0 }];
   async function all(stream: AsyncIterable<StreamChunk>) { for await (const _chunk of stream) { /* consume */ } }
   it.each([
+    ["gemini-4-argon", undefined, undefined, undefined],
+    ["gemini-4-argon", false, undefined, "low"],
+    ["gemini-4-argon", false, "medium", "medium"],
+    ["gemini-4-carbon", undefined, undefined, undefined],
+    ["gemini-4-carbon", false, undefined, "low"],
+    ["gemini-4-carbon", false, "high", "high"],
+    ["gemini-4-hydrogen", undefined, undefined, undefined],
+    ["gemini-4-hydrogen", false, undefined, "low"],
+    ["gemini-4-hydrogen", true, undefined, "high"],
+    ["gemini-4-hydrogen", false, "default", undefined],
+    ["gemini-4-hydrogen", false, "xhigh", "xhigh"],
     ["gemini-3.8-flash", undefined, undefined, undefined],
     ["gemini-3.8-flash", false, undefined, "low"],
     ["gemini-3.5-flash-lite", false, undefined, "minimal"],
@@ -149,6 +160,46 @@ describe("shared thinking and final-round SDK requests", () => {
     expect(create.mock.calls[0][0].tools.some((tool: { type: string }) => tool.type === "function")).toBe(true);
     expect(create.mock.calls[1][0].tools).toBeUndefined();
     expect(create.mock.calls[1][0].generation_config?.tool_choice).toBeUndefined();
+  });
+});
+
+describe("Gemini 4 tool calling", () => {
+  it.each([
+    ["gemini-4-hydrogen", "xhigh"],
+    ["gemini-4-argon", "medium"],
+    ["gemini-4-carbon", "high"],
+  ] as const)("keeps %s thinking and server conversation state across a tool round", async (model, effort) => {
+    const execute = vi.fn().mockResolvedValue("note contents");
+    create.mockResolvedValueOnce(events([
+      { event_type: "interaction.created", interaction: { id: "hydrogen-tool" } },
+      { event_type: "step.start", index: 0, step: { type: "function_call", id: "read-1", name: "read_note", arguments: { path: "note.md" } } },
+      { event_type: "step.stop", index: 0 },
+      { event_type: "interaction.completed", interaction: { status: "completed" } },
+    ])).mockResolvedValueOnce(events([
+      { event_type: "interaction.created", interaction: { id: "hydrogen-answer" } },
+      { event_type: "step.delta", delta: { type: "text", text: "answer" } },
+      { event_type: "interaction.completed", interaction: { status: "completed" } },
+    ]));
+    const chunks: StreamChunk[] = [];
+    for await (const chunk of new GeminiClient("key", model).chatWithToolsStream(
+      [{ role: "user", content: "read the note", timestamp: 0 }],
+      [{ name: "read_note", description: "Read a note", parameters: { type: "object", properties: { path: { type: "string" } } } }],
+      "instructions", execute, undefined, false,
+      { reasoningEffort: effort, previousInteractionId: "previous-turn" },
+    )) chunks.push(chunk);
+
+    expect(execute).toHaveBeenCalledWith("read_note", { path: "note.md" });
+    expect(create).toHaveBeenCalledTimes(2);
+    for (const [request] of create.mock.calls) {
+      expect(request).toMatchObject({
+        model, stream: true, store: true,
+        generation_config: { thinking_level: effort, thinking_summaries: "auto" },
+      });
+    }
+    expect(create.mock.calls[0][0].previous_interaction_id).toBe("previous-turn");
+    expect(create.mock.calls[1][0].previous_interaction_id).toBe("hydrogen-tool");
+    expect(chunks).toContainEqual({ type: "text", content: "answer" });
+    expect(chunks.at(-1)).toMatchObject({ type: "done", interactionId: "hydrogen-answer" });
   });
 });
 

@@ -609,25 +609,28 @@ Gemini HelperでGoogle Gemini APIキーとAPIプランを設定し、Discussion 
 
 | モデル                   | 説明                                      |
 | ------------------------ | ----------------------------------------- |
+| Gemini 4 Argon | 効率的な推論モデル、入出力共通の1Mコンテキスト |
+| Gemini 4 Carbon | 複雑な問題向けの深い推論モデル、入出力共通の1Mコンテキスト |
+| Gemini 4 Hydrogen | 高速なエージェント向けモデル、入出力共通の1Mコンテキスト、`xhigh` 思考に対応 |
+| Gemini 3.8 Flash | 高速モデル、1Mコンテキスト |
 | Gemini 3.1 Pro Preview | 最新のフラッグシップモデル、1Mコンテキスト（推奨） |
 | Gemini 3.1 Pro Preview (Custom Tools) | カスタムツールとbash向けに最適化されたエージェントワークフロー |
-| Gemini 3 Flash Preview | 高速モデル、1Mコンテキスト、最高のコストパフォーマンス |
-| Gemini 3.1 Flash Lite | Stable の低レイテンシ・低コストモデル、1Mコンテキスト |
-| Gemini 2.5 Flash | 高速モデル、1Mコンテキスト |
-| Gemini 2.5 Pro           | Proモデル、1Mコンテキスト               |
+| Gemini 3.5 Flash Lite | 低レイテンシ・低コストモデル、1Mコンテキスト |
 | Gemini 3 Pro (Image)     | Pro品質の画像生成、4K                          |
 | Gemini 3.1 Flash (Image) | 高速・低コストの画像生成 |
+| Gemini 3.1 Flash Lite (Image) | 最速・最安の画像生成、1K |
 
-> **Thinking モード:** 対応する Gemini モデルでは、モデル選択の隣にあるセレクタで思考レベル（`default` / `minimal` / `low` / `medium` / `high`）を選べます。`default` は Gemini API の既定に任せます。**Gemini 3.1 Pro** は Thinking を無効化できないため、最低レベルは `low` です。Gemma 4 と画像モデルには思考セレクタはありません。設定はモデルごとに記憶され、メッセージのキーワードで思考レベルが自動的に変わることはなくなりました。
+> **Thinking モード:** モデル選択の隣にあるセレクタで、モデルが対応する思考レベルを選べます。**Gemini 4 Hydrogen** は `default` / `low` / `medium` / `high` / `xhigh` に対応し、`default` は API の既定の `high` を使います。他の対応 Gemini モデルでは `high` まで、対応モデルでは `minimal` も選べます。**Gemini 3.1 Pro** は Thinking を無効化できないため、最低レベルは `low` です。Gemma 4 と画像モデルには思考セレクタはありません。設定はモデルごとに記憶され、メッセージのキーワードで思考レベルが自動的に変わることはなくなりました。
+
+Gemini 4 Argon と Carbon は有料APIキーが必要です。どちらも `default` / `low` / `medium` / `high` に対応し、`default` は API の既定の `medium` を使います。Gemini 4 モデルは Thinking を無効化できないため、ワークフローの既存の思考OFF指定は `low` として扱います。
 
 ### 無料プラン
 
 | モデル                  | Vault 操作 |
 | ----------------------- | ---------- |
-| Gemini 2.5 Flash        | ✅         |
-| Gemini 2.5 Flash Lite   | ✅         |
-| Gemini 3 Flash Preview  | ✅         |
-| Gemini 3.1 Flash Lite   | ✅         |
+| Gemini 4 Hydrogen      | ✅         |
+| Gemini 3.8 Flash       | ✅         |
+| Gemini 3.5 Flash Lite  | ✅         |
 | Gemma 4 (31B, 26B A4B MoE) | ✅      |
 
 ## インストール

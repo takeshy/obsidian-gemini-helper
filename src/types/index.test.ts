@@ -3,10 +3,34 @@ import {
   AVAILABLE_MODELS,
   FREE_MODELS,
   getDefaultModelForPlan,
+  isModelAllowedForPlan,
   isImageGenerationModel,
   modelAcceptsPdf,
   PAID_MODELS,
 } from "./index";
+
+describe("Gemini 4 Hydrogen", () => {
+  it.each(["free", "paid"] as const)("is selectable on the %s API plan", (plan) => {
+    expect(isModelAllowedForPlan(plan, "gemini-4-hydrogen")).toBe(true);
+  });
+
+  it("accepts native PDFs and is a text model", () => {
+    expect(modelAcceptsPdf("gemini-4-hydrogen")).toBe(true);
+    expect(isImageGenerationModel("gemini-4-hydrogen")).toBe(false);
+  });
+});
+
+describe.each(["gemini-4-argon", "gemini-4-carbon"] as const)("%s", (model) => {
+  it("is selectable only on the paid API plan", () => {
+    expect(isModelAllowedForPlan("paid", model)).toBe(true);
+    expect(isModelAllowedForPlan("free", model)).toBe(false);
+  });
+
+  it("accepts native PDFs and is a text model", () => {
+    expect(modelAcceptsPdf(model)).toBe(true);
+    expect(isImageGenerationModel(model)).toBe(false);
+  });
+});
 
 describe("Gemini 3.8 Flash", () => {
   it("is available on both API plans", () => {

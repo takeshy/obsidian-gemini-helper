@@ -3,11 +3,16 @@ import { test, vi, afterEach } from "vitest";
 afterEach(() => vi.restoreAllMocks());
 import { GeminiLiveSession } from "./gemini-live";
 import type { LiveState, LiveTranscript, LiveCallbacks, LiveOptions } from "./live-session";
+import { liveToolDefinitions } from "./live-tool-definitions";
 
-const { createToken } = vi.hoisted(() => ({ createToken: vi.fn() }));
-vi.mock("./live-connection", () => ({ createGeminiLiveToken: createToken }));
+const { requestToken } = vi.hoisted(() => ({ requestToken: vi.fn<typeof fetch>() }));
+vi.mock("obsidian-llm-hub-common/core", async importOriginal => ({
+  ...await importOriginal<typeof import("obsidian-llm-hub-common/core")>(),
+  geminiCorsFetch: requestToken,
+}));
 
 const options = { model: "gemini-3.8-live", voice: "Kore", language: "ja" as const, instructions: "Talk naturally" };
+const extendedModel = "gemini-3.8-live-extended-thinking";
 const tick = () => new Promise(resolve => setImmediate(resolve));
 function deferred<T>() { let resolve!: (value: T) => void; const promise = new Promise<T>(r => { resolve = r; }); return { promise, resolve }; }
 function fixture(t: import("vitest").TestContext, pendingMic?: Promise<unknown>, onToolCall?: LiveCallbacks["onToolCall"], access: Partial<LiveOptions> = {}) {
@@ -44,10 +49,8 @@ function fixture(t: import("vitest").TestContext, pendingMic?: Promise<unknown>,
     Object.defineProperty(globalThis, name, { configurable: true, writable: true, value });
     t.onTestFinished(() => { if (previous) Object.defineProperty(globalThis, name, previous); else Reflect.deleteProperty(globalThis, name); });
   }
-  createToken.mockImplementation(async (received: LiveOptions) => {
-    assert.deepEqual(received, sessionOptions);
-    return "auth_tokens/synthetic-token";
-  });
+  requestToken.mockReset();
+  requestToken.mockImplementation(async () => Response.json({ name: "auth_tokens/synthetic-token" }));
   const session = new GeminiLiveSession({ audio: audio as unknown as HTMLAudioElement, onToolCall, onState: state => states.push(state), onError: error => errors.push(error), onTranscript: items => { transcript = items; } }, { apiKey: "test-key" });
   t.onTestFinished(() => session.stop());
   const event = async (body: unknown) => { sockets[0].onmessage?.({ data: JSON.stringify(body) }); await tick(); };
@@ -71,11 +74,10 @@ test("Gemini uses the selected microphone and speaker", async t => {
 
 test("Gemini selects the output after microphone permission and releases everything when it fails before requesting credentials", async t => {
   const f = fixture(t);
-  createToken.mockClear();
   f.audio.setSinkId.mockImplementation(async () => { assert.equal(f.micRequests, 1); throw new Error("Device missing"); });
   await f.session.start({ ...options, outputDeviceId: "disconnected" });
   assert.equal(f.contextCloses, 1); assert.equal(f.outputStops, 1); assert.equal(f.microphoneStops, 1);
-  assert.equal(createToken.mock.calls.length, 0);
+  assert.equal(requestToken.mock.calls.length, 0);
   assert.match(f.errors[0], /selected audio output/);
 });
 
@@ -113,6 +115,31 @@ test("Gemini Live waits for setup, streams PCM with an ephemeral token, mutes an
   const count = socket.sent.length; f.recorder.port.onmessage?.({ data: pcm }); assert.equal(socket.sent.length, count);
   f.session.mute(false); f.recorder.port.onmessage?.({ data: pcm }); assert.equal(socket.sent.length, count + 1);
   f.session.stop(); assert.equal(f.microphoneStops, 1); assert.equal(f.outputStops, 1); assert.equal(f.contextCloses, 1); assert.equal(socket.closed, true);
+});
+
+test.for([
+  { model: extendedModel, fileAccess: true, ragEnabled: false },
+  { model: extendedModel, fileAccess: false, ragEnabled: true },
+  { model: extendedModel, fileAccess: true, ragEnabled: true },
+  { model: "gemini-3.8-live", fileAccess: true, ragEnabled: true },
+  { model: "gemini-3.1-flash-live-preview", fileAccess: true, ragEnabled: true },
+])("Gemini sends matching tool setup for $model (Vault: $fileAccess, RAG: $ragEnabled)", async (access, t) => {
+  const f = fixture(t, undefined, undefined, access);
+  const declarations = liveToolDefinitions(access).map(declaration => ({ ...declaration }));
+  assert.ok(declarations.length);
+  assert.equal(declarations.some(tool => tool.name === "read_note"), access.fileAccess);
+  assert.equal(declarations.some(tool => tool.name === "rag_search"), access.ragEnabled);
+  await f.connect();
+  const tokenSetup = JSON.parse(requestToken.mock.calls[0][1]!.body as string).bidiGenerateContentSetup;
+  const socketSetup = JSON.parse(f.sockets[0].sent[0]).setup;
+  assert.deepEqual(socketSetup, tokenSetup);
+  assert.deepEqual(socketSetup.generationConfig.thinkingConfig, access.model === extendedModel ? { thinkingLevel: "LOW" } : undefined);
+  assert.deepEqual(socketSetup.tools, [{
+    functionDeclarations: access.model === extendedModel
+      ? declarations.map(tool => ({ ...tool, behavior: "NON_BLOCKING" }))
+      : declarations,
+  }]);
+  assert.deepEqual(liveToolDefinitions(access), declarations);
 });
 
 test("Gemini processes all audio parts, preserves delayed user transcripts, and discards queued audio on interruption", async t => {
@@ -209,11 +236,11 @@ test("cancelling Gemini setup closes the negotiating socket and ignores late mes
   assert.equal(f.sockets[0].closed, true); assert.ok(!f.states.includes("connected")); assert.equal(f.microphoneStops, 1);
 });
 
-test("locked Gemini keys release the microphone and playback without opening a socket", async t => {
+test("Gemini token request failure releases the microphone and playback without opening a socket", async t => {
   const f = fixture(t);
-  createToken.mockRejectedValue(new Error("Unlock Gemini"));
+  requestToken.mockRejectedValue(new Error("Token request failed"));
   await f.session.start(options);
-  assert.equal(f.errors.at(-1), "Unlock Gemini");
+  assert.equal(f.errors.at(-1), "Token request failed");
   assert.equal(f.micRequests, 1);
   assert.equal(f.microphoneStops, 1);
   assert.equal(f.outputStops, 1);
@@ -240,23 +267,38 @@ test("Gemini worklet load failure releases the microphone and creates no socket"
   await f.session.start(options); assert.equal(f.errors.at(-1), "Could not load recorder"); assert.equal(f.microphoneStops, 1); assert.equal(f.sockets.length, 0);
 });
 
-test("Gemini Live returns file tool results and keeps receiving audio during the read", async t => {
-  const result = deferred<unknown>(); let executions = 0;
-  const f = fixture(t, undefined, async call => { executions++; assert.equal(call.name, "read_current_file"); return result.promise; }, { fileAccess: true });
+test("Extended Thinking receives audio during parallel Vault and RAG calls and returns each result with its call ID", async t => {
+  const file = deferred<unknown>(), rag = deferred<unknown>();
+  const execute = vi.fn<NonNullable<LiveCallbacks["onToolCall"]>>(async call => call.name === "rag_search" ? rag.promise : file.promise);
+  const f = fixture(t, undefined, execute, { model: extendedModel, fileAccess: true, ragEnabled: true });
   await f.connect(); const sentBefore = f.sockets[0].sent.length;
-  const tool = { toolCall: { functionCalls: [{ id: "file-1", name: "read_current_file", args: {} }] } };
+  const calls = [
+    { id: "file-1", name: "read_current_file", args: {} },
+    { id: "rag-1", name: "rag_search", args: { query: "launch" } },
+  ];
+  const tool = { toolCall: { functionCalls: calls } };
   await f.event(tool); await f.event(tool);
   await f.event({ serverContent: { modelTurn: { parts: [{ inlineData: { mimeType: "audio/pcm;rate=24000", data: "AAAAAA==" } }] } } });
-  assert.equal(f.sources.length, 1); assert.equal(executions, 1); assert.equal(f.sockets[0].sent.length, sentBefore);
-  result.resolve({ content: "Friday launch", source: "plan.md" }); await tick();
-  assert.deepEqual(JSON.parse(f.sockets[0].sent.at(-1)!), { toolResponse: { functionResponses: [{ id: "file-1", name: "read_current_file", response: { content: "Friday launch", source: "plan.md" } }] } });
+  assert.equal(f.sources.length, 1);
+  assert.deepEqual(execute.mock.calls.map(([call]) => call), calls);
+  assert.equal(f.sockets[0].sent.length, sentBefore);
+  rag.resolve({ content: "Launch checklist" }); await tick();
+  file.resolve({ content: "Friday launch", source: "plan.md" }); await tick();
+  assert.deepEqual(f.sockets[0].sent.slice(sentBefore).map(message => JSON.parse(message)), [{
+    toolResponse: { functionResponses: [
+      { id: "file-1", name: "read_current_file", response: { content: "Friday launch", source: "plan.md" } },
+      { id: "rag-1", name: "rag_search", response: { content: "Launch checklist" } },
+    ] },
+  }]);
 });
 
-test("Gemini tool cancellation aborts an in-flight read and never sends a stale result", async t => {
+test.for(["tool cancellation", "session stop"] as const)("Extended Thinking drops delayed results after %s", async (action, t) => {
   const result = deferred<unknown>(); let signal: AbortSignal | undefined;
-  const f = fixture(t, undefined, async (_call, currentSignal) => { signal = currentSignal; return result.promise; }, { fileAccess: true });
+  const f = fixture(t, undefined, async (_call, currentSignal) => { signal = currentSignal; return result.promise; }, { model: extendedModel, fileAccess: true });
   await f.connect(); const before = f.sockets[0].sent.length;
   await f.event({ toolCall: { functionCalls: [{ id: "read-1", name: "read_current_file", args: {} }] } });
-  await f.event({ toolCallCancellation: { ids: ["read-1"] } }); result.resolve({ content: "late text" }); await tick();
+  if (action === "session stop") f.session.stop();
+  else await f.event({ toolCallCancellation: { ids: ["read-1"] } });
+  result.resolve({ content: "late text" }); await tick();
   assert.equal(signal?.aborted, true); assert.equal(f.sockets[0].sent.length, before);
 });

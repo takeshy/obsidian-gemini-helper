@@ -2,12 +2,17 @@
 import type { LiveOptions } from "./live-session";
 import { liveToolDefinitions } from "./live-tool-definitions";
 
-export const GEMINI_LIVE_MODELS = ["gemini-3.8-live", "gemini-3.8-live-extended-thinking", "gemini-3.1-flash-live-preview"] as const;
+const EXTENDED_THINKING_MODEL = "gemini-3.8-live-extended-thinking";
+export const GEMINI_LIVE_MODELS = ["gemini-3.8-live", EXTENDED_THINKING_MODEL, "gemini-3.1-flash-live-preview"] as const;
 export const GEMINI_LIVE_VOICES = ["Kore", "Puck", "Aoede", "Charon", "Fenrir", "Leda", "Orus", "Zephyr"] as const;
 
 /** Wire-format setup, also locked into the single-use ephemeral token. */
 export function geminiLiveSetup(options: LiveOptions) {
-  const tools = liveToolDefinitions(options);
+  const declarations = liveToolDefinitions(options);
+  const extendedThinking = options.model === EXTENDED_THINKING_MODEL;
+  const functionDeclarations = extendedThinking
+    ? declarations.map(declaration => ({ ...declaration, behavior: "NON_BLOCKING" as const }))
+    : declarations;
   // Use the resolved app language as a default, while preserving any explicit
   // language or speaking style configured in the system prompt.
   const speakingInstructions = options.language === "ja"
@@ -18,11 +23,12 @@ export function geminiLiveSetup(options: LiveOptions) {
     generationConfig: {
       responseModalities: ["AUDIO"],
       speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: options.voice } } },
+      ...(extendedThinking ? { thinkingConfig: { thinkingLevel: "LOW" } } : {}),
     },
     systemInstruction: { parts: [{ text: [options.instructions, speakingInstructions].filter(Boolean).join("\n\n") }] },
     inputAudioTranscription: {},
     outputAudioTranscription: {},
     contextWindowCompression: { slidingWindow: {} },
-    ...(tools.length ? { tools: [{ functionDeclarations: tools }] } : {}),
+    ...(functionDeclarations.length ? { tools: [{ functionDeclarations }] } : {}),
   };
 }

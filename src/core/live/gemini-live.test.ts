@@ -119,11 +119,11 @@ test("Gemini Live waits for setup, streams PCM with an ephemeral token, mutes an
 
 test.for([
   { model: extendedModel, fileAccess: true, ragEnabled: false },
-  { model: extendedModel, fileAccess: false, ragEnabled: true },
-  { model: extendedModel, fileAccess: true, ragEnabled: true },
-  { model: "gemini-3.8-live", fileAccess: true, ragEnabled: true },
-  { model: "gemini-3.1-flash-live-preview", fileAccess: true, ragEnabled: true },
-])("Gemini sends matching tool setup for $model (Vault: $fileAccess, RAG: $ragEnabled)", async (access, t) => {
+  { model: extendedModel, fileAccess: false, ragEnabled: true, thinkingLevel: "MEDIUM" },
+  { model: extendedModel, fileAccess: true, ragEnabled: true, thinkingLevel: "HIGH" },
+  { model: "gemini-3.8-live", fileAccess: true, ragEnabled: true, thinkingLevel: "HIGH" },
+  { model: "gemini-3.1-flash-live-preview", fileAccess: true, ragEnabled: true, thinkingLevel: "MEDIUM" },
+] satisfies Partial<LiveOptions>[])("Gemini sends matching tool setup for $model (Vault: $fileAccess, RAG: $ragEnabled)", async (access, t) => {
   const f = fixture(t, undefined, undefined, access);
   const declarations = liveToolDefinitions(access).map(declaration => ({ ...declaration }));
   assert.ok(declarations.length);
@@ -133,7 +133,9 @@ test.for([
   const tokenSetup = JSON.parse(requestToken.mock.calls[0][1]!.body as string).bidiGenerateContentSetup;
   const socketSetup = JSON.parse(f.sockets[0].sent[0]).setup;
   assert.deepEqual(socketSetup, tokenSetup);
-  assert.deepEqual(socketSetup.generationConfig.thinkingConfig, access.model === extendedModel ? { thinkingLevel: "LOW" } : undefined);
+  assert.deepEqual(socketSetup.generationConfig.thinkingConfig, access.model === extendedModel
+    ? { thinkingLevel: access.thinkingLevel ?? "LOW" }
+    : undefined);
   assert.deepEqual(socketSetup.tools, [{
     functionDeclarations: access.model === extendedModel
       ? declarations.map(tool => ({ ...tool, behavior: "NON_BLOCKING" }))

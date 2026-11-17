@@ -2,7 +2,7 @@
 import type { LiveOptions } from "./live-session";
 import { liveToolDefinitions } from "./live-tool-definitions";
 
-const EXTENDED_THINKING_MODEL = "gemini-3.8-live-extended-thinking";
+export const EXTENDED_THINKING_MODEL = "gemini-3.8-live-extended-thinking";
 export const GEMINI_LIVE_MODELS = ["gemini-3.8-live", EXTENDED_THINKING_MODEL, "gemini-3.1-flash-live-preview"] as const;
 export const GEMINI_LIVE_VOICES = ["Kore", "Puck", "Aoede", "Charon", "Fenrir", "Leda", "Orus", "Zephyr"] as const;
 
@@ -23,7 +23,7 @@ export function geminiLiveSetup(options: LiveOptions) {
     generationConfig: {
       responseModalities: ["AUDIO"],
       speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: options.voice } } },
-      ...(extendedThinking ? { thinkingConfig: { thinkingLevel: "LOW" } } : {}),
+      ...(extendedThinking ? { thinkingConfig: { thinkingLevel: options.thinkingLevel ?? "LOW" } } : {}),
     },
     systemInstruction: { parts: [{ text: [options.instructions, speakingInstructions].filter(Boolean).join("\n\n") }] },
     inputAudioTranscription: {},

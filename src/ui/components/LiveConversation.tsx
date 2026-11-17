@@ -5,8 +5,8 @@ import type { GeminiHelperPlugin } from "src/plugin";
 import type { Message } from "src/types";
 import { t, getLocale } from "src/i18n";
 import { GeminiLiveSession } from "src/core/live/gemini-live";
-import { GEMINI_LIVE_MODELS, GEMINI_LIVE_VOICES } from "src/core/live/gemini-live-config";
-import type { LiveSession, LiveState, LiveTranscript } from "src/core/live/live-session";
+import { EXTENDED_THINKING_MODEL, GEMINI_LIVE_MODELS, GEMINI_LIVE_VOICES } from "src/core/live/gemini-live-config";
+import type { GeminiLiveThinkingLevel, LiveSession, LiveState, LiveTranscript } from "src/core/live/live-session";
 import { liveToolInstructions } from "src/core/live/live-tool-definitions";
 import { createLiveVaultToolRunner, liveTranscriptMessages } from "src/core/live/live-vault-tools";
 import { listLiveAudioDevices, supportsLiveAudioOutput } from "src/core/live/live-audio";
@@ -29,6 +29,8 @@ export default function LiveConversation({ plugin, messages, historyEnabled, sel
   const voices = GEMINI_LIVE_VOICES;
   const [model, setModel] = useState<string>(models[0]);
   const [voice, setVoice] = useState<string>(voices[0]);
+  const [thinkingLevel, setThinkingLevel] = useState<GeminiLiveThinkingLevel>("LOW");
+  const extendedThinking = model === EXTENDED_THINKING_MODEL;
   const [state, setState] = useState<LiveState>("idle");
   const [muted, setMuted] = useState(false);
   const [error, setError] = useState("");
@@ -211,6 +213,7 @@ export default function LiveConversation({ plugin, messages, historyEnabled, sel
     const context = includeContext ? contextMessages.slice(-20).map(item => `${item.role}: ${item.content}`).join("\n").slice(-40_000) : "";
     void session.start({
       ...access, model, voice, language: getLocale() === "ja" ? "ja" : "en",
+      ...(extendedThinking ? { thinkingLevel } : {}),
       inputDeviceId, outputDeviceId: outputSupported ? outputDeviceId : "",
       instructions: [
         "You are a helpful voice assistant integrated with Obsidian. Follow the user's preferred language and speaking style. If speech is unclear, ask for clarification instead of guessing.",
@@ -267,6 +270,14 @@ export default function LiveConversation({ plugin, messages, historyEnabled, sel
         <div className="gemini-helper-live-options">
           <label>{t("live.model")}<select aria-label={t("live.model")} value={model} disabled={state !== "idle"} onChange={event => setModel(event.target.value)}>{models.map(value => <option key={value}>{value}</option>)}</select></label>
           <label>{t("live.voice")}<select aria-label={t("live.voice")} value={voice} disabled={state !== "idle"} onChange={event => setVoice(event.target.value)}>{voices.map(value => <option key={value}>{value}</option>)}</select></label>
+          {extendedThinking && <label>{t("live.thinkingLevel")}<select value={thinkingLevel} disabled={state !== "idle"} onChange={event => {
+            const level = event.target.value;
+            if (level === "LOW" || level === "MEDIUM" || level === "HIGH") setThinkingLevel(level);
+          }}>
+            <option value="LOW">{t("live.thinkingLow")}</option>
+            <option value="MEDIUM">{t("live.thinkingMedium")}</option>
+            <option value="HIGH">{t("live.thinkingHigh")}</option>
+          </select></label>}
         </div>
         <p className="gemini-helper-live-description">{t("live.switchHint")}</p>
         <div className="gemini-helper-live-options">

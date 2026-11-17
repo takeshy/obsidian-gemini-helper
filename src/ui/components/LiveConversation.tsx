@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Mic, MicOff, PhoneOff, Settings2, X } from "lucide-react";
+import { canRenderGoogleSearchSuggestions, GoogleSearchSuggestions } from "obsidian-llm-hub-common";
 import type { GeminiHelperPlugin } from "src/plugin";
 import type { Message } from "src/types";
 import { t, getLocale } from "src/i18n";
@@ -43,6 +44,12 @@ export default function LiveConversation({ plugin, messages, historyEnabled, sel
   const deviceRequestRef = useRef(0);
   const [includeContext, setIncludeContext] = useState(true);
   const [fileAccess, setFileAccess] = useState(initialFileAccess);
+  const [writeAccess, setWriteAccess] = useState(false);
+  const [webSearch, setWebSearch] = useState(false);
+  const [searchSupported] = useState(canRenderGoogleSearchSuggestions);
+  const [webTranscript, setWebTranscript] = useState<LiveTranscript[]>([]);
+  const [searchSuggestions, setSearchSuggestions] = useState<string[]>([]);
+  const useWebSearch = webSearch && searchSupported;
   const [ragName, setRagName] = useState(selectedRagSetting ?? "");
   const [toolStatus, setToolStatus] = useState("");
   const [ragReport, setRagReport] = useState<{ count?: number; error?: string } | null>(null);
@@ -168,6 +175,7 @@ export default function LiveConversation({ plugin, messages, historyEnabled, sel
     const previousTranscript = [...transcriptRef.current];
     const current = () => !finishedRef.current && runSequenceRef.current === run;
     setError(""); setMuted(false); setRagReport(null);
+    setWebTranscript([]); setSearchSuggestions([]);
     setInSidebar(true); setSetupOpen(false);
     onStart(); onRevealRef.current();
     const session = new GeminiLiveSession({
@@ -176,13 +184,19 @@ export default function LiveConversation({ plugin, messages, historyEnabled, sel
       onError: value => { if (current()) setError(value); },
       onTranscript: value => {
         if (!current()) return;
+        if (useWebSearch) { setWebTranscript(value); return; }
         const combined = [...previousTranscript, ...value.map(item => ({ ...item, id: `${run}:${item.id}` }))];
         transcriptRef.current = combined;
         onTranscriptRef.current(liveTranscriptMessages(combined, transcriptTimeRef.current));
       },
+      onSearchSuggestions: useWebSearch ? suggestions => {
+        if (current()) setSearchSuggestions(previous => [...new Set([...previous, ...suggestions])]);
+      } : undefined,
       onToolCall: async (call, signal) => {
         if (!current()) throw new Error("This live session has ended.");
-        const status = call.name === "rag_search" ? t("live.searchingRag") : call.name.includes("search") || call.name.startsWith("list_") ? t("live.searchingFiles") : t("live.readingFile");
+        const status = call.name === "create_note" || call.name === "append_to_note" ? t("live.writingFile")
+          : call.name === "rag_search" ? t("live.searchingRag")
+          : call.name.includes("search") || call.name.startsWith("list_") ? t("live.searchingFiles") : t("live.readingFile");
         const activity = { status };
         activeToolsRef.current.set(call.id, activity);
         setToolStatus(status);
@@ -207,13 +221,14 @@ export default function LiveConversation({ plugin, messages, historyEnabled, sel
     }, { apiKey: plugin.settings.googleApiKey.trim() });
     sessionRef.current = session;
     const setting = ragName ? plugin.getRagSetting(ragName) : null;
-    const access = { fileAccess, ragEnabled: !!setting };
-    runnerRef.current = fileAccess || access.ragEnabled ? createLiveVaultToolRunner(plugin.app, plugin.settings, access, setting ? { name: ragName, storeIds: plugin.getStoreIdsForRagSetting(setting), metadataFilter: setting.metadataFilter || undefined } : undefined) : null;
+    const access = { fileAccess, writeAccess, ragEnabled: !!setting };
+    runnerRef.current = fileAccess || writeAccess || access.ragEnabled ? createLiveVaultToolRunner(plugin.app, plugin.settings, access, setting ? { name: ragName, storeIds: plugin.getStoreIdsForRagSetting(setting), metadataFilter: setting.metadataFilter || undefined } : undefined) : null;
     const contextMessages = [...messages, ...liveTranscriptMessages(previousTranscript)];
     const context = includeContext ? contextMessages.slice(-20).map(item => `${item.role}: ${item.content}`).join("\n").slice(-40_000) : "";
     void session.start({
       ...access, model, voice, language: getLocale() === "ja" ? "ja" : "en",
       ...(extendedThinking ? { thinkingLevel } : {}),
+      ...(useWebSearch ? { webSearch: true } : {}),
       inputDeviceId, outputDeviceId: outputSupported ? outputDeviceId : "",
       instructions: [
         "You are a helpful voice assistant integrated with Obsidian. Follow the user's preferred language and speaking style. If speech is unclear, ask for clarification instead of guessing.",
@@ -225,6 +240,7 @@ export default function LiveConversation({ plugin, messages, historyEnabled, sel
 
   const closeSetup = () => { if (inSidebar) setSetupOpen(false); else finish(); };
   const statusLabel = t(state === "connecting" ? "live.connecting" : state === "connected" ? "live.connected" : "live.stopped");
+  const hasWebResults = webTranscript.length > 0 || searchSuggestions.length > 0;
   const report = <>
     {error && <p className="gemini-helper-live-error" role="alert">{error}</p>}
     {toolStatus && <p role="status">{toolStatus}</p>}
@@ -235,12 +251,18 @@ export default function LiveConversation({ plugin, messages, historyEnabled, sel
 
   return <>
     <audio ref={audioRef} autoPlay playsInline hidden />
-    {inSidebar && <section className="gemini-helper-live-controls" aria-label={t("live.title")} onPointerDown={() => {
+    {inSidebar && <section className={`gemini-helper-live-controls${hasWebResults ? " gemini-helper-live-controls-with-search" : ""}`} aria-label={t("live.title")} onPointerDown={() => {
       if (state === "connected") void audioRef.current?.play().catch(() => {});
     }}>
       <div className="gemini-helper-live-call-info"><Mic size={16} /><strong>{t("live.title")}</strong><span>{providerName} · {model}</span></div>
       <p role="status">{statusLabel}</p>
       {report}
+      {hasWebResults && <div className="gemini-helper-live-search-results" tabIndex={0}>
+        {webTranscript.length > 0 && <div className="gemini-helper-live-transcript" role="log" aria-label={t("live.webSearch")}>
+          {webTranscript.filter(item => item.text.trim()).map(item => <p key={item.id}><strong>{t(item.role === "user" ? "live.speakerYou" : "live.speakerGemini")}</strong> {item.text}</p>)}
+        </div>}
+        {searchSuggestions.map(html => <GoogleSearchSuggestions key={html} html={html} classPrefix="gemini-helper" />)}
+      </div>}
       <div className="gemini-helper-live-actions">
         {state === "idle" ? <>
           <button type="button" className="mod-cta" onClick={start}>{t("live.start")}</button>
@@ -298,9 +320,11 @@ export default function LiveConversation({ plugin, messages, historyEnabled, sel
         {deviceError && <p className="gemini-helper-live-error" role="alert">{deviceError}</p>}
         <label className="gemini-helper-live-check"><input type="checkbox" checked={includeContext} disabled={state !== "idle"} onChange={event => setIncludeContext(event.target.checked)} />{t("live.includeContext")}</label>
         <label className="gemini-helper-live-check"><input type="checkbox" checked={fileAccess} disabled={state !== "idle"} onChange={event => setFileAccess(event.target.checked)} />{t("live.fileAccess")}</label>
+        <label className="gemini-helper-live-check"><input type="checkbox" checked={writeAccess} disabled={state !== "idle"} onChange={event => setWriteAccess(event.target.checked)} />{t("live.writeAccess")}</label>
+        {searchSupported && <label className="gemini-helper-live-check"><input type="checkbox" checked={webSearch} disabled={state !== "idle"} onChange={event => setWebSearch(event.target.checked)} />{t("live.webSearch")}</label>}
         {ragNames.length > 0 && <label className="gemini-helper-live-rag">RAG<select aria-label="RAG" value={ragName} disabled={state !== "idle"} onChange={event => { setRagName(event.target.value); setRagReport(null); }}><option value="">{t("live.noRag")}</option>{ragNames.map(name => <option key={name}>{name}</option>)}</select></label>}
         {ragName && <p className="gemini-helper-live-description">{t("live.ragScope")}</p>}
-        <p className="gemini-helper-live-description">{t(historyEnabled ? "live.historySaved" : "live.historyDisabled")}</p>
+        <p className="gemini-helper-live-description">{t(useWebSearch ? "live.webSearchHistory" : historyEnabled ? "live.historySaved" : "live.historyDisabled")}</p>
         {report}
       </div>
       <div className="gemini-helper-live-actions">

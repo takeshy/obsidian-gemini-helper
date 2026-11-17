@@ -46,6 +46,52 @@ describe("Live vault access", () => {
     expect(await disabled({ ...call, name: "read_note" }, new AbortController().signal)).toHaveProperty("error");
     expect(execute).not.toHaveBeenCalled();
   });
+  it("creates a note through the write-only tools and rejects invalid destinations", async () => {
+    const f = fixture("Shared/note.md");
+    const create = vi.fn(async (path: string) => ({ path }));
+    Object.assign(f.app, { vault: { create } });
+    const run = createLiveVaultToolRunner(f.app, f.settings, { writeAccess: true });
+    const signal = new AbortController().signal;
+    const call = { id: "write", name: "create_note", args: { path: "Shared/Dictation", content: "First sentence.\nSecond sentence." } };
+    expect(await run(call, signal)).toEqual({ success: true, path: "Shared/Dictation.md" });
+    expect(create).toHaveBeenCalledWith("Shared/Dictation.md", call.args.content);
+    for (const path of ["Private/secret.md", "Shared/../Private/secret.md", "Shared/settings.json", "Shared/test\0.md"]) {
+      expect(await run({ ...call, args: { ...call.args, path } }, signal)).toHaveProperty("error");
+    }
+    expect(await run({ ...call, name: "read_note" }, signal)).toHaveProperty("error");
+    expect(create).toHaveBeenCalledTimes(1);
+    expect(execute).not.toHaveBeenCalled();
+  });
+  it("appends to the current editor without replacing unsaved text", async () => {
+    const f = fixture("Shared/note.md");
+    const leaf = f.app.workspace.getMostRecentLeaf()!;
+    const view = leaf.view as MarkdownView;
+    const replaceRange = vi.fn();
+    Object.assign(view.editor, { lastLine: () => 1, getLine: () => "Unsaved", replaceRange });
+    const process = vi.fn();
+    Object.assign(f.app, { vault: { getFileByPath: () => view.file, process } });
+    Object.assign(f.app.workspace, { getLeavesOfType: () => [leaf] });
+    const run = createLiveVaultToolRunner(f.app, f.settings, { writeAccess: true });
+    expect(await run({ id: "append", name: "append_to_note", args: { content: "Dictated text" } }, new AbortController().signal)).toEqual({ success: true, path: "Shared/note.md" });
+    expect(replaceRange).toHaveBeenCalledWith("\nDictated text", { line: 1, ch: 7 });
+    expect(process).not.toHaveBeenCalled();
+  });
+  it("appends to a closed note atomically and checks cancellation before applying the change", async () => {
+    const f = fixture("Shared/note.md");
+    const file = f.app.workspace.getActiveFile();
+    const abort = new AbortController();
+    let existing = "Original\n";
+    const process = vi.fn(async (_file, transform: (text: string) => string) => { existing = transform(existing); });
+    Object.assign(f.app, { vault: { getFileByPath: () => file, process } });
+    Object.assign(f.app.workspace, { getLeavesOfType: () => [] });
+    const run = createLiveVaultToolRunner(f.app, f.settings, { writeAccess: true });
+    const call = { id: "append", name: "append_to_note", args: { path: "Shared/note.md", content: "First addition" } };
+    await run(call, abort.signal);
+    expect(existing).toBe("Original\nFirst addition");
+    process.mockImplementationOnce(async (_file, transform) => { abort.abort(); existing = transform(existing); });
+    await expect(run({ ...call, id: "late" }, abort.signal)).rejects.toThrow();
+    expect(existing).toBe("Original\nFirst addition");
+  });
   it("preserves transcript order and omits empty audio turns", () => {
     expect(liveTranscriptMessages([
       { id: "1", role: "user", text: "Hello" }, { id: "2", role: "assistant", text: " " }, { id: "3", role: "assistant", text: "Hi" },
@@ -90,6 +136,7 @@ describe("Live tool dispatch", () => {
     const names = liveToolDefinitions({ fileAccess: true, ragEnabled: true }).map(tool => tool.name);
     expect(names).toContain("rag_search");
     expect(names).not.toContain("create_note");
+    expect(liveToolDefinitions({ writeAccess: true }).map(tool => tool.name)).toEqual(["create_note", "append_to_note"]);
     expect(names).not.toContain("execute_javascript");
   });
   it("describes only the enabled sources in the Live instructions", () => {

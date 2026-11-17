@@ -25,6 +25,7 @@ function fixture(t: import("vitest").TestContext, pendingMic?: Promise<unknown>,
   const getUserMedia = vi.fn(async (_constraints: MediaStreamConstraints) => { micRequests++; return pendingMic || stream; });
   const states: LiveState[] = [], errors: string[] = [];
   let transcript: LiveTranscript[] = [];
+  const searchSuggestions: string[][] = [];
   const sources: { buffer?: { duration: number }; startTime?: number; stopped: boolean; connect(): void; disconnect(): void; start(time: number): void; stop(): void; onended: (() => void) | null }[] = [];
   const recorder = { port: { onmessage: null as ((event: { data: ArrayBuffer }) => void) | null, postMessage() {}, close() {} }, connect() {}, disconnect() {} };
   const context = {
@@ -51,7 +52,7 @@ function fixture(t: import("vitest").TestContext, pendingMic?: Promise<unknown>,
   }
   requestToken.mockReset();
   requestToken.mockImplementation(async () => Response.json({ name: "auth_tokens/synthetic-token" }));
-  const session = new GeminiLiveSession({ audio: audio as unknown as HTMLAudioElement, onToolCall, onState: state => states.push(state), onError: error => errors.push(error), onTranscript: items => { transcript = items; } }, { apiKey: "test-key" });
+  const session = new GeminiLiveSession({ audio: audio as unknown as HTMLAudioElement, onToolCall, onState: state => states.push(state), onError: error => errors.push(error), onTranscript: items => { transcript = items; }, onSearchSuggestions: items => searchSuggestions.push(items) }, { apiKey: "test-key" });
   t.onTestFinished(() => session.stop());
   const event = async (body: unknown) => { sockets[0].onmessage?.({ data: JSON.stringify(body) }); await tick(); };
   const connect = async () => {
@@ -61,7 +62,7 @@ function fixture(t: import("vitest").TestContext, pendingMic?: Promise<unknown>,
     assert.equal(states.at(-1), "connecting");
     await event({ setupComplete: {} }); await starting;
   };
-  return { session, audio, getUserMedia, states, errors, sockets, sources, recorder, track, context, stream, event, connect,
+  return { session, audio, getUserMedia, states, errors, sockets, sources, recorder, track, context, stream, event, connect, searchSuggestions,
     get transcript() { return transcript; }, get microphoneStops() { return microphoneStops; }, get outputStops() { return outputStops; }, get contextCloses() { return contextCloses; }, get micRequests() { return micRequests; } };
 }
 
@@ -120,7 +121,7 @@ test("Gemini Live waits for setup, streams PCM with an ephemeral token, mutes an
 test.for([
   { model: extendedModel, fileAccess: true, ragEnabled: false },
   { model: extendedModel, fileAccess: false, ragEnabled: true, thinkingLevel: "MEDIUM" },
-  { model: extendedModel, fileAccess: true, ragEnabled: true, thinkingLevel: "HIGH" },
+  { model: extendedModel, fileAccess: true, writeAccess: true, ragEnabled: true, webSearch: true, thinkingLevel: "HIGH" },
   { model: "gemini-3.8-live", fileAccess: true, ragEnabled: true, thinkingLevel: "HIGH" },
   { model: "gemini-3.1-flash-live-preview", fileAccess: true, ragEnabled: true, thinkingLevel: "MEDIUM" },
 ] satisfies Partial<LiveOptions>[])("Gemini sends matching tool setup for $model (Vault: $fileAccess, RAG: $ragEnabled)", async (access, t) => {
@@ -136,12 +137,24 @@ test.for([
   assert.deepEqual(socketSetup.generationConfig.thinkingConfig, access.model === extendedModel
     ? { thinkingLevel: access.thinkingLevel ?? "LOW" }
     : undefined);
-  assert.deepEqual(socketSetup.tools, [{
-    functionDeclarations: access.model === extendedModel
+  assert.deepEqual(socketSetup.tools, [
+    { functionDeclarations: access.model === extendedModel
       ? declarations.map(tool => ({ ...tool, behavior: "NON_BLOCKING" }))
-      : declarations,
-  }]);
+      : declarations },
+    ...(access.webSearch ? [{ googleSearch: {} }] : []),
+  ]);
   assert.deepEqual(liveToolDefinitions(access), declarations);
+});
+
+test("Gemini offers Google Search independently of Vault and RAG", async t => {
+  const f = fixture(t, undefined, undefined, { webSearch: true });
+  await f.connect();
+  const tokenSetup = JSON.parse(requestToken.mock.calls[0][1]!.body as string).bidiGenerateContentSetup;
+  const socketSetup = JSON.parse(f.sockets[0].sent[0]).setup;
+  assert.deepEqual(socketSetup, tokenSetup);
+  assert.deepEqual(socketSetup.tools, [{ googleSearch: {} }]);
+  await f.event({ serverContent: { groundingMetadata: { searchEntryPoint: { renderedContent: "<div>Search suggestions</div>" } } } });
+  assert.deepEqual(f.searchSuggestions, [["<div>Search suggestions</div>"]]);
 });
 
 test("Gemini processes all audio parts, preserves delayed user transcripts, and discards queued audio on interruption", async t => {

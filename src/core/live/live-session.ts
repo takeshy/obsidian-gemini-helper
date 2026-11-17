@@ -7,6 +7,7 @@ export interface LiveOptions extends LiveFileAccess {
   model: string; voice: string; instructions: string; language: "ja" | "en";
   inputDeviceId?: string; outputDeviceId?: string;
   thinkingLevel?: GeminiLiveThinkingLevel;
+  webSearch?: boolean;
 }
 export interface LiveConnectionConfig { apiKey: string }
 export interface LiveCallbacks {
@@ -14,6 +15,7 @@ export interface LiveCallbacks {
   onState: (state: LiveState) => void;
   onTranscript: (transcript: LiveTranscript[]) => void;
   onError: (message: string) => void;
+  onSearchSuggestions?: (html: string[]) => void;
   onToolCall?: (call: LiveToolCall, signal: AbortSignal) => Promise<unknown>;
 }
 export interface LiveSession { start(options: LiveOptions): Promise<void>; stop(): void; mute(muted: boolean): void }

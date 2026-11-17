@@ -1,5 +1,6 @@
 // Ported from KiokuFlow; provider transports run locally in Obsidian.
 import { createGeminiLiveToken } from "./live-connection";
+import { extractGoogleSearchSuggestions } from "obsidian-llm-hub-common/core";
 import { liveMicrophoneConstraints, openLiveMicrophone, setLiveAudioOutput } from "./live-audio";
 import { GEMINI_LIVE_RECORDER_SOURCE } from "./gemini-recorder";
 import type { LiveConnectionConfig } from "./live-session";
@@ -13,6 +14,7 @@ interface GeminiLiveMessage {
   toolCall?: { functionCalls?: { id?: string; name?: string; args?: Record<string, unknown> }[] };
   toolCallCancellation?: { ids?: string[] };
   serverContent?: {
+    groundingMetadata?: unknown;
     interrupted?: boolean;
     turnComplete?: boolean;
     interactionStatus?: string;
@@ -169,6 +171,10 @@ export class GeminiLiveSession implements LiveSession {
     }
     const content = message.serverContent;
     if (!content) return;
+    if (content.groundingMetadata && this.callbacks.onSearchSuggestions) {
+      const suggestions = extractGoogleSearchSuggestions({ candidates: [content] });
+      if (suggestions.length) this.callbacks.onSearchSuggestions(suggestions);
+    }
     if (content.interrupted) this.clearPlayback();
     this.transcribe(content);
     for (const part of content.modelTurn?.parts || []) {

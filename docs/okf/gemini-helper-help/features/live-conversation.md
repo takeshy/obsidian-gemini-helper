@@ -1,7 +1,7 @@
 ---
 type: Feature
 title: Live Voice Conversation
-description: Gemini Live voice sessions with optional chat context, read-only Vault tools, File Search, and transcript history.
+description: Gemini Live voice sessions with optional chat context, Vault reading and writing, File Search, and transcript history.
 tags: [live, voice, audio, gemini, rag]
 timestamp: 2026-11-09T00:00:00Z
 ---
@@ -16,7 +16,9 @@ Speak naturally, interrupt, or mute. Stop releases the microphone and playback r
 
 Editing notes, hiding the sidebar, or switching to Workflow keeps the call running. Use the Obsidian status bar to return to the call or Stop it. Closing the Gemini Helper view releases the microphone and playback and saves the final transcript.
 
-Choose prior chat context, read-only Vault access, and RAG independently. Prior context includes the last 20 text messages, up to 40,000 characters. File tools honor the configured AI folder access and can read unsaved editor text. No writing, deletion, skills, scripts, MCP, or Web search tools are offered in Live.
+Choose prior chat context, Vault reading, Vault writing, and RAG independently. Prior context includes the last 20 text messages, up to 40,000 characters. File tools honor the configured AI folder access and can read unsaved editor text. Enable **Create and append to vault notes** to dictate into Markdown notes in allowed folders. It is off by default. For example, say “Append this to my current note” and dictate the text, or say “Save this as a new note in Meeting Notes” and give the note a title. Deletion, skills, scripts, and MCP are unavailable.
+
+Enable **Web search (Google)** in the Gemini Live setup to use Google Search in the call. It is off by default and can be used with Vault tools and RAG. When enabled, the transcript and Google search suggestions appear only in the call. The transcript is not added to chat history.
 
 RAG uses the selected Gemini File Search setting, including its internal store or external stores and metadata filter. A separate Gemini text request retrieves evidence and returns it to the voice model; this incurs additional API usage. File Search can be used with direct Vault access off. Vault tool folder limits do not filter indexed results. The dialog shows whether retrieval has run, its actual result count, or a search error. A setting without a synced/configured store returns an explicit error.
 

@@ -68,7 +68,7 @@ The AI Chat feature provides an interactive conversation interface with Google G
 
 ## Voice Input and Read-Aloud
 
-**Gemini Live** — Click the microphone in the chat header to start a real-time voice conversation using your saved Google API key. Choose a Live model and voice separately from the text chat model. You can interrupt, mute, stop and restart, and optionally use recent chat context, read-only Vault tools, and a selected Gemini File Search setting. Finishing adds the transcript to the same chat and follows your history/encryption settings. Audio goes directly to Google; raw audio is not saved. API charges apply. No speech-popup installation is needed. See [Live voice conversation](docs/okf/gemini-helper-help/features/live-conversation.md).
+**Gemini Live** — Click the microphone in the chat header to start a real-time voice conversation using your saved Google API key. Choose a Live model and voice separately from the text chat model. You can interrupt, mute, stop and restart, and optionally use recent chat context, Vault reading, optional Markdown note writing, and a selected Gemini File Search setting. Finishing adds the transcript to the same chat and follows your history/encryption settings. Audio goes directly to Google; raw audio is not saved. API charges apply. No speech-popup installation is needed. See [Live voice conversation](docs/okf/gemini-helper-help/features/live-conversation.md).
 
 ![Gemini Live conversation with voice controls and transcript](docs/images/live-conversation.png)
 
@@ -90,7 +90,7 @@ The AI Chat feature provides an interactive conversation interface with Google G
 
 ## Live Voice Conversation
 
-Save your Google API key, click the microphone in the chat header, and choose a Gemini Live model, voice, microphone, and audio output. **Start conversation** closes setup and shows the transcript in the existing chat sidebar. Use **Mute**, **Stop**, and **End conversation** below the messages. While stopped, **Call settings** lets you change devices, model, voice, and optional read-only Vault/File Search access.
+Save your Google API key, click the microphone in the chat header, and choose a Gemini Live model, voice, microphone, and audio output. **Start conversation** closes setup and shows the transcript in the existing chat sidebar. Use **Mute**, **Stop**, and **End conversation** below the messages. While stopped, **Call settings** lets you change devices, model, voice, and Vault reading, Vault writing, File Search, and Web search (Google). With Web search enabled, the transcript and search suggestions stay in the call.
 
 The call continues while you edit notes, hide the sidebar, or switch to Workflow. Use the Obsidian status bar to return or stop. End the call to continue by text with your draft preserved. History checkpoints and the final transcript follow existing encryption and automatic-save settings, including Google Web search restrictions. Finish the call before starting or loading another chat. Live does not require speech-popup; API charges apply, and the voice is AI generated.
 

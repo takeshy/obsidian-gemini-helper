@@ -638,6 +638,7 @@ Configure your Google Gemini API key and API plan in Gemini Helper, then select 
 |-------|-------------|
 | Gemini 4 Argon | Efficient frontier reasoning, 1M unified context |
 | Gemini 4 Carbon | Deep reasoning for complex tasks, 1M unified context |
+| Gemini 4 Neon | Fast frontier reasoning, 1M unified context, thinking up to `xhigh` |
 | Gemini 4 Hydrogen | Fast agentic model, 1M unified context, thinking up to `xhigh` |
 | Gemini 3.8 Flash | Fast model, 1M context |
 | Gemini 3.1 Pro Preview | Latest flagship model, 1M context (recommended) |
@@ -647,7 +648,7 @@ Configure your Google Gemini API key and API plan in Gemini Helper, then select 
 | Gemini 3.1 Flash (Image) | Fast, low-cost image generation |
 | Gemini 3.1 Flash Lite (Image) | Fastest, lowest-cost image generation, 1K |
 
-> **Thinking mode:** Choose a model's supported thinking level in the selector beside the model picker. **Gemini 4 Hydrogen** offers `default` / `low` / `medium` / `high` / `xhigh`; `default` uses the API default of `high`. Other supported Gemini models offer levels up to `high`, with `minimal` where available. **Gemini 3.1 Pro** cannot disable thinking, so its lowest level is `low`; Gemma 4 and image models have no thinking selector. The setting is remembered per model, and prompts no longer change the thinking level automatically.
+> **Thinking mode:** Choose a model's supported thinking level in the selector beside the model picker. **Gemini 4 Neon and Hydrogen** offer `default` / `low` / `medium` / `high` / `xhigh`, with `high` as the API default. Other supported Gemini models offer levels up to `high`, with `minimal` where available. **Gemini 3.1 Pro** cannot disable thinking, so its lowest level is `low`. Gemma 4 and image models have no thinking selector. The setting is remembered per model, and prompts no longer change the thinking level automatically.
 
 Gemini 4 Argon and Carbon require a paid API key. Both offer `default` / `low` / `medium` / `high`, with `default` using the API default of `medium`. Gemini 4 models cannot disable thinking; the legacy workflow thinking OFF option uses `low`.
 

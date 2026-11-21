@@ -73,11 +73,19 @@ describe("Gemini reasoning effort", () => {
 
   it("offers per-model effort options", () => {
     expect(getReasoningEffortOptions("gemini-4-hydrogen")).toEqual(["default", "low", "medium", "high", "xhigh"]);
+    expect(getReasoningEffortOptions("gemini-4-neon")).toEqual(["default", "low", "medium", "high", "xhigh"]);
     expect(getReasoningEffortOptions("gemini-3.8-flash")).toEqual(["default", "minimal", "low", "medium", "high"]);
     expect(getReasoningEffortOptions("gemini-3.5-flash-lite")).toEqual(["default", "minimal", "low", "medium", "high"]);
     expect(getReasoningEffortOptions("gemini-3.1-pro-preview")).toEqual(["default", "low", "medium", "high"]);
     expect(getReasoningEffortOptions("gemma-4-31b-it")).toEqual([]);
     expect(getReasoningEffortOptions("gemini-3.1-flash-image")).toEqual([]);
+  });
+
+  it("serializes Neon xhigh on GenerateContent", () => {
+    expect(buildGeminiThinkingConfig("gemini-4-neon", undefined, "xhigh")).toEqual({
+      includeThoughts: true,
+      thinkingLevel: "XHIGH",
+    });
   });
 });
 

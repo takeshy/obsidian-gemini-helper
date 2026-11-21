@@ -6,11 +6,15 @@ import {
   resolveGeminiThinkingLevel as resolveSharedThinkingLevel,
 } from "obsidian-llm-hub-common/core";
 
-// Gemini 4 rejects minimal/thinkingBudget; only Hydrogen supports xhigh. Keep this
-// adapter until the vendored shared library supports these models.
-// https://aistudio.google.com/docs/whats-new-gemini-4-hydrogen
+// Gemini 4 uses thinking levels. Keep this adapter until the vendored shared
+// library supports these models.
 function isGemini4(model: string): boolean {
-  return /^gemini-4-(?:hydrogen|argon|carbon)$/i.test(model);
+  return /^gemini-4-(?:hydrogen|argon|carbon|neon)$/i.test(model);
+}
+
+// https://aistudio.google.com/docs/whats-new-gemini-4-neon#understanding-thinking-levels
+function supportsGemini4Xhigh(model: string): boolean {
+  return /^gemini-4-(?:hydrogen|neon)$/i.test(model);
 }
 
 export function isGeminiThinkingRequired(model: string): boolean {
@@ -19,7 +23,7 @@ export function isGeminiThinkingRequired(model: string): boolean {
 
 export function getGeminiReasoningEffortOptions(model: string, isImageModel = false): ReasoningEffort[] {
   if (isGemini4(model) && !isImageModel) {
-    return model.toLowerCase() === "gemini-4-hydrogen"
+    return supportsGemini4Xhigh(model)
       ? ["default", "low", "medium", "high", "xhigh"]
       : ["default", "low", "medium", "high"];
   }
@@ -39,7 +43,7 @@ export function resolveGeminiThinkingLevel(
       case "high":
         return reasoningEffort;
       case "xhigh":
-        return model.toLowerCase() === "gemini-4-hydrogen" ? reasoningEffort : undefined;
+        return supportsGemini4Xhigh(model) ? reasoningEffort : undefined;
       default:
         return undefined;
     }

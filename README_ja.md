@@ -640,6 +640,7 @@ Gemini HelperでGoogle Gemini APIキーとAPIプランを設定し、Discussion 
 | ------------------------ | ----------------------------------------- |
 | Gemini 4 Argon | 効率的な推論モデル、入出力共通の1Mコンテキスト |
 | Gemini 4 Carbon | 複雑な問題向けの深い推論モデル、入出力共通の1Mコンテキスト |
+| Gemini 4 Neon | 高速な高性能推論モデル、入出力共通の1Mコンテキスト、`xhigh` 思考に対応 |
 | Gemini 4 Hydrogen | 高速なエージェント向けモデル、入出力共通の1Mコンテキスト、`xhigh` 思考に対応 |
 | Gemini 3.8 Flash | 高速モデル、1Mコンテキスト |
 | Gemini 3.1 Pro Preview | 最新のフラッグシップモデル、1Mコンテキスト（推奨） |
@@ -649,7 +650,7 @@ Gemini HelperでGoogle Gemini APIキーとAPIプランを設定し、Discussion 
 | Gemini 3.1 Flash (Image) | 高速・低コストの画像生成 |
 | Gemini 3.1 Flash Lite (Image) | 最速・最安の画像生成、1K |
 
-> **Thinking モード:** モデル選択の隣にあるセレクタで、モデルが対応する思考レベルを選べます。**Gemini 4 Hydrogen** は `default` / `low` / `medium` / `high` / `xhigh` に対応し、`default` は API の既定の `high` を使います。他の対応 Gemini モデルでは `high` まで、対応モデルでは `minimal` も選べます。**Gemini 3.1 Pro** は Thinking を無効化できないため、最低レベルは `low` です。Gemma 4 と画像モデルには思考セレクタはありません。設定はモデルごとに記憶され、メッセージのキーワードで思考レベルが自動的に変わることはなくなりました。
+> **Thinking モード:** モデル選択の隣にあるセレクタで、モデルが対応する思考レベルを選べます。**Gemini 4 Neon と Hydrogen** は `default` / `low` / `medium` / `high` / `xhigh` に対応し、`default` は API の既定の `high` を使います。他の対応 Gemini モデルでは `high` まで、対応モデルでは `minimal` も選べます。**Gemini 3.1 Pro** は Thinking を無効化できないため、最低レベルは `low` です。Gemma 4 と画像モデルには思考セレクタはありません。設定はモデルごとに記憶され、メッセージのキーワードで思考レベルが自動的に変わることはなくなりました。
 
 Gemini 4 Argon と Carbon は有料APIキーが必要です。どちらも `default` / `low` / `medium` / `high` に対応し、`default` は API の既定の `medium` を使います。Gemini 4 モデルは Thinking を無効化できないため、ワークフローの既存の思考OFF指定は `low` として扱います。
 

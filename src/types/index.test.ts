@@ -20,7 +20,7 @@ describe("Gemini 4 Hydrogen", () => {
   });
 });
 
-describe.each(["gemini-4-argon", "gemini-4-carbon"] as const)("%s", (model) => {
+describe.each(["gemini-4-argon", "gemini-4-carbon", "gemini-4-neon"] as const)("%s", (model) => {
   it("is selectable only on the paid API plan", () => {
     expect(isModelAllowedForPlan("paid", model)).toBe(true);
     expect(isModelAllowedForPlan("free", model)).toBe(false);

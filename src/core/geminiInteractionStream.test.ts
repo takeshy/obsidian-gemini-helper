@@ -128,6 +128,8 @@ describe("shared thinking and final-round SDK requests", () => {
     ["gemini-4-hydrogen", true, undefined, "high"],
     ["gemini-4-hydrogen", false, "default", undefined],
     ["gemini-4-hydrogen", false, "xhigh", "xhigh"],
+    ["gemini-4-neon", false, undefined, "low"],
+    ["gemini-4-neon", false, "default", undefined],
     ["gemini-3.8-flash", undefined, undefined, undefined],
     ["gemini-3.8-flash", false, undefined, "low"],
     ["gemini-3.5-flash-lite", false, undefined, "minimal"],
@@ -168,6 +170,7 @@ describe("Gemini 4 tool calling", () => {
     ["gemini-4-hydrogen", "xhigh"],
     ["gemini-4-argon", "medium"],
     ["gemini-4-carbon", "high"],
+    ["gemini-4-neon", "xhigh"],
   ] as const)("keeps %s thinking and server conversation state across a tool round", async (model, effort) => {
     const execute = vi.fn().mockResolvedValue("note contents");
     create.mockResolvedValueOnce(events([

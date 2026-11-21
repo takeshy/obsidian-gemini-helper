@@ -16,6 +16,7 @@ Free API keys support basic chat, vault operations, web search, limited RAG sync
 
 - Gemini 4 Argon - efficient frontier reasoning with a unified 1M-token input, thinking, and output context window.
 - Gemini 4 Carbon - deep reasoning for complex tasks with a unified 1M-token input, thinking, and output context window.
+- Gemini 4 Neon - fast frontier reasoning with a unified 1M-token context window and thinking through `xhigh`.
 - Gemini 4 Hydrogen - fast agentic model with a unified 1M-token input, thinking, and output context window; supports thinking through `xhigh`.
 - Gemini 3.8 Flash - fast 1M-context model.
 - Gemini 3.1 Pro Preview - flagship model with 1M context; recommended for highest quality.
@@ -37,9 +38,9 @@ Free API keys support basic chat, vault operations, web search, limited RAG sync
 
 # Thinking Mode
 
-Choose a model's supported thinking level in the selector beside the model picker. Gemini 4 Hydrogen offers `default`, `low`, `medium`, `high`, and `xhigh`; `default` uses the API default of `high`. Hydrogen does not support `minimal` or disabling thinking; the legacy workflow thinking OFF option uses `low`. Other supported Gemini models offer levels up to `high`, with `minimal` where available. Gemini 3.1 Pro cannot disable thinking, so its lowest level is `low`. Gemma 4 and image models have no thinking selector. The level is remembered per model, and message keywords no longer change it.
+Choose a model's supported thinking level in the selector beside the model picker. Gemini 4 Neon and Hydrogen offer `default`, `low`, `medium`, `high`, and `xhigh`, with `high` as the API default. The legacy workflow thinking OFF option uses `low` for both models. Other supported Gemini models offer levels up to `high`, with `minimal` where available. Gemini 3.1 Pro cannot disable thinking, so its lowest level is `low`. Gemma 4 and image models have no thinking selector. The level is remembered per model, and message keywords no longer change it.
 
-See the [official Gemini 4 Hydrogen guide](https://aistudio.google.com/docs/whats-new-gemini-4-hydrogen) for model capabilities and thinking levels.
+See the official model guides for capabilities and thinking levels. [Gemini 4 Neon](https://aistudio.google.com/docs/whats-new-gemini-4-neon), [Gemini 4 Hydrogen](https://aistudio.google.com/docs/whats-new-gemini-4-hydrogen)
 
 Gemini 4 Argon and Carbon require a paid API key. Both offer `default`, `low`, `medium`, and `high`; `default` uses the API default of `medium`. Neither supports `minimal`, `xhigh`, or disabling thinking. The legacy workflow thinking OFF option uses `low` for both models. See the official [Argon guide](https://aistudio.google.com/docs/whats-new-gemini-4-argon) and [Carbon guide](https://aistudio.google.com/docs/whats-new-gemini-4-carbon).
 

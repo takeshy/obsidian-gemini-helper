@@ -340,6 +340,7 @@ export type ModelType =
   | "gemini-4-hydrogen"
   | "gemini-4-argon"
   | "gemini-4-carbon"
+  | "gemini-4-neon"
   | "gemini-3.8-flash"
   | "gemini-3.1-pro-preview"
   | "gemini-3.1-pro-preview-customtools"
@@ -373,6 +374,12 @@ export const PAID_MODELS: ModelInfo[] = [
     name: "gemini-4-carbon",
     displayName: "Gemini 4 Carbon",
     description: "Deep reasoning model for complex tasks with 1M unified context",
+    acceptsPdf: true,
+  },
+  {
+    name: "gemini-4-neon",
+    displayName: "Gemini 4 Neon",
+    description: "Fast frontier reasoning model with 1M unified context and xhigh thinking",
     acceptsPdf: true,
   },
   {
